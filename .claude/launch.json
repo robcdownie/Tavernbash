@@ -5,8 +5,7 @@
       "name": "bazaar-brawler",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "5199"],
-      "port": 5199,
-      "cwd": "C:\\Robbie\\bazaar-brawler"
+      "port": 5199
     }
   ]
 }
