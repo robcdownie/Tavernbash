@@ -50,7 +50,11 @@ test('parity: data tables identical to the original',()=>{
   const j=x=>JSON.parse(JSON.stringify(x));
   assert.deepEqual(j(RSTAT),j(ORIG.RSTAT));
   assert.deepEqual(j(RINTEG),j(ORIG.RINTEG));
-  assert.deepEqual(j(ITEMS),j(ORIG.ITEMS));
+  /* Phase 5 adds unique wares the original never sold; every item the
+     original did ship must stay byte-identical, and uniques must never
+     enter the shop or rival pools, which keeps the fight parity above */
+  for(const k of Object.keys(ORIG.ITEMS)){assert.deepEqual(j(ITEMS[k]),j(ORIG.ITEMS[k]),'item '+k);}
+  for(const k of Object.keys(ITEMS)){if(!(k in ORIG.ITEMS))assert.ok(ITEMS[k].unique,'new item '+k+' must be flagged unique');}
   /* Phase 5 adds monsters the original never shipped; every monster the
      original did ship must stay byte-identical */
   for(const k of Object.keys(ORIG.MONSTERS)){assert.deepEqual(j(MONSTERS[k]),j(ORIG.MONSTERS[k]),'monster '+k);}

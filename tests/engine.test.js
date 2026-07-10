@@ -44,7 +44,7 @@ const BAND2=['tower','mace','crossbow','bandage'];
 const BAND3=['hammer','aegis','salve','fangs'];
 const CURVE={imp:[2,BAND1],rats:[2,BAND1],ghul:[2,BAND1],samovar:[2,BAND1],
              lamassu:[5,BAND2],kark:[5,BAND2],collector:[5,BAND2,5],
-             ifrit:[9,BAND3],qareen:[9,BAND3]};
+             ifrit:[9,BAND3],qareen:[9,BAND3],shahmaran:[9,BAND3]};
 for(const mid of Object.keys(CURVE)){
   test('monster winnability: '+MONSTERS[mid].n+' loses to an on-curve board',()=>{
     const [round,ids,gold]=CURVE[mid];
@@ -56,6 +56,18 @@ for(const mid of Object.keys(CURVE)){
 test('Karkadann kills an undercooked one-dagger board',()=>{
   const F=monsterDuel('kark',5,['dagger']);
   assert.equal(F.winner,'b','one dagger should not survive the Gore Horn');
+});
+
+test('unique wares never appear in rival boards',()=>{
+  for(let round=1;round<=12;round++){
+    for(let s=0;s<6;s++){
+      const rng=mulberry(round*777+s);
+      const r=genRival(round,PERSONAS[s%PERSONAS.length],rng,ANONE);
+      for(const it of r.board){
+        assert.ok(!ITEMS[it.id].unique,'rival rolled unique ware '+it.id+' (round '+round+')');
+      }
+    }
+  }
 });
 
 test('fusion: 3 daggers forge to 1 Silver Medium',()=>{

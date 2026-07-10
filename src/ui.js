@@ -611,7 +611,7 @@ function income(){
 function rollShop(){
   const keep=G.shop?G.shop.filter(function(w){return w.free&&!w.bought;}):[];
   const n=G.A.shopN;
-  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier);});
+  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique;});
   const out=[];
   for(let k=0;k<n;k++){
     let tot=0;

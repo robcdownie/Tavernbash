@@ -26,6 +26,7 @@ export const ART={
  "g-salve":"art/items/salve.png",
  "g-sanctum":"art/items/sanctum.png",
  "g-serpent":"art/items/serpent.png",
+ "g-serpentcrown":"art/items/serpentcrown.png",
  "g-sword":"art/items/sword.png",
  "g-torch":"art/items/torch.png",
  "g-tower":"art/items/tower.png",

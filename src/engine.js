@@ -91,7 +91,7 @@ export function genRival(round,persona,rng,A){
   const slots=4+tier;
   let budget=9+round*5.5;
   const scale=1+Math.max(0,round-5)*0.03;
-  const ids=Object.keys(ITEMS).filter(id=>gateOK(ITEMS[id].tier,tier));
+  const ids=Object.keys(ITEMS).filter(id=>gateOK(ITEMS[id].tier,tier)&&!ITEMS[id].unique);
   const board=[];
   if(persona.arch==="shield"&&budget>=COST[1]){board.push(makeItem("brassbuckler"));budget-=COST[1];}
   let guard=0;

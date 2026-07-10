@@ -27,8 +27,8 @@ import {writeManifest} from './make-art-manifest.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-const ITEM_IDS = ['dagger','sword','fangs','serpent','mace','crossbow','hammer','vial','venom','torch','bomb','magma','buckler','brassbuckler','barricade','tower','aegis','bandage','salve','chalice','sanctum','purse','ledger','whetstone','hourglass','adren'];
-const MONSTER_IDS = ['imp','rats','ghul','lamassu','kark','debt','ifrit','qareen'];
+const ITEM_IDS = ['dagger','sword','fangs','serpent','mace','crossbow','hammer','vial','venom','torch','bomb','magma','buckler','brassbuckler','barricade','tower','aegis','bandage','salve','chalice','sanctum','purse','ledger','whetstone','hourglass','adren','serpentcrown'];
+const MONSTER_IDS = ['imp','rats','ghul','lamassu','kark','debt','ifrit','qareen','samovar','shahmaran'];
 const PORTRAIT_IDS = ['p0','p1','p2','p3','p4','p5','p6','p7'];
 const FRAME_METALS = ['bronze','silver','gold','diamond'];
 
@@ -58,6 +58,10 @@ export function targetFor(filename) {
      the ornate one, buckler alone means the wooden one */
   if (tokens.has('brass') && tokens.has('buckler')) {
     return {dir:'items', name:'brassbuckler.png', kind:'icon'};
+  }
+  /* serpent plus crown means the unique crown, serpent alone the blade */
+  if (tokens.has('serpent') && tokens.has('crown')) {
+    return {dir:'items', name:'serpentcrown.png', kind:'icon'};
   }
   if (hits.length === 1) return hits[0];
   return hits.length ? {ambiguous: hits.map(h => h.name)} : null;
