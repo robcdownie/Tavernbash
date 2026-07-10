@@ -27,6 +27,8 @@ test('ingest matcher: id tokens in messy filenames map to the right target', () 
     ['prism aura glass.png', 'items', 'prism.png'],
     ['roc egg nest.png', 'monsters', 'roc.png'],
     ['rocegg ware speckled.png', 'items', 'rocegg.png'],
+    ['simurgh fledgling.png', 'monsters', 'simurgh.png'],
+    ['simurgh feather glowing.png', 'items', 'feather.png'],
     ['weeping stone charm.png', 'items', 'weepingstone.png'],
     ['rust ghul cleaver.png', 'monsters', 'ghul.png'],
     ['scalded samovar angry.png', 'monsters', 'samovar.png'],

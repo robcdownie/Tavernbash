@@ -44,7 +44,7 @@ const BAND2=['tower','mace','crossbow','bandage'];
 const BAND3=['hammer','aegis','salve','fangs'];
 const CURVE={imp:[2,BAND1],rats:[2,BAND1],ghul:[2,BAND1],samovar:[2,BAND1],monkey:[2,BAND1],
              lamassu:[5,BAND2],kark:[5,BAND2],collector:[5,BAND2,5],nasnas:[5,BAND2],matron:[5,BAND2],icebox:[5,BAND2],peri:[5,BAND2],
-             ifrit:[9,BAND3],qareen:[9,BAND3],shahmaran:[9,BAND3],marid:[9,BAND3],roc:[9,BAND3]};
+             ifrit:[9,BAND3],qareen:[9,BAND3],shahmaran:[9,BAND3],marid:[9,BAND3],roc:[9,BAND3],simurgh:[9,BAND3]};
 for(const mid of Object.keys(CURVE)){
   test('monster winnability: '+MONSTERS[mid].n+' loses to an on-curve board',()=>{
     const [round,ids,gold]=CURVE[mid];
@@ -107,6 +107,31 @@ test('Flying Charm: neighbors take wing at fight start, the charm itself stays g
   assert.equal(items[0].flying,true,'left neighbor flies');
   assert.equal(items[2].flying,true,'right neighbor flies');
   assert.equal(items[1].flying,false,'the charm is the anchor');
+});
+
+test('haste-all: Preen quickens every other item on the board',()=>{
+  const build=(withPreen)=>{
+    const items=[{nm:'Tail Feather',g:'g-feather',size:1,cd:2000,timer:0,alive:true,integ:500,maxI:500,
+      fx:{dmg:8},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,crit:0,rattle:null,selfdestruct:false,uid:931}];
+    if(withPreen){items.push({nm:'Preen',g:'g-hatchling',size:2,cd:6000,timer:0,alive:true,integ:500,maxI:500,
+      fx:{hasteAll:2},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,crit:0,rattle:null,selfdestruct:false,uid:932});}
+    return createFight({a:{nm:'s',hp:9000,items:items,lifesteal:0},
+                        b:{nm:'d',hp:9000,items:[],lifesteal:0},stormAt:999000,seed:2,playerIs:null});
+  };
+  const count=(F)=>{let fires=0,hastes=0;while(F.t<13000){for(const e of F.step(50)){
+    if(e.k==='fire'&&e.side==='a'&&F.a.items[e.i].nm==='Tail Feather'){fires++;}
+    if(e.k==='haste'){hastes++;assert.equal(e.i,0,'only the feather gets quickened, never the preener itself');}
+  }}return {fires:fires,hastes:hastes};};
+  const plain=count(build(false)),preened=count(build(true));
+  assert.equal(plain.hastes,0);
+  assert.equal(preened.hastes,2,'Preen fired at 6 s and 12 s');
+  assert.ok(preened.fires>plain.fires,'the feather swings more under Preen: '+preened.fires+' vs '+plain.fires);
+});
+
+test('Simurgh Feather: a weapon that flies on its own',()=>{
+  const items=playerFightItems([makeItem('feather',0)],{},ANONE,1);
+  assert.equal(items[0].flying,true);
+  assert.equal(items[0].fx.dmg,8);
 });
 
 test('Roc Egg: left alone, the egg hatches itself at exactly 15 s',()=>{

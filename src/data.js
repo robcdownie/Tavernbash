@@ -46,7 +46,9 @@ export const ITEMS={
  prism:{n:"Glass Prism",size:1,tier:2,cat:"util",cd:0,critAll:0.2,unique:true,d:"Peri's bounty. Your weapons strike double a fifth of the time."},
  rocegg:{n:"Roc Egg",size:2,tier:3,cat:"dmg",cd:0,unique:true,
    rattle:{spawn:{nm:"Roc Hatchling",g:"g-hatchling",cd:2,integ:20,fx:{dmg:11}}},
-   d:"Roc bounty. When it breaks, something angry gets out."}
+   d:"Roc bounty. When it breaks, something angry gets out."},
+ feather:{n:"Simurgh Feather",size:1,tier:2,cat:"dmg",cd:2,fx:{dmg:8},flying:true,unique:true,
+   d:"Simurgh bounty. It fights from the air; no weapon reaches it."}
 };
 /* ============ TRINKETS ============ */
 export const TRINKETS=[
@@ -137,7 +139,10 @@ export const MONSTERS={
  roc:{n:"Roc Egg",band:3,hp:250,tag:"dmg",glyph:"m-roc",fl:"Do not tap the shell.",
    bounty:{items:["rocegg"]},
    board:[{nm:"The Egg",g:"g-rocegg",size:3,cd:15,integ:80,fx:{},selfdestruct:true,
-     rattle:{spawn:{nm:"Roc Hatchling",g:"g-hatchling",cd:2,integ:30,fx:{dmg:22}}}}]}
+     rattle:{spawn:{nm:"Roc Hatchling",g:"g-hatchling",cd:2,integ:30,fx:{dmg:22}}}}]},
+ simurgh:{n:"Simurgh Fledgling",band:3,hp:300,tag:"dmg",glyph:"m-simurgh",fl:"Half fledged, twice quick.",
+   bounty:{items:["feather"]},
+   board:[{nm:"Tail Feather",g:"g-feather",size:1,cd:2,integ:12,fx:{dmg:8}},{nm:"Preen",g:"g-hatchling",size:2,cd:6,integ:24,fx:{hasteAll:2}}]}
 };
-export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc"]};
+export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc","simurgh"]};
 export const MONCHIP={1:2,2:4,3:6};

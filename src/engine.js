@@ -52,6 +52,7 @@ export function playerFightItems(board,T,A,scale){
     if(def.fx&&def.fx.shield){fx.shield=Math.max(1,Math.round(def.fx.shield*rs*(T.shieldMul||1)*fd));}
     if(def.fx&&def.fx.heal){fx.heal=Math.max(1,Math.round(def.fx.heal*rs*(T.healMul||1)*fd));}
     if(def.fx&&def.fx.haste){fx.haste=def.fx.haste*rs;}
+    if(def.fx&&def.fx.hasteAll){fx.hasteAll=def.fx.hasteAll;}
     return {nm:def.n,g:"g-"+it.id,size:it.size,rarity:it.rarity,cat:def.cat,tier:def.tier,
       cd:def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd)):0,
       timer:0,alive:true,integ:integOf(it),maxI:integOf(it),
@@ -72,6 +73,7 @@ export function monsterFightItems(mid,ctx){
     if(b.fx.shield){fx.shield=Math.round(b.fx.shield*gild);}
     if(b.fx.heal){fx.heal=Math.round(b.fx.heal*gild);}
     if(b.fx.freeze){fx.freeze=b.fx.freeze;}
+    if(b.fx.hasteAll){fx.hasteAll=b.fx.hasteAll;}
     return {nm:b.nm,g:b.g,size:b.size,rarity:ctx.gilded?2:0,cat:"dmg",tier:M.band,
       cd:b.cd>0?Math.round(b.cd*1000*A.cdMul):0,timer:0,alive:true,
       integ:Math.round(b.integ*gild),maxI:Math.round(b.integ*gild),
@@ -203,6 +205,11 @@ export function createFight(cfg){
     if(fx.burn){D.burn+=fx.burn;ev.push({k:"burn",side:D.key,amt:fx.burn,val:D.burn});}
     if(fx.haste){
       [idx-1,idx+1].forEach(j=>{if(j>=0&&j<S.items.length&&S.items[j].alive&&S.items[j].cd>0){S.items[j].timer+=fx.haste*1000;ev.push({k:"haste",side:S.key,i:j});}});
+    }
+    if(fx.hasteAll){
+      for(let j=0;j<S.items.length;j++){
+        if(j!==idx&&S.items[j].alive&&S.items[j].cd>0){S.items[j].timer+=fx.hasteAll*1000;ev.push({k:"haste",side:S.key,i:j});}
+      }
     }
     if(it.charge){
       const tj=it.charge.t;
