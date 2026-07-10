@@ -6,6 +6,70 @@ import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,usedCells,
 import {ic} from './art.js';
 /* ============ SESSION + UI PRIMITIVES ============ */
 let G=null;let RM=false;const BEST={place:null,round:0};
+/* ============ SAVES ============ */
+const SAVE_VERSION=1;
+const SAVE_KEY='bb-run', BEST_KEY='bb-best';
+function store(){try{return window.localStorage;}catch(e){return null;}}
+function persistBest(){const s=store();if(!s)return;try{s.setItem(BEST_KEY,JSON.stringify({v:SAVE_VERSION,place:BEST.place,round:BEST.round}));}catch(e){}}
+function loadBest(){const s=store();if(!s)return;try{const d=JSON.parse(s.getItem(BEST_KEY)||'null');if(d&&d.v===SAVE_VERSION){BEST.place=d.place;BEST.round=d.round;}}catch(e){}}
+function clearRun(){const s=store();if(!s)return;try{s.removeItem(SAVE_KEY);}catch(e){}}
+function snapshotRun(){
+  const s=store();if(!s||!G||!G.door)return;
+  const item=function(it){return {id:it.id,rarity:it.rarity,size:it.size};};
+  const d={v:SAVE_VERSION,seed:G.seed,rngSeed:(G.seed+G.round*1013904223+7)>>>0,
+    round:G.round,gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,fightN:G.fightN,
+    anom:G.anom.id,tags:G.tags.slice(),usedMon:Object.assign({},G.usedMon),
+    board:G.board.map(item),shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought};}),
+    trinkets:G.trinkets.map(function(t){return t.id;}),
+    door:{mid:G.door.mid,gilded:G.door.gilded,safe:G.door.safe,done:G.door.done,result:G.door.result},
+    departed:G.departed?{board:G.departed.board.map(item),nm:G.departed.nm,p:G.departed.p}:null,
+    players:G.players.map(function(p){return {i:p.i,hp:p.hp,alive:p.alive,shrine:p.shrine,place:p.place,persona:p.persona?p.persona.n:null};})};
+  try{s.setItem(SAVE_KEY,JSON.stringify(d));}catch(e){}
+}
+function loadRun(){
+  const s=store();if(!s)return null;
+  try{
+    const d=JSON.parse(s.getItem(SAVE_KEY)||'null');
+    if(!d||d.v!==SAVE_VERSION){if(d)s.removeItem(SAVE_KEY);return null;}
+    return d;
+  }catch(e){return null;}
+}
+function reviveItem(b){const it=makeItem(b.id,b.rarity);it.size=b.size;return it;}
+function restoreRun(d){
+  const anom=ANOMALIES.filter(function(a){return a.id===d.anom;})[0]||ANOMALIES[0];
+  G={seed:d.seed,rng:mulberry(d.rngSeed),round:d.round,anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.tags,
+     players:[],board:d.board.map(reviveItem),
+     shop:d.shop.slice(),trinkets:d.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean),
+     T:null,gold:d.gold,tier:d.tier,tierCost:d.tierCost,relicIncome:d.relicIncome,
+     door:d.door,sel:null,phase:'draft',fightN:d.fightN,
+     departed:d.departed?{board:d.departed.board.map(reviveItem),nm:d.departed.nm,p:d.departed.p}:null,
+     feed:[],usedMon:d.usedMon||{},fiv:null,burned:0,enteredGold:0,
+     otherPairs:[],pendOpp:null,pendFoe:null,F:null,you:null};
+  for(let k=0;k<d.players.length;k++){
+    const sp=d.players[k];
+    if(sp.i===0){G.players.push({i:0,n:'You',short:'You',p:'p-0',hp:sp.hp,alive:sp.alive,shrine:sp.shrine,place:sp.place});}
+    else{
+      const per=PERSONAS.filter(function(x){return x.n===sp.persona;})[0]||PERSONAS[sp.i-1];
+      G.players.push({i:sp.i,n:per.n,short:shortName(per.n),p:per.p,hp:sp.hp,alive:sp.alive,shrine:sp.shrine,persona:per,cur:null,lastCur:null,place:sp.place});
+    }
+  }
+  G.you=G.players[0];
+  computeT();
+  renderAll();
+  toast('Run resumed at round '+G.round);
+}
+function openContinue(d){
+  const o=ovOpen('<div class="card"><div class="rays"></div>'
+   +'<div class="kick gold">The Lantern Still Burns</div>'
+   +ic('g-lantern','bigic')
+   +'<h2 class="big">Round '+d.round+' Awaits</h2>'
+   +'<p>Your stall from last time is still standing.</p>'
+   +'<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
+   +'<button class="btn gold" id="ctGo">Continue Run</button>'
+   +'<button class="btn" id="ctNew">New Lobby</button></div></div>');
+  o.querySelector('#ctGo').onclick=function(){ovClose(o);restoreRun(d);};
+  o.querySelector('#ctNew').onclick=function(){ovClose(o);clearRun();newLobby();};
+}
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function ord(n){const s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
@@ -577,8 +641,8 @@ function nextRound(){
   G.gold=income();
   rollShop();rollDoor();
   G.sel=null;G.phase='draft';
-  if(G.round===5||G.round===8){openTrinkets(function(){renderAll();});}
-  else{renderAll();}
+  if(G.round===5||G.round===8){openTrinkets(function(){snapshotRun();renderAll();});}
+  else{snapshotRun();renderAll();}
 }
 /* ============ TRINKETS ============ */
 function trinketOffers(){
@@ -626,6 +690,7 @@ function handleYourDeath(cont){
     G.you.alive=false;G.you.hp=0;
     if(BEST.place===null||place<BEST.place)BEST.place=place;
     if(G.round>BEST.round)BEST.round=G.round;
+    persistBest();clearRun();
     renderRivals();
     endScreen(place);
   }
@@ -689,6 +754,7 @@ function championScreen(){
   G.you.place=1;
   if(BEST.place===null||BEST.place>1)BEST.place=1;
   if(G.round>BEST.round)BEST.round=G.round;
+  persistBest();clearRun();
   const o=ovOpen('<div class="card"><div class="rays"></div><div class="coinrain" id="crn2"></div>'
    +'<div class="kick gold">Last Stall Standing</div>'
    +ic('g-crown','bigic')
@@ -753,5 +819,8 @@ function initEmbers(){
 export function boot(){
   RM=(typeof matchMedia!=='undefined')&&matchMedia('(prefers-reduced-motion: reduce)').matches;
   initEmbers();
-  newLobby();
+  loadBest();
+  const d=loadRun();
+  if(d&&d.round>=1){openContinue(d);}
+  else{newLobby();}
 }

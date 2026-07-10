@@ -1,0 +1,15 @@
+{
+  "name": "Bazaar Brawler",
+  "short_name": "Bazaar",
+  "description": "Night market duels. An auto-battler of stalls, storms, and unspent gold.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1c1410",
+  "theme_color": "#1c1410",
+  "icons": [
+    {"src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
