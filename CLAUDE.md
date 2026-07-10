@@ -4,7 +4,7 @@ A mobile auto-battler set in a Persian night market. This repo is self-contained
 
 ## Source of truth
 
-Read `handoff-bazaar-brawler-2026-07-09.md` in full before making changes. It carries the rules spec, data tables, the phased mission, the art direction, and the decisions not to re-litigate. Phases 0 through 4 (module structure, tests, PWA, saves, Netlify deploy, painted-art pipeline, Pixi particles, synthesized sound) are complete. Next up: Phase 5, content, starting with the engine-ready monsters in the backlog. Painted art batches can land any time: drop PNGs into `public/art/` per the naming rules in `scripts/make-art-manifest.js`, run `npm run art`, and the game picks them up.
+Read `handoff-bazaar-brawler-2026-07-09.md` in full before making changes. It carries the rules spec, data tables, the phased mission, the art direction, and the decisions not to re-litigate. Phases 0 through 4 are fully complete: module structure, tests, PWA, saves, Netlify deploy, the painted-art pipeline with all 50 assets live (26 items, 8 monsters, 8 portraits, rarity frames wired as 9-slice borders, board, background), Pixi particles, synthesized sound effects, and the two Suno music loops. Next up: Phase 5, content, starting with the engine-ready monsters in the backlog (Scalded Samovar, Shahmaran, Marid of the Cistern, Nasnas), one JSON block per version. Painted art batches can land any time: drop PNGs into `public/art/` per the naming rules in `scripts/make-art-manifest.js`, run `npm run art`, and the game picks them up.
 
 ## Layout
 
@@ -21,7 +21,7 @@ Read `handoff-bazaar-brawler-2026-07-09.md` in full before making changes. It ca
 | `public/music/` | Suno tracks drop here; the ingest script files any audio named with a market or battle token. |
 | `src/art.js` | Sprite access point. Renders the painted PNG for an id when the manifest has one, else the SVG symbol. Same svg wrapper both ways, so CSS never changes. |
 | `src/art-manifest.js` | Generated map of glyph id to painted PNG path. Never edit by hand; `npm run art` rebuilds it (also runs before dev, build, and test). |
-| `public/art/` | Painted art drops here: `items/{id}.png`, `monsters/{glyph suffix}.png` (the Debt Collector is `debt.png`), `portraits/p0.png` to `p7.png`, plus `frames`, `board`, `bg` for CSS art. |
+| `public/art/` | Painted art drops here: `items/{id}.png`, `monsters/{glyph suffix}.png` (the Debt Collector is `debt.png`), `portraits/p0.png` to `p7.png`, plus `frames`, `board`, `bg`. All 50 slots are filled. Rarity frames render as 9-slice border-image overlays on cells and ware cards via the `art-frames` class that `applyBigArt` sets. |
 | `public/` | Manifest, service worker, generated icons. Bump `CACHE_V` in `sw.js` and `SAVE_VERSION` in `ui.js` when a deploy must invalidate old state. |
 | `scripts/make-icons.js` | Regenerates the placeholder icon set. |
 | `scripts/make-art-manifest.js` | Scans `public/art` and writes `src/art-manifest.js`. Filename rules are documented at the top of the file. |

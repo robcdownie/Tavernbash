@@ -136,6 +136,15 @@
   .cell .fuse{position:absolute;top:2px;left:3px;font-size:8px;font-weight:800;color:var(--brass);z-index:2;letter-spacing:.5px;}
   .cell .bw{position:absolute;top:2px;right:3px;width:11px;height:11px;color:var(--verd);z-index:2;}
   /* rarity */
+  /* painted rarity frames: overlays fed by applyBigArt when all four exist */
+  .art-frames .cell.it::before,.art-frames .cell.f::before{content:"";position:absolute;inset:-3px;pointer-events:none;z-index:2;
+    border:8px solid transparent;border-image-source:var(--frame-bronze);border-image-slice:135;border-image-width:8px;border-image-repeat:stretch;}
+  .art-frames .cell.rar1::before{border-image-source:var(--frame-silver);}
+  .art-frames .cell.rar2::before{border-image-source:var(--frame-gold);}
+  .art-frames .cell.rar3::before{border-image-source:var(--frame-diamond);}
+  .art-frames .ware::before{content:"";position:absolute;inset:-2px;pointer-events:none;z-index:2;
+    border:10px solid transparent;border-image-source:var(--frame-bronze);border-image-slice:135;border-image-width:10px;border-image-repeat:stretch;}
+  .art-frames .cell.it,.art-frames .cell.f,.art-frames .ware{border-color:transparent;}
   .cell.rar1{border-color:#9fb0c0;box-shadow:inset 0 0 0 1px rgba(200,215,230,.28), inset 0 1px 0 rgba(255,255,255,.05);}
   .cell.rar2{border-color:var(--brass);box-shadow:inset 0 0 0 1px rgba(244,207,124,.45), 0 0 12px rgba(216,162,74,.28);}
   .cell.rar2::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,236,170,.22) 45%,transparent 60%);

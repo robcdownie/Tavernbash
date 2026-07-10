@@ -30,4 +30,11 @@ export function applyBigArt(doc) {
     d.documentElement.style.setProperty('--board-art', 'url(' + ART['board-wood'] + ')');
     d.documentElement.classList.add('art-board');
   }
+  const metals = ['bronze', 'silver', 'gold', 'diamond'];
+  if (metals.every(function (m) { return ART['frame-' + m]; })) {
+    metals.forEach(function (m) {
+      d.documentElement.style.setProperty('--frame-' + m, 'url(' + ART['frame-' + m] + ')');
+    });
+    d.documentElement.classList.add('art-frames');
+  }
 }
