@@ -125,6 +125,13 @@ export function genRival(round,persona,rng,A){
   });
   return {items:playerFightItems(board,{},A,scale),board:board,tier:tier};
 }
+/* Passive regen carried by board items (unique wares only, so rival
+   generation and fight parity never see it). Scales with rarity. */
+export function boardRegen(board){
+  let r=0;
+  for(const it of board){const d=ITEMS[it.id];if(d.regen){r+=Math.round(d.regen*RSTAT[it.rarity]);}}
+  return r;
+}
 /* ============ THE FIGHT ENGINE ============ */
 export function pickTarget(items,mode){
   const alive=[];for(let i=0;i<items.length;i++){if(items[i].alive){alive.push(i);}}

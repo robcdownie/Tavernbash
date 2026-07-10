@@ -40,7 +40,8 @@ export const ITEMS={
  hourglass:{n:"Brass Hourglass",size:2,tier:2,cat:"util",cd:4,fx:{haste:0.8},d:"Hastes its neighbors on a rhythm."},
  adren:{n:"Adrenaline Draught",size:2,tier:3,cat:"util",cd:0,cdMul:0.88,d:"Your whole stall runs faster."},
  serpentcrown:{n:"Serpent Crown",size:2,tier:3,cat:"poison",cd:5,fx:{poison:4},unique:true,d:"Shahmaran's bounty. No stall sells it."},
- tidewall:{n:"Tide Wall",size:3,tier:3,cat:"shield",cd:6,fx:{shield:25},unique:true,d:"Marid's bounty. A wall of standing water."}
+ tidewall:{n:"Tide Wall",size:3,tier:3,cat:"shield",cd:6,fx:{shield:25},unique:true,d:"Marid's bounty. A wall of standing water."},
+ weepingstone:{n:"Weeping Stone",size:1,tier:2,cat:"heal",cd:0,regen:1,unique:true,d:"Sandling's bounty. Knits 1 fight health a second."}
 };
 /* ============ TRINKETS ============ */
 export const TRINKETS=[
@@ -115,7 +116,10 @@ export const MONSTERS={
    board:[{nm:"Half Buckler",g:"g-buckler",size:1,cd:4,integ:14,fx:{shield:20}},{nm:"Half Dagger",g:"g-dagger",size:1,cd:3,integ:14,fx:{dmg:12}},{nm:"Half Torch",g:"g-torch",size:1,cd:3,integ:14,fx:{burn:6}},{nm:"Half Vial",g:"g-vial",size:1,cd:3,integ:14,fx:{poison:4}},{nm:"Half Bandage",g:"g-bandage",size:1,cd:4,integ:14,fx:{heal:24}}]},
  matron:{n:"Ghul Matron",band:2,hp:160,tag:"poison",glyph:"m-matron",fl:"She mends as fast as you can cut.",regen:2,
    bounty:{items:["vial","vial"]},
-   board:[{nm:"Venom Kiss",g:"g-serpent",size:2,cd:4,integ:24,fx:{poison:3}}]}
+   board:[{nm:"Venom Kiss",g:"g-serpent",size:2,cd:4,integ:24,fx:{poison:3}}]},
+ sandling:{n:"Sandling",band:1,hp:90,tag:"heal",glyph:"m-sandling",fl:"It does nothing. Then the sand does everything.",regen:1,stormAt:12,
+   bounty:{items:["weepingstone"]},
+   board:[]}
 };
-export const MONBAND={1:["imp","rats","ghul","samovar"],2:["lamassu","kark","collector","nasnas","matron"],3:["ifrit","qareen","shahmaran","marid"]};
+export const MONBAND={1:["imp","rats","ghul","samovar","sandling"],2:["lamassu","kark","collector","nasnas","matron"],3:["ifrit","qareen","shahmaran","marid"]};
 export const MONCHIP={1:2,2:4,3:6};

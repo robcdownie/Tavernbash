@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createFight,runHeadless,makeItem,fuseScan,genRival,playerFightItems,monsterSide,
-        fightHP,stormAt,mulberry} from '../src/engine.js';
+        fightHP,stormAt,mulberry,boardRegen} from '../src/engine.js';
 import {ANONE,PERSONAS,ITEMS,MONSTERS} from '../src/data.js';
 
 function duel(a,b,round,seed,playerIs){
@@ -73,6 +73,23 @@ test('regen: knits fight health each second, never past the cap, never from the 
 test('Ghul Matron knits 2 a second, 3 when gilded',()=>{
   assert.equal(monsterSide('matron',{round:5,gold:0,A:ANONE,gilded:false}).regen,2);
   assert.equal(monsterSide('matron',{round:5,gold:0,A:ANONE,gilded:true}).regen,3);
+});
+
+test('Sandling: no weapons, 1 regen, falls on curve before its early storm decides',()=>{
+  const foe=monsterSide('sandling',{round:2,gold:0,A:ANONE,gilded:false});
+  assert.equal(foe.hp,90);
+  assert.equal(foe.regen,1);
+  assert.equal(foe.items.length,0,'the Sandling carries no weapons');
+  const ref=refSide(BAND1,2);
+  const F=runHeadless(createFight({a:ref.side,b:foe,stormAt:12000,seed:42,playerIs:'a'}));
+  assert.equal(F.winner,'a','on-curve board beats the Sandling under the 12 s storm');
+  assert.ok(F.t<=20000,'decided close to the early storm, was '+(F.t/1000)+'s');
+});
+
+test('Weeping Stone: passive regen for the player, scaling with rarity',()=>{
+  assert.equal(boardRegen([makeItem('weepingstone',0)]),1,'bronze knits 1');
+  assert.equal(boardRegen([makeItem('weepingstone',1)]),2,'silver knits 2');
+  assert.equal(boardRegen([makeItem('dagger',0)]),0,'ordinary wares knit nothing');
 });
 
 test('unique wares never appear in rival boards',()=>{

@@ -2,7 +2,7 @@
 import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,BANDN,BANDC,ANONE,
         ITEMS,TRINKETS,ANOMALIES,PERSONAS,MONSTERS,MONBAND,MONCHIP} from './data.js';
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,usedCells,
-        playerFightItems,monsterSide,genRival,createFight,runHeadless} from './engine.js';
+        playerFightItems,monsterSide,genRival,createFight,runHeadless,boardRegen} from './engine.js';
 import {ic} from './art.js';
 import {fxHit,fxDestroy,fxForge,fxCoinRain,fxStorm} from './fx.js';
 import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxToggle,sfxMuted} from './sfx.js';
@@ -210,6 +210,7 @@ function doorsHTML(){
   const mirrorNote=(M.special==='mirror')?'<div class="risk" style="color:var(--dim)">It copies your stall at 85% strength.</div>':'';
   const goldNote=(M.special==='gold')?'<div class="risk" style="color:var(--dim)">Its health and blade grow with your unspent gold.</div>':'';
   const regenNote=M.regen?'<div class="risk" style="color:var(--dim)">It knits shut: +'+side.regen+' health a second.</div>':'';
+  const stormNote=M.stormAt?'<div class="risk" style="color:var(--dim)">The sand comes early: storm at '+M.stormAt+' s.</div>':'';
   return '<div class="doors">'
    +'<div class="door mon'+(D.gilded?' gild':'')+'" id="doorM" style="--bandc:'+BANDC[M.band]+'">'
     +'<div class="dh"><div class="md">'+ic(M.glyph,'','width:30px;height:30px')+'</div>'
@@ -217,7 +218,7 @@ function doorsHTML(){
     +'<div class="dhp">HEALTH<b>'+side.hp+'</b></div></div>'
     +'<div class="mbrow">'+mb+'</div>'
     +'<div class="bounty">Bounty: <b>'+bountyText(D)+'</b></div>'
-    +mirrorNote+goldNote+regenNote
+    +mirrorNote+goldNote+regenNote+stormNote
     +'<div class="risk">Defeat costs '+MONCHIP[M.band]+' health. Tap to fight.</div>'
    +'</div>'
    +'<div class="door safe" id="doorS">'+ic('g-door','sfi')
@@ -401,7 +402,7 @@ function handleEvents(F,evs){
 }
 function startFight(me,foe,opts){
   G.phase='fight';G.sel=null;music('battle');
-  const F=createFight({a:me,b:foe,stormAt:stormAt(G.round),seed:(G.seed+G.round*7919+(++G.fightN)*104729)>>>0,playerIs:'a'});
+  const F=createFight({a:me,b:foe,stormAt:(opts&&opts.stormAt)||stormAt(G.round),seed:(G.seed+G.round*7919+(++G.fightN)*104729)>>>0,playerIs:'a'});
   G.F=F;
   function pad(items){const u=items.reduce(function(s,x){return s+x.size;},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
   $('main').className='fight';
@@ -433,9 +434,10 @@ function startFight(me,foe,opts){
 function startMonsterFight(){
   const D=G.door;if(!D||D.done||G.phase!=='draft')return;
   G.enteredGold=G.gold;sCreak();
+  const M=MONSTERS[D.mid];
   const foe=monsterSide(D.mid,doorCtx());
-  const me={nm:'You',portrait:'p-0',hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0};
-  startFight(me,foe,{onEnd:endMonsterFight});
+  const me={nm:'You',portrait:'p-0',hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
+  startFight(me,foe,{onEnd:endMonsterFight,stormAt:M.stormAt?M.stormAt*1000:0});
 }
 function endMonsterFight(F){
   const D=G.door;const M=MONSTERS[D.mid];D.done=true;G.phase='draft';
@@ -534,7 +536,7 @@ function openScout(opp){
 }
 function launchGhost(){
   G.burned=G.gold;G.gold=0;
-  const me={nm:'You',portrait:'p-0',hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0};
+  const me={nm:'You',portrait:'p-0',hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
   startFight(me,G.pendFoe,{onEnd:endGhostFight});
 }
 function chkDeath(p,feed){
