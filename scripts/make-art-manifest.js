@@ -10,7 +10,10 @@
                                                   Collector's file is debt.png)
      public/art/portraits/p0.png     -> p-0
    frames, board, and bg are referenced from CSS when that art lands; they do
-   not go through the glyph manifest. */
+   not go through the glyph manifest.
+
+   Music (Suno tracks) lives in public/music and is listed under
+   music-{name}, e.g. public/music/market.mp3 -> music-market. */
 import {readdirSync, readFileSync, writeFileSync, existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname, join, resolve} from 'node:path';
@@ -33,6 +36,13 @@ export function scanArt(rootDir) {
     for (const f of readdirSync(p).sort()) {
       if (!f.endsWith('.png')) continue;
       map[toId(f.slice(0, -4))] = 'art/' + dir + '/' + f;
+    }
+  }
+  const mus = join(rootDir, 'public', 'music');
+  if (existsSync(mus)) {
+    for (const f of readdirSync(mus).sort()) {
+      const m = f.match(/^(.+)\.(mp3|wav|m4a)$/);
+      if (m) map['music-' + m[1]] = 'music/' + f;
     }
   }
   return map;

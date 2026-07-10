@@ -15,7 +15,7 @@
    Specs: items, monsters, portraits 512x512 contain; frames fit inside
    1024; board_wood 1024x1024 cover; bg_market 1080x1920 cover. After a
    successful run the art manifest is regenerated automatically. */
-import {readdirSync, existsSync, mkdirSync} from 'node:fs';
+import {readdirSync, existsSync, mkdirSync, copyFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname, join, resolve, basename, extname} from 'node:path';
 import {writeManifest} from './make-art-manifest.js';
@@ -31,9 +31,17 @@ const FRAME_METALS = ['bronze','silver','gold','diamond'];
    itself does not appear verbatim. */
 const ALIASES = {warhammer:'hammer', shortsword:'sword', fang:'fangs', karkadann:'kark', collector:'debt', adrenaline:'adren'};
 
+const AUDIO_EXTS = ['.mp3', '.wav', '.m4a'];
+
 export function targetFor(filename) {
+  const ext = extname(filename).toLowerCase();
   const base = basename(filename, extname(filename)).toLowerCase();
   const tokens = new Set(base.split(/[^a-z0-9]+/).filter(Boolean).map(t => ALIASES[t] || t));
+  if (AUDIO_EXTS.includes(ext)) {
+    const tracks = ['market', 'battle'].filter(n => tokens.has(n));
+    if (tracks.length === 1) return {dir: 'music', name: tracks[0] + ext, kind: 'audio'};
+    return tracks.length ? {ambiguous: tracks.map(n => n + ext)} : null;
+  }
   const hits = [];
   for (const id of ITEM_IDS) if (tokens.has(id)) hits.push({dir:'items', name:id + '.png', kind:'icon'});
   for (const id of MONSTER_IDS) if (tokens.has(id)) hits.push({dir:'monsters', name:id + '.png', kind:'icon'});
@@ -106,7 +114,7 @@ async function main() {
     process.exit(1);
   }
   const sharp = (await import('sharp')).default;
-  const exts = ['.png','.jpg','.jpeg','.webp','.avif','.tiff'];
+  const exts = ['.png','.jpg','.jpeg','.webp','.avif','.tiff'].concat(AUDIO_EXTS);
   const files = readdirSync(srcDir).filter(f => exts.includes(extname(f).toLowerCase()));
   if (!files.length) { console.log('no image files found in ' + srcDir); process.exit(1); }
 
@@ -115,6 +123,13 @@ async function main() {
     const t = targetFor(f);
     if (!t) { skipped.push(f + '  (no id token in the name)'); continue; }
     if (t.ambiguous) { skipped.push(f + '  (matches several: ' + t.ambiguous.join(', ') + ')'); continue; }
+    if (t.kind === 'audio') {
+      const outDir = join(root, 'public', 'music');
+      mkdirSync(outDir, {recursive: true});
+      copyFileSync(join(srcDir, f), join(outDir, t.name));
+      done.push(f + '  ->  music/' + t.name);
+      continue;
+    }
     let img = sharp(join(srcDir, f));
     if (strip && (t.kind === 'icon' || t.kind === 'frame')) img = await stripBackground(img);
     img = SPECS[t.kind](img).png();

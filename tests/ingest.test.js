@@ -19,7 +19,9 @@ test('ingest matcher: id tokens in messy filenames map to the right target', () 
     ['frame gold ornate.jpg', 'frames', 'frame_gold.png'],
     ['frame_diamond.png', 'frames', 'frame_diamond.png'],
     ['board wood planks.jpg', 'board', 'board_wood.png'],
-    ['bg night market alley.jpg', 'bg', 'bg_market.png']
+    ['bg night market alley.jpg', 'bg', 'bg_market.png'],
+    ['persian night market theme.mp3', 'music', 'market.mp3'],
+    ['battle loop v2.wav', 'music', 'battle.wav']
   ];
   for (const [file, dir, name] of cases) {
     const t = targetFor(file);
@@ -34,4 +36,6 @@ test('ingest matcher: unmatchable and ambiguous names are refused, never guessed
   const multi = targetFor('dagger and sword pair.png');
   assert.ok(multi.ambiguous, 'two item tokens must come back ambiguous');
   assert.deepEqual(multi.ambiguous.sort(), ['dagger.png', 'sword.png']);
+  assert.equal(targetFor('cool song.mp3'), null, 'audio without a track token must not match');
+  assert.ok(targetFor('market battle mix.mp3').ambiguous, 'audio with both track tokens must come back ambiguous');
 });

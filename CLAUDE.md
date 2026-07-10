@@ -17,6 +17,8 @@ Read `handoff-bazaar-brawler-2026-07-09.md` in full before making changes. It ca
 | `src/ui.js` | All DOM rendering and game flow, including the saves system. |
 | `src/fx.js` | The Pixi particle canvas: hit sparks, ember drift, storm sand, forge burst, coin rain, 40+ flash. Pixi loads lazily as its own chunk; every effect is a no-op under reduced motion or without WebGL. |
 | `src/sfx.js` | All sound, synthesized with raw WebAudio (no audio files). Unlocks on first tap for iOS; mute persists under bb-mute; every call is a no-op before unlock. |
+| `src/music.js` | Crossfade-looping WebAudio player for the Suno tracks in `public/music/` (`market.mp3` for draft, `battle.mp3` for fights). Lazy-loads after first tap, obeys the mute toggle, total no-op with no files. |
+| `public/music/` | Suno tracks drop here; the ingest script files any audio named with a market or battle token. |
 | `src/art.js` | Sprite access point. Renders the painted PNG for an id when the manifest has one, else the SVG symbol. Same svg wrapper both ways, so CSS never changes. |
 | `src/art-manifest.js` | Generated map of glyph id to painted PNG path. Never edit by hand; `npm run art` rebuilds it (also runs before dev, build, and test). |
 | `public/art/` | Painted art drops here: `items/{id}.png`, `monsters/{glyph suffix}.png` (the Debt Collector is `debt.png`), `portraits/p0.png` to `p7.png`, plus `frames`, `board`, `bg` for CSS art. |

@@ -6,6 +6,7 @@ import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,usedCells,
 import {ic} from './art.js';
 import {fxHit,fxDestroy,fxForge,fxCoinRain,fxStorm} from './fx.js';
 import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxToggle,sfxMuted} from './sfx.js';
+import {initMusic,music,musicMute} from './music.js';
 /* ============ SESSION + UI PRIMITIVES ============ */
 let G=null;let RM=false;const BEST={place:null,round:0};
 /* ============ SAVES ============ */
@@ -396,7 +397,7 @@ function handleEvents(F,evs){
   }
 }
 function startFight(me,foe,opts){
-  G.phase='fight';G.sel=null;
+  G.phase='fight';G.sel=null;music('battle');
   const F=createFight({a:me,b:foe,stormAt:stormAt(G.round),seed:(G.seed+G.round*7919+(++G.fightN)*104729)>>>0,playerIs:'a'});
   G.F=F;
   function pad(items){const u=items.reduce(function(s,x){return s+x.size;},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
@@ -419,7 +420,7 @@ function startFight(me,foe,opts){
     paintFight(F);
     if(F.done){
       clearInterval(G.fiv);G.fiv=null;
-      fxStorm(false);sStorm(false);
+      fxStorm(false);sStorm(false);music('market');
       setTimeout(function(){$('sand').classList.remove('on');opts.onEnd(F);},850);
     }
   },40);
@@ -831,8 +832,10 @@ export function boot(){
   const mb=$('muteBtn');
   if(mb){
     if(sfxMuted())mb.classList.add('off');
-    mb.onclick=function(){mb.classList.toggle('off',sfxToggle());};
+    mb.onclick=function(){const m=sfxToggle();mb.classList.toggle('off',m);musicMute(m);};
   }
+  initMusic(sfxMuted());
+  music('market');
   initEmbers();
   loadBest();
   const d=loadRun();
