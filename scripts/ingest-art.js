@@ -8,9 +8,14 @@
 
    Usage:
      npm run ingest -- <folder>
-     npm run ingest -- <folder> --strip-bg   (also flood-fills a solid
-                                              background to transparent,
-                                              sampling the corner color)
+     npm run ingest -- <folder> --strip-bg   (also flood-fills a solid or
+                                              checkerboard background to
+                                              transparent, sampling the edges)
+     npm run ingest -- <folder> --thumb      (items only: crop the center 62
+                                              percent of a framed card scene
+                                              into a rounded thumbnail; the
+                                              shipped 2026-07 item batch uses
+                                              this treatment)
 
    Specs: items, monsters, portraits 512x512 contain; frames fit inside
    1024; board_wood 1024x1024 cover; bg_market 1080x1920 cover. After a
@@ -29,7 +34,7 @@ const FRAME_METALS = ['bronze','silver','gold','diamond'];
 
 /* Tokens a generator tends to leave in a saved filename when the target id
    itself does not appear verbatim. */
-const ALIASES = {warhammer:'hammer', shortsword:'sword', fang:'fangs', karkadann:'kark', collector:'debt', adrenaline:'adren'};
+const ALIASES = {warhammer:'hammer', shortsword:'sword', fang:'fangs', karkadann:'kark', collector:'debt', adrenaline:'adren', venum:'venom'};
 
 const AUDIO_EXTS = ['.mp3', '.wav', '.m4a'];
 
@@ -59,16 +64,24 @@ export function targetFor(filename) {
 }
 
 async function stripBackground(img) {
-  /* Flood fill from every border pixel whose color sits near the median
-     corner color, pushing it to transparent. Conservative tolerance so
-     dark item edges survive. */
+  /* Flood fill from the border, treating as background anything near one of
+     the sampled edge colors. Sampling a strip along all four edges captures
+     both tones of a baked-in transparency checkerboard as well as a plain
+     solid fill. Conservative tolerance so dark item edges survive. */
   const {data, info} = await img.raw().ensureAlpha().toBuffer({resolveWithObject: true});
   const {width: w, height: h} = info;
   const px = (x, y) => (y * w + x) * 4;
-  const corners = [[0,0],[w-1,0],[0,h-1],[w-1,h-1]].map(([x,y]) => data.slice(px(x,y), px(x,y)+3));
-  const bg = [0,1,2].map(c => corners.map(k => k[c]).sort((a,b)=>a-b)[1]);
-  const TOL = 40;
-  const near = i => Math.abs(data[i]-bg[0]) + Math.abs(data[i+1]-bg[1]) + Math.abs(data[i+2]-bg[2]) <= TOL;
+  const samples = [];
+  for (let x = 0; x < w; x += Math.max(1, w >> 5)) { samples.push(px(x,0), px(x,h-1)); }
+  for (let y = 0; y < h; y += Math.max(1, h >> 5)) { samples.push(px(0,y), px(w-1,y)); }
+  const bgs = [];
+  for (const i of samples) {
+    const c = [data[i], data[i+1], data[i+2]];
+    if (!bgs.some(b => Math.abs(b[0]-c[0]) + Math.abs(b[1]-c[1]) + Math.abs(b[2]-c[2]) <= 36)) bgs.push(c);
+    if (bgs.length >= 4) break;
+  }
+  const TOL = 46;
+  const near = i => bgs.some(b => Math.abs(data[i]-b[0]) + Math.abs(data[i+1]-b[1]) + Math.abs(data[i+2]-b[2]) <= TOL);
   const seen = new Uint8Array(w * h);
   const queue = [];
   for (let x = 0; x < w; x++) { queue.push([x,0],[x,h-1]); }
@@ -102,12 +115,22 @@ const SPECS = {
   icon:  img => img.resize(512, 512, {fit:'contain', background:{r:0,g:0,b:0,alpha:0}}),
   frame: img => img.resize(1024, 1024, {fit:'inside', withoutEnlargement:true}),
   board: img => img.resize(1024, 1024, {fit:'cover'}),
-  bg:    img => img.resize(1080, 1920, {fit:'cover'})
+  bg:    img => img.resize(1080, 1920, {fit:'cover', withoutEnlargement:true})
 };
 
+const THUMB_MASK = Buffer.from('<svg width="512" height="512"><rect width="512" height="512" rx="88" fill="#fff"/></svg>');
+async function thumbCrop(img) {
+  const m = await img.metadata();
+  const size = Math.round(Math.min(m.width, m.height) * 0.62);
+  return img.extract({left: Math.round((m.width - size) / 2), top: Math.round((m.height - size) / 2), width: size, height: size})
+    .resize(512, 512)
+    .composite([{input: THUMB_MASK, blend: 'dest-in'}]);
+}
+
 async function main() {
-  const args = process.argv.slice(2).filter(a => a !== '--strip-bg');
+  const args = process.argv.slice(2).filter(a => a !== '--strip-bg' && a !== '--thumb');
   const strip = process.argv.includes('--strip-bg');
+  const thumb = process.argv.includes('--thumb');
   const srcDir = args[0] && resolve(args[0]);
   if (!srcDir || !existsSync(srcDir)) {
     console.log('usage: npm run ingest -- <folder-of-raw-images> [--strip-bg]');
@@ -131,12 +154,17 @@ async function main() {
       continue;
     }
     let img = sharp(join(srcDir, f));
-    if (strip && (t.kind === 'icon' || t.kind === 'frame')) img = await stripBackground(img);
-    img = SPECS[t.kind](img).png();
+    if (thumb && t.dir === 'items') {
+      img = await thumbCrop(img);
+    } else {
+      if (strip && (t.kind === 'icon' || t.kind === 'frame')) img = await stripBackground(img);
+      img = SPECS[t.kind](img);
+    }
+    img = img.png();
     const outDir = join(root, 'public', 'art', t.dir);
     mkdirSync(outDir, {recursive: true});
     await img.toFile(join(outDir, t.name));
-    if (t.kind === 'icon' || t.kind === 'frame') {
+    if ((t.kind === 'icon' || t.kind === 'frame') && !(thumb && t.dir === 'items')) {
       const share = await opaqueEdgeShare(sharp(join(outDir, t.name)));
       if (share > 0.5) solid.push(t.dir + '/' + t.name);
     }
