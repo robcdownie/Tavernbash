@@ -53,11 +53,13 @@ export function playerFightItems(board,T,A,scale){
     if(def.fx&&def.fx.heal){fx.heal=Math.max(1,Math.round(def.fx.heal*rs*(T.healMul||1)*fd));}
     if(def.fx&&def.fx.haste){fx.haste=def.fx.haste*rs;}
     if(def.fx&&def.fx.hasteAll){fx.hasteAll=def.fx.hasteAll;}
+    if(def.fx&&def.fx.reload){fx.reload=def.fx.reload;}
     return {nm:def.n,g:"g-"+it.id,size:it.size,rarity:it.rarity,cat:def.cat,tier:def.tier,
       cd:def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd)):0,
       timer:0,alive:true,integ:integOf(it),maxI:integOf(it),
       fx:fx,bulwark:!!def.bulwark,targeting:def.targeting||null,charge:null,flying:fly,frozen:0,
-      crit:fx.dmg?Math.min(0.9,(def.crit||0)+boardCrit):0,rattle:def.rattle||null,selfdestruct:!!def.selfdestruct,uid:it.uid};
+      crit:fx.dmg?Math.min(0.9,(def.crit||0)+boardCrit):0,rattle:def.rattle||null,selfdestruct:!!def.selfdestruct,
+      ammo:def.ammo||0,maxAmmo:def.ammo||0,uid:it.uid};
   });
 }
 export function monsterFightItems(mid,ctx){
@@ -74,10 +76,11 @@ export function monsterFightItems(mid,ctx){
     if(b.fx.heal){fx.heal=Math.round(b.fx.heal*gild);}
     if(b.fx.freeze){fx.freeze=b.fx.freeze;}
     if(b.fx.hasteAll){fx.hasteAll=b.fx.hasteAll;}
+    if(b.fx.reload){fx.reload=b.fx.reload;}
     return {nm:b.nm,g:b.g,size:b.size,rarity:ctx.gilded?2:0,cat:"dmg",tier:M.band,
       cd:b.cd>0?Math.round(b.cd*1000*A.cdMul):0,timer:0,alive:true,
       integ:Math.round(b.integ*gild),maxI:Math.round(b.integ*gild),
-      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,crit:b.crit||0,rattle:b.rattle||null,selfdestruct:!!b.selfdestruct,uid:UID++};
+      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,crit:b.crit||0,rattle:b.rattle||null,selfdestruct:!!b.selfdestruct,ammo:b.ammo||0,maxAmmo:b.ammo||0,uid:UID++};
   });
 }
 export function monsterSide(mid,ctx){
@@ -171,7 +174,7 @@ export function createFight(cfg){
       side.items[i]={nm:sp.nm,g:sp.g,size:it.size,rarity:it.rarity,cat:sp.cat||"dmg",tier:it.tier,
         cd:Math.round(sp.cd*1000),timer:0,alive:true,integ:sp.integ,maxI:sp.integ,
         fx:Object.assign({},sp.fx),bulwark:!!sp.bulwark,targeting:sp.targeting||null,charge:null,
-        pocket:0,flying:!!sp.flying,frozen:0,crit:sp.crit||0,rattle:sp.rattle||null,selfdestruct:false,uid:UID++};
+        pocket:0,flying:!!sp.flying,frozen:0,crit:sp.crit||0,rattle:sp.rattle||null,selfdestruct:false,ammo:0,maxAmmo:0,uid:UID++};
       ev.push({k:"spawn",side:side.key,i:i,nm:sp.nm,g:sp.g,integ:sp.integ});
     }
   }
@@ -180,6 +183,7 @@ export function createFight(cfg){
     /* a self-destructing item's activation is its own death: the timed
        hatch is just a deathrattle on a fuse */
     if(it.selfdestruct){it.alive=false;it.integ=0;ev.push({k:"destroy",side:S.key,i:idx,nm:it.nm});rattleOf(S,idx,ev);return;}
+    if(it.maxAmmo>0){it.ammo--;ev.push({k:"ammo",side:S.key,i:idx,left:it.ammo});}
     const fx=it.fx;
     if(fx.dmg){
       /* crit rolls draw from the fight's seeded rng, so replays and the
@@ -211,6 +215,12 @@ export function createFight(cfg){
         if(j!==idx&&S.items[j].alive&&S.items[j].cd>0){S.items[j].timer+=fx.hasteAll*1000;ev.push({k:"haste",side:S.key,i:j});}
       }
     }
+    if(fx.reload){
+      for(let j=0;j<S.items.length;j++){
+        const t=S.items[j];
+        if(t.alive&&t.maxAmmo>0&&t.ammo<t.maxAmmo){t.ammo=Math.min(t.maxAmmo,t.ammo+fx.reload);ev.push({k:"reload",side:S.key,i:j,left:t.ammo});}
+      }
+    }
     if(it.charge){
       const tj=it.charge.t;
       if(S.items[tj]&&S.items[tj].alive&&S.items[tj].cd>0){S.items[tj].timer+=it.charge.s*1000;ev.push({k:"haste",side:S.key,i:tj});}
@@ -229,6 +239,8 @@ export function createFight(cfg){
         const it=S.items[i];
         if(!it.alive||it.cd<=0){continue;}
         if(it.frozen>0){it.frozen-=dt;if(it.frozen<=0){it.frozen=0;ev.push({k:"thaw",side:S.key,i:i});}continue;}
+        /* an empty magazine holds its swing until a reload lands */
+        if(it.maxAmmo>0&&it.ammo<=0){continue;}
         it.timer+=dt;
         let g=0;
         while(it.timer>=it.cd&&g++<4){it.timer-=it.cd;fire(S,D,it,i,ev);}

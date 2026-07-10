@@ -27,8 +27,8 @@ import {writeManifest} from './make-art-manifest.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-const ITEM_IDS = ['dagger','sword','fangs','serpent','mace','crossbow','hammer','vial','venom','torch','bomb','magma','buckler','brassbuckler','barricade','tower','aegis','bandage','salve','chalice','sanctum','purse','ledger','whetstone','hourglass','adren','serpentcrown','tidewall','weepingstone','flyingcharm','prism','rocegg','feather'];
-const MONSTER_IDS = ['imp','rats','ghul','lamassu','kark','debt','ifrit','qareen','samovar','shahmaran','marid','nasnas','matron','sandling','monkey','icebox','peri','roc','simurgh'];
+const ITEM_IDS = ['dagger','sword','fangs','serpent','mace','crossbow','hammer','vial','venom','torch','bomb','magma','buckler','brassbuckler','barricade','tower','aegis','bandage','salve','chalice','sanctum','purse','ledger','whetstone','hourglass','adren','serpentcrown','tidewall','weepingstone','flyingcharm','prism','rocegg','feather','coincannon','coinhopper'];
+const MONSTER_IDS = ['imp','rats','ghul','lamassu','kark','debt','ifrit','qareen','samovar','shahmaran','marid','nasnas','matron','sandling','monkey','icebox','peri','roc','simurgh','golem'];
 const PORTRAIT_IDS = ['p0','p1','p2','p3','p4','p5','p6','p7'];
 const FRAME_METALS = ['bronze','silver','gold','diamond'];
 
@@ -82,6 +82,13 @@ export function targetFor(filename) {
   /* simurgh plus feather means the ware; simurgh alone the fledgling */
   if (tokens.has('simurgh') && tokens.has('feather')) {
     return {dir:'items', name:'feather.png', kind:'icon'};
+  }
+  /* the golem pair: coin plus cannon or hopper name the wares */
+  if (tokens.has('coin') && tokens.has('cannon')) {
+    return {dir:'items', name:'coincannon.png', kind:'icon'};
+  }
+  if (tokens.has('coin') && tokens.has('hopper')) {
+    return {dir:'items', name:'coinhopper.png', kind:'icon'};
   }
   if (hits.length === 1) return hits[0];
   return hits.length ? {ambiguous: hits.map(h => h.name)} : null;

@@ -48,7 +48,11 @@ export const ITEMS={
    rattle:{spawn:{nm:"Roc Hatchling",g:"g-hatchling",cd:2,integ:20,fx:{dmg:11}}},
    d:"Roc bounty. When it breaks, something angry gets out."},
  feather:{n:"Simurgh Feather",size:1,tier:2,cat:"dmg",cd:2,fx:{dmg:8},flying:true,unique:true,
-   d:"Simurgh bounty. It fights from the air; no weapon reaches it."}
+   d:"Simurgh bounty. It fights from the air; no weapon reaches it."},
+ coincannon:{n:"Coin Cannon",size:3,tier:3,cat:"dmg",cd:3,fx:{dmg:14},ammo:5,unique:true,
+   d:"Golem bounty. Five shots, then it begs the hopper."},
+ coinhopper:{n:"Coin Hopper",size:1,tier:2,cat:"util",cd:8,fx:{reload:2},unique:true,
+   d:"Golem bounty. Feeds every dry cannon two coins."}
 };
 /* ============ TRINKETS ============ */
 export const TRINKETS=[
@@ -142,7 +146,10 @@ export const MONSTERS={
      rattle:{spawn:{nm:"Roc Hatchling",g:"g-hatchling",cd:2,integ:30,fx:{dmg:22}}}}]},
  simurgh:{n:"Simurgh Fledgling",band:3,hp:300,tag:"dmg",glyph:"m-simurgh",fl:"Half fledged, twice quick.",
    bounty:{items:["feather"]},
-   board:[{nm:"Tail Feather",g:"g-feather",size:1,cd:2,integ:12,fx:{dmg:8}},{nm:"Preen",g:"g-hatchling",size:2,cd:6,integ:24,fx:{hasteAll:2}}]}
+   board:[{nm:"Tail Feather",g:"g-feather",size:1,cd:2,integ:12,fx:{dmg:8}},{nm:"Preen",g:"g-hatchling",size:2,cd:6,integ:24,fx:{hasteAll:2}}]},
+ golem:{n:"Mint Golem",band:3,hp:320,tag:"dmg",glyph:"m-golem",fl:"It pays out in bruises.",
+   bounty:{items:["coincannon","coinhopper"]},
+   board:[{nm:"Coin Cannon",g:"g-coincannon",size:3,cd:3,integ:38,fx:{dmg:14},ammo:5},{nm:"Coin Hopper",g:"g-coinhopper",size:1,cd:8,integ:14,fx:{reload:2}}]}
 };
-export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc","simurgh"]};
+export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc","simurgh","golem"]};
 export const MONCHIP={1:2,2:4,3:6};

@@ -44,7 +44,7 @@ const BAND2=['tower','mace','crossbow','bandage'];
 const BAND3=['hammer','aegis','salve','fangs'];
 const CURVE={imp:[2,BAND1],rats:[2,BAND1],ghul:[2,BAND1],samovar:[2,BAND1],monkey:[2,BAND1],
              lamassu:[5,BAND2],kark:[5,BAND2],collector:[5,BAND2,5],nasnas:[5,BAND2],matron:[5,BAND2],icebox:[5,BAND2],peri:[5,BAND2],
-             ifrit:[9,BAND3],qareen:[9,BAND3],shahmaran:[9,BAND3],marid:[9,BAND3],roc:[9,BAND3],simurgh:[9,BAND3]};
+             ifrit:[9,BAND3],qareen:[9,BAND3],shahmaran:[9,BAND3],marid:[9,BAND3],roc:[9,BAND3],simurgh:[9,BAND3],golem:[9,BAND3]};
 for(const mid of Object.keys(CURVE)){
   test('monster winnability: '+MONSTERS[mid].n+' loses to an on-curve board',()=>{
     const [round,ids,gold]=CURVE[mid];
@@ -107,6 +107,45 @@ test('Flying Charm: neighbors take wing at fight start, the charm itself stays g
   assert.equal(items[0].flying,true,'left neighbor flies');
   assert.equal(items[2].flying,true,'right neighbor flies');
   assert.equal(items[1].flying,false,'the charm is the anchor');
+});
+
+function ammoItem(over){
+  return Object.assign({nm:'Cannon',g:'g-coincannon',size:3,cd:3000,timer:0,alive:true,integ:900,maxI:900,
+    fx:{dmg:14},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,crit:0,
+    rattle:null,selfdestruct:false,ammo:5,maxAmmo:5,uid:941},over);
+}
+test('ammo: five shots then silence, the magazine holds its swing',()=>{
+  const F=createFight({a:{nm:'g',hp:9000,items:[ammoItem({})],lifesteal:0},
+                       b:{nm:'d',hp:9000,items:[],lifesteal:0},stormAt:999000,seed:2,playerIs:null});
+  let fires=0;const lefts=[];
+  while(F.t<30000){for(const e of F.step(50)){
+    if(e.k==='fire'&&e.side==='a'){fires++;}
+    if(e.k==='ammo'){lefts.push(e.left);}
+  }}
+  assert.equal(fires,5,'exactly the magazine, no more');
+  assert.deepEqual(lefts,[4,3,2,1,0],'counted down one per shot');
+});
+
+test('ammo: the hopper reloads the cannon and the shooting resumes',()=>{
+  const hopper={nm:'Hopper',g:'g-coinhopper',size:1,cd:8000,timer:0,alive:true,integ:900,maxI:900,
+    fx:{reload:2},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,crit:0,
+    rattle:null,selfdestruct:false,ammo:0,maxAmmo:0,uid:942};
+  const F=createFight({a:{nm:'g',hp:9000,items:[ammoItem({uid:943}),hopper],lifesteal:0},
+                       b:{nm:'d',hp:9000,items:[],lifesteal:0},stormAt:999000,seed:2,playerIs:null});
+  let fires=0,reloads=0;
+  while(F.t<30000){for(const e of F.step(50)){
+    if(e.k==='fire'&&e.side==='a'&&F.a.items[e.i].maxAmmo>0){fires++;}
+    if(e.k==='reload'){reloads++;assert.equal(e.i,0,'the reload lands on the cannon');}
+  }}
+  assert.ok(reloads>=3,'the hopper kept feeding, got '+reloads);
+  assert.ok(fires>5,'more shots than one magazine, got '+fires);
+});
+
+test('the Golem pair: player cannon carries its magazine, hopper its coins',()=>{
+  const items=playerFightItems([makeItem('coincannon',0),makeItem('coinhopper',0)],{},ANONE,1);
+  assert.equal(items[0].maxAmmo,5);
+  assert.equal(items[0].ammo,5);
+  assert.equal(items[1].fx.reload,2);
 });
 
 test('haste-all: Preen quickens every other item on the board',()=>{
