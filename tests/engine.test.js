@@ -133,6 +133,32 @@ test('The Azhdaha: each fallen head halves the survivors, and a rich board still
   assert.deepEqual(cds[1],[2000],'second head down: the last head at 2 s');
 });
 
+test('Night Auctioneer: the auction disables the finest weapon and pays for it',()=>{
+  const foe=monsterSide('auctioneer',{round:10,gold:0,A:ANONE,gilded:false});
+  assert.equal(foe.hp,500);
+  const board=[makeItem('hammer',1),makeItem('mace',1),makeItem('fangs',1),makeItem('salve',1),makeItem('buckler',1)];
+  const me={nm:'You',portrait:'p-0',hp:fightHP(10,0,ANONE),items:playerFightItems(board,{},ANONE,1),lifesteal:0};
+  const F=createFight({a:me,b:foe,stormAt:stormAt(10),seed:31,playerIs:'a'});
+  const lots=[];let paid=0,guard=0,firesAfterLot=0,firstLotI=null,firstLotAt=null;
+  while(!F.done&&guard++<3600){for(const e of F.step(50)){
+    if(e.k==='lot'){lots.push(e.nm);if(firstLotI===null){firstLotI=e.i;firstLotAt=F.t;}}
+    if(e.k==='lotpay'){paid+=e.amt;}
+    if(e.k==='fire'&&e.side==='a'&&e.i===firstLotI&&firstLotAt!==null&&F.t>firstLotAt){firesAfterLot++;}
+  }}
+  assert.equal(F.winner,'a','a wide silver board outlasts the auction');
+  assert.ok(lots.length>=1,'at least one lot went under the hammer');
+  assert.equal(lots[0],'Warhammer','the finest weapon sells first');
+  assert.equal(paid,lots.length*3,'3 gold per lot');
+  assert.equal(F.lotPaid,paid,'the fight carries the payout tally');
+  assert.equal(firesAfterLot,0,'a sold lot never swings again');
+});
+
+test('The Gavel ware: it auctions the enemy finest weapon',()=>{
+  const items=playerFightItems([makeItem('gavel',0)],{},ANONE,1);
+  assert.equal(items[0].fx.disable,true);
+  assert.equal(items[0].fx.dmg,12);
+});
+
 test('Azhdaha Fang: your own board rages when it shatters',()=>{
   const items=playerFightItems([makeItem('azhfang',0),makeItem('dagger',0)],{},ANONE,1);
   assert.ok(items[0].rattle&&items[0].rattle.hasteMates===0.5);

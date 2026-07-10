@@ -217,6 +217,7 @@ function doorsHTML(){
   const critNote=critMax>0?'<div class="risk" style="color:var(--dim)">It strikes true: '+Math.round(critMax*100)+'% chance of double damage.</div>':'';
   const rattleNote=side.items.some(function(fi){return fi.rattle;})?'<div class="risk" style="color:var(--dim)">Break it or wait: either way, something worse gets out.</div>':'';
   const ammoNote=side.items.some(function(fi){return fi.maxAmmo>0;})?'<div class="risk" style="color:var(--dim)">It runs on ammunition: kill the reloader and it falls silent.</div>':'';
+  const lotNote=side.items.some(function(fi){return fi.fx&&fi.fx.disable;})?'<div class="risk" style="color:var(--dim)">It auctions your finest weapon every few seconds, and pays you for it.</div>':'';
   return '<div class="doors">'
    +'<div class="door mon'+(D.gilded?' gild':'')+'" id="doorM" style="--bandc:'+BANDC[M.band]+'">'
     +'<div class="dh"><div class="md">'+ic(M.glyph,'','width:30px;height:30px')+'</div>'
@@ -224,7 +225,7 @@ function doorsHTML(){
     +'<div class="dhp">HEALTH<b>'+side.hp+'</b></div></div>'
     +'<div class="mbrow">'+mb+'</div>'
     +'<div class="bounty">Bounty: <b>'+bountyText(D)+'</b></div>'
-    +mirrorNote+goldNote+regenNote+stormNote+frostNote+critNote+rattleNote+ammoNote
+    +mirrorNote+goldNote+regenNote+stormNote+frostNote+critNote+rattleNote+ammoNote+lotNote
     +'<div class="risk">Defeat costs '+MONCHIP[M.band]+' health. Tap to fight.</div>'
    +'</div>'
    +'<div class="door safe" id="doorS">'+ic('g-door','sfi')
@@ -410,6 +411,8 @@ function handleEvents(F,evs){
     else if(e.k==='ammo'){if(e.left===0){fltFx(e.side,'empty','#8d7f6c','e-clock',false);logLine('<b class="r">The cannon clicks empty</b>','e-clock','#8d7f6c');}}
     else if(e.k==='reload'){fltFx(e.side,'reload','#e8c27a','e-bolt',false);}
     else if(e.k==='enrage'){cellFx(e.side,e.i,'fire');logLine('<b class="r">The survivors rage: cooldowns cut</b>','e-flame','#ff8d76');}
+    else if(e.k==='lot'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('lot');logLine('<b class="y">SOLD: '+esc(e.nm)+'</b> leaves the fight','e-clock','#e8c27a');}
+    else if(e.k==='lotpay'){fltFx(e.side,'+'+e.amt+'g','#e8c27a','e-bolt',false);}
     else if(e.k==='spawn'){const c=$('fc-'+e.side+'-'+e.i);const S=e.side==='a'?F.a:F.b;if(c&&S.items[e.i]){c.outerHTML=fightCellHTML(S.items[e.i],e.i,e.side);}logLine('<b class="t">'+esc(e.nm)+'</b> emerges','e-skull','#9dbb45');sDestroy();}
     else if(e.k==='stormstart'){logLine('<b class="y">The sandstorm arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);sStorm(true);}
   }
@@ -455,6 +458,7 @@ function startMonsterFight(){
 }
 function endMonsterFight(F){
   const D=G.door;const M=MONSTERS[D.mid];D.done=true;G.phase='draft';
+  if(F.lotPaid){G.gold+=F.lotPaid;toast('The Auctioneer paid '+F.lotPaid+' gold for your wares.');}
   if(F.winner==='a'){
     D.result='SLAIN';const b=M.bounty;
     if(b.gold){

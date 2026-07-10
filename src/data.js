@@ -54,7 +54,9 @@ export const ITEMS={
  coinhopper:{n:"Coin Hopper",size:1,tier:2,cat:"util",cd:8,fx:{reload:2},unique:true,
    d:"Golem bounty. Feeds every dry cannon two coins."},
  azhfang:{n:"Azhdaha Fang",size:2,tier:3,cat:"dmg",cd:4,fx:{dmg:18},unique:true,rattle:{hasteMates:0.5},
-   d:"Boss bounty. When it shatters, the rest of your stall rages."}
+   d:"Boss bounty. When it shatters, the rest of your stall rages."},
+ gavel:{n:"The Gavel",size:2,tier:3,cat:"dmg",cd:5,fx:{dmg:12,disable:true},unique:true,
+   d:"Boss bounty. Sold: the finest enemy ware, out of the fight."}
 };
 /* ============ TRINKETS ============ */
 export const TRINKETS=[
@@ -156,7 +158,10 @@ export const MONSTERS={
    bounty:{items:["azhfang"],gold:5},
    board:[{nm:"First Head",g:"g-azhfang",size:3,cd:8,integ:50,fx:{dmg:20},rattle:{hasteMates:0.5}},
           {nm:"Second Head",g:"g-azhfang",size:3,cd:8,integ:50,fx:{dmg:20},rattle:{hasteMates:0.5}},
-          {nm:"Third Head",g:"g-azhfang",size:3,cd:8,integ:50,fx:{dmg:20},rattle:{hasteMates:0.5}}]}
+          {nm:"Third Head",g:"g-azhfang",size:3,cd:8,integ:50,fx:{dmg:20},rattle:{hasteMates:0.5}}]},
+ auctioneer:{n:"Night Auctioneer",band:4,hp:500,tag:"util",glyph:"m-auctioneer",fl:"Everything must go. Including yours.",
+   bounty:{items:["gavel"]},
+   board:[{nm:"The Gavel",g:"g-gavel",size:2,cd:5,integ:40,fx:{dmg:12}},{nm:"Lot Caller",g:"g-ledger",size:2,cd:6,integ:14,fx:{disable:true},pay:3,flying:true}]}
 };
-export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc","simurgh","golem"],4:["azhdaha"]};
+export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc","simurgh","golem"],4:["azhdaha","auctioneer"]};
 export const MONCHIP={1:2,2:4,3:6,4:8};

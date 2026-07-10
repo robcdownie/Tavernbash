@@ -54,6 +54,7 @@ export function playerFightItems(board,T,A,scale){
     if(def.fx&&def.fx.haste){fx.haste=def.fx.haste*rs;}
     if(def.fx&&def.fx.hasteAll){fx.hasteAll=def.fx.hasteAll;}
     if(def.fx&&def.fx.reload){fx.reload=def.fx.reload;}
+    if(def.fx&&def.fx.disable){fx.disable=true;}
     return {nm:def.n,g:"g-"+it.id,size:it.size,rarity:it.rarity,cat:def.cat,tier:def.tier,
       cd:def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd)):0,
       timer:0,alive:true,integ:integOf(it),maxI:integOf(it),
@@ -77,10 +78,11 @@ export function monsterFightItems(mid,ctx){
     if(b.fx.freeze){fx.freeze=b.fx.freeze;}
     if(b.fx.hasteAll){fx.hasteAll=b.fx.hasteAll;}
     if(b.fx.reload){fx.reload=b.fx.reload;}
+    if(b.fx.disable){fx.disable=true;}
     return {nm:b.nm,g:b.g,size:b.size,rarity:ctx.gilded?2:0,cat:"dmg",tier:M.band,
       cd:b.cd>0?Math.round(b.cd*1000*A.cdMul):0,timer:0,alive:true,
       integ:Math.round(b.integ*gild),maxI:Math.round(b.integ*gild),
-      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,crit:b.crit||0,rattle:b.rattle||null,selfdestruct:!!b.selfdestruct,ammo:b.ammo||0,maxAmmo:b.ammo||0,uid:UID++};
+      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,crit:b.crit||0,rattle:b.rattle||null,selfdestruct:!!b.selfdestruct,ammo:b.ammo||0,maxAmmo:b.ammo||0,pay:b.pay||0,uid:UID++};
   });
 }
 export function monsterSide(mid,ctx){
@@ -156,7 +158,7 @@ export function createFight(cfg){
   const rng=mulberry(cfg.seed||1);
   const mk=(s,key)=>({key:key,nm:s.nm,portrait:s.portrait||"g-medallion",hp:s.hp,maxHp:s.hp,shield:0,pois:0,burn:0,items:s.items,ls:s.lifesteal||0,regen:s.regen||0});
   const A=mk(cfg.a,"a"), B=mk(cfg.b,"b");
-  const F={t:0,done:false,winner:null,stormAt:cfg.stormAt,stormOn:false,a:A,b:B,secMark:0,stormDmg:5,pocketed:0};
+  const F={t:0,done:false,winner:null,stormAt:cfg.stormAt,stormOn:false,a:A,b:B,secMark:0,stormDmg:5,pocketed:0,lotPaid:0};
   function hHit(D,amt,ev,kind){
     const abs=Math.min(D.shield,amt);D.shield-=abs;const hpd=amt-abs;D.hp-=hpd;
     ev.push({k:kind||"hhit",side:D.key,amt:hpd,abs:abs});
@@ -228,6 +230,17 @@ export function createFight(cfg){
         if(t.alive&&t.maxAmmo>0&&t.ammo<t.maxAmmo){t.ammo=Math.min(t.maxAmmo,t.ammo+fx.reload);ev.push({k:"reload",side:S.key,i:j,left:t.ammo});}
       }
     }
+    /* the auction: the finest enemy weapon goes under the hammer, inert
+       for the rest of the fight but still on the block to be hit; a pay
+       field on the caller compensates the victim after the fight */
+    if(fx.disable){
+      let ti=-1,best=-1;
+      for(let j=0;j<D.items.length;j++){const t=D.items[j];if(t.alive&&!t.lot&&t.fx.dmg&&t.fx.dmg>best){best=t.fx.dmg;ti=j;}}
+      if(ti>=0){
+        D.items[ti].lot=true;ev.push({k:"lot",side:D.key,i:ti,nm:D.items[ti].nm});
+        if(it.pay){F.lotPaid+=it.pay;ev.push({k:"lotpay",side:D.key,amt:it.pay});}
+      }
+    }
     if(it.charge){
       const tj=it.charge.t;
       if(S.items[tj]&&S.items[tj].alive&&S.items[tj].cd>0){S.items[tj].timer+=it.charge.s*1000;ev.push({k:"haste",side:S.key,i:tj});}
@@ -248,6 +261,8 @@ export function createFight(cfg){
         if(it.frozen>0){it.frozen-=dt;if(it.frozen<=0){it.frozen=0;ev.push({k:"thaw",side:S.key,i:i});}continue;}
         /* an empty magazine holds its swing until a reload lands */
         if(it.maxAmmo>0&&it.ammo<=0){continue;}
+        /* an auctioned lot never acts again */
+        if(it.lot){continue;}
         it.timer+=dt;
         let g=0;
         while(it.timer>=it.cd&&g++<4){it.timer-=it.cd;fire(S,D,it,i,ev);}

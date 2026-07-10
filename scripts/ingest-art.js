@@ -27,8 +27,8 @@ import {writeManifest} from './make-art-manifest.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-const ITEM_IDS = ['dagger','sword','fangs','serpent','mace','crossbow','hammer','vial','venom','torch','bomb','magma','buckler','brassbuckler','barricade','tower','aegis','bandage','salve','chalice','sanctum','purse','ledger','whetstone','hourglass','adren','serpentcrown','tidewall','weepingstone','flyingcharm','prism','rocegg','feather','coincannon','coinhopper','azhfang'];
-const MONSTER_IDS = ['imp','rats','ghul','lamassu','kark','debt','ifrit','qareen','samovar','shahmaran','marid','nasnas','matron','sandling','monkey','icebox','peri','roc','simurgh','golem','azhdaha'];
+const ITEM_IDS = ['dagger','sword','fangs','serpent','mace','crossbow','hammer','vial','venom','torch','bomb','magma','buckler','brassbuckler','barricade','tower','aegis','bandage','salve','chalice','sanctum','purse','ledger','whetstone','hourglass','adren','serpentcrown','tidewall','weepingstone','flyingcharm','prism','rocegg','feather','coincannon','coinhopper','azhfang','gavel'];
+const MONSTER_IDS = ['imp','rats','ghul','lamassu','kark','debt','ifrit','qareen','samovar','shahmaran','marid','nasnas','matron','sandling','monkey','icebox','peri','roc','simurgh','golem','azhdaha','auctioneer'];
 const PORTRAIT_IDS = ['p0','p1','p2','p3','p4','p5','p6','p7'];
 const FRAME_METALS = ['bronze','silver','gold','diamond'];
 
