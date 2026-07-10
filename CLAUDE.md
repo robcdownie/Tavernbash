@@ -37,6 +37,6 @@ Read `handoff-bazaar-brawler-2026-07-09.md` in full before making changes. It ca
 
 - Zero em dashes and zero en dashes anywhere, including docs, comments, and commit messages. The dash scan in `npm test` enforces this and it scans markdown, so this file counts.
 - Approved change batches get applied in full, not piecemeal.
-- Target device is an iPhone in Safari standalone mode: test at 390x844, respect safe areas, no hover-dependent interactions.
+- Target device is an iPhone in Safari standalone mode, landscape first: test at 844x390 (landscape is the primary orientation, per Robbie on 2026-07-10, superseding the handoff), then 390x844. Respect safe areas, no hover-dependent interactions. In landscape runs the app pins to viewport height and the doors and market columns scroll internally; nothing may push the stall off screen.
 - One new system per version. Each phase ships working, tests green, with the live Netlify URL shown at the end.
 - The sim stays pure and the two health layers, targeting rules, and economy in the handoff are settled; do not re-litigate them.

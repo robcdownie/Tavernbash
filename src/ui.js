@@ -259,18 +259,19 @@ function renderSheet(){
 function renderDraft(){
   const slots=4+G.tier,used=usedCells(G.board);
   let h='';
-  h+='<div class="label">Your Stall<span class="side">'+used+' / '+slots+' slots</span></div>';
+  h+='<div class="sec secstall"><div class="label">Your Stall<span class="side">'+used+' / '+slots+' slots</span></div>';
   h+=boardHTML(G.board,slots,G.sel);
-  h+='<div id="sheet"></div>';
-  h+='<div class="label">The Doors<span class="side">'+BANDN[bandOf(G.round)]+'</span></div>';
-  h+=doorsHTML();
-  h+='<div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
+  h+='<div id="sheet"></div></div>';
+  h+='<div class="sec secdoors"><div class="label">The Doors<span class="side">'+BANDN[bandOf(G.round)]+'</span></div>';
+  h+=doorsHTML()+'</div>';
+  h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
   h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
   h+='<div class="controls">'
     +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'Tier '+(G.tier+1)+' ('+G.tierCost+')')+'</button>'
     +'<button class="btn" id="btnRe"'+(G.gold<1?' disabled':'')+'>Reroll 1</button>'
     +'<button class="btn gold" id="btnGo">'+ic('e-blade','bi')+' To Battle</button>'
-  +'</div>';
+  +'</div></div>';
+  $('main').className='draft';
   $('main').innerHTML=h;
   document.querySelectorAll('#bd .cell.it').forEach(function(c){c.onclick=function(){const i=+c.dataset.i;G.sel=(G.sel===i?null:i);renderDraft();};});
   document.querySelectorAll('.ware').forEach(function(w){w.onclick=function(){buyWare(+w.dataset.w);};});
@@ -281,7 +282,7 @@ function renderDraft(){
   const ds=$('doorS');if(ds)ds.onclick=takeSafe;
   renderSheet();
 }
-function renderAll(){renderBest();renderRivals();renderRibbon();renderAno();renderTrow();if(G.phase==='draft'){renderDraft();}}
+function renderAll(){document.body.classList.add('run');renderBest();renderRivals();renderRibbon();renderAno();renderTrow();if(G.phase==='draft'){renderDraft();}}
 /* ============ ECONOMY ACTIONS ============ */
 function buyWare(i){
   if(G.phase!=='draft')return;
@@ -401,13 +402,14 @@ function startFight(me,foe,opts){
   const F=createFight({a:me,b:foe,stormAt:stormAt(G.round),seed:(G.seed+G.round*7919+(++G.fightN)*104729)>>>0,playerIs:'a'});
   G.F=F;
   function pad(items){const u=items.reduce(function(s,x){return s+x.size;},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
+  $('main').className='fight';
   $('main').innerHTML=
    fighterHTML(foe,'b')
   +'<div class="fx" id="fx-b"></div>'
-  +'<div class="board combat">'+foe.items.map(function(fi,i){return fightCellHTML(fi,i,'b');}).join('')+pad(foe.items)+'</div>'
+  +'<div class="board combat bd-b">'+foe.items.map(function(fi,i){return fightCellHTML(fi,i,'b');}).join('')+pad(foe.items)+'</div>'
   +'<div class="vsrow"><div class="vl"></div>'+ic('g-medallion','vm')
   +'<span class="stormchip" id="storm">'+ic('e-bolt','mi')+'<span id="stormT"></span></span><div class="vl"></div></div>'
-  +'<div class="board combat">'+me.items.map(function(fi,i){return fightCellHTML(fi,i,'a');}).join('')+pad(me.items)+'</div>'
+  +'<div class="board combat bd-a">'+me.items.map(function(fi,i){return fightCellHTML(fi,i,'a');}).join('')+pad(me.items)+'</div>'
   +'<div class="fx" id="fx-a"></div>'
   +fighterHTML(me,'a')
   +'<div class="log" id="log"></div>';
