@@ -15,6 +15,8 @@ test('ingest matcher: id tokens in messy filenames map to the right target', () 
     ['serpentcrown_v1.png', 'items', 'serpentcrown.png'],
     ['serpent blade curved.png', 'items', 'serpent.png'],
     ['shahmaran queen of serpents.png', 'monsters', 'shahmaran.png'],
+    ['tide wall shield.png', 'items', 'tidewall.png'],
+    ['marid of the cistern.png', 'monsters', 'marid.png'],
     ['scalded samovar angry.png', 'monsters', 'samovar.png'],
     ['karkadann charging.png', 'monsters', 'kark.png'],
     ['the debt collector.png', 'monsters', 'debt.png'],

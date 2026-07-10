@@ -39,7 +39,8 @@ export const ITEMS={
  whetstone:{n:"Whetstone",size:1,tier:2,cat:"util",cd:0,adjDmg:3,d:"Adjacent weapons hit harder."},
  hourglass:{n:"Brass Hourglass",size:2,tier:2,cat:"util",cd:4,fx:{haste:0.8},d:"Hastes its neighbors on a rhythm."},
  adren:{n:"Adrenaline Draught",size:2,tier:3,cat:"util",cd:0,cdMul:0.88,d:"Your whole stall runs faster."},
- serpentcrown:{n:"Serpent Crown",size:2,tier:3,cat:"poison",cd:5,fx:{poison:4},unique:true,d:"Shahmaran's bounty. No stall sells it."}
+ serpentcrown:{n:"Serpent Crown",size:2,tier:3,cat:"poison",cd:5,fx:{poison:4},unique:true,d:"Shahmaran's bounty. No stall sells it."},
+ tidewall:{n:"Tide Wall",size:3,tier:3,cat:"shield",cd:6,fx:{shield:25},unique:true,d:"Marid's bounty. A wall of standing water."}
 };
 /* ============ TRINKETS ============ */
 export const TRINKETS=[
@@ -105,7 +106,10 @@ export const MONSTERS={
    bounty:{gild:true},special:"mirror",board:[]},
  shahmaran:{n:"Shahmaran",band:3,hp:350,tag:"poison",glyph:"m-shahmaran",fl:"Half woman, half serpent, all patience.",
    bounty:{items:["serpentcrown"]},
-   board:[{nm:"Serpent Crown",g:"g-serpentcrown",size:2,cd:5,integ:24,fx:{poison:4}},{nm:"Coiled Court",g:"g-sanctum",size:2,cd:6,integ:22,fx:{heal:10}}]}
+   board:[{nm:"Serpent Crown",g:"g-serpentcrown",size:2,cd:5,integ:24,fx:{poison:4}},{nm:"Coiled Court",g:"g-sanctum",size:2,cd:6,integ:22,fx:{heal:10}}]},
+ marid:{n:"Marid of the Cistern",band:3,hp:280,tag:"shield",glyph:"m-marid",fl:"The cistern breathes, and the water answers.",
+   bounty:{items:["tidewall"]},
+   board:[{nm:"Tide Wall",g:"g-tidewall",size:3,cd:6,integ:36,fx:{shield:25}},{nm:"Spring",g:"g-chalice",size:2,cd:5,integ:22,fx:{heal:12}},{nm:"Drip",g:"g-vial",size:1,cd:3,integ:10,fx:{dmg:4}}]}
 };
-export const MONBAND={1:["imp","rats","ghul","samovar"],2:["lamassu","kark","collector"],3:["ifrit","qareen","shahmaran"]};
+export const MONBAND={1:["imp","rats","ghul","samovar"],2:["lamassu","kark","collector"],3:["ifrit","qareen","shahmaran","marid"]};
 export const MONCHIP={1:2,2:4,3:6};
