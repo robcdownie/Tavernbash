@@ -119,7 +119,10 @@ export const MONSTERS={
    board:[{nm:"Venom Kiss",g:"g-serpent",size:2,cd:4,integ:24,fx:{poison:3}}]},
  sandling:{n:"Sandling",band:1,hp:90,tag:"heal",glyph:"m-sandling",fl:"It does nothing. Then the sand does everything.",regen:1,stormAt:12,
    bounty:{items:["weepingstone"]},
-   board:[]}
+   board:[]},
+ monkey:{n:"Pilfer Monkey",band:1,hp:60,tag:"util",glyph:"m-monkey",fl:"It fights for tips.",
+   bounty:{gold:8,drain:true},
+   board:[{nm:"Sticky Paws",g:"g-purse",size:1,cd:3,integ:14,fx:{dmg:3},pocket:1}]}
 };
-export const MONBAND={1:["imp","rats","ghul","samovar","sandling"],2:["lamassu","kark","collector","nasnas","matron"],3:["ifrit","qareen","shahmaran","marid"]};
+export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron"],3:["ifrit","qareen","shahmaran","marid"]};
 export const MONCHIP={1:2,2:4,3:6};

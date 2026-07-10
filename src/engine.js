@@ -73,7 +73,7 @@ export function monsterFightItems(mid,ctx){
     return {nm:b.nm,g:b.g,size:b.size,rarity:ctx.gilded?2:0,cat:"dmg",tier:M.band,
       cd:b.cd>0?Math.round(b.cd*1000*A.cdMul):0,timer:0,alive:true,
       integ:Math.round(b.integ*gild),maxI:Math.round(b.integ*gild),
-      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,uid:UID++};
+      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,uid:UID++};
   });
 }
 export function monsterSide(mid,ctx){
@@ -147,7 +147,7 @@ export function createFight(cfg){
   const rng=mulberry(cfg.seed||1);
   const mk=(s,key)=>({key:key,nm:s.nm,portrait:s.portrait||"g-medallion",hp:s.hp,maxHp:s.hp,shield:0,pois:0,burn:0,items:s.items,ls:s.lifesteal||0,regen:s.regen||0});
   const A=mk(cfg.a,"a"), B=mk(cfg.b,"b");
-  const F={t:0,done:false,winner:null,stormAt:cfg.stormAt,stormOn:false,a:A,b:B,secMark:0,stormDmg:5};
+  const F={t:0,done:false,winner:null,stormAt:cfg.stormAt,stormOn:false,a:A,b:B,secMark:0,stormDmg:5,pocketed:0};
   function hHit(D,amt,ev,kind){
     const abs=Math.min(D.shield,amt);D.shield-=abs;const hpd=amt-abs;D.hp-=hpd;
     ev.push({k:kind||"hhit",side:D.key,amt:hpd,abs:abs});
@@ -180,6 +180,9 @@ export function createFight(cfg){
       const tj=it.charge.t;
       if(S.items[tj]&&S.items[tj].alive&&S.items[tj].cd>0){S.items[tj].timer+=it.charge.s*1000;ev.push({k:"haste",side:S.key,i:tj});}
     }
+    /* bounty drain: each activation pockets gold out of the door bounty;
+       the fight only counts, the market settles up afterward */
+    if(it.pocket){F.pocketed+=it.pocket;ev.push({k:"pocket",side:D.key,amt:it.pocket});}
   }
   F.step=function(dt){
     if(F.done){return [];}

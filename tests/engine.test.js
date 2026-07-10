@@ -42,7 +42,7 @@ test('termination: 48 random rival matchups across rounds 1 to 12 all resolve',(
 const BAND1=['sword','sword','dagger','dagger'];
 const BAND2=['tower','mace','crossbow','bandage'];
 const BAND3=['hammer','aegis','salve','fangs'];
-const CURVE={imp:[2,BAND1],rats:[2,BAND1],ghul:[2,BAND1],samovar:[2,BAND1],
+const CURVE={imp:[2,BAND1],rats:[2,BAND1],ghul:[2,BAND1],samovar:[2,BAND1],monkey:[2,BAND1],
              lamassu:[5,BAND2],kark:[5,BAND2],collector:[5,BAND2,5],nasnas:[5,BAND2],matron:[5,BAND2],
              ifrit:[9,BAND3],qareen:[9,BAND3],shahmaran:[9,BAND3],marid:[9,BAND3]};
 for(const mid of Object.keys(CURVE)){
@@ -73,6 +73,19 @@ test('regen: knits fight health each second, never past the cap, never from the 
 test('Ghul Matron knits 2 a second, 3 when gilded',()=>{
   assert.equal(monsterSide('matron',{round:5,gold:0,A:ANONE,gilded:false}).regen,2);
   assert.equal(monsterSide('matron',{round:5,gold:0,A:ANONE,gilded:true}).regen,3);
+});
+
+test('Pilfer Monkey: every Sticky Paws activation pockets exactly 1 bounty gold',()=>{
+  const ref=refSide(BAND1,2);
+  const foe=monsterSide('monkey',{round:2,gold:0,A:ANONE,gilded:false});
+  const F=createFight({a:ref.side,b:foe,stormAt:stormAt(2),seed:42,playerIs:'a'});
+  let events=0;
+  let guard=0;
+  while(!F.done&&guard++<3600){for(const e of F.step(50)){if(e.k==='pocket'){assert.equal(e.amt,1);assert.equal(e.side,'a','the player side loses the gold');events++;}}}
+  assert.equal(F.winner,'a');
+  assert.equal(F.pocketed,events,'the tally matches the events');
+  assert.ok(F.pocketed>=1,'the Paws got at least one grab in');
+  assert.ok(F.pocketed<8,'but nowhere near the whole purse on curve');
 });
 
 test('Sandling: no weapons, 1 regen, falls on curve before its early storm decides',()=>{

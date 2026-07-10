@@ -188,6 +188,7 @@ function bountyText(D){
   if(b.gild){parts.push('Gild one of your wares');}
   if(b.relic){parts.push('enter with 8+ gold for +1 income forever');}
   if(b.mote){parts.push('Fusion Mote: a free bronze copy of your commonest ware');}
+  if(b.drain){parts.push('minus 1 for every Sticky Paws grab');}
   return parts.join(' &middot; ');
 }
 function safeText(s){
@@ -397,6 +398,7 @@ function handleEvents(F,evs){
     else if(e.k==='burn'){fltFx(e.side,'+'+e.amt,'#ffb066','e-flame',false);}
     else if(e.k==='tickp'){fltFx(e.side,'-'+e.amt,'#c0e070','e-skull',false);sTick();}
     else if(e.k==='tickb'){fltFx(e.side,'-'+e.amt,'#ffb066','e-flame',false);sTick();}
+    else if(e.k==='pocket'){fltFx(e.side,'-'+e.amt,'#e8c27a','e-bolt',false);logLine('<b class="y">Sticky Paws pockets '+e.amt+' bounty gold</b>','e-bolt','#e8c27a');}
     else if(e.k==='stormstart'){logLine('<b class="y">The sandstorm arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);sStorm(true);}
   }
 }
@@ -443,7 +445,12 @@ function endMonsterFight(F){
   const D=G.door;const M=MONSTERS[D.mid];D.done=true;G.phase='draft';
   if(F.winner==='a'){
     D.result='SLAIN';const b=M.bounty;
-    if(b.gold){G.gold+=b.gold*(D.gilded?2:1);}
+    if(b.gold){
+      const purse=b.gold*(D.gilded?2:1);
+      const drained=b.drain?Math.min(F.pocketed||0,purse):0;
+      G.gold+=purse-drained;
+      if(drained>0){toast('The monkey kept '+drained+' gold of the bounty.');}
+    }
     if(b.items){b.items.forEach(function(id){G.shop.push({id:id,free:true,bought:false});});}
     if(b.relic&&G.enteredGold>=8){G.relicIncome+=1;toast('Income relic: +1 gold every round');}
     if(b.mote){
