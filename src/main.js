@@ -1,9 +1,11 @@
 "use strict";
 import {boot} from './ui.js';
+import {applyBigArt} from './art.js';
 import {createFight,runHeadless,makeItem,fuseScan,genRival,playerFightItems,monsterSide,
         fightHP,stormAt,mulberry,integOf,usedCells,gateOK} from './engine.js';
 import {ITEMS,MONSTERS,TRINKETS,ANOMALIES,ANONE,PERSONAS,RSTAT,RINTEG} from './data.js';
 if(typeof document!=='undefined'&&typeof window!=='undefined'){
+  applyBigArt();
   boot();
   if('serviceWorker' in navigator&&!location.hostname.match(/^(localhost|127\.)/)){
     window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js');});

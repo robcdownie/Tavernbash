@@ -22,7 +22,10 @@ export function scanArt(rootDir) {
   const dirs = [
     ['items', function (n) { return 'g-' + n; }],
     ['monsters', function (n) { return 'm-' + n; }],
-    ['portraits', function (n) { return n.replace(/^p(\d+)$/, 'p-$1'); }]
+    ['portraits', function (n) { return n.replace(/^p(\d+)$/, 'p-$1'); }],
+    ['frames', function (n) { return n.replace(/_/g, '-'); }],
+    ['board', function (n) { return n.replace(/_/g, '-'); }],
+    ['bg', function (n) { return n.replace(/_/g, '-'); }]
   ];
   for (const [dir, toId] of dirs) {
     const p = join(rootDir, 'public', 'art', dir);
