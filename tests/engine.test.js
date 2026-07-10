@@ -133,6 +133,18 @@ test('The Azhdaha: each fallen head halves the survivors, and a rich board still
   assert.deepEqual(cds[1],[2000],'second head down: the last head at 2 s');
 });
 
+test('Grand Vizier of Ash: the full kit boss falls to a gold round 12 board',()=>{
+  const foe=monsterSide('vizier',{round:12,gold:0,A:ANONE,gilded:false});
+  assert.equal(foe.hp,700);
+  assert.equal(foe.items.reduce((s,i)=>s+i.size,0),10,'a full ten slot board');
+  assert.ok(foe.items[0].bulwark,'the wall stands in front');
+  assert.equal(MONSTERS.vizier.bounty.pickUnique,true,'the vault bounty');
+  const board=[makeItem('hammer',2),makeItem('aegis',2),makeItem('salve',2),makeItem('fangs',2)];
+  const me={nm:'You',portrait:'p-0',hp:fightHP(12,0,ANONE),items:playerFightItems(board,{},ANONE,1),lifesteal:0};
+  const F=runHeadless(createFight({a:me,b:foe,stormAt:stormAt(12),seed:41,playerIs:'a'}));
+  assert.equal(F.winner,'a','a gold board takes the palace');
+});
+
 test('Night Auctioneer: the auction disables the finest weapon and pays for it',()=>{
   const foe=monsterSide('auctioneer',{round:10,gold:0,A:ANONE,gilded:false});
   assert.equal(foe.hp,500);

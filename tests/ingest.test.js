@@ -36,6 +36,7 @@ test('ingest matcher: id tokens in messy filenames map to the right target', () 
     ['azhdaha fang shard.png', 'items', 'azhfang.png'],
     ['night auctioneer hooded.png', 'monsters', 'auctioneer.png'],
     ['the gavel brass.png', 'items', 'gavel.png'],
+    ['grand vizier of ash.png', 'monsters', 'vizier.png'],
     ['weeping stone charm.png', 'items', 'weepingstone.png'],
     ['rust ghul cleaver.png', 'monsters', 'ghul.png'],
     ['scalded samovar angry.png', 'monsters', 'samovar.png'],

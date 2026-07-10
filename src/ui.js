@@ -189,6 +189,7 @@ function bountyText(D){
   if(b.relic){parts.push('enter with 8+ gold for +1 income forever');}
   if(b.mote){parts.push('Fusion Mote: a free bronze copy of your commonest ware');}
   if(b.drain){parts.push('minus 1 for every Sticky Paws grab');}
+  if(b.pickUnique){parts.push('Pick any unique ware from the vault');}
   return parts.join(' &middot; ');
 }
 function safeText(s){
@@ -476,6 +477,7 @@ function endMonsterFight(F){
       else{G.gold+=3;toast('The mote found nothing bronze to copy. 3 gold instead.');}
     }
     if(b.gild){renderAll();openGild('The mirror bows. Gild one ware.',null);return;}
+    if(b.pickUnique){renderAll();openUniquePick('The vault opens. Take one.');return;}
     toast(M.n+' slain. Bounty added to the market.');
     renderAll();
   }else{
@@ -771,6 +773,23 @@ function openGild(msg,cont){
       it.rarity++;
       toast('Gilded: '+RNAME[it.rarity]+' '+ITEMS[it.id].n);
       ovClose(o);if(cont)cont();renderAll();
+    };
+  });
+}
+function openUniquePick(msg){
+  const ids=Object.keys(ITEMS).filter(function(id){return ITEMS[id].unique;});
+  const o=ovOpen('<div class="card"><div class="rays"></div>'
+   +'<div class="kick gold">The Vault</div>'
+   +'<h2 class="big" style="font-size:23px">'+msg+'</h2>'
+   +'<div class="picks">'+ids.map(function(id){
+      const d=ITEMS[id];
+      return '<div class="pick" data-u="'+id+'"><div class="ph2">'+ic('g-'+id,'','width:28px;height:28px')+'</div><div class="pn">'+d.n+'</div><div class="pd">'+d.d+'</div></div>';
+    }).join('')+'</div></div>');
+  o.querySelectorAll('.pick').forEach(function(p){
+    p.onclick=function(){
+      G.shop.push({id:p.dataset.u,free:true,bought:false});
+      toast(ITEMS[p.dataset.u].n+' waits in the market, free.');
+      ovClose(o);renderAll();
     };
   });
 }
