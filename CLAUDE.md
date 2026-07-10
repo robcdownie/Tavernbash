@@ -4,7 +4,7 @@ A mobile auto-battler set in a Persian night market. This repo is self-contained
 
 ## Source of truth
 
-Read `handoff-bazaar-brawler-2026-07-09.md` in full before making changes. It carries the rules spec, data tables, the phased mission, the art direction, and the decisions not to re-litigate. Phases 0 and 1 (module structure, tests, PWA, saves, Netlify deploy) are complete. Next up: Phase 2, the painted-art asset pipeline.
+Read `handoff-bazaar-brawler-2026-07-09.md` in full before making changes. It carries the rules spec, data tables, the phased mission, the art direction, and the decisions not to re-litigate. Phases 0 through 2 (module structure, tests, PWA, saves, Netlify deploy, painted-art pipeline) are complete. Next up: Phase 3, Pixi.js particles. Painted art batches can land any time: drop PNGs into `public/art/` per the naming rules in `scripts/make-art-manifest.js`, run `npm run art`, and the game picks them up.
 
 ## Layout
 
@@ -15,9 +15,12 @@ Read `handoff-bazaar-brawler-2026-07-09.md` in full before making changes. It ca
 | `src/engine.js` | The combat sim. Pure, deterministic, DOM-free, headless-testable. Keep it that way. |
 | `src/data.js` | Items, monsters, trinkets, anomalies, personas, constants. |
 | `src/ui.js` | All DOM rendering and game flow, including the saves system. |
-| `src/art.js` | Sprite access point. Phase 2 extends it: try `art/items/{id}.png` first, fall back to the SVG symbol. |
+| `src/art.js` | Sprite access point. Renders the painted PNG for an id when the manifest has one, else the SVG symbol. Same svg wrapper both ways, so CSS never changes. |
+| `src/art-manifest.js` | Generated map of glyph id to painted PNG path. Never edit by hand; `npm run art` rebuilds it (also runs before dev, build, and test). |
+| `public/art/` | Painted art drops here: `items/{id}.png`, `monsters/{glyph suffix}.png` (the Debt Collector is `debt.png`), `portraits/p0.png` to `p7.png`, plus `frames`, `board`, `bg` for CSS art. |
 | `public/` | Manifest, service worker, generated icons. Bump `CACHE_V` in `sw.js` and `SAVE_VERSION` in `ui.js` when a deploy must invalidate old state. |
 | `scripts/make-icons.js` | Regenerates the placeholder icon set. |
+| `scripts/make-art-manifest.js` | Scans `public/art` and writes `src/art-manifest.js`. Filename rules are documented at the top of the file. |
 
 ## Commands
 

@@ -4,9 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "art": "node scripts/make-art-manifest.js",
+    "predev": "node scripts/make-art-manifest.js",
     "dev": "vite",
+    "prebuild": "node scripts/make-art-manifest.js",
     "build": "vite build",
     "preview": "vite preview",
+    "pretest": "node scripts/make-art-manifest.js",
     "test": "node --test \"tests/*.test.js\""
   },
   "devDependencies": {
