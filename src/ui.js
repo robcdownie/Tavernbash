@@ -4,6 +4,7 @@ import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,BANDN,BAN
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,usedCells,
         playerFightItems,monsterSide,genRival,createFight,runHeadless} from './engine.js';
 import {ic} from './art.js';
+import {fxHit,fxDestroy,fxForge,fxCoinRain,fxStorm} from './fx.js';
 /* ============ SESSION + UI PRIMITIVES ============ */
 let G=null;let RM=false;const BEST={place:null,round:0};
 /* ============ SAVES ============ */
@@ -293,7 +294,7 @@ function buyWare(i){
   if(forged.length){
     forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});
     const cells=document.querySelectorAll('#bd .cell.it');
-    forged.forEach(function(f){const idx=G.board.indexOf(f);if(cells[idx])cells[idx].classList.add('forge');});
+    forged.forEach(function(f){const idx=G.board.indexOf(f);if(cells[idx]){cells[idx].classList.add('forge');const p=ctrOf(cells[idx]);if(p&&!RM)fxForge(p.x,p.y);}});
   }
 }
 function tierUp(){
@@ -337,6 +338,7 @@ function cellFx(side,i,cls){
   const c=$('fc-'+side+'-'+i);if(!c)return;
   c.classList.remove(cls);void c.offsetWidth;c.classList.add(cls);
 }
+function ctrOf(el){if(!el)return null;const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};}
 function logLine(html,mini,color){
   const l=$('log');if(!l)return;
   const d=document.createElement('div');d.className='li';
@@ -372,11 +374,12 @@ function handleEvents(F,evs){
   for(let x=0;x<evs.length;x++){
     const e=evs[x];
     if(e.k==='fire'){cellFx(e.side,e.i,'fire');}
-    else if(e.k==='chip'){const ig=$('fi-'+e.side+'-'+e.i);if(ig)ig.textContent=e.integ;cellFx(e.side,e.i,'chip');}
-    else if(e.k==='destroy'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('dead');logLine('<b class="r">'+esc(e.nm)+'</b> destroyed','e-skull','#ff8d76');}
+    else if(e.k==='chip'){const ig=$('fi-'+e.side+'-'+e.i);if(ig)ig.textContent=e.integ;cellFx(e.side,e.i,'chip');const p=ctrOf($('fc-'+e.side+'-'+e.i));if(p&&!RM)fxHit(p.x,p.y,e.amt);}
+    else if(e.k==='destroy'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('dead');logLine('<b class="r">'+esc(e.nm)+'</b> destroyed','e-skull','#ff8d76');const p=ctrOf(c);if(p&&!RM)fxDestroy(p.x,p.y);}
     else if(e.k==='hhit'){
       fltFx(e.side,'-'+e.amt,'#ff8d76','e-blade',e.amt>=26);
       const fg=$('fg-'+e.side);if(fg){fg.classList.remove('hit');void fg.offsetWidth;fg.classList.add('hit');}
+      const p=ctrOf(fg);if(p&&!RM)fxHit(p.x,p.y,e.amt);
       if(e.amt>=30)shake();if(e.amt>=46)flashScr();
       if(e.amt>=18)logLine((e.side==='a'?'You take ':'They take ')+'<b class="r">'+e.amt+'</b>','e-blade','#ff8d76');
     }
@@ -387,7 +390,7 @@ function handleEvents(F,evs){
     else if(e.k==='burn'){fltFx(e.side,'+'+e.amt,'#ffb066','e-flame',false);}
     else if(e.k==='tickp'){fltFx(e.side,'-'+e.amt,'#c0e070','e-skull',false);}
     else if(e.k==='tickb'){fltFx(e.side,'-'+e.amt,'#ffb066','e-flame',false);}
-    else if(e.k==='stormstart'){logLine('<b class="y">The sandstorm arrives</b>','e-bolt','#e8c27a');}
+    else if(e.k==='stormstart'){logLine('<b class="y">The sandstorm arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);}
   }
 }
 function startFight(me,foe,opts){
@@ -414,6 +417,7 @@ function startFight(me,foe,opts){
     paintFight(F);
     if(F.done){
       clearInterval(G.fiv);G.fiv=null;
+      fxStorm(false);
       setTimeout(function(){$('sand').classList.remove('on');opts.onEnd(F);},850);
     }
   },40);
@@ -562,6 +566,7 @@ function endGhostFight(F){
 }
 function banner(iWon,dmg,opp){
   const who=opp?esc(opp.short):'the departed';
+  if(iWon&&!RM)fxCoinRain();
   const o=ovOpen('<div class="card"><div class="rays'+(iWon?'':' red')+'"></div>'
    +'<div class="kick'+(iWon?' gold':'')+'">Round '+G.round+' &middot; Dusk</div>'
    +'<h2 class="big'+(iWon?'':' bad')+'">'+(iWon?'Victory':'Defeat')+'</h2>'
@@ -763,6 +768,7 @@ function championScreen(){
    +'<div class="score">1st of 8 &middot; Round<b>'+G.round+'</b></div>'
    +'<button class="btn gold" id="nlb2">New Lobby</button></div>');
   coinRain(o.querySelector('#crn2'));
+  if(!RM)fxCoinRain();
   o.querySelector('#nlb2').onclick=function(){ovClose(o);newLobby();};
 }
 /* ============ LOBBY ============ */
