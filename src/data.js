@@ -41,7 +41,8 @@ export const ITEMS={
  adren:{n:"Adrenaline Draught",size:2,tier:3,cat:"util",cd:0,cdMul:0.88,d:"Your whole stall runs faster."},
  serpentcrown:{n:"Serpent Crown",size:2,tier:3,cat:"poison",cd:5,fx:{poison:4},unique:true,d:"Shahmaran's bounty. No stall sells it."},
  tidewall:{n:"Tide Wall",size:3,tier:3,cat:"shield",cd:6,fx:{shield:25},unique:true,d:"Marid's bounty. A wall of standing water."},
- weepingstone:{n:"Weeping Stone",size:1,tier:2,cat:"heal",cd:0,regen:1,unique:true,d:"Sandling's bounty. Knits 1 fight health a second."}
+ weepingstone:{n:"Weeping Stone",size:1,tier:2,cat:"heal",cd:0,regen:1,unique:true,d:"Sandling's bounty. Knits 1 fight health a second."},
+ flyingcharm:{n:"Flying Charm",size:1,tier:2,cat:"util",cd:0,adjFly:true,unique:true,d:"Icebox bounty. Its neighbors fly; weapons cannot reach them."}
 };
 /* ============ TRINKETS ============ */
 export const TRINKETS=[
@@ -122,7 +123,10 @@ export const MONSTERS={
    board:[]},
  monkey:{n:"Pilfer Monkey",band:1,hp:60,tag:"util",glyph:"m-monkey",fl:"It fights for tips.",
    bounty:{gold:8,drain:true},
-   board:[{nm:"Sticky Paws",g:"g-purse",size:1,cd:3,integ:14,fx:{dmg:3},pocket:1}]}
+   board:[{nm:"Sticky Paws",g:"g-purse",size:1,cd:3,integ:14,fx:{dmg:3},pocket:1}]},
+ icebox:{n:"The Icebox",band:2,hp:170,tag:"util",glyph:"m-icebox",fl:"Cold storage, with opinions.",
+   bounty:{items:["flyingcharm"]},
+   board:[{nm:"Cold Shank",g:"g-dagger",size:1,cd:4,integ:14,fx:{dmg:7}},{nm:"Frost Vent",g:"g-tower",size:2,cd:6,integ:45,fx:{freeze:3}}]}
 };
-export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron"],3:["ifrit","qareen","shahmaran","marid"]};
+export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox"],3:["ifrit","qareen","shahmaran","marid"]};
 export const MONCHIP={1:2,2:4,3:6};

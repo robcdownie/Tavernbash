@@ -40,9 +40,9 @@ export function playerFightItems(board,T,A,scale){
   return board.map((it,idx)=>{
     const def=ITEMS[it.id];
     const rs=RSTAT[it.rarity]*scale;
-    let adj=0;
+    let adj=0,fly=!!def.flying;
     [idx-1,idx+1].forEach(j=>{
-      if(j>=0&&j<board.length){const nd=ITEMS[board[j].id];if(nd.adjDmg){adj+=nd.adjDmg*RSTAT[board[j].rarity];}}
+      if(j>=0&&j<board.length){const nd=ITEMS[board[j].id];if(nd.adjDmg){adj+=nd.adjDmg*RSTAT[board[j].rarity];}if(nd.adjFly){fly=true;}}
     });
     const fd=(T.firstDouble&&idx===0)?2:1;
     const fx={};
@@ -55,7 +55,7 @@ export function playerFightItems(board,T,A,scale){
     return {nm:def.n,g:"g-"+it.id,size:it.size,rarity:it.rarity,cat:def.cat,tier:def.tier,
       cd:def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd)):0,
       timer:0,alive:true,integ:integOf(it),maxI:integOf(it),
-      fx:fx,bulwark:!!def.bulwark,targeting:def.targeting||null,charge:null,uid:it.uid};
+      fx:fx,bulwark:!!def.bulwark,targeting:def.targeting||null,charge:null,flying:fly,frozen:0,uid:it.uid};
   });
 }
 export function monsterFightItems(mid,ctx){
@@ -70,10 +70,11 @@ export function monsterFightItems(mid,ctx){
     if(b.fx.poison){fx.poison=Math.max(1,Math.round(b.fx.poison*gild*A.poisonMul));}
     if(b.fx.shield){fx.shield=Math.round(b.fx.shield*gild);}
     if(b.fx.heal){fx.heal=Math.round(b.fx.heal*gild);}
+    if(b.fx.freeze){fx.freeze=b.fx.freeze;}
     return {nm:b.nm,g:b.g,size:b.size,rarity:ctx.gilded?2:0,cat:"dmg",tier:M.band,
       cd:b.cd>0?Math.round(b.cd*1000*A.cdMul):0,timer:0,alive:true,
       integ:Math.round(b.integ*gild),maxI:Math.round(b.integ*gild),
-      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,uid:UID++};
+      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,uid:UID++};
   });
 }
 export function monsterSide(mid,ctx){
@@ -134,7 +135,9 @@ export function boardRegen(board){
 }
 /* ============ THE FIGHT ENGINE ============ */
 export function pickTarget(items,mode){
-  const alive=[];for(let i=0;i<items.length;i++){if(items[i].alive){alive.push(i);}}
+  /* flying items cannot be struck by weapons; with only flyers left,
+     weapons go through to the merchant */
+  const alive=[];for(let i=0;i<items.length;i++){if(items[i].alive&&!items[i].flying){alive.push(i);}}
   if(!alive.length){return -1;}
   for(const i of alive){if(items[i].bulwark){return i;}}
   if(mode==="maxinteg"){
@@ -171,6 +174,10 @@ export function createFight(cfg){
     }
     if(fx.shield){S.shield+=fx.shield;ev.push({k:"shield",side:S.key,amt:fx.shield,val:S.shield});}
     if(fx.heal){healSide(S,fx.heal,ev,false);S.pois=Math.max(0,S.pois-1);S.burn=Math.max(0,S.burn-1);}
+    if(fx.freeze){
+      let ti=-1;for(let j=0;j<D.items.length;j++){if(D.items[j].alive){ti=j;break;}}
+      if(ti>=0){D.items[ti].frozen=(D.items[ti].frozen||0)+fx.freeze*1000;ev.push({k:"freeze",side:D.key,i:ti,amt:fx.freeze});}
+    }
     if(fx.poison){D.pois+=fx.poison;ev.push({k:"pois",side:D.key,amt:fx.poison,val:D.pois});}
     if(fx.burn){D.burn+=fx.burn;ev.push({k:"burn",side:D.key,amt:fx.burn,val:D.burn});}
     if(fx.haste){
@@ -193,6 +200,7 @@ export function createFight(cfg){
       for(let i=0;i<S.items.length;i++){
         const it=S.items[i];
         if(!it.alive||it.cd<=0){continue;}
+        if(it.frozen>0){it.frozen-=dt;if(it.frozen<=0){it.frozen=0;ev.push({k:"thaw",side:S.key,i:i});}continue;}
         it.timer+=dt;
         let g=0;
         while(it.timer>=it.cd&&g++<4){it.timer-=it.cd;fire(S,D,it,i,ev);}

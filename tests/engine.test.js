@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createFight,runHeadless,makeItem,fuseScan,genRival,playerFightItems,monsterSide,
-        fightHP,stormAt,mulberry,boardRegen} from '../src/engine.js';
+        fightHP,stormAt,mulberry,boardRegen,pickTarget} from '../src/engine.js';
 import {ANONE,PERSONAS,ITEMS,MONSTERS} from '../src/data.js';
 
 function duel(a,b,round,seed,playerIs){
@@ -43,7 +43,7 @@ const BAND1=['sword','sword','dagger','dagger'];
 const BAND2=['tower','mace','crossbow','bandage'];
 const BAND3=['hammer','aegis','salve','fangs'];
 const CURVE={imp:[2,BAND1],rats:[2,BAND1],ghul:[2,BAND1],samovar:[2,BAND1],monkey:[2,BAND1],
-             lamassu:[5,BAND2],kark:[5,BAND2],collector:[5,BAND2,5],nasnas:[5,BAND2],matron:[5,BAND2],
+             lamassu:[5,BAND2],kark:[5,BAND2],collector:[5,BAND2,5],nasnas:[5,BAND2],matron:[5,BAND2],icebox:[5,BAND2],
              ifrit:[9,BAND3],qareen:[9,BAND3],shahmaran:[9,BAND3],marid:[9,BAND3]};
 for(const mid of Object.keys(CURVE)){
   test('monster winnability: '+MONSTERS[mid].n+' loses to an on-curve board',()=>{
@@ -73,6 +73,40 @@ test('regen: knits fight health each second, never past the cap, never from the 
 test('Ghul Matron knits 2 a second, 3 when gilded',()=>{
   assert.equal(monsterSide('matron',{round:5,gold:0,A:ANONE,gilded:false}).regen,2);
   assert.equal(monsterSide('matron',{round:5,gold:0,A:ANONE,gilded:true}).regen,3);
+});
+
+test('freeze: pauses the item timer for exactly the stated seconds',()=>{
+  const vent={nm:'Frost Vent',g:'g-tower',size:2,cd:6000,timer:0,alive:true,integ:220,maxI:220,
+              fx:{freeze:3},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,uid:901};
+  const F=createFight({a:{nm:'x',hp:400,items:playerFightItems([makeItem('sword',0)],{},ANONE,1),lifesteal:0},
+                       b:{nm:'ib',hp:400,items:[vent],lifesteal:0},
+                       stormAt:999000,seed:1,playerIs:'a'});
+  const seen={fires:0,freezes:0,freezeAt:null,thawAt:null};
+  while(F.t<14000){for(const e of F.step(50)){
+    if(e.k==='fire'&&e.side==='a'){seen.fires++;}
+    if(e.k==='freeze'){seen.freezes++;if(seen.freezeAt===null){seen.freezeAt=F.t;}assert.equal(e.side,'a');assert.equal(e.amt,3);}
+    if(e.k==='thaw'&&seen.thawAt===null){seen.thawAt=F.t;}
+  }}
+  assert.equal(seen.freezeAt,6000,'vent fires at 6 s');
+  assert.equal(seen.thawAt,9000,'thaw exactly 3 s later');
+  assert.equal(seen.freezes,2,'the vent freezes again at 12 s');
+  assert.equal(seen.fires,2,'two freezes cost the sword two swings by 14 s');
+});
+
+test('flying: weapons skip flyers, and with only flyers left they hit the merchant',()=>{
+  const mk=(over)=>Object.assign({nm:'t',g:'g-dagger',size:1,cd:3000,timer:0,alive:true,integ:10,maxI:10,
+    fx:{},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,uid:++UIDT},over);
+  assert.equal(pickTarget([mk({flying:true}),mk({})],null),1,'the flyer is skipped');
+  assert.equal(pickTarget([mk({flying:true}),mk({flying:true})],null),-1,'all flyers means the merchant');
+  assert.equal(pickTarget([mk({flying:true,bulwark:true}),mk({})],null),1,'a flying bulwark cannot taunt');
+});
+let UIDT=5000;
+
+test('Flying Charm: neighbors take wing at fight start, the charm itself stays grounded',()=>{
+  const items=playerFightItems([makeItem('dagger',0),makeItem('flyingcharm',0),makeItem('sword',0)],{},ANONE,1);
+  assert.equal(items[0].flying,true,'left neighbor flies');
+  assert.equal(items[2].flying,true,'right neighbor flies');
+  assert.equal(items[1].flying,false,'the charm is the anchor');
 });
 
 test('Pilfer Monkey: every Sticky Paws activation pockets exactly 1 bounty gold',()=>{
