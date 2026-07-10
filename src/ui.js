@@ -88,7 +88,7 @@ function toast(msg){
   t.textContent=msg;t.style.opacity='1';
   clearTimeout(toastT);toastT=setTimeout(function(){t.style.opacity='0';},1700);
 }
-function bandOf(r){return r<=3?1:(r<=6?2:3);}
+function bandOf(r){return r<=3?1:(r<=6?2:(r<=9?3:4));}
 function shake(){if(RM)return;const a=$('app');a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake');}
 function flashScr(){if(RM)return;const f=$('flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');}
 /* ============ STAT DISPLAY HELPERS ============ */
@@ -409,6 +409,7 @@ function handleEvents(F,evs){
     else if(e.k==='crit'){cellFx(e.side,e.i,'fire');logLine('<b class="y">Critical strike</b>','e-blade','#f4cf7c');}
     else if(e.k==='ammo'){if(e.left===0){fltFx(e.side,'empty','#8d7f6c','e-clock',false);logLine('<b class="r">The cannon clicks empty</b>','e-clock','#8d7f6c');}}
     else if(e.k==='reload'){fltFx(e.side,'reload','#e8c27a','e-bolt',false);}
+    else if(e.k==='enrage'){cellFx(e.side,e.i,'fire');logLine('<b class="r">The survivors rage: cooldowns cut</b>','e-flame','#ff8d76');}
     else if(e.k==='spawn'){const c=$('fc-'+e.side+'-'+e.i);const S=e.side==='a'?F.a:F.b;if(c&&S.items[e.i]){c.outerHTML=fightCellHTML(S.items[e.i],e.i,e.side);}logLine('<b class="t">'+esc(e.nm)+'</b> emerges','e-skull','#9dbb45');sDestroy();}
     else if(e.k==='stormstart'){logLine('<b class="y">The sandstorm arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);sStorm(true);}
   }

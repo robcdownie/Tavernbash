@@ -8,8 +8,8 @@ export const COST={1:3,2:5,3:8}, SELLV={1:1,2:2,3:3};
 export const TIERCOST={2:5,3:7,4:8,5:10,6:11};
 export const CATN={dmg:"Weapons",poison:"Poison",burn:"Burn",shield:"Shield",heal:"Heal",util:"Utility"};
 export const CATC={dmg:"#c8402e",poison:"#9dbb45",burn:"#e0863a",shield:"#35a596",heal:"#e08a8f",util:"#d8a24a"};
-export const BANDN={1:"Back Alleys",2:"The Souk",3:"Palace Quarter"};
-export const BANDC={1:"#a8763a",2:"#b9c4d0",3:"#e2ae55"};
+export const BANDN={1:"Back Alleys",2:"The Souk",3:"Palace Quarter",4:"The Dragon Gate"};
+export const BANDC={1:"#a8763a",2:"#b9c4d0",3:"#e2ae55",4:"#c8402e"};
 export const ANONE={goldMul:1,dmgMul:1,hpMul:1,burnMul:1,poisonMul:1,cdMul:1,shopN:4};
 /* ============ ITEMS ============ */
 export const ITEMS={
@@ -52,7 +52,9 @@ export const ITEMS={
  coincannon:{n:"Coin Cannon",size:3,tier:3,cat:"dmg",cd:3,fx:{dmg:14},ammo:5,unique:true,
    d:"Golem bounty. Five shots, then it begs the hopper."},
  coinhopper:{n:"Coin Hopper",size:1,tier:2,cat:"util",cd:8,fx:{reload:2},unique:true,
-   d:"Golem bounty. Feeds every dry cannon two coins."}
+   d:"Golem bounty. Feeds every dry cannon two coins."},
+ azhfang:{n:"Azhdaha Fang",size:2,tier:3,cat:"dmg",cd:4,fx:{dmg:18},unique:true,rattle:{hasteMates:0.5},
+   d:"Boss bounty. When it shatters, the rest of your stall rages."}
 };
 /* ============ TRINKETS ============ */
 export const TRINKETS=[
@@ -149,7 +151,12 @@ export const MONSTERS={
    board:[{nm:"Tail Feather",g:"g-feather",size:1,cd:2,integ:12,fx:{dmg:8}},{nm:"Preen",g:"g-hatchling",size:2,cd:6,integ:24,fx:{hasteAll:2}}]},
  golem:{n:"Mint Golem",band:3,hp:320,tag:"dmg",glyph:"m-golem",fl:"It pays out in bruises.",
    bounty:{items:["coincannon","coinhopper"]},
-   board:[{nm:"Coin Cannon",g:"g-coincannon",size:3,cd:3,integ:38,fx:{dmg:14},ammo:5},{nm:"Coin Hopper",g:"g-coinhopper",size:1,cd:8,integ:14,fx:{reload:2}}]}
+   board:[{nm:"Coin Cannon",g:"g-coincannon",size:3,cd:3,integ:38,fx:{dmg:14},ammo:5},{nm:"Coin Hopper",g:"g-coinhopper",size:1,cd:8,integ:14,fx:{reload:2}}]},
+ azhdaha:{n:"The Azhdaha",band:4,hp:550,tag:"dmg",glyph:"m-azhdaha",fl:"Cut one head. Ask the other two.",
+   bounty:{items:["azhfang"],gold:5},
+   board:[{nm:"First Head",g:"g-azhfang",size:3,cd:8,integ:50,fx:{dmg:20},rattle:{hasteMates:0.5}},
+          {nm:"Second Head",g:"g-azhfang",size:3,cd:8,integ:50,fx:{dmg:20},rattle:{hasteMates:0.5}},
+          {nm:"Third Head",g:"g-azhfang",size:3,cd:8,integ:50,fx:{dmg:20},rattle:{hasteMates:0.5}}]}
 };
-export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc","simurgh","golem"]};
-export const MONCHIP={1:2,2:4,3:6};
+export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc","simurgh","golem"],4:["azhdaha"]};
+export const MONCHIP={1:2,2:4,3:6,4:8};

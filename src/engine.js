@@ -169,6 +169,13 @@ export function createFight(cfg){
      place, same index, fresh timers, so event indices stay honest */
   function rattleOf(side,i,ev){
     const it=side.items[i];if(!it||!it.rattle){return;}
+    /* hasteMates: the survivors rage, their cooldowns permanently cut */
+    if(it.rattle.hasteMates){
+      for(let j=0;j<side.items.length;j++){
+        const t=side.items[j];
+        if(t.alive&&t.cd>0){t.cd=Math.max(600,Math.round(t.cd*(1-it.rattle.hasteMates)));ev.push({k:"enrage",side:side.key,i:j});}
+      }
+    }
     const sp=it.rattle.spawn;
     if(sp){
       side.items[i]={nm:sp.nm,g:sp.g,size:it.size,rarity:it.rarity,cat:sp.cat||"dmg",tier:it.tier,

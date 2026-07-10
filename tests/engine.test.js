@@ -114,6 +114,30 @@ function ammoItem(over){
     fx:{dmg:14},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,crit:0,
     rattle:null,selfdestruct:false,ammo:5,maxAmmo:5,uid:941},over);
 }
+test('The Azhdaha: each fallen head halves the survivors, and a rich board still wins',()=>{
+  const foe=monsterSide('azhdaha',{round:10,gold:0,A:ANONE,gilded:false});
+  assert.equal(foe.hp,550);
+  assert.equal(foe.items.length,3);
+  const board=[makeItem('hammer',1),makeItem('aegis',1),makeItem('salve',1),makeItem('fangs',1)];
+  const me={nm:'You',portrait:'p-0',hp:fightHP(10,0,ANONE),items:playerFightItems(board,{},ANONE,1),lifesteal:0};
+  const F=createFight({a:me,b:foe,stormAt:stormAt(10),seed:21,playerIs:'a'});
+  let enrages=0;const cds=[];
+  let guard=0;
+  while(!F.done&&guard++<3600){for(const e of F.step(50)){
+    if(e.k==='enrage'){enrages++;}
+    if(e.k==='destroy'&&e.side==='b'){cds.push(F.b.items.filter(t=>t.alive).map(t=>t.cd));}
+  }}
+  assert.equal(F.winner,'a','a silver round 10 board slays the boss');
+  assert.ok(enrages>=3,'the rage triggered, got '+enrages+' enrage events');
+  assert.deepEqual(cds[0],[4000,4000],'first head down: survivors at 4 s');
+  assert.deepEqual(cds[1],[2000],'second head down: the last head at 2 s');
+});
+
+test('Azhdaha Fang: your own board rages when it shatters',()=>{
+  const items=playerFightItems([makeItem('azhfang',0),makeItem('dagger',0)],{},ANONE,1);
+  assert.ok(items[0].rattle&&items[0].rattle.hasteMates===0.5);
+});
+
 test('ammo: five shots then silence, the magazine holds its swing',()=>{
   const F=createFight({a:{nm:'g',hp:9000,items:[ammoItem({})],lifesteal:0},
                        b:{nm:'d',hp:9000,items:[],lifesteal:0},stormAt:999000,seed:2,playerIs:null});
