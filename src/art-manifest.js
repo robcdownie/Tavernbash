@@ -39,6 +39,8 @@ export const ART={
  "m-lamassu":"art/monsters/lamassu.png",
  "m-qareen":"art/monsters/qareen.png",
  "m-rats":"art/monsters/rats.png",
+ "music-battle":"music/battle.mp3",
+ "music-market":"music/market.mp3",
  "p-0":"art/portraits/p0.png",
  "p-1":"art/portraits/p1.png",
  "p-2":"art/portraits/p2.png",

@@ -34,7 +34,7 @@ const FRAME_METALS = ['bronze','silver','gold','diamond'];
 
 /* Tokens a generator tends to leave in a saved filename when the target id
    itself does not appear verbatim. */
-const ALIASES = {warhammer:'hammer', shortsword:'sword', fang:'fangs', karkadann:'kark', collector:'debt', adrenaline:'adren', venum:'venom'};
+const ALIASES = {warhammer:'hammer', shortsword:'sword', fang:'fangs', karkadann:'kark', collector:'debt', adrenaline:'adren', venum:'venom', merchant:'market'};
 
 const AUDIO_EXTS = ['.mp3', '.wav', '.m4a'];
 
