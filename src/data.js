@@ -112,7 +112,10 @@ export const MONSTERS={
    board:[{nm:"Tide Wall",g:"g-tidewall",size:3,cd:6,integ:36,fx:{shield:25}},{nm:"Spring",g:"g-chalice",size:2,cd:5,integ:22,fx:{heal:12}},{nm:"Drip",g:"g-vial",size:1,cd:3,integ:10,fx:{dmg:4}}]},
  nasnas:{n:"Nasnas",band:2,hp:180,tag:"dmg",glyph:"m-nasnas",fl:"Half of everything, twice as much of it.",
    bounty:{mote:true},
-   board:[{nm:"Half Buckler",g:"g-buckler",size:1,cd:4,integ:14,fx:{shield:20}},{nm:"Half Dagger",g:"g-dagger",size:1,cd:3,integ:14,fx:{dmg:12}},{nm:"Half Torch",g:"g-torch",size:1,cd:3,integ:14,fx:{burn:6}},{nm:"Half Vial",g:"g-vial",size:1,cd:3,integ:14,fx:{poison:4}},{nm:"Half Bandage",g:"g-bandage",size:1,cd:4,integ:14,fx:{heal:24}}]}
+   board:[{nm:"Half Buckler",g:"g-buckler",size:1,cd:4,integ:14,fx:{shield:20}},{nm:"Half Dagger",g:"g-dagger",size:1,cd:3,integ:14,fx:{dmg:12}},{nm:"Half Torch",g:"g-torch",size:1,cd:3,integ:14,fx:{burn:6}},{nm:"Half Vial",g:"g-vial",size:1,cd:3,integ:14,fx:{poison:4}},{nm:"Half Bandage",g:"g-bandage",size:1,cd:4,integ:14,fx:{heal:24}}]},
+ matron:{n:"Ghul Matron",band:2,hp:160,tag:"poison",glyph:"m-matron",fl:"She mends as fast as you can cut.",regen:2,
+   bounty:{items:["vial","vial"]},
+   board:[{nm:"Venom Kiss",g:"g-serpent",size:2,cd:4,integ:24,fx:{poison:3}}]}
 };
-export const MONBAND={1:["imp","rats","ghul","samovar"],2:["lamassu","kark","collector","nasnas"],3:["ifrit","qareen","shahmaran","marid"]};
+export const MONBAND={1:["imp","rats","ghul","samovar"],2:["lamassu","kark","collector","nasnas","matron"],3:["ifrit","qareen","shahmaran","marid"]};
 export const MONCHIP={1:2,2:4,3:6};

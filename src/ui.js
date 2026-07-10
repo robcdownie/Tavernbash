@@ -209,6 +209,7 @@ function doorsHTML(){
   }).join('');
   const mirrorNote=(M.special==='mirror')?'<div class="risk" style="color:var(--dim)">It copies your stall at 85% strength.</div>':'';
   const goldNote=(M.special==='gold')?'<div class="risk" style="color:var(--dim)">Its health and blade grow with your unspent gold.</div>':'';
+  const regenNote=M.regen?'<div class="risk" style="color:var(--dim)">It knits shut: +'+side.regen+' health a second.</div>':'';
   return '<div class="doors">'
    +'<div class="door mon'+(D.gilded?' gild':'')+'" id="doorM" style="--bandc:'+BANDC[M.band]+'">'
     +'<div class="dh"><div class="md">'+ic(M.glyph,'','width:30px;height:30px')+'</div>'
@@ -216,7 +217,7 @@ function doorsHTML(){
     +'<div class="dhp">HEALTH<b>'+side.hp+'</b></div></div>'
     +'<div class="mbrow">'+mb+'</div>'
     +'<div class="bounty">Bounty: <b>'+bountyText(D)+'</b></div>'
-    +mirrorNote+goldNote
+    +mirrorNote+goldNote+regenNote
     +'<div class="risk">Defeat costs '+MONCHIP[M.band]+' health. Tap to fight.</div>'
    +'</div>'
    +'<div class="door safe" id="doorS">'+ic('g-door','sfi')

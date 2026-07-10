@@ -43,7 +43,7 @@ const BAND1=['sword','sword','dagger','dagger'];
 const BAND2=['tower','mace','crossbow','bandage'];
 const BAND3=['hammer','aegis','salve','fangs'];
 const CURVE={imp:[2,BAND1],rats:[2,BAND1],ghul:[2,BAND1],samovar:[2,BAND1],
-             lamassu:[5,BAND2],kark:[5,BAND2],collector:[5,BAND2,5],nasnas:[5,BAND2],
+             lamassu:[5,BAND2],kark:[5,BAND2],collector:[5,BAND2,5],nasnas:[5,BAND2],matron:[5,BAND2],
              ifrit:[9,BAND3],qareen:[9,BAND3],shahmaran:[9,BAND3],marid:[9,BAND3]};
 for(const mid of Object.keys(CURVE)){
   test('monster winnability: '+MONSTERS[mid].n+' loses to an on-curve board',()=>{
@@ -56,6 +56,23 @@ for(const mid of Object.keys(CURVE)){
 test('Karkadann kills an undercooked one-dagger board',()=>{
   const F=monsterDuel('kark',5,['dagger']);
   assert.equal(F.winner,'b','one dagger should not survive the Gore Horn');
+});
+
+test('regen: knits fight health each second, never past the cap, never from the grave',()=>{
+  const F=createFight({a:{nm:'x',hp:60,items:[],lifesteal:0},
+                       b:{nm:'r',hp:60,items:[],lifesteal:0,regen:4},
+                       stormAt:5000,seed:1,playerIs:null});
+  for(let t=0;t<3000;t+=50){F.step(50);}
+  assert.equal(F.b.hp,60,'regen never overheals past the starting pool');
+  assert.equal(F.a.hp,60,'no regen means no change before the storm');
+  runHeadless(F);
+  assert.ok(F.done,'storm still ends the fight');
+  assert.equal(F.winner,'b','the regenerating side outlasts the storm race');
+});
+
+test('Ghul Matron knits 2 a second, 3 when gilded',()=>{
+  assert.equal(monsterSide('matron',{round:5,gold:0,A:ANONE,gilded:false}).regen,2);
+  assert.equal(monsterSide('matron',{round:5,gold:0,A:ANONE,gilded:true}).regen,3);
 });
 
 test('unique wares never appear in rival boards',()=>{

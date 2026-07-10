@@ -82,7 +82,7 @@ export function monsterSide(mid,ctx){
   if(M.special==="mirror"){hp=Math.round((ctx.playerHp||fightHP(ctx.round,0,A))*0.85*gild);}
   else if(M.special==="gold"){hp=Math.round((M.hp+15*(ctx.gold||0))*gild*A.hpMul);}
   else{hp=Math.round(M.hp*gild*A.hpMul);}
-  return {nm:M.n,portrait:M.glyph,hp:hp,items:monsterFightItems(mid,ctx),lifesteal:0};
+  return {nm:M.n,portrait:M.glyph,hp:hp,items:monsterFightItems(mid,ctx),lifesteal:0,regen:Math.round((M.regen||0)*gild)};
 }
 /* ============ RIVAL GENERATION ============ */
 export function genRival(round,persona,rng,A){
@@ -138,7 +138,7 @@ export function pickTarget(items,mode){
 }
 export function createFight(cfg){
   const rng=mulberry(cfg.seed||1);
-  const mk=(s,key)=>({key:key,nm:s.nm,portrait:s.portrait||"g-medallion",hp:s.hp,maxHp:s.hp,shield:0,pois:0,burn:0,items:s.items,ls:s.lifesteal||0});
+  const mk=(s,key)=>({key:key,nm:s.nm,portrait:s.portrait||"g-medallion",hp:s.hp,maxHp:s.hp,shield:0,pois:0,burn:0,items:s.items,ls:s.lifesteal||0,regen:s.regen||0});
   const A=mk(cfg.a,"a"), B=mk(cfg.b,"b");
   const F={t:0,done:false,winner:null,stormAt:cfg.stormAt,stormOn:false,a:A,b:B,secMark:0,stormDmg:5};
   function hHit(D,amt,ev,kind){
@@ -196,6 +196,9 @@ export function createFight(cfg){
           const eff=S.burn;const abs=Math.min(S.shield,Math.floor(eff/2));S.shield-=abs;const hpd=eff-abs;S.hp-=hpd;
           ev.push({k:"tickb",side:S.key,amt:hpd});S.burn=Math.max(0,S.burn-1);
         }
+        /* regen knits fight health every second, capped at the starting
+           pool; it does not cleanse stacks and cannot raise the dead */
+        if(S.regen>0&&S.hp>0&&S.hp<S.maxHp){healSide(S,S.regen,ev,false);}
       }
       if(F.secMark>=F.stormAt){
         if(!F.stormOn){F.stormOn=true;ev.push({k:"stormstart"});}
