@@ -665,8 +665,11 @@ function rollShop(){
   G.shop=out.concat(keep);
 }
 function rollDoor(){
-  const b=bandOf(G.round);
+  let b=bandOf(G.round);
   let pool=MONBAND[b].filter(function(m){return !G.usedMon[m];});
+  /* every boss slain: fall back to the Palace Quarter pool instead of
+     making rounds past the Dragon Gate a boss treadmill */
+  if(!pool.length&&b===4){b=3;pool=MONBAND[b].filter(function(m){return !G.usedMon[m];});}
   if(!pool.length){for(let i=0;i<MONBAND[b].length;i++){delete G.usedMon[MONBAND[b][i]];}pool=MONBAND[b].slice();}
   let tot=0;
   const ws=pool.map(function(m){let w=1;if(G.tags.indexOf(MONSTERS[m].tag)>=0)w*=2;tot+=w;return w;});
@@ -777,7 +780,14 @@ function openGild(msg,cont){
   });
 }
 function openUniquePick(msg){
-  const ids=Object.keys(ITEMS).filter(function(id){return ITEMS[id].unique;});
+  /* never offer a unique the player already holds, on the board or
+     waiting unbought in the market */
+  const ids=Object.keys(ITEMS).filter(function(id){
+    return ITEMS[id].unique
+      &&!G.board.some(function(b){return b.id===id;})
+      &&!G.shop.some(function(w){return w.id===id&&!w.bought;});
+  });
+  if(!ids.length){G.gold+=10;toast('The vault is bare. 10 gold instead.');renderAll();return;}
   const o=ovOpen('<div class="card"><div class="rays"></div>'
    +'<div class="kick gold">The Vault</div>'
    +'<h2 class="big" style="font-size:23px">'+msg+'</h2>'
@@ -895,4 +905,10 @@ export function boot(){
   const d=loadRun();
   if(d&&d.round>=1){openContinue(d);}
   else{newLobby();}
+  /* dev-only hooks for driving playtests from the console; the guard
+     matches the service worker's, so the live site never carries them */
+  if(typeof location!=='undefined'&&location.hostname.match(/^(localhost|127\.)/)){
+    globalThis.BBDEV={g:function(){return G;},rollDoor:rollDoor,rollShop:rollShop,renderAll:renderAll,
+      openUniquePick:openUniquePick,bandOf:bandOf,startMonsterFight:startMonsterFight};
+  }
 }
