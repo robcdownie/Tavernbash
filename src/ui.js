@@ -213,6 +213,8 @@ function doorsHTML(){
   const regenNote=M.regen?'<div class="risk" style="color:var(--dim)">It knits shut: +'+side.regen+' health a second.</div>':'';
   const stormNote=M.stormAt?'<div class="risk" style="color:var(--dim)">The sand comes early: storm at '+M.stormAt+' s.</div>':'';
   const frostNote=side.items.some(function(fi){return fi.fx&&fi.fx.freeze;})?'<div class="risk" style="color:var(--dim)">It breathes cold: your leftmost ware freezes solid.</div>':'';
+  const critMax=side.items.reduce(function(m,fi){return Math.max(m,fi.crit||0);},0);
+  const critNote=critMax>0?'<div class="risk" style="color:var(--dim)">It strikes true: '+Math.round(critMax*100)+'% chance of double damage.</div>':'';
   return '<div class="doors">'
    +'<div class="door mon'+(D.gilded?' gild':'')+'" id="doorM" style="--bandc:'+BANDC[M.band]+'">'
     +'<div class="dh"><div class="md">'+ic(M.glyph,'','width:30px;height:30px')+'</div>'
@@ -220,7 +222,7 @@ function doorsHTML(){
     +'<div class="dhp">HEALTH<b>'+side.hp+'</b></div></div>'
     +'<div class="mbrow">'+mb+'</div>'
     +'<div class="bounty">Bounty: <b>'+bountyText(D)+'</b></div>'
-    +mirrorNote+goldNote+regenNote+stormNote+frostNote
+    +mirrorNote+goldNote+regenNote+stormNote+frostNote+critNote
     +'<div class="risk">Defeat costs '+MONCHIP[M.band]+' health. Tap to fight.</div>'
    +'</div>'
    +'<div class="door safe" id="doorS">'+ic('g-door','sfi')
@@ -402,6 +404,7 @@ function handleEvents(F,evs){
     else if(e.k==='pocket'){fltFx(e.side,'-'+e.amt,'#e8c27a','e-bolt',false);logLine('<b class="y">Sticky Paws pockets '+e.amt+' bounty gold</b>','e-bolt','#e8c27a');}
     else if(e.k==='freeze'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('frz');fltFx(e.side,e.amt+'s','#9ad8ef','e-clock',false);sTick();}
     else if(e.k==='thaw'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.remove('frz');}
+    else if(e.k==='crit'){cellFx(e.side,e.i,'fire');logLine('<b class="y">Critical strike</b>','e-blade','#f4cf7c');}
     else if(e.k==='stormstart'){logLine('<b class="y">The sandstorm arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);sStorm(true);}
   }
 }

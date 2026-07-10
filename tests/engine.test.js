@@ -43,7 +43,7 @@ const BAND1=['sword','sword','dagger','dagger'];
 const BAND2=['tower','mace','crossbow','bandage'];
 const BAND3=['hammer','aegis','salve','fangs'];
 const CURVE={imp:[2,BAND1],rats:[2,BAND1],ghul:[2,BAND1],samovar:[2,BAND1],monkey:[2,BAND1],
-             lamassu:[5,BAND2],kark:[5,BAND2],collector:[5,BAND2,5],nasnas:[5,BAND2],matron:[5,BAND2],icebox:[5,BAND2],
+             lamassu:[5,BAND2],kark:[5,BAND2],collector:[5,BAND2,5],nasnas:[5,BAND2],matron:[5,BAND2],icebox:[5,BAND2],peri:[5,BAND2],
              ifrit:[9,BAND3],qareen:[9,BAND3],shahmaran:[9,BAND3],marid:[9,BAND3]};
 for(const mid of Object.keys(CURVE)){
   test('monster winnability: '+MONSTERS[mid].n+' loses to an on-curve board',()=>{
@@ -107,6 +107,44 @@ test('Flying Charm: neighbors take wing at fight start, the charm itself stays g
   assert.equal(items[0].flying,true,'left neighbor flies');
   assert.equal(items[2].flying,true,'right neighbor flies');
   assert.equal(items[1].flying,false,'the charm is the anchor');
+});
+
+test('crit: a guaranteed crit doubles the chip, and the roll is seeded',()=>{
+  const shard={nm:'Shard',g:'g-fangs',size:1,cd:3000,timer:0,alive:true,integ:200,maxI:200,
+               fx:{dmg:5},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,crit:1,uid:911};
+  const F=createFight({a:{nm:'x',hp:100,items:playerFightItems([makeItem('buckler',0)],{},ANONE,1),lifesteal:0},
+                       b:{nm:'p',hp:100,items:[shard],lifesteal:0},
+                       stormAt:999000,seed:3,playerIs:'a'});
+  let firstChip=null,crits=0;
+  while(F.t<3500){for(const e of F.step(50)){
+    if(e.k==='chip'&&e.side==='a'&&firstChip===null){firstChip=e.amt;}
+    if(e.k==='crit'){crits++;assert.equal(e.side,'b');}
+  }}
+  assert.equal(crits,1,'crit certainty means every swing crits');
+  assert.equal(firstChip,10,'5 damage doubles to 10');
+});
+
+test('crit: Shard Wings land near their stated 35 percent over many swings',()=>{
+  let fires=0,crits=0;
+  for(let s=1;s<=5;s++){
+    const foe=monsterSide('peri',{round:5,gold:0,A:ANONE,gilded:false});
+    foe.items.forEach(it=>{it.integ=10000;it.maxI=10000;});
+    const F=createFight({a:{nm:'x',hp:100000,items:playerFightItems([makeItem('buckler',0)],{},ANONE,1),lifesteal:0},
+                         b:foe,stormAt:999000,seed:s*17,playerIs:'a'});
+    while(F.t<60000){for(const e of F.step(50)){
+      if(e.k==='fire'&&e.side==='b'){fires++;}
+      if(e.k==='crit'){crits++;}
+    }}
+  }
+  const rate=crits/fires;
+  assert.ok(fires>=250,'enough swings to measure, got '+fires);
+  assert.ok(rate>0.25&&rate<0.45,'crit rate near 0.35, was '+rate.toFixed(3));
+});
+
+test('Glass Prism: grants the whole board its crit aura, weapons only',()=>{
+  const items=playerFightItems([makeItem('dagger',0),makeItem('prism',0),makeItem('buckler',0)],{},ANONE,1);
+  assert.equal(items[0].crit,0.2,'the dagger gains the aura');
+  assert.equal(items[2].crit,0,'shields have nothing to crit with');
 });
 
 test('Pilfer Monkey: every Sticky Paws activation pockets exactly 1 bounty gold',()=>{

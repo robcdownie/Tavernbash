@@ -35,8 +35,8 @@ export function usedCells(board){return board.reduce((s,it)=>s+it.size,0);}
 /* ============ FIGHT ITEM BUILDERS ============ */
 export function playerFightItems(board,T,A,scale){
   T=T||{};A=A||ANONE;scale=scale||1;
-  let boardCd=1;
-  for(const it of board){if(ITEMS[it.id].cdMul){boardCd*=Math.pow(ITEMS[it.id].cdMul,1);}}
+  let boardCd=1,boardCrit=0;
+  for(const it of board){if(ITEMS[it.id].cdMul){boardCd*=Math.pow(ITEMS[it.id].cdMul,1);}if(ITEMS[it.id].critAll){boardCrit+=ITEMS[it.id].critAll;}}
   return board.map((it,idx)=>{
     const def=ITEMS[it.id];
     const rs=RSTAT[it.rarity]*scale;
@@ -55,7 +55,8 @@ export function playerFightItems(board,T,A,scale){
     return {nm:def.n,g:"g-"+it.id,size:it.size,rarity:it.rarity,cat:def.cat,tier:def.tier,
       cd:def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd)):0,
       timer:0,alive:true,integ:integOf(it),maxI:integOf(it),
-      fx:fx,bulwark:!!def.bulwark,targeting:def.targeting||null,charge:null,flying:fly,frozen:0,uid:it.uid};
+      fx:fx,bulwark:!!def.bulwark,targeting:def.targeting||null,charge:null,flying:fly,frozen:0,
+      crit:fx.dmg?Math.min(0.9,(def.crit||0)+boardCrit):0,uid:it.uid};
   });
 }
 export function monsterFightItems(mid,ctx){
@@ -74,7 +75,7 @@ export function monsterFightItems(mid,ctx){
     return {nm:b.nm,g:b.g,size:b.size,rarity:ctx.gilded?2:0,cat:"dmg",tier:M.band,
       cd:b.cd>0?Math.round(b.cd*1000*A.cdMul):0,timer:0,alive:true,
       integ:Math.round(b.integ*gild),maxI:Math.round(b.integ*gild),
-      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,uid:UID++};
+      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,crit:b.crit||0,uid:UID++};
   });
 }
 export function monsterSide(mid,ctx){
@@ -163,14 +164,18 @@ export function createFight(cfg){
     ev.push({k:"fire",side:S.key,i:idx,cat:it.cat});
     const fx=it.fx;
     if(fx.dmg){
+      /* crit rolls draw from the fight's seeded rng, so replays and the
+         headless runner stay deterministic; items without crit never roll */
+      let dmg=fx.dmg;
+      if(it.crit>0&&rng()<it.crit){dmg*=2;ev.push({k:"crit",side:S.key,i:idx});}
       const ti=pickTarget(D.items,it.targeting);
       if(ti>=0){
         const tgt=D.items[ti];
-        tgt.integ-=fx.dmg;
-        if(tgt.integ<=0){tgt.integ=0;tgt.alive=false;ev.push({k:"chip",side:D.key,i:ti,amt:fx.dmg,integ:0});ev.push({k:"destroy",side:D.key,i:ti,nm:tgt.nm});}
-        else{ev.push({k:"chip",side:D.key,i:ti,amt:fx.dmg,integ:tgt.integ});}
-      }else{hHit(D,fx.dmg,ev);}
-      if(S.ls>0){healSide(S,Math.max(1,Math.round(fx.dmg*S.ls)),ev,true);}
+        tgt.integ-=dmg;
+        if(tgt.integ<=0){tgt.integ=0;tgt.alive=false;ev.push({k:"chip",side:D.key,i:ti,amt:dmg,integ:0});ev.push({k:"destroy",side:D.key,i:ti,nm:tgt.nm});}
+        else{ev.push({k:"chip",side:D.key,i:ti,amt:dmg,integ:tgt.integ});}
+      }else{hHit(D,dmg,ev);}
+      if(S.ls>0){healSide(S,Math.max(1,Math.round(dmg*S.ls)),ev,true);}
     }
     if(fx.shield){S.shield+=fx.shield;ev.push({k:"shield",side:S.key,amt:fx.shield,val:S.shield});}
     if(fx.heal){healSide(S,fx.heal,ev,false);S.pois=Math.max(0,S.pois-1);S.burn=Math.max(0,S.burn-1);}

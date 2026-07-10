@@ -42,7 +42,8 @@ export const ITEMS={
  serpentcrown:{n:"Serpent Crown",size:2,tier:3,cat:"poison",cd:5,fx:{poison:4},unique:true,d:"Shahmaran's bounty. No stall sells it."},
  tidewall:{n:"Tide Wall",size:3,tier:3,cat:"shield",cd:6,fx:{shield:25},unique:true,d:"Marid's bounty. A wall of standing water."},
  weepingstone:{n:"Weeping Stone",size:1,tier:2,cat:"heal",cd:0,regen:1,unique:true,d:"Sandling's bounty. Knits 1 fight health a second."},
- flyingcharm:{n:"Flying Charm",size:1,tier:2,cat:"util",cd:0,adjFly:true,unique:true,d:"Icebox bounty. Its neighbors fly; weapons cannot reach them."}
+ flyingcharm:{n:"Flying Charm",size:1,tier:2,cat:"util",cd:0,adjFly:true,unique:true,d:"Icebox bounty. Its neighbors fly; weapons cannot reach them."},
+ prism:{n:"Glass Prism",size:1,tier:2,cat:"util",cd:0,critAll:0.2,unique:true,d:"Peri's bounty. Your weapons strike double a fifth of the time."}
 };
 /* ============ TRINKETS ============ */
 export const TRINKETS=[
@@ -126,7 +127,10 @@ export const MONSTERS={
    board:[{nm:"Sticky Paws",g:"g-purse",size:1,cd:3,integ:14,fx:{dmg:3},pocket:1}]},
  icebox:{n:"The Icebox",band:2,hp:170,tag:"util",glyph:"m-icebox",fl:"Cold storage, with opinions.",
    bounty:{items:["flyingcharm"]},
-   board:[{nm:"Cold Shank",g:"g-dagger",size:1,cd:4,integ:14,fx:{dmg:7}},{nm:"Frost Vent",g:"g-tower",size:2,cd:6,integ:45,fx:{freeze:3}}]}
+   board:[{nm:"Cold Shank",g:"g-dagger",size:1,cd:4,integ:14,fx:{dmg:7}},{nm:"Frost Vent",g:"g-tower",size:2,cd:6,integ:45,fx:{freeze:3}}]},
+ peri:{n:"Glass Peri",band:2,hp:110,tag:"dmg",glyph:"m-peri",fl:"Beautiful. Sharp. Briefly.",
+   bounty:{items:["prism"]},
+   board:[{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:6,fx:{dmg:5},crit:0.35},{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:6,fx:{dmg:5},crit:0.35},{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:6,fx:{dmg:5},crit:0.35}]}
 };
-export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox"],3:["ifrit","qareen","shahmaran","marid"]};
+export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid"]};
 export const MONCHIP={1:2,2:4,3:6};
