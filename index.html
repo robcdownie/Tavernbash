@@ -559,8 +559,11 @@
   .door .bounty{font-size:9.5px;padding:4px 6px;}
   .mb{height:28px;}
   .sheet{margin-top:7px;padding:10px;}
-  .ov{overflow:auto;}
-  .card{max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow-y:auto;}
+  .ov{overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .card{margin:auto;}
+  /* the premium pass lifts card children with .card>*{position:relative}, which
+     also catches the decorative layers and drops them into flow; pin them back */
+  .card>.rays,.card>.coinrain{position:absolute;}
   @media (orientation:landscape) and (min-width:640px){
     #app{max-width:1000px;padding-top:calc(env(safe-area-inset-top) + 4px);}
     body.run{overflow:hidden;}
@@ -622,6 +625,13 @@
     #fx-a{grid-area:bda;}
     #main.fight .vsrow{grid-area:vs;margin:1px 0;}
     #main.fight .log{grid-area:log;height:auto;min-height:0;margin-top:2px;}
+    .card{max-width:520px;padding:18px 26px;}
+    .scout{max-width:660px;margin:auto;}
+    .scout .board .cell{height:44px;}
+    .card .big{font-size:29px;margin-bottom:4px;}
+    .card .kick{margin-bottom:8px;}
+    .feed{max-height:96px;}
+    .picks{gap:8px;}
   }
 </style>
 </head>
