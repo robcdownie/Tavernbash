@@ -43,15 +43,17 @@ export function manifestSource(map) {
     + 'export const ART={' + (lines.length ? '\n' + lines.join(',\n') + '\n' : '') + '};\n';
 }
 
+export function writeManifest(rootDir) {
+  const out = join(rootDir, 'src', 'art-manifest.js');
+  const map = scanArt(rootDir);
+  const src = manifestSource(map);
+  const prev = existsSync(out) ? readFileSync(out, 'utf8') : '';
+  if (src !== prev) writeFileSync(out, src);
+  return {count: Object.keys(map).length, changed: src !== prev};
+}
+
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
-  const out = join(root, 'src', 'art-manifest.js');
-  const src = manifestSource(scanArt(root));
-  const prev = existsSync(out) ? readFileSync(out, 'utf8') : '';
-  if (src !== prev) {
-    writeFileSync(out, src);
-    console.log('art manifest written: ' + Object.keys(scanArt(root)).length + ' painted assets');
-  } else {
-    console.log('art manifest unchanged');
-  }
+  const r = writeManifest(root);
+  console.log(r.changed ? 'art manifest written: ' + r.count + ' painted assets' : 'art manifest unchanged');
 }

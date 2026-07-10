@@ -24,7 +24,8 @@ Read `handoff-bazaar-brawler-2026-07-09.md` in full before making changes. It ca
 
 ## Commands
 
-- `npm test` runs the full suite: engine behavior, parity against the original file, dash scan, sprite symbol coverage. Any refactor that breaks it reverts.
+- `npm test` runs the full suite: engine behavior, parity against the original file, dash scan, sprite symbol coverage, art manifest sync, ingest matcher. Any refactor that breaks it reverts.
+- `npm run ingest -- <folder> [--strip-bg]` files raw image generations into `public/art`: matches each file by an id token in its name, resizes to spec, converts to PNG, optionally flood-fills a solid background to transparent, and regenerates the manifest. Unmatched or ambiguous files are reported and left alone.
 - `npm run dev` serves on the port in `.claude/launch.json` (5199).
 - `npm run build` then `npx netlify deploy --prod --dir dist` ships to https://bazaar-brawler.netlify.app (site already linked via `.netlify/state.json`).
 
