@@ -51,7 +51,9 @@ test('parity: data tables identical to the original',()=>{
   assert.deepEqual(j(RSTAT),j(ORIG.RSTAT));
   assert.deepEqual(j(RINTEG),j(ORIG.RINTEG));
   assert.deepEqual(j(ITEMS),j(ORIG.ITEMS));
-  assert.deepEqual(j(MONSTERS),j(ORIG.MONSTERS));
+  /* Phase 5 adds monsters the original never shipped; every monster the
+     original did ship must stay byte-identical */
+  for(const k of Object.keys(ORIG.MONSTERS)){assert.deepEqual(j(MONSTERS[k]),j(ORIG.MONSTERS[k]),'monster '+k);}
   assert.deepEqual(j(TRINKETS),j(ORIG.TRINKETS));
   assert.deepEqual(j(ANOMALIES),j(ORIG.ANOMALIES));
   assert.deepEqual(j(PERSONAS),j(ORIG.PERSONAS));

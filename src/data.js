@@ -85,6 +85,9 @@ export const MONSTERS={
  ghul:{n:"Rust Ghul",band:1,hp:60,tag:"dmg",glyph:"m-ghul",fl:"Its cleaver hungers for your finest.",
    bounty:{gold:2,items:["brassbuckler"]},
    board:[{nm:"Corroded Cleaver",g:"g-hammer",size:3,cd:9,integ:22,fx:{dmg:18},targeting:"maxinteg"}]},
+ samovar:{n:"Scalded Samovar",band:1,hp:50,tag:"burn",glyph:"m-samovar",fl:"The tea is ready. It is furious about it.",
+   bounty:{items:["torch"]},
+   board:[{nm:"Boiling Spout",g:"g-chalice",size:2,cd:5,integ:18,fx:{burn:3}}]},
  lamassu:{n:"Brass Lamassu",band:2,hp:140,tag:"shield",glyph:"m-lamassu",fl:"Break the wall, or race the chime behind it.",
    bounty:{gold:1,items:["tower"]},
    board:[{nm:"Bulwark Bull",g:"g-brassbuckler",size:3,cd:0,integ:60,fx:{},bulwark:true},{nm:"Horn Chime",g:"g-mace",size:1,cd:4,integ:12,fx:{dmg:9}}]},
@@ -100,5 +103,5 @@ export const MONSTERS={
  qareen:{n:"Qareen",band:3,hp:0,tag:"util",glyph:"m-qareen",fl:"It wears your face at four fifths strength.",
    bounty:{gild:true},special:"mirror",board:[]}
 };
-export const MONBAND={1:["imp","rats","ghul"],2:["lamassu","kark","collector"],3:["ifrit","qareen"]};
+export const MONBAND={1:["imp","rats","ghul","samovar"],2:["lamassu","kark","collector"],3:["ifrit","qareen"]};
 export const MONCHIP={1:2,2:4,3:6};

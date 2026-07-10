@@ -42,7 +42,7 @@ test('termination: 48 random rival matchups across rounds 1 to 12 all resolve',(
 const BAND1=['sword','sword','dagger','dagger'];
 const BAND2=['tower','mace','crossbow','bandage'];
 const BAND3=['hammer','aegis','salve','fangs'];
-const CURVE={imp:[2,BAND1],rats:[2,BAND1],ghul:[2,BAND1],
+const CURVE={imp:[2,BAND1],rats:[2,BAND1],ghul:[2,BAND1],samovar:[2,BAND1],
              lamassu:[5,BAND2],kark:[5,BAND2],collector:[5,BAND2,5],
              ifrit:[9,BAND3],qareen:[9,BAND3]};
 for(const mid of Object.keys(CURVE)){
