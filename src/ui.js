@@ -5,6 +5,7 @@ import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,usedCells,
         playerFightItems,monsterSide,genRival,createFight,runHeadless} from './engine.js';
 import {ic} from './art.js';
 import {fxHit,fxDestroy,fxForge,fxCoinRain,fxStorm} from './fx.js';
+import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxToggle,sfxMuted} from './sfx.js';
 /* ============ SESSION + UI PRIMITIVES ============ */
 let G=null;let RM=false;const BEST={place:null,round:0};
 /* ============ SAVES ============ */
@@ -287,19 +288,20 @@ function buyWare(i){
   const d=ITEMS[w.id];const cost=w.free?0:COST[d.size];
   if(G.gold<cost){toast('Not enough gold');return;}
   if(usedCells(G.board)+d.size>4+G.tier){toast('No room on your stall');return;}
-  G.gold-=cost;w.bought=true;
+  G.gold-=cost;w.bought=true;sCoin();
   G.board.push(makeItem(w.id,0));
   const forged=fuseScan(G.board);
   renderAll();
   if(forged.length){
     forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});
+    sForge();
     const cells=document.querySelectorAll('#bd .cell.it');
     forged.forEach(function(f){const idx=G.board.indexOf(f);if(cells[idx]){cells[idx].classList.add('forge');const p=ctrOf(cells[idx]);if(p&&!RM)fxForge(p.x,p.y);}});
   }
 }
 function tierUp(){
   if(G.tier>=6||G.gold<G.tierCost)return;
-  G.gold-=G.tierCost;G.tier++;
+  G.gold-=G.tierCost;G.tier++;sFanfare();
   G.tierCost=TIERCOST[G.tier+1]||0;
   toast('Tier '+G.tier+': new slot, richer wares');
   renderAll();
@@ -374,12 +376,12 @@ function handleEvents(F,evs){
   for(let x=0;x<evs.length;x++){
     const e=evs[x];
     if(e.k==='fire'){cellFx(e.side,e.i,'fire');}
-    else if(e.k==='chip'){const ig=$('fi-'+e.side+'-'+e.i);if(ig)ig.textContent=e.integ;cellFx(e.side,e.i,'chip');const p=ctrOf($('fc-'+e.side+'-'+e.i));if(p&&!RM)fxHit(p.x,p.y,e.amt);}
-    else if(e.k==='destroy'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('dead');logLine('<b class="r">'+esc(e.nm)+'</b> destroyed','e-skull','#ff8d76');const p=ctrOf(c);if(p&&!RM)fxDestroy(p.x,p.y);}
+    else if(e.k==='chip'){const ig=$('fi-'+e.side+'-'+e.i);if(ig)ig.textContent=e.integ;cellFx(e.side,e.i,'chip');const p=ctrOf($('fc-'+e.side+'-'+e.i));if(p&&!RM)fxHit(p.x,p.y,e.amt);sHit(e.amt);}
+    else if(e.k==='destroy'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('dead');logLine('<b class="r">'+esc(e.nm)+'</b> destroyed','e-skull','#ff8d76');const p=ctrOf(c);if(p&&!RM)fxDestroy(p.x,p.y);sDestroy();}
     else if(e.k==='hhit'){
       fltFx(e.side,'-'+e.amt,'#ff8d76','e-blade',e.amt>=26);
       const fg=$('fg-'+e.side);if(fg){fg.classList.remove('hit');void fg.offsetWidth;fg.classList.add('hit');}
-      const p=ctrOf(fg);if(p&&!RM)fxHit(p.x,p.y,e.amt);
+      const p=ctrOf(fg);if(p&&!RM)fxHit(p.x,p.y,e.amt);sHit(e.amt);
       if(e.amt>=30)shake();if(e.amt>=46)flashScr();
       if(e.amt>=18)logLine((e.side==='a'?'You take ':'They take ')+'<b class="r">'+e.amt+'</b>','e-blade','#ff8d76');
     }
@@ -388,9 +390,9 @@ function handleEvents(F,evs){
     else if(e.k==='heal'){fltFx(e.side,'+'+e.amt,'#ffb3b8','e-heart',false);if(e.amt>=22)logLine((e.side==='a'?'You mend ':'They mend ')+'<b class="t">'+e.amt+'</b>','e-heart','#ffb3b8');}
     else if(e.k==='pois'){fltFx(e.side,'+'+e.amt,'#c0e070','e-skull',false);}
     else if(e.k==='burn'){fltFx(e.side,'+'+e.amt,'#ffb066','e-flame',false);}
-    else if(e.k==='tickp'){fltFx(e.side,'-'+e.amt,'#c0e070','e-skull',false);}
-    else if(e.k==='tickb'){fltFx(e.side,'-'+e.amt,'#ffb066','e-flame',false);}
-    else if(e.k==='stormstart'){logLine('<b class="y">The sandstorm arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);}
+    else if(e.k==='tickp'){fltFx(e.side,'-'+e.amt,'#c0e070','e-skull',false);sTick();}
+    else if(e.k==='tickb'){fltFx(e.side,'-'+e.amt,'#ffb066','e-flame',false);sTick();}
+    else if(e.k==='stormstart'){logLine('<b class="y">The sandstorm arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);sStorm(true);}
   }
 }
 function startFight(me,foe,opts){
@@ -417,7 +419,7 @@ function startFight(me,foe,opts){
     paintFight(F);
     if(F.done){
       clearInterval(G.fiv);G.fiv=null;
-      fxStorm(false);
+      fxStorm(false);sStorm(false);
       setTimeout(function(){$('sand').classList.remove('on');opts.onEnd(F);},850);
     }
   },40);
@@ -425,7 +427,7 @@ function startFight(me,foe,opts){
 /* ============ MONSTER FIGHTS ============ */
 function startMonsterFight(){
   const D=G.door;if(!D||D.done||G.phase!=='draft')return;
-  G.enteredGold=G.gold;
+  G.enteredGold=G.gold;sCreak();
   const foe=monsterSide(D.mid,doorCtx());
   const me={nm:'You',portrait:'p-0',hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0};
   startFight(me,foe,{onEnd:endMonsterFight});
@@ -567,6 +569,7 @@ function endGhostFight(F){
 function banner(iWon,dmg,opp){
   const who=opp?esc(opp.short):'the departed';
   if(iWon&&!RM)fxCoinRain();
+  if(iWon)sWin();else sLose();
   const o=ovOpen('<div class="card"><div class="rays'+(iWon?'':' red')+'"></div>'
    +'<div class="kick'+(iWon?' gold':'')+'">Round '+G.round+' &middot; Dusk</div>'
    +'<h2 class="big'+(iWon?'':' bad')+'">'+(iWon?'Victory':'Defeat')+'</h2>'
@@ -769,6 +772,7 @@ function championScreen(){
    +'<button class="btn gold" id="nlb2">New Lobby</button></div>');
   coinRain(o.querySelector('#crn2'));
   if(!RM)fxCoinRain();
+  sWin();
   o.querySelector('#nlb2').onclick=function(){ovClose(o);newLobby();};
 }
 /* ============ LOBBY ============ */
@@ -824,6 +828,11 @@ function initEmbers(){
 }
 export function boot(){
   RM=(typeof matchMedia!=='undefined')&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const mb=$('muteBtn');
+  if(mb){
+    if(sfxMuted())mb.classList.add('off');
+    mb.onclick=function(){mb.classList.toggle('off',sfxToggle());};
+  }
   initEmbers();
   loadBest();
   const d=loadRun();
