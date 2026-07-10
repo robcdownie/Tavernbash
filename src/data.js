@@ -43,7 +43,10 @@ export const ITEMS={
  tidewall:{n:"Tide Wall",size:3,tier:3,cat:"shield",cd:6,fx:{shield:25},unique:true,d:"Marid's bounty. A wall of standing water."},
  weepingstone:{n:"Weeping Stone",size:1,tier:2,cat:"heal",cd:0,regen:1,unique:true,d:"Sandling's bounty. Knits 1 fight health a second."},
  flyingcharm:{n:"Flying Charm",size:1,tier:2,cat:"util",cd:0,adjFly:true,unique:true,d:"Icebox bounty. Its neighbors fly; weapons cannot reach them."},
- prism:{n:"Glass Prism",size:1,tier:2,cat:"util",cd:0,critAll:0.2,unique:true,d:"Peri's bounty. Your weapons strike double a fifth of the time."}
+ prism:{n:"Glass Prism",size:1,tier:2,cat:"util",cd:0,critAll:0.2,unique:true,d:"Peri's bounty. Your weapons strike double a fifth of the time."},
+ rocegg:{n:"Roc Egg",size:2,tier:3,cat:"dmg",cd:0,unique:true,
+   rattle:{spawn:{nm:"Roc Hatchling",g:"g-hatchling",cd:2,integ:20,fx:{dmg:11}}},
+   d:"Roc bounty. When it breaks, something angry gets out."}
 };
 /* ============ TRINKETS ============ */
 export const TRINKETS=[
@@ -130,7 +133,11 @@ export const MONSTERS={
    board:[{nm:"Cold Shank",g:"g-dagger",size:1,cd:4,integ:14,fx:{dmg:7}},{nm:"Frost Vent",g:"g-tower",size:2,cd:6,integ:45,fx:{freeze:3}}]},
  peri:{n:"Glass Peri",band:2,hp:110,tag:"dmg",glyph:"m-peri",fl:"Beautiful. Sharp. Briefly.",
    bounty:{items:["prism"]},
-   board:[{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:6,fx:{dmg:5},crit:0.35},{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:6,fx:{dmg:5},crit:0.35},{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:6,fx:{dmg:5},crit:0.35}]}
+   board:[{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:6,fx:{dmg:5},crit:0.35},{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:6,fx:{dmg:5},crit:0.35},{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:6,fx:{dmg:5},crit:0.35}]},
+ roc:{n:"Roc Egg",band:3,hp:250,tag:"dmg",glyph:"m-roc",fl:"Do not tap the shell.",
+   bounty:{items:["rocegg"]},
+   board:[{nm:"The Egg",g:"g-rocegg",size:3,cd:15,integ:80,fx:{},selfdestruct:true,
+     rattle:{spawn:{nm:"Roc Hatchling",g:"g-hatchling",cd:2,integ:30,fx:{dmg:22}}}}]}
 };
-export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid"]};
+export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc"]};
 export const MONCHIP={1:2,2:4,3:6};

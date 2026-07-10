@@ -44,7 +44,7 @@ const BAND2=['tower','mace','crossbow','bandage'];
 const BAND3=['hammer','aegis','salve','fangs'];
 const CURVE={imp:[2,BAND1],rats:[2,BAND1],ghul:[2,BAND1],samovar:[2,BAND1],monkey:[2,BAND1],
              lamassu:[5,BAND2],kark:[5,BAND2],collector:[5,BAND2,5],nasnas:[5,BAND2],matron:[5,BAND2],icebox:[5,BAND2],peri:[5,BAND2],
-             ifrit:[9,BAND3],qareen:[9,BAND3],shahmaran:[9,BAND3],marid:[9,BAND3]};
+             ifrit:[9,BAND3],qareen:[9,BAND3],shahmaran:[9,BAND3],marid:[9,BAND3],roc:[9,BAND3]};
 for(const mid of Object.keys(CURVE)){
   test('monster winnability: '+MONSTERS[mid].n+' loses to an on-curve board',()=>{
     const [round,ids,gold]=CURVE[mid];
@@ -107,6 +107,36 @@ test('Flying Charm: neighbors take wing at fight start, the charm itself stays g
   assert.equal(items[0].flying,true,'left neighbor flies');
   assert.equal(items[2].flying,true,'right neighbor flies');
   assert.equal(items[1].flying,false,'the charm is the anchor');
+});
+
+test('Roc Egg: left alone, the egg hatches itself at exactly 15 s',()=>{
+  const foe=monsterSide('roc',{round:9,gold:0,A:ANONE,gilded:false});
+  const F=createFight({a:{nm:'x',hp:5000,items:[],lifesteal:0},b:foe,stormAt:999000,seed:4,playerIs:'a'});
+  let destroyAt=null,spawnAt=null,firstPeck=null;
+  while(F.t<20000){for(const e of F.step(50)){
+    if(e.k==='destroy'&&e.side==='b'&&destroyAt===null){destroyAt=F.t;assert.equal(e.nm,'The Egg');}
+    if(e.k==='spawn'){spawnAt=F.t;assert.equal(e.nm,'Roc Hatchling');assert.equal(e.side,'b');}
+    if(e.k==='hhit'&&e.side==='a'&&firstPeck===null){firstPeck={t:F.t,amt:e.amt};}
+  }}
+  assert.equal(destroyAt,15000,'the shell cracks on its own fuse');
+  assert.equal(spawnAt,15000,'the hatchling replaces it in place');
+  assert.deepEqual(firstPeck,{t:17000,amt:22},'and pecks 2 s later for 22');
+});
+
+test('Roc Egg ware: crack it early and the hatchling fights for you',()=>{
+  const eggside=playerFightItems([makeItem('rocegg',0)],{},ANONE,1);
+  assert.ok(eggside[0].rattle,'the ware carries its rattle');
+  const pick={nm:'Pick',g:'g-dagger',size:1,cd:1000,timer:0,alive:true,integ:400,maxI:400,
+              fx:{dmg:12},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,crit:0,rattle:null,selfdestruct:false,uid:921};
+  const F=createFight({a:{nm:'you',hp:400,items:eggside,lifesteal:0},
+                       b:{nm:'foe',hp:400,items:[pick],lifesteal:0},stormAt:999000,seed:5,playerIs:'a'});
+  let spawned=false,pecked=false;
+  while(F.t<12000){for(const e of F.step(50)){
+    if(e.k==='spawn'&&e.side==='a'){spawned=true;}
+    if(e.k==='fire'&&e.side==='a'){pecked=true;}
+  }}
+  assert.ok(spawned,'the broken egg spawned the hatchling on your side');
+  assert.ok(pecked,'the hatchling fights back');
 });
 
 test('crit: a guaranteed crit doubles the chip, and the roll is seeded',()=>{

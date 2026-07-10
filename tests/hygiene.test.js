@@ -33,10 +33,17 @@ test('symbol coverage: every glyph the data references exists in the sprite',()=
   const defined=new Set();
   for(const m of html.matchAll(/<(?:symbol|linearGradient|radialGradient)\s+id="([^"]+)"/g)){defined.add(m[1]);}
   const needed=new Set();
-  for(const id of Object.keys(ITEMS))needed.add('g-'+id);
+  for(const id of Object.keys(ITEMS)){
+    needed.add('g-'+id);
+    const d=ITEMS[id];
+    if(d.rattle&&d.rattle.spawn)needed.add(d.rattle.spawn.g);
+  }
   for(const m of Object.values(MONSTERS)){
     needed.add(m.glyph);
-    for(const b of m.board)needed.add(b.g);
+    for(const b of m.board){
+      needed.add(b.g);
+      if(b.rattle&&b.rattle.spawn)needed.add(b.rattle.spawn.g);
+    }
   }
   for(const t of TRINKETS)needed.add(t.g);
   for(const a of ANOMALIES)needed.add(a.g);

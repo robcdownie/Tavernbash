@@ -56,7 +56,7 @@ export function playerFightItems(board,T,A,scale){
       cd:def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd)):0,
       timer:0,alive:true,integ:integOf(it),maxI:integOf(it),
       fx:fx,bulwark:!!def.bulwark,targeting:def.targeting||null,charge:null,flying:fly,frozen:0,
-      crit:fx.dmg?Math.min(0.9,(def.crit||0)+boardCrit):0,uid:it.uid};
+      crit:fx.dmg?Math.min(0.9,(def.crit||0)+boardCrit):0,rattle:def.rattle||null,selfdestruct:!!def.selfdestruct,uid:it.uid};
   });
 }
 export function monsterFightItems(mid,ctx){
@@ -75,7 +75,7 @@ export function monsterFightItems(mid,ctx){
     return {nm:b.nm,g:b.g,size:b.size,rarity:ctx.gilded?2:0,cat:"dmg",tier:M.band,
       cd:b.cd>0?Math.round(b.cd*1000*A.cdMul):0,timer:0,alive:true,
       integ:Math.round(b.integ*gild),maxI:Math.round(b.integ*gild),
-      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,crit:b.crit||0,uid:UID++};
+      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,crit:b.crit||0,rattle:b.rattle||null,selfdestruct:!!b.selfdestruct,uid:UID++};
   });
 }
 export function monsterSide(mid,ctx){
@@ -160,8 +160,24 @@ export function createFight(cfg){
     const before=S.hp;S.hp=Math.min(S.maxHp,S.hp+amt);
     if(!quiet){ev.push({k:"heal",side:S.key,amt:S.hp-before});}
   }
+  /* deathrattle: when an item dies its rattle fires; spawn replaces it in
+     place, same index, fresh timers, so event indices stay honest */
+  function rattleOf(side,i,ev){
+    const it=side.items[i];if(!it||!it.rattle){return;}
+    const sp=it.rattle.spawn;
+    if(sp){
+      side.items[i]={nm:sp.nm,g:sp.g,size:it.size,rarity:it.rarity,cat:sp.cat||"dmg",tier:it.tier,
+        cd:Math.round(sp.cd*1000),timer:0,alive:true,integ:sp.integ,maxI:sp.integ,
+        fx:Object.assign({},sp.fx),bulwark:!!sp.bulwark,targeting:sp.targeting||null,charge:null,
+        pocket:0,flying:!!sp.flying,frozen:0,crit:sp.crit||0,rattle:sp.rattle||null,selfdestruct:false,uid:UID++};
+      ev.push({k:"spawn",side:side.key,i:i,nm:sp.nm,g:sp.g,integ:sp.integ});
+    }
+  }
   function fire(S,D,it,idx,ev){
     ev.push({k:"fire",side:S.key,i:idx,cat:it.cat});
+    /* a self-destructing item's activation is its own death: the timed
+       hatch is just a deathrattle on a fuse */
+    if(it.selfdestruct){it.alive=false;it.integ=0;ev.push({k:"destroy",side:S.key,i:idx,nm:it.nm});rattleOf(S,idx,ev);return;}
     const fx=it.fx;
     if(fx.dmg){
       /* crit rolls draw from the fight's seeded rng, so replays and the
@@ -172,7 +188,7 @@ export function createFight(cfg){
       if(ti>=0){
         const tgt=D.items[ti];
         tgt.integ-=dmg;
-        if(tgt.integ<=0){tgt.integ=0;tgt.alive=false;ev.push({k:"chip",side:D.key,i:ti,amt:dmg,integ:0});ev.push({k:"destroy",side:D.key,i:ti,nm:tgt.nm});}
+        if(tgt.integ<=0){tgt.integ=0;tgt.alive=false;ev.push({k:"chip",side:D.key,i:ti,amt:dmg,integ:0});ev.push({k:"destroy",side:D.key,i:ti,nm:tgt.nm});rattleOf(D,ti,ev);}
         else{ev.push({k:"chip",side:D.key,i:ti,amt:dmg,integ:tgt.integ});}
       }else{hHit(D,dmg,ev);}
       if(S.ls>0){healSide(S,Math.max(1,Math.round(dmg*S.ls)),ev,true);}
