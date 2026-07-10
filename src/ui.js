@@ -187,6 +187,7 @@ function bountyText(D){
   if(b.items){b.items.forEach(function(id){parts.push(ITEMS[id].n+' (free)');});}
   if(b.gild){parts.push('Gild one of your wares');}
   if(b.relic){parts.push('enter with 8+ gold for +1 income forever');}
+  if(b.mote){parts.push('Fusion Mote: a free bronze copy of your commonest ware');}
   return parts.join(' &middot; ');
 }
 function safeText(s){
@@ -442,6 +443,12 @@ function endMonsterFight(F){
     if(b.gold){G.gold+=b.gold*(D.gilded?2:1);}
     if(b.items){b.items.forEach(function(id){G.shop.push({id:id,free:true,bought:false});});}
     if(b.relic&&G.enteredGold>=8){G.relicIncome+=1;toast('Income relic: +1 gold every round');}
+    if(b.mote){
+      const counts={};G.board.forEach(function(it){if(it.rarity===0&&!ITEMS[it.id].unique)counts[it.id]=(counts[it.id]||0)+1;});
+      let best=null;Object.keys(counts).forEach(function(id){if(!best||counts[id]>counts[best])best=id;});
+      if(best){G.shop.push({id:best,free:true,bought:false});}
+      else{G.gold+=3;toast('The mote found nothing bronze to copy. 3 gold instead.');}
+    }
     if(b.gild){renderAll();openGild('The mirror bows. Gild one ware.',null);return;}
     toast(M.n+' slain. Bounty added to the market.');
     renderAll();
