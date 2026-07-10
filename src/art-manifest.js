@@ -9,6 +9,7 @@ export const ART={
  "g-adren":"art/items/adren.png",
  "g-aegis":"art/items/aegis.png",
  "g-bandage":"art/items/bandage.png",
+ "g-barricade":"art/items/barricade.png",
  "g-bomb":"art/items/bomb.png",
  "g-brassbuckler":"art/items/brassbuckler.png",
  "g-buckler":"art/items/buckler.png",
