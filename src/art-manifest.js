@@ -42,6 +42,7 @@ export const ART={
  "m-lamassu":"art/monsters/lamassu.png",
  "m-marid":"art/monsters/marid.png",
  "m-matron":"art/monsters/matron.png",
+ "m-monkey":"art/monsters/monkey.png",
  "m-nasnas":"art/monsters/nasnas.png",
  "m-qareen":"art/monsters/qareen.png",
  "m-rats":"art/monsters/rats.png",
