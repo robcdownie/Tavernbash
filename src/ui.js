@@ -154,33 +154,57 @@ function fightCellHTML(fi,i,side){
 }
 /* ============ TOP RENDERERS ============ */
 function renderBest(){$('best').innerHTML=(BEST.place?('Best <b>'+ord(BEST.place)+'</b><br>'):'')+'Round <b>'+(G?G.round:0)+'</b>';}
-function renderRivals(){
+function standingsInfo(){
   const ps=G.players.slice().sort(function(a,b){if(a.alive!==b.alive)return a.alive?-1:1;return b.hp-a.hp;});
-  const top=(ps[0]&&ps[0].alive)?ps[0]:null;
-  $('rivals').innerHTML=ps.map(function(p){
-    const w=Math.max(0,Math.min(100,p.hp/40*100));
-    return '<div class="rv'+(p.i===0?' you':'')+(p.alive?'':' dead')+'" id="rv-'+p.i+'">'
-     +((p===top)?ic('g-crown','crn'):'')
-     +ic(p.p,'pv')+'<div class="nm">'+esc(p.short)+'</div>'
-     +'<div class="rh"><i style="width:'+w+'%"></i></div><b>'+Math.max(0,p.hp)+'</b>'
-     +(p.alive?'':'<div class="skl">'+ic('e-skull','','width:16px;height:16px')+'</div>')
-    +'</div>';
-  }).join('');
+  return {ps:ps,top:(ps[0]&&ps[0].alive)?ps[0]:null,place:ps.indexOf(G.you)+1,alive:ps.filter(function(p){return p.alive;}).length};
 }
+/* the acts pass folded the rivals strip, anomaly bar, and trinket row
+   into ribbon chips with tap drawers; the old containers stay empty */
+function renderRivals(){$('rivals').innerHTML='';}
+function renderAno(){$('anobar').innerHTML='';}
+function renderTrow(){$('trow').innerHTML='';}
 function renderRibbon(){
+  const s=standingsInfo();
   $('ribbon').innerHTML=
    '<div class="chip"><span class="lab">Round</span>'+G.round+'</div>'
   +'<div class="chip gold">'+ic('g-coin','ci')+G.gold+'</div>'
   +'<div class="chip hp">'+ic('g-heart','ci')+Math.max(0,G.you.hp)+'</div>'
-  +'<div class="chip grow"><span class="lab">Tier</span><span>'+ic('g-gem','ci')+' '+G.tier+'</span></div>';
+  +'<div class="chip"><span class="lab">Tier</span><span>'+ic('g-gem','ci')+' '+G.tier+'</span></div>'
+  +'<button class="chip act" id="chipStand">'+ic('g-crown','ci')+ord(s.place)+' of '+s.alive+'</button>'
+  +'<button class="chip act grow" id="chipAno">'+ic(G.anom.g,'ci')+'<span class="lab2">'+G.anom.n+'</span></button>'
+  +(G.trinkets.length?'<button class="chip act" id="chipTrk">'+G.trinkets.map(function(t){return ic(t.g,'ci');}).join('')+'</button>':'');
+  const a=$('chipStand');if(a)a.onclick=openStandings;
+  const b=$('chipAno');if(b)b.onclick=openAnoInfo;
+  const c=$('chipTrk');if(c)c.onclick=openTrkInfo;
 }
-function renderAno(){
-  $('anobar').innerHTML='<div class="anobar">'+ic(G.anom.g,'ai')
-   +'<div><div class="an">'+G.anom.n+'</div><div class="ad">'+G.anom.d+'</div></div>'
-   +'<div class="tagl">Featured wares<b>'+CATN[G.tags[0]]+' + '+CATN[G.tags[1]]+'</b></div></div>';
+function openStandings(){
+  const s=standingsInfo();
+  const o=ovOpen('<div class="card"><div class="kick gold">The Lobby</div>'
+   +'<h2 class="big" style="font-size:23px">Standings</h2>'
+   +'<div class="rivals drawer">'+s.ps.map(function(p){
+      const w=Math.max(0,Math.min(100,p.hp/40*100));
+      return '<div class="rv'+(p.i===0?' you':'')+(p.alive?'':' dead')+'">'
+       +((p===s.top)?ic('g-crown','crn'):'')
+       +ic(p.p,'pv')+'<div class="nm">'+esc(p.short)+'</div>'
+       +'<div class="rh"><i style="width:'+w+'%"></i></div><b>'+Math.max(0,p.hp)+'</b>'
+       +(p.alive?'':'<div class="skl">'+ic('e-skull','','width:16px;height:16px')+'</div>')
+      +'</div>';}).join('')+'</div>'
+   +'<p style="margin-top:10px;opacity:.7">Tap anywhere to close</p></div>');
+  o.onclick=function(){ovClose(o);};
 }
-function renderTrow(){
-  $('trow').innerHTML=G.trinkets.map(function(t){return '<span class="trk"><span class="ico" style="width:15px;height:15px">'+ic(t.g,'','width:100%;height:100%')+'</span>'+t.n+'</span>';}).join('');
+function openAnoInfo(){
+  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick">Anomaly</div>'
+   +ic(G.anom.g,'bigic')+'<h2 class="big" style="font-size:25px">'+G.anom.n+'</h2>'
+   +'<p>'+G.anom.d+'</p><p>Featured wares: <b>'+CATN[G.tags[0]]+' + '+CATN[G.tags[1]]+'</b></p>'
+   +'<p style="opacity:.7">Tap anywhere to close</p></div>');
+  o.onclick=function(){ovClose(o);};
+}
+function openTrkInfo(){
+  const o=ovOpen('<div class="card"><div class="kick gold">Trinkets</div>'
+   +'<h2 class="big" style="font-size:23px">Your Charms</h2>'
+   +G.trinkets.map(function(t){return '<p><b>'+t.n+'</b> '+t.d+'</p>';}).join('')
+   +'<p style="opacity:.7">Tap anywhere to close</p></div>');
+  o.onclick=function(){ovClose(o);};
 }
 /* ============ DOORS ============ */
 function doorCtx(){return {gold:G.gold,round:G.round,A:G.A,gilded:G.door.gilded,playerBoard:G.board,playerHp:fightHP(G.round,G.T.hpFlat,G.A)};}
@@ -280,32 +304,48 @@ function renderSheet(){
 }
 function renderDraft(){
   const slots=4+G.tier,used=usedCells(G.board);
-  let h='';
-  h+='<div class="sec secstall"><div class="label">Your Stall<span class="side">'+used+' / '+slots+' slots</span></div>';
-  h+=boardHTML(G.board,slots,G.sel);
+  if(!G.dtab){G.dtab='market';}
+  let h='<div class="tabs">'
+   +'<button class="tab'+(G.dtab==='market'?' on':'')+'" id="tabM">The Market</button>'
+   +'<button class="tab'+(G.dtab==='doors'?' on':'')+'" id="tabD">The Doors'+((G.door&&!G.door.done)?'<i class="dot"></i>':'')+'</button>'
+  +'</div>';
+  h+='<div class="stage" id="stage">';
+  if(G.dtab==='market'){
+    h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
+    h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
+    h+='<div class="controls">'
+      +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'Tier '+(G.tier+1)+' ('+G.tierCost+')')+'</button>'
+      +'<button class="btn" id="btnRe"'+(G.gold<1?' disabled':'')+'>Reroll 1</button>'
+    +'</div></div>';
+  }else{
+    h+='<div class="sec secdoors"><div class="label">The Doors<span class="side">'+BANDN[bandOf(G.round)]+'</span></div>';
+    h+=doorsHTML()+'</div>';
+  }
+  h+='</div>';
+  h+='<div class="dock"><div class="docktop"><div class="label" style="margin:0">'+(G.dockV?'The Vault':'Your Stall')
+   +'<span class="side">'+(G.dockV?'no fights, no forging':used+' / '+slots+' slots')+'</span></div>'
+   +'<button class="btn mini" id="dockFlip">'+(G.dockV?'Stall':'Vault'+(G.vault.length?' ('+G.vault.length+')':''))+'</button>'
+   +'<button class="btn gold tob" id="btnGo">'+ic('e-blade','bi')+' To Battle</button></div>';
+  if(G.dockV){
+    h+='<div class="vault" id="vlt">'+G.vault.map(function(it,i){
+        const d=ITEMS[it.id];
+        return '<div class="cell it s1 rar'+it.rarity+'" style="--cat:'+CATC[d.cat]+'" data-v="'+i+'">'
+         +'<div class="glow"></div>'+ic('g-'+it.id,'gi')
+         +'<span class="stat sr">'+integOf(it)+'</span>'
+         +(it.ench?'<i class="edot" style="background:'+ENCH[it.ench].c+'"></i>':'')
+         +(it.rarity>0?'<span class="fuse">'+RNAME[it.rarity].charAt(0)+'</span>':'')+'</div>';
+      }).join('');
+    for(let v=G.vault.length;v<3;v++){h+='<div class="cell empty"></div>';}
+    h+='</div>';
+  }else{
+    h+=boardHTML(G.board,slots,G.sel);
+  }
   h+='<div id="sheet"></div></div>';
-  h+='<div class="sec secdoors"><div class="label">The Doors<span class="side">'+BANDN[bandOf(G.round)]+'</span></div>';
-  h+=doorsHTML();
-  h+='<div class="label" style="margin-top:6px">The Vault<span class="side">no fights, no forging</span></div>';
-  h+='<div class="vault" id="vlt">'+G.vault.map(function(it,i){
-      const d=ITEMS[it.id];
-      return '<div class="cell it s1 rar'+it.rarity+'" style="--cat:'+CATC[d.cat]+'" data-v="'+i+'">'
-       +'<div class="glow"></div>'+ic('g-'+it.id,'gi')
-       +'<span class="stat sr">'+integOf(it)+'</span>'
-       +(it.ench?'<i class="edot" style="background:'+ENCH[it.ench].c+'"></i>':'')
-       +(it.rarity>0?'<span class="fuse">'+RNAME[it.rarity].charAt(0)+'</span>':'')+'</div>';
-    }).join('');
-  for(let v=G.vault.length;v<3;v++){h+='<div class="cell empty"></div>';}
-  h+='</div></div>';
-  h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
-  h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
-  h+='<div class="controls">'
-    +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'Tier '+(G.tier+1)+' ('+G.tierCost+')')+'</button>'
-    +'<button class="btn" id="btnRe"'+(G.gold<1?' disabled':'')+'>Reroll 1</button>'
-    +'<button class="btn gold" id="btnGo">'+ic('e-blade','bi')+' To Battle</button>'
-  +'</div></div>';
   $('main').className='draft';
   $('main').innerHTML=h;
+  const tm=$('tabM');if(tm)tm.onclick=function(){G.dtab='market';G.sel=null;renderDraft();};
+  const td=$('tabD');if(td)td.onclick=function(){G.dtab='doors';G.sel=null;renderDraft();};
+  const df=$('dockFlip');if(df)df.onclick=function(){G.dockV=!G.dockV;G.sel=null;renderDraft();};
   document.querySelectorAll('#bd .cell.it').forEach(function(c){c.onclick=function(){const i=+c.dataset.i;G.sel=(G.sel===i?null:i);renderDraft();};});
   document.querySelectorAll('#vlt .cell.it').forEach(function(c){c.onclick=function(){
     const i=+c.dataset.v;const it=G.vault[i];if(!it)return;
@@ -742,7 +782,13 @@ function nextRound(){
   if(G.round>1&&G.tier<6){G.tierCost=Math.max(1,G.tierCost-1);}
   G.gold=income();
   rollShop();rollDoor();
-  G.sel=null;G.phase='draft';
+  G.sel=null;G.phase='draft';G.dtab='market';G.dockV=false;
+  if(!RM){
+    const dk=document.createElement('div');dk.className='dusk dawn';
+    dk.innerHTML='<div class="dt">Round '+G.round+'</div><div class="d2">'+BANDN[bandOf(G.round)]+'</div>';
+    document.body.appendChild(dk);
+    setTimeout(function(){dk.remove();},1150);
+  }
   if(G.round===5||G.round===8){openTrinkets(function(){snapshotRun();renderAll();});}
   else{snapshotRun();renderAll();}
 }

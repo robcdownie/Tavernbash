@@ -534,6 +534,31 @@
     .ln,.rv .crn,.vsrow .vm{animation:none !important;}
   }
 
+  /* ===== V8 ACTS PASS: one protagonist per screen ===== */
+  #rivals,#anobar,#trow{display:none;}
+  body.run #app{height:100dvh;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+  body.run #main{flex:1;min-height:0;}
+  #main.draft{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:0;height:100%;}
+  .stage{overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;}
+  .tabs{display:flex;gap:6px;margin:5px 0 4px;}
+  .tab{flex:1;position:relative;padding:8px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.28);
+    color:var(--dim);font-weight:800;font-size:13.5px;font-family:"Rakkas",serif;letter-spacing:.5px;cursor:pointer;}
+  .tab.on{color:var(--brass-hi);border-color:rgba(216,162,74,.55);background:linear-gradient(180deg,#3d2d1d,#281b11 85%);
+    box-shadow:inset 0 1.5px 0 rgba(255,255,255,.12), 0 6px 14px rgba(0,0,0,.4);}
+  .tab .dot{position:absolute;top:7px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--spice);box-shadow:0 0 8px var(--spice);}
+  .dock{border-top:1px solid rgba(216,162,74,.28);padding-top:5px;margin-top:5px;}
+  .docktop{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+  .docktop .label{flex:1;min-width:0;}
+  .btn.mini{min-height:30px;padding:5px 10px;font-size:11px;flex:0 0 auto;}
+  .btn.tob{flex:0 0 auto;min-height:36px;padding:8px 16px;}
+  .chip.act{cursor:pointer;border-color:rgba(216,162,74,.4);}
+  .chip .lab2{font-size:10px;font-weight:800;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ribbon{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .rivals.drawer{display:grid !important;grid-template-columns:repeat(4,1fr);gap:6px;}
+  body.fight #ribbon{display:none;}
+  .dusk.dawn{background:radial-gradient(circle at 50% 50%, rgba(34,19,7,.55), rgba(14,7,2,.96) 72%);}
+  .secmarket .controls .btn{max-width:200px;}
+
   /* ===== V7 PRESENTATION PASS: painted menus, day and dusk ===== */
   .art-frames .card,.art-frames .scout{border:12px solid transparent;border-radius:14px;
     border-image-source:var(--frame-gold);border-image-slice:135;border-image-width:14px;border-image-repeat:stretch;}
@@ -623,12 +648,8 @@
     .cell .gi{width:26px;height:26px;}
     .cell.s2 .gi{width:34px;height:34px;} .cell.s3 .gi{width:40px;height:40px;}
     body.run .rv b{line-height:1;display:block;}
-    #main.draft{display:grid;grid-template-columns:minmax(260px,2fr) 3fr;grid-template-rows:auto minmax(0,1fr);column-gap:14px;
-      grid-template-areas:"stall stall" "doors market";}
-    .secstall{grid-area:stall;}
-    .secdoors{grid-area:doors;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;}
-    .secmarket{grid-area:market;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;}
     .secmarket .shop{grid-template-columns:repeat(4,1fr);gap:6px;}
+    .secdoors .doors{display:grid;grid-template-columns:3fr 2fr;gap:8px;align-items:start;}
     .ware{padding:6px 5px 5px;}
     .ware .ph .gi{width:30px;height:30px;}
     .ware .ph{margin-bottom:2px;width:46px;height:46px;}
