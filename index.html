@@ -178,6 +178,12 @@
   .cell .ash svg{width:20px;height:20px;}
   .cell.forge{animation:forge .8s var(--e-out);}
   @keyframes forge{0%{box-shadow:0 0 0 0 #fff0c0;filter:brightness(1);}25%{filter:brightness(2.2);box-shadow:0 0 26px 6px rgba(255,225,150,.8);}100%{box-shadow:0 0 0 0 transparent;filter:brightness(1);}}
+  /* the triple telegraph: a held pair glimmers so a forge is never missed */
+  .cell.it.pair::after{content:"";position:absolute;inset:-1px;border-radius:inherit;border:1px solid rgba(244,207,124,.55);
+    box-shadow:0 0 10px rgba(244,207,124,.3), inset 0 0 8px rgba(244,207,124,.14);pointer-events:none;z-index:4;
+    animation:pairglim 2.1s ease-in-out infinite;}
+  @keyframes pairglim{0%,100%{opacity:.4;}50%{opacity:1;}}
+  @media (prefers-reduced-motion: reduce){.cell.it.pair::after{animation:none;}}
 
   /* shop cards */
   .shop{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
@@ -207,6 +213,10 @@
   .ware .chips{min-height:18px;}
   .ware .wr{font-size:9.5px;color:var(--dim);margin-top:4px;font-variant-numeric:tabular-nums;display:flex;gap:8px;justify-content:center;align-items:center;}
   .ware .own{position:absolute;bottom:6px;left:8px;font-size:8.5px;font-weight:800;color:var(--brass);letter-spacing:.4px;}
+  .ware.trip{border-color:rgba(244,207,124,.65);box-shadow:0 0 14px rgba(244,207,124,.22), inset 0 1px 0 rgba(255,255,255,0.04);}
+  .ware.trip::before{border-color:rgba(244,207,124,.35);}
+  .eff.trip{color:#2a1c08;background:linear-gradient(180deg,var(--brass-hi),var(--brass));animation:pairglim 2.1s ease-in-out infinite;}
+  @media (prefers-reduced-motion: reduce){.eff.trip{animation:none;}}
   .eff{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:800;padding:1.5px 6px;border-radius:6px;margin:0 2px 3px;font-variant-numeric:tabular-nums;}
   .eff.dmg{color:#ff8d76;background:rgba(200,64,46,.16);} .eff.shield{color:#6fe0cd;background:rgba(53,165,150,.16);}
   .eff.heal{color:#ffb3b8;background:rgba(224,138,143,.15);} .eff.poison{color:#c0e070;background:rgba(157,187,69,.16);}

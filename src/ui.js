@@ -132,7 +132,8 @@ function effChips(id,rarity){
 /* ============ CELLS + BOARD ============ */
 function cellHTML(it,i,sel){
   const d=ITEMS[it.id];const ps=primDraft(it);
-  return '<div class="cell it s'+it.size+' rar'+it.rarity+(sel?' sel':'')+'" style="grid-column:span '+it.size+';--cat:'+CATC[d.cat]+'" data-i="'+i+'">'
+  const pair=it.rarity<3&&G&&G.board&&G.board.filter(function(x){return x.id===it.id&&x.rarity===it.rarity;}).length===2;
+  return '<div class="cell it s'+it.size+' rar'+it.rarity+(sel?' sel':'')+(pair?' pair':'')+'" style="grid-column:span '+it.size+';--cat:'+CATC[d.cat]+'" data-i="'+i+'">'
    +'<div class="glow"></div>'+ic('g-'+it.id,'gi')
    +(ps?'<span class="stat sl '+ps[0]+'">'+ps[1]+'</span>':'')
    +'<span class="stat sr">'+integOf(it)+'</span>'
@@ -276,16 +277,17 @@ function wareHTML(w,i){
   const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
   const can=!w.bought&&(w.free||G.gold>=cost)&&(usedCells(G.board)+d.size<=4+G.tier);
   const own=G.board.filter(function(x){return x.id===w.id&&x.rarity===0;}).length;
+  const trip=own>=2&&!w.bought;
   let gems='';for(let g=0;g<d.tier;g++){gems+=ic('g-gem');}
   let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=d.size?'on':'')+'"></i>';}
   const en=w.ench?ENCH[w.ench]:null;
   const anim=G._wfresh?';animation-delay:'+(i*45)+'ms':';animation:none';
-  return '<div class="ware'+(w.bought?' gone':(can?'':' cant'))+(en?' enchw':'')+'" data-w="'+i+'" style="--cat:'+CATC[d.cat]+(en?';--ec:'+en.c:'')+anim+'">'
+  return '<div class="ware'+(w.bought?' gone':(can?'':' cant'))+(en?' enchw':'')+(trip?' trip':'')+'" data-w="'+i+'" style="--cat:'+CATC[d.cat]+(en?';--ec:'+en.c:'')+anim+'">'
    +'<div class="ph">'+ic('g-'+w.id,'gi')+'<span class="cost'+(w.free?' free':'')+'">'+ic('g-coin')+'<b>'+(w.free?'FREE':cost)+'</b></span></div>'
    +'<div class="tg">'+gems+'</div>'
    +'<div class="wn">'+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div>'
    +'<div class="sz">'+pips+'</div>'
-   +'<div class="chips">'+effChips(w.id,0)+(en?'<span class="eff util" style="color:'+en.c+'">'+ic('e-bolt','mi')+' '+en.d+'</span>':'')+'</div>'
+   +'<div class="chips">'+effChips(w.id,0)+(en?'<span class="eff util" style="color:'+en.c+'">'+ic('e-bolt','mi')+' '+en.d+'</span>':'')+(trip?'<span class="eff trip">'+ic('e-bolt','mi')+' Forges Silver</span>':'')+'</div>'
    +'<div class="wr">'+(d.cd>0?ic('e-clock','mi')+' '+d.cd+'s':'<span>passive</span>')+'<span>'+ic('e-shield','mi')+' '+Math.round(BASEINTEG[d.size]*(d.integMul||1))+'</span></div>'
    +(own>0?'<div class="own">'+own+'/3</div>':'')
   +'</div>';
