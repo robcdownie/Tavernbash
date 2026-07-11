@@ -48,7 +48,7 @@ function restoreRun(d){
      players:[],board:d.board.map(reviveItem),vault:(d.vault||[]).map(reviveItem),
      shop:d.shop.slice(),trinkets:d.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean),
      T:null,hero:d.hero||null,gold:d.gold,tier:d.tier,tierCost:d.tierCost,relicIncome:d.relicIncome,spoils:d.spoils||0,frozen:!!d.frozen,
-     door:d.door,sel:null,vsel:null,swapV:null,phase:'draft',fightN:d.fightN,
+     door:d.door,sel:null,vsel:null,swapV:null,tut:null,phase:'draft',fightN:d.fightN,
      departed:d.departed?{board:d.departed.board.map(reviveItem),nm:d.departed.nm,p:d.departed.p}:null,
      feed:[],usedMon:d.usedMon||{},fiv:null,burned:0,enteredGold:0,
      otherPairs:[],pendOpp:null,pendFoe:null,F:null,you:null};
@@ -412,7 +412,7 @@ function renderDraft(){
   const bg=$('btnGo');if(bg)bg.onclick=toBattle;
   renderSheet();
 }
-function renderAll(){document.body.classList.add('run');document.body.classList.toggle('fight',G.phase==='fight');renderBest();renderRivals();renderRibbon();renderAno();renderTrow();if(G.phase==='draft'){renderDraft();}}
+function renderAll(){document.body.classList.add('run');document.body.classList.toggle('fight',G.phase==='fight');renderBest();renderRivals();renderRibbon();renderAno();renderTrow();if(G.phase==='draft'){renderDraft();}renderCoach();}
 /* ============ THE VOICE: your hero watches you play ============ */
 function bark(ev,always){
   const h=heroOf();if(!h||!h.barks||!h.barks[ev]||!h.barks[ev].length)return;
@@ -476,6 +476,7 @@ function buyWare(i){
   G.gold-=cost;w.bought=true;sCoin();
   G.board.push(makeItem(w.id,0,w.ench||null));
   const forged=fuseScan(G.board);
+  if(G.tut==='market'){G.tut='forge';}
   renderAll();
   const cells=document.querySelectorAll('#bd .cell.it');
   const landCell=cells[cells.length-1];
@@ -528,8 +529,9 @@ function openGate(){
    +'<h2 class="big" style="font-size:24px">'+BANDN[bandOf(G.round)]+'</h2>'
    +doorsHTML()
    +'<p style="font-size:11px;color:var(--dim);margin-top:8px">Gold spoils arrive at dawn. Tonight, the duel.</p></div>');
-  const dm=o.querySelector('#doorM');if(dm)dm.onclick=function(){ovClose(o);startMonsterFight();};
-  const ds=o.querySelector('#doorS');if(ds)ds.onclick=function(){ovClose(o);takeSafe();};
+  if(G.tut==='ready'){G.tut='gate';renderCoach();}
+  const dm=o.querySelector('#doorM');if(dm)dm.onclick=function(){if(G.tut==='gate'){G.tut='wait';renderCoach();}ovClose(o);startMonsterFight();};
+  const ds=o.querySelector('#doorS');if(ds)ds.onclick=function(){if(G.tut==='gate'){G.tut='wait';renderCoach();}ovClose(o);takeSafe();};
 }
 function takeSafe(){
   const D=G.door;if(D.done||G.phase!=='draft')return;const s=D.safe;
@@ -988,6 +990,7 @@ function nextRound(){
   if(G.spoils){G.gold+=G.spoils;toast('Spoils at dawn: +'+G.spoils+' gold');G.spoils=0;}
   rollShop();rollDoor();
   G.sel=null;G.vsel=null;G.swapV=null;G.phase='draft';G.dockV=false;
+  if(G.tut&&G.round===2){G.tut='last';}
   pairRound();
   if(!RM){
     const dk=document.createElement('div');dk.className='dusk dawn';
@@ -1170,7 +1173,7 @@ function newLobby(){
   const per=PERSONAS.slice();shuffle(per,rng);
   G={seed:seed,rng:rng,round:0,anom:anom,A:Object.assign({},ANONE,anom.m),tags:[cats[0],cats[1]],
      players:[],board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:0,tier:1,tierCost:TIERCOST[2],relicIncome:0,spoils:0,frozen:false,
-     door:null,sel:null,vsel:null,swapV:null,phase:'draft',fightN:0,departed:null,feed:[],usedMon:{},fiv:null,burned:0,enteredGold:0,
+     door:null,sel:null,vsel:null,swapV:null,tut:null,phase:'draft',fightN:0,departed:null,feed:[],usedMon:{},fiv:null,burned:0,enteredGold:0,
      otherPairs:[],pendOpp:null,pendFoe:null,F:null,you:null};
   G.players.push({i:0,n:'You',short:'You',p:'p-0',hp:40,alive:true,shrine:false,place:null});
   for(let k=0;k<per.length;k++){
@@ -1198,6 +1201,7 @@ function openHeroPick(cont){
       if(h.start){G.board.push(makeItem(h.start,0));}
       computeT();
       toast(h.n+' opens the stall');
+      if(G.tut==='hero'){G.tut='market';renderCoach();}
       ovClose(o);cont();
     };
   });
@@ -1217,6 +1221,43 @@ function initEmbers(){
     box.appendChild(e);
   }
 }
+/* ============ THE TUTORIAL: a guided first night ============ */
+/* A coach card walks the first round of a real run: seven steps, each
+   either action-advanced or Next-advanced, skippable at every stop.
+   State lives on G.tut and never rides the save; finishing or skipping
+   marks bb-tut in storage. Steps with ov:true float above overlays. */
+const TUT={
+ hero:{t:'Pick your merchant. Each favors one kind of ware, and the market listens.',ov:true},
+ market:{t:'The night market. Every ware fights on its own timer. Buy your first ware.',a:'.shop'},
+ forge:{t:'Own three copies of one ware and they forge into a stronger one. A held pair glimmers, and the shop card that completes it glows.',next:true},
+ dusk:{t:'Gold never carries over: spend it or it burns at dusk. Reroll for 1, or Freeze to keep tonight\'s shop for tomorrow.',a:'.controls',next:true},
+ ready:{t:'When you are ready, tap the Duel button. Tonight\'s opponent is already decided.',a:'#btnGo'},
+ gate:{t:'Every duel waits behind a door. Fight the monster for its bounty, or take the easy way out. Gold spoils arrive at dawn.',ov:true},
+ last:{t:'Lobby health only falls when you lose, and the last stall standing takes the night. You are on your own now, merchant.',next:true}
+};
+function tutDone(){G.tut=null;try{window.localStorage.setItem('bb-tut','1');}catch(e){}renderCoach();}
+function renderCoach(){
+  document.querySelectorAll('.tuthl').forEach(function(el){el.classList.remove('tuthl');});
+  const old=document.querySelector('.coach');if(old)old.remove();
+  if(!G||!G.tut||!TUT[G.tut])return;
+  const s=TUT[G.tut];
+  if(G.phase!=='draft')return;
+  if(!s.ov&&document.querySelector('.ov'))return;
+  const d=document.createElement('div');d.className='coach';
+  d.innerHTML='<div class="ct">'+s.t+'</div><div class="cb">'
+   +(s.next?'<button class="btn gold mini" id="ctN">Next</button>':'')
+   +'<button class="btn mini" id="ctS">Skip the lesson</button></div>';
+  document.body.appendChild(d);
+  if(s.a){const el=document.querySelector(s.a);if(el)el.classList.add('tuthl');}
+  const n=d.querySelector('#ctN');
+  if(n)n.onclick=function(){
+    if(G.tut==='forge'){G.tut='dusk';}
+    else if(G.tut==='dusk'){G.tut='ready';}
+    else if(G.tut==='last'){tutDone();return;}
+    renderCoach();
+  };
+  d.querySelector('#ctS').onclick=tutDone;
+}
 /* the title screen: Robbie's painted intro. Two stone plaques, New Game
    and Tutorial. Falls straight through to the lobby when the painted
    art has not landed (tests, art-less checkouts). */
@@ -1229,7 +1270,7 @@ function openIntro(){
   +'</div>';
   document.body.appendChild(o);
   o.querySelector('#inNew').onclick=function(){o.remove();newLobby();};
-  o.querySelector('#inTut').onclick=function(){toast('The tutorial is still being written. Soon.');};
+  o.querySelector('#inTut').onclick=function(){o.remove();newLobby();G.tut='hero';renderCoach();};
 }
 /* the debug strip: ?debug in the URL (or bb-debug=1 in storage) pins a
    tiny readout to the corner: build tag, PWA vs browser tab, viewport,
