@@ -4,6 +4,7 @@ import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,BANDN,BAN
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,usedCells,
         playerFightItems,monsterSide,genRival,createFight,runHeadless,boardRegen} from './engine.js';
 import {ic} from './art.js';
+import {ART} from './art-manifest.js';
 import {fxHit,fxDestroy,fxForge,fxCoinRain,fxStorm} from './fx.js';
 import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxToggle,sfxMuted} from './sfx.js';
 import {initMusic,music,musicMute} from './music.js';
@@ -1216,6 +1217,20 @@ function initEmbers(){
     box.appendChild(e);
   }
 }
+/* the title screen: Robbie's painted intro. Two stone plaques, New Game
+   and Tutorial. Falls straight through to the lobby when the painted
+   art has not landed (tests, art-less checkouts). */
+function openIntro(){
+  if(!ART['bg-intro']){newLobby();return;}
+  const o=document.createElement('div');o.id='intro';
+  o.innerHTML='<div class="ibtns">'
+   +'<button class="stonebtn" id="inNew">New Game</button>'
+   +'<button class="stonebtn" id="inTut">Tutorial</button>'
+  +'</div>';
+  document.body.appendChild(o);
+  o.querySelector('#inNew').onclick=function(){o.remove();newLobby();};
+  o.querySelector('#inTut').onclick=function(){toast('The tutorial is still being written. Soon.');};
+}
 /* the debug strip: ?debug in the URL (or bb-debug=1 in storage) pins a
    tiny readout to the corner: build tag, PWA vs browser tab, viewport,
    fps, and a count of elements leaking past the viewport edge. Exists
@@ -1252,7 +1267,7 @@ export function boot(){
   loadBest();
   const d=loadRun();
   if(d&&d.round>=1){openContinue(d);}
-  else{newLobby();}
+  else{openIntro();}
   /* dev-only hooks for driving playtests from the console; the guard
      matches the service worker's, so the live site never carries them */
   if(typeof location!=='undefined'&&location.hostname.match(/^(localhost|127\.)/)){
