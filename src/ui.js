@@ -47,7 +47,7 @@ function restoreRun(d){
      players:[],board:d.board.map(reviveItem),vault:(d.vault||[]).map(reviveItem),
      shop:d.shop.slice(),trinkets:d.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean),
      T:null,hero:d.hero||null,gold:d.gold,tier:d.tier,tierCost:d.tierCost,relicIncome:d.relicIncome,spoils:d.spoils||0,frozen:!!d.frozen,
-     door:d.door,sel:null,phase:'draft',fightN:d.fightN,
+     door:d.door,sel:null,vsel:null,swapV:null,phase:'draft',fightN:d.fightN,
      departed:d.departed?{board:d.departed.board.map(reviveItem),nm:d.departed.nm,p:d.departed.p}:null,
      feed:[],usedMon:d.usedMon||{},fiv:null,burned:0,enteredGold:0,
      otherPairs:[],pendOpp:null,pendFoe:null,F:null,you:null};
@@ -292,14 +292,56 @@ function wareHTML(w,i){
    +(own>0?'<div class="own">'+own+'/3</div>':'')
   +'</div>';
 }
+function sheetInfoHTML(it){
+  const d=ITEMS[it.id];const en=it.ench?ENCH[it.ench]:null;
+  return '<div class="st"><span class="ico" style="width:34px;height:34px">'+ic('g-'+it.id,'','width:100%;height:100%')+'</span>'
+   +'<div><div class="nm">'+RNAME[it.rarity]+' '+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div><div class="ds">'+(en?en.d+' ':'')+d.d+'</div>'
+   +'<div style="margin-top:5px">'+effChips(it.id,it.rarity)+'<span class="eff util">'+ic('e-shield','mi')+' '+integOf(it)+'</span>'+(d.cd>0?'<span class="eff util">'+ic('e-clock','mi')+' '+d.cd+'s</span>':'')+'</div></div></div>';
+}
+function renderVaultSheet(sh){
+  const it=G.vault[G.vsel];
+  const room=usedCells(G.board)+it.size<=4+G.tier;
+  sh.innerHTML='<div class="sheet">'+sheetInfoHTML(it)
+   +'<div class="bs"><button class="btn" id="vOut"'+(room?'':' disabled')+'>To the Stall</button>'
+   +'<button class="btn" id="vSwp"'+(G.board.length?'':' disabled')+'>Swap</button>'
+   +'<button class="btn sell" id="vSl">Sell +'+SELLV[it.size]+'</button></div></div>';
+  const O=$('vOut');if(O)O.onclick=function(){
+    if(usedCells(G.board)+it.size>4+G.tier)return;
+    G.vault.splice(G.vsel,1);G.vsel=null;G.board.push(it);
+    const forged=fuseScan(G.board);
+    if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();}
+    else{toast(ITEMS[it.id].n+' returns to the stall');}
+    renderAll();
+  };
+  const W=$('vSwp');if(W)W.onclick=function(){
+    G.swapV=G.vsel;G.vsel=null;G.dockV=false;
+    toast('Tap a stall ware to trade places.');
+    renderDraft();
+  };
+  const S=$('vSl');if(S)S.onclick=function(){
+    const cell=document.querySelector('#vlt .cell.it[data-v="'+G.vsel+'"]');
+    const from=cell?cell.getBoundingClientRect():null;
+    G.gold+=SELLV[it.size];G.vault.splice(G.vsel,1);G.vsel=null;
+    toast('Sold from the vault for '+SELLV[it.size]+' gold');renderAll();
+    if(from){flyCoins(from,3+SELLV[it.size]);}
+  };
+}
+function vaultSwap(i){
+  const vi=G.swapV;const inIt=G.vault[vi];const outIt=G.board[i];
+  if(!inIt||!outIt){G.swapV=null;renderDraft();return;}
+  if(usedCells(G.board)-outIt.size+inIt.size>4+G.tier){toast('No room for that trade');return;}
+  G.vault[vi]=outIt;G.board[i]=inIt;G.swapV=null;G.sel=null;
+  const forged=fuseScan(G.board);
+  if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();}
+  else{toast(ITEMS[outIt.id].n+' rests in the vault. '+ITEMS[inIt.id].n+' takes the stall.');}
+  renderAll();
+}
 function renderSheet(){
   const sh=$('sheet');if(!sh)return;
+  if(G.dockV&&G.vsel!=null&&G.vault[G.vsel]){renderVaultSheet(sh);return;}
   if(G.sel==null||!G.board[G.sel]){sh.innerHTML='';return;}
-  const it=G.board[G.sel];const d=ITEMS[it.id];
-  const en=it.ench?ENCH[it.ench]:null;
-  sh.innerHTML='<div class="sheet"><div class="st"><span class="ico" style="width:34px;height:34px">'+ic('g-'+it.id,'','width:100%;height:100%')+'</span>'
-   +'<div><div class="nm">'+RNAME[it.rarity]+' '+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div><div class="ds">'+(en?en.d+' ':'')+d.d+'</div>'
-   +'<div style="margin-top:5px">'+effChips(it.id,it.rarity)+'<span class="eff util">'+ic('e-shield','mi')+' '+integOf(it)+'</span>'+(d.cd>0?'<span class="eff util">'+ic('e-clock','mi')+' '+d.cd+'s</span>':'')+'</div></div></div>'
+  const it=G.board[G.sel];
+  sh.innerHTML='<div class="sheet">'+sheetInfoHTML(it)
    +'<div class="bs"><button class="btn" id="mvL"'+(G.sel===0?' disabled':'')+'>&#9664; Move</button>'
    +'<button class="btn" id="mvR"'+(G.sel>=G.board.length-1?' disabled':'')+'>Move &#9654;</button>'
    +'<button class="btn" id="vtI"'+(G.vault.length>=3?' disabled':'')+'>Vault</button>'
@@ -332,13 +374,13 @@ function renderDraft(){
   +'</div></div>';
   h+='</div>';
   h+='<div class="dock"><div class="docktop"><div class="label" style="margin:0">'+(G.dockV?'The Vault':'Your Stall')
-   +'<span class="side">'+(G.dockV?'no fights, no forging':used+' / '+slots+' slots')+'</span></div>'
+   +'<span class="side">'+(G.dockV?'no fights, no forging':(G.swapV!=null?'tap a ware to trade with the vault':used+' / '+slots+' slots'))+'</span></div>'
    +'<button class="btn mini" id="dockFlip">'+(G.dockV?'Stall':'Vault'+(G.vault.length?' ('+G.vault.length+')':''))+'</button>'
    +'<button class="btn gold tob" id="btnGo">'+ic(G.nextOpp?G.nextOpp.p:'m-qareen','bi vsp')+' Duel '+esc(G.nextOpp?shortName(G.nextOpp.n):'the Departed')+'</button></div>';
   if(G.dockV){
     h+='<div class="vault" id="vlt">'+G.vault.map(function(it,i){
         const d=ITEMS[it.id];
-        return '<div class="cell it s1 rar'+it.rarity+'" style="--cat:'+CATC[d.cat]+'" data-v="'+i+'">'
+        return '<div class="cell it s1 rar'+it.rarity+(G.vsel===i?' sel':'')+'" style="--cat:'+CATC[d.cat]+'" data-v="'+i+'">'
          +'<div class="glow"></div>'+ic('g-'+it.id,'gi')
          +'<span class="stat sr">'+integOf(it)+'</span>'
          +(it.ench?'<i class="edot" style="background:'+ENCH[it.ench].c+'"></i>':'')
@@ -352,16 +394,15 @@ function renderDraft(){
   h+='<div id="sheet"></div></div>';
   $('main').className='draft';
   $('main').innerHTML=h;
-  const df=$('dockFlip');if(df)df.onclick=function(){G.dockV=!G.dockV;G.sel=null;renderDraft();};
-  document.querySelectorAll('#bd .cell.it').forEach(function(c){c.onclick=function(){const i=+c.dataset.i;G.sel=(G.sel===i?null:i);renderDraft();};});
+  const df=$('dockFlip');if(df)df.onclick=function(){G.dockV=!G.dockV;G.sel=null;G.vsel=null;G.swapV=null;renderDraft();};
+  document.querySelectorAll('#bd .cell.it').forEach(function(c){c.onclick=function(){
+    const i=+c.dataset.i;
+    if(G.swapV!=null){vaultSwap(i);return;}
+    G.sel=(G.sel===i?null:i);renderDraft();
+  };});
   document.querySelectorAll('#vlt .cell.it').forEach(function(c){c.onclick=function(){
-    const i=+c.dataset.v;const it=G.vault[i];if(!it)return;
-    if(usedCells(G.board)+it.size>4+G.tier){toast('No room on your stall');return;}
-    G.vault.splice(i,1);G.board.push(it);
-    const forged=fuseScan(G.board);
-    if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();}
-    else{toast(ITEMS[it.id].n+' returns to the stall');}
-    renderAll();
+    const i=+c.dataset.v;if(!G.vault[i])return;
+    G.vsel=(G.vsel===i?null:i);G.sel=null;renderDraft();
   };});
   document.querySelectorAll('.ware').forEach(function(w){w.onclick=function(){buyWare(+w.dataset.w);};});
   const bt=$('btnTier');if(bt)bt.onclick=tierUp;
@@ -943,7 +984,7 @@ function nextRound(){
   G.gold=income();
   if(G.spoils){G.gold+=G.spoils;toast('Spoils at dawn: +'+G.spoils+' gold');G.spoils=0;}
   rollShop();rollDoor();
-  G.sel=null;G.phase='draft';G.dockV=false;
+  G.sel=null;G.vsel=null;G.swapV=null;G.phase='draft';G.dockV=false;
   pairRound();
   if(!RM){
     const dk=document.createElement('div');dk.className='dusk dawn';
@@ -1126,7 +1167,7 @@ function newLobby(){
   const per=PERSONAS.slice();shuffle(per,rng);
   G={seed:seed,rng:rng,round:0,anom:anom,A:Object.assign({},ANONE,anom.m),tags:[cats[0],cats[1]],
      players:[],board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:0,tier:1,tierCost:TIERCOST[2],relicIncome:0,spoils:0,frozen:false,
-     door:null,sel:null,phase:'draft',fightN:0,departed:null,feed:[],usedMon:{},fiv:null,burned:0,enteredGold:0,
+     door:null,sel:null,vsel:null,swapV:null,phase:'draft',fightN:0,departed:null,feed:[],usedMon:{},fiv:null,burned:0,enteredGold:0,
      otherPairs:[],pendOpp:null,pendFoe:null,F:null,you:null};
   G.players.push({i:0,n:'You',short:'You',p:'p-0',hp:40,alive:true,shrine:false,place:null});
   for(let k=0;k<per.length;k++){
