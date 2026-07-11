@@ -534,6 +534,17 @@
     .ln,.rv .crn,.vsrow .vm{animation:none !important;}
   }
 
+  /* ===== V11 DUEL PASS: a fight between faces ===== */
+  .fh .fp{width:46px;height:46px;border-radius:50%;
+    box-shadow:0 0 0 2px #7a4d16, 0 0 0 3.5px rgba(244,207,124,.35), 0 8px 16px rgba(0,0,0,.55);}
+  .fh .who{font-family:"Rakkas",serif;font-size:16.5px;letter-spacing:.4px;color:var(--brass-hi);}
+  #fg-b .fp{box-shadow:0 0 0 2px #6e2417, 0 0 0 3.5px rgba(200,64,46,.4), 0 8px 16px rgba(0,0,0,.55);}
+  .streak{position:fixed;height:2.5px;transform-origin:0 50%;z-index:24;pointer-events:none;border-radius:2px;
+    background:linear-gradient(90deg,transparent 8%,rgba(244,207,124,.95));box-shadow:0 0 8px rgba(244,207,124,.5);
+    animation:streakfade .22s ease-out forwards;}
+  @keyframes streakfade{from{opacity:.95;}to{opacity:0;}}
+  @media (prefers-reduced-motion: reduce){.streak{display:none;}}
+
   /* ===== V10 JUICE PASS: objects behave like objects ===== */
   .fly{position:fixed;z-index:65;pointer-events:none;opacity:1;filter:drop-shadow(0 8px 10px rgba(0,0,0,.6));
     transition:transform .38s cubic-bezier(.3,.7,.35,1), opacity .38s ease;}
