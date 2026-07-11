@@ -150,7 +150,7 @@ function boardHTML(board,slots,selIdx){
 function fightCellHTML(fi,i,side){
   const ps=primStat(fi);const col=CATC[fi.cat]||CATC.util;
   return '<div class="cell f s'+fi.size+' rar'+fi.rarity+(fi.alive?'':' dead')+'" id="fc-'+side+'-'+i+'" style="grid-column:span '+fi.size+';--cat:'+col+';--fc:'+col+';--rc:'+col+'">'
-   +'<div class="ring"></div><div class="glow"></div>'+ic(fi.g,'gi')
+   +'<div class="ring"></div><div class="cdf" id="cdf-'+side+'-'+i+'"></div><div class="glow"></div>'+ic(fi.g,'gi')
    +(ps?'<span class="stat sl '+ps[0]+'">'+ps[1]+'</span>':'')
    +'<span class="stat sr" id="fi-'+side+'-'+i+'">'+fi.integ+'</span>'
    +(fi.bulwark?ic('e-shield','bw'):'')
@@ -609,12 +609,29 @@ function startFight(me,foe,opts){
   +fighterHTML(me,'a')
   +'<div class="log" id="log"></div>';
   paintFight(F);
+  /* the pulse: every active ware shows its cooldown filling live, brass
+     while charging, frost while frozen, dust while a magazine sits dry */
+  function paintCds(){
+    for(const S of [F.a,F.b]){
+      for(let i=0;i<S.items.length;i++){
+        const el=$('cdf-'+S.key+'-'+i);if(!el)continue;
+        const it=S.items[i];
+        if(!it.alive||it.cd<=0){el.style.opacity='0';continue;}
+        const pct=Math.min(100,it.timer/it.cd*100).toFixed(1);
+        const col=it.frozen>0?'rgba(154,216,239,.65)':(it.maxAmmo>0&&it.ammo<=0?'rgba(140,127,108,.45)':(it.lot?'rgba(120,110,95,.3)':'rgba(244,207,124,.55)'));
+        el.style.opacity='1';
+        el.style.background='conic-gradient('+col+' '+pct+'%, rgba(0,0,0,.18) 0)';
+      }
+    }
+  }
+  paintCds();
   let acc=0;
   G.fiv=setInterval(function(){
     acc+=40*SPEED;let evs=[];
     while(acc>=TICK&&!F.done){acc-=TICK;const e2=F.step(TICK);for(let q=0;q<e2.length;q++){evs.push(e2[q]);}}
     if(evs.length)handleEvents(F,evs);
     paintFight(F);
+    paintCds();
     if(F.done){
       clearInterval(G.fiv);G.fiv=null;
       fxStorm(false);sStorm(false);music('market');

@@ -534,6 +534,12 @@
     .ln,.rv .crn,.vsrow .vm{animation:none !important;}
   }
 
+  /* ===== V14 PULSE PASS: cooldowns you can watch fill ===== */
+  .cdf{position:absolute;inset:0;z-index:1;border-radius:inherit;opacity:0;pointer-events:none;
+    -webkit-mask:radial-gradient(closest-side, transparent 74%, #000 75%);
+    mask:radial-gradient(closest-side, transparent 74%, #000 75%);}
+  .cell.f .ring{display:none;}
+
   /* ===== V13 TELEGRAPH PASS: tonight's duel on the button ===== */
   .tob .vsp{width:20px;height:20px;border-radius:50%;box-shadow:0 0 0 1.5px rgba(60,30,10,.8);vertical-align:-5px;margin-right:2px;}
 
