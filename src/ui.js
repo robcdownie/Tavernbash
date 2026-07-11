@@ -480,6 +480,27 @@ function tierUp(){
 function reroll(){
   if(G.gold<1)return;G.gold-=1;rollShop();renderRibbon();renderDraft();
 }
+/* the knock: every round the door announces itself once, full
+   information, then waits in its tab exactly as before */
+function openKnock(){
+  if(!G.door||G.door.done||G.phase!=='draft')return;
+  const D=G.door;const M=MONSTERS[D.mid];
+  const side=monsterSide(D.mid,doorCtx());
+  if(M.band===4&&!G.barkedBoss){G.barkedBoss=true;bark('boss',true);}
+  const o=ovOpen('<div class="card knock'+(D.gilded?' gild':'')+'">'
+   +'<div class="rays'+(D.gilded?'':' red')+'"></div>'
+   +'<div class="kick'+(D.gilded?' gold':'')+'">'+(D.gilded?'A Gilded Door Knocks':'A Door Knocks')+'</div>'
+   +ic(M.glyph,'bigic knockic')
+   +'<h2 class="big" style="font-size:30px">'+M.n+'</h2>'
+   +'<p style="font-style:italic;color:var(--brass)">'+M.fl+'</p>'
+   +'<p>'+BANDN[M.band]+' &middot; Health <b>'+side.hp+'</b> &middot; Defeat costs <b>'+MONCHIP[M.band]+'</b></p>'
+   +'<p>Bounty: <b>'+bountyText(D)+'</b></p>'
+   +'<div style="display:flex;gap:8px;justify-content:center;margin-top:8px">'
+   +'<button class="btn gold" id="knGo">'+ic('e-blade','bi')+' To the Door</button>'
+   +'<button class="btn" id="knNo">The Market First</button></div></div>');
+  o.querySelector('#knGo').onclick=function(){ovClose(o);startMonsterFight();};
+  o.querySelector('#knNo').onclick=function(){ovClose(o);};
+}
 function takeSafe(){
   const D=G.door;if(D.done||G.phase!=='draft')return;const s=D.safe;
   if(s.t==='gold'){G.gold+=3;}
@@ -925,8 +946,8 @@ function nextRound(){
     document.body.appendChild(dk);
     setTimeout(function(){dk.remove();},1150);
   }
-  if(G.round===5||G.round===8){openTrinkets(function(){snapshotRun();renderAll();});}
-  else{snapshotRun();renderAll();}
+  if(G.round===5||G.round===8){openTrinkets(function(){snapshotRun();renderAll();openKnock();});}
+  else{snapshotRun();renderAll();setTimeout(openKnock,RM?0:1250);}
   const rb=document.getElementById('ribbon');
   if(rb&&!RM){setTimeout(function(){flyCoins({left:rb.getBoundingClientRect().left+40,top:-24,width:60,height:10},6);},1100);}
 }
