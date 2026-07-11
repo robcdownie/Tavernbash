@@ -534,6 +534,20 @@
     .ln,.rv .crn,.vsrow .vm{animation:none !important;}
   }
 
+  /* ===== V10 JUICE PASS: objects behave like objects ===== */
+  .fly{position:fixed;z-index:65;pointer-events:none;opacity:1;filter:drop-shadow(0 8px 10px rgba(0,0,0,.6));
+    transition:transform .38s cubic-bezier(.3,.7,.35,1), opacity .38s ease;}
+  .flycoin{position:fixed;z-index:65;width:15px;height:15px;pointer-events:none;opacity:1;
+    transition:transform .42s cubic-bezier(.45,.05,.55,.95), opacity .42s ease;}
+  @keyframes landpop{0%{transform:scale(1.18);}55%{transform:scale(.94);}100%{transform:scale(1);}}
+  .cell.land{animation:landpop .3s var(--e-out);}
+  .cell.land .gi{animation:landpop .3s var(--e-out);}
+  @keyframes dockflare{0%{box-shadow:inset 0 0 0 1px rgba(244,207,124,0);}30%{box-shadow:inset 0 0 26px 2px rgba(244,207,124,.5);}100%{box-shadow:inset 0 0 0 1px rgba(244,207,124,0);}}
+  .dock.flare{animation:dockflare .65s ease;}
+  .ware,.cell.it,.door,.tab,.chip.act{transition:transform .09s var(--e-out);}
+  .ware:active,.cell.it:active,.door:active,.chip.act:active{transform:scale(.96);}
+  @media (prefers-reduced-motion: reduce){.fly,.flycoin{display:none;}.cell.land,.dock.flare{animation:none;}}
+
   /* ===== V9 SCENE PASS: the stall is a counter, the doors are doors ===== */
   @keyframes bgdrift{0%{transform:scale(1.06) translate(0,0);}50%{transform:scale(1.12) translate(-1.2%,-.8%);}100%{transform:scale(1.06) translate(.6%,.4%);}}
   #bgart{animation:bgdrift 70s ease-in-out infinite alternate;will-change:transform;}

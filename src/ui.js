@@ -295,7 +295,13 @@ function renderSheet(){
    +'<button class="btn sell" id="slI">Sell +'+SELLV[it.size]+'</button></div></div>';
   const L=$('mvL');if(L)L.onclick=function(){if(G.sel>0){const t=G.board[G.sel];G.board[G.sel]=G.board[G.sel-1];G.board[G.sel-1]=t;G.sel--;renderDraft();}};
   const R=$('mvR');if(R)R.onclick=function(){if(G.sel<G.board.length-1){const t=G.board[G.sel];G.board[G.sel]=G.board[G.sel+1];G.board[G.sel+1]=t;G.sel++;renderDraft();}};
-  const S=$('slI');if(S)S.onclick=function(){G.gold+=SELLV[it.size];G.board.splice(G.sel,1);G.sel=null;toast('Sold for '+SELLV[it.size]+' gold');renderAll();};
+  const S=$('slI');if(S)S.onclick=function(){
+    const cell=document.querySelector('#bd .cell.it[data-i="'+G.sel+'"]');
+    const from=cell?cell.getBoundingClientRect():null;
+    G.gold+=SELLV[it.size];G.board.splice(G.sel,1);G.sel=null;
+    toast('Sold for '+SELLV[it.size]+' gold');renderAll();
+    if(from){flyCoins(from,3+SELLV[it.size]);}
+  };
   const V=$('vtI');if(V)V.onclick=function(){
     if(G.vault.length>=3)return;
     G.vault.push(it);G.board.splice(G.sel,1);G.sel=null;
@@ -365,6 +371,42 @@ function renderDraft(){
   renderSheet();
 }
 function renderAll(){document.body.classList.add('run');document.body.classList.toggle('fight',G.phase==='fight');renderBest();renderRivals();renderRibbon();renderAno();renderTrow();if(G.phase==='draft'){renderDraft();}}
+/* ============ JUICE: objects behave like objects ============ */
+function flyGhost(from,to,iconHtml,onEnd){
+  if(RM||!from||!to){if(onEnd)onEnd();return;}
+  const d=document.createElement('div');d.className='fly';
+  d.style.left=from.left+'px';d.style.top=from.top+'px';
+  d.style.width=Math.min(56,from.width)+'px';d.style.height=Math.min(56,from.height)+'px';
+  d.innerHTML=iconHtml;
+  document.body.appendChild(d);
+  const dx=(to.left+to.width/2)-(from.left+Math.min(56,from.width)/2);
+  const dy=(to.top+to.height/2)-(from.top+Math.min(56,from.height)/2);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    d.style.transform='translate('+dx+'px,'+dy+'px) scale(.72)';d.style.opacity='.9';
+  });});
+  setTimeout(function(){d.remove();if(onEnd)onEnd();},400);
+}
+function flyCoins(from,n){
+  if(RM||!from)return;
+  const chip=document.querySelector('#ribbon .chip.gold');
+  if(!chip)return;
+  const to=chip.getBoundingClientRect();
+  for(let i=0;i<(n||5);i++){
+    (function(i){setTimeout(function(){
+      const c=document.createElement('div');c.className='flycoin';
+      c.style.left=(from.left+from.width/2+(Math.random()*26-13))+'px';
+      c.style.top=(from.top+from.height/2+(Math.random()*14-7))+'px';
+      c.innerHTML=ic('g-coin','','width:100%;height:100%');
+      document.body.appendChild(c);
+      const dx=(to.left+to.width/2)-parseFloat(c.style.left);
+      const dy=(to.top+to.height/2)-parseFloat(c.style.top);
+      requestAnimationFrame(function(){requestAnimationFrame(function(){
+        c.style.transform='translate('+dx+'px,'+dy+'px) scale(.4)';c.style.opacity='.15';
+      });});
+      setTimeout(function(){c.remove();},460);
+    },i*45);})(i);
+  }
+}
 /* ============ ECONOMY ACTIONS ============ */
 function buyWare(i){
   if(G.phase!=='draft')return;
@@ -372,10 +414,19 @@ function buyWare(i){
   const d=ITEMS[w.id];const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
   if(G.gold<cost){toast('Not enough gold');return;}
   if(usedCells(G.board)+d.size>4+G.tier){toast('No room on your stall');return;}
+  const wEl=document.querySelector('.ware[data-w="'+i+'"]');
+  const fromRect=wEl?wEl.getBoundingClientRect():null;
   G.gold-=cost;w.bought=true;sCoin();
   G.board.push(makeItem(w.id,0,w.ench||null));
   const forged=fuseScan(G.board);
   renderAll();
+  const cells=document.querySelectorAll('#bd .cell.it');
+  const landCell=cells[cells.length-1];
+  if(landCell&&fromRect){
+    flyGhost(fromRect,landCell.getBoundingClientRect(),ic('g-'+w.id,'','width:100%;height:100%'),function(){
+      if(landCell.isConnected){landCell.classList.add('land');setTimeout(function(){landCell.classList.remove('land');},320);}
+    });
+  }
   if(forged.length){
     forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});
     sForge();
@@ -389,6 +440,8 @@ function tierUp(){
   G.tierCost=TIERCOST[G.tier+1]||0;
   toast('Tier '+G.tier+': new slot, richer wares');
   renderAll();
+  const dk=document.querySelector('.dock');
+  if(dk&&!RM){dk.classList.add('flare');setTimeout(function(){dk.classList.remove('flare');},650);}
 }
 function reroll(){
   if(G.gold<1)return;G.gold-=1;rollShop();renderRibbon();renderDraft();
@@ -791,6 +844,8 @@ function nextRound(){
   }
   if(G.round===5||G.round===8){openTrinkets(function(){snapshotRun();renderAll();});}
   else{snapshotRun();renderAll();}
+  const rb=document.getElementById('ribbon');
+  if(rb&&!RM){setTimeout(function(){flyCoins({left:rb.getBoundingClientRect().left+40,top:-24,width:60,height:10},6);},1100);}
 }
 /* ============ TRINKETS ============ */
 function trinketOffers(){
