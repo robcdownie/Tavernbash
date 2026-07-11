@@ -279,7 +279,8 @@ function wareHTML(w,i){
   let gems='';for(let g=0;g<d.tier;g++){gems+=ic('g-gem');}
   let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=d.size?'on':'')+'"></i>';}
   const en=w.ench?ENCH[w.ench]:null;
-  return '<div class="ware'+(w.bought?' gone':(can?'':' cant'))+(en?' enchw':'')+'" data-w="'+i+'" style="--cat:'+CATC[d.cat]+(en?';--ec:'+en.c:'')+';animation-delay:'+(i*45)+'ms">'
+  const anim=G._wfresh?';animation-delay:'+(i*45)+'ms':';animation:none';
+  return '<div class="ware'+(w.bought?' gone':(can?'':' cant'))+(en?' enchw':'')+'" data-w="'+i+'" style="--cat:'+CATC[d.cat]+(en?';--ec:'+en.c:'')+anim+'">'
    +'<div class="ph">'+ic('g-'+w.id,'gi')+'<span class="cost'+(w.free?' free':'')+'">'+ic('g-coin')+'<b>'+(w.free?'FREE':cost)+'</b></span></div>'
    +'<div class="tg">'+gems+'</div>'
    +'<div class="wn">'+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div>'
@@ -325,6 +326,7 @@ function renderDraft(){
   +'</div>';
   h+='<div class="stage" id="stage">';
   if(G.dtab==='market'){
+    G._wfresh=G.shopFresh!==false;G.shopFresh=false;
     h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
     h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
     h+='<div class="controls">'
@@ -888,6 +890,7 @@ function rollShop(){
     out.push({id:pick,free:false,bought:false,ench:ench});
   }
   G.shop=out.concat(keep);
+  G.shopFresh=true;
 }
 function rollDoor(){
   let b=bandOf(G.round);
