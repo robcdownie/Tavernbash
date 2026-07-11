@@ -9,6 +9,8 @@ import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxTo
 import {initMusic,music,musicMute} from './music.js';
 /* ============ SESSION + UI PRIMITIVES ============ */
 let G=null;let RM=false;const BEST={place:null,round:0};
+let FSPD=(function(){try{return +window.localStorage.getItem('bb-speed')||1;}catch(e){return 1;}})();
+if(FSPD!==2)FSPD=1;
 /* ============ SAVES ============ */
 const SAVE_VERSION=1;
 const SAVE_KEY='bb-run', BEST_KEY='bb-best';
@@ -603,11 +605,17 @@ function startFight(me,foe,opts){
   +'<div class="fx" id="fx-b"></div>'
   +'<div class="board combat bd-b">'+foe.items.map(function(fi,i){return fightCellHTML(fi,i,'b');}).join('')+pad(foe.items)+'</div>'
   +'<div class="vsrow"><div class="vl"></div>'+ic('g-medallion','vm')
-  +'<span class="stormchip" id="storm">'+ic('e-bolt','mi')+'<span id="stormT"></span></span><div class="vl"></div></div>'
+  +'<span class="stormchip" id="storm">'+ic('e-bolt','mi')+'<span id="stormT"></span></span>'
+  +'<button class="spdbtn" id="spdB">'+FSPD+'x</button><div class="vl"></div></div>'
   +'<div class="board combat bd-a">'+me.items.map(function(fi,i){return fightCellHTML(fi,i,'a');}).join('')+pad(me.items)+'</div>'
   +'<div class="fx" id="fx-a"></div>'
   +fighterHTML(me,'a')
   +'<div class="log" id="log"></div>';
+  const sb=$('spdB');
+  if(sb)sb.onclick=function(){
+    FSPD=FSPD===1?2:1;sb.textContent=FSPD+'x';
+    try{window.localStorage.setItem('bb-speed',String(FSPD));}catch(e){}
+  };
   paintFight(F);
   /* the pulse: every active ware shows its cooldown filling live, brass
      while charging, frost while frozen, dust while a magazine sits dry */
@@ -627,7 +635,7 @@ function startFight(me,foe,opts){
   paintCds();
   let acc=0;
   G.fiv=setInterval(function(){
-    acc+=40*SPEED;let evs=[];
+    acc+=40*SPEED*FSPD;let evs=[];
     while(acc>=TICK&&!F.done){acc-=TICK;const e2=F.step(TICK);for(let q=0;q<e2.length;q++){evs.push(e2[q]);}}
     if(evs.length)handleEvents(F,evs);
     paintFight(F);
