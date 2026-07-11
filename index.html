@@ -534,6 +534,31 @@
     .ln,.rv .crn,.vsrow .vm{animation:none !important;}
   }
 
+  /* ===== V7 PRESENTATION PASS: painted menus, day and dusk ===== */
+  .art-frames .card,.art-frames .scout{border:12px solid transparent;border-radius:14px;
+    border-image-source:var(--frame-gold);border-image-slice:135;border-image-width:14px;border-image-repeat:stretch;}
+  .label::before{content:"";width:5px;height:5px;flex:0 0 auto;background:linear-gradient(135deg,var(--brass-hi),var(--brass));transform:rotate(45deg);opacity:.8;border-radius:1px;}
+  .pick.hero{padding:13px 8px 11px;}
+  .pick.hero .ph2{width:64px;height:64px;}
+  .pick.hero .ph2 svg{width:58px;height:58px;}
+  .pick.hero .pn{font-size:12.5px;}
+  .pick.hero .pt{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px;}
+  #bgart{transition:filter .7s ease;}
+  body.fight #bgart{filter:saturate(.4) brightness(.5) hue-rotate(-12deg);}
+  body.fight #embers{opacity:.25;transition:opacity .7s ease;}
+  body.fight .rivals,body.fight .anobar{filter:saturate(.7) brightness(.82);transition:filter .7s ease;}
+  .battleframe{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .7s ease;
+    background:radial-gradient(130% 100% at 50% -10%, transparent 60%, rgba(140,28,14,.25)),radial-gradient(130% 100% at 50% 110%, transparent 60%, rgba(140,28,14,.3));}
+  body.fight .battleframe{opacity:1;}
+  .dusk{position:fixed;inset:0;z-index:60;pointer-events:none;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 50%, rgba(12,6,3,.55), rgba(7,3,1,.97) 72%);animation:duskin 1.1s var(--e-out) forwards;}
+  .dusk .dt{font-family:"Rakkas",serif;font-size:36px;color:var(--brass-hi);letter-spacing:1px;text-shadow:0 4px 26px rgba(0,0,0,.9);}
+  .dusk .d2{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);font-weight:800;}
+  .dusk>*{animation:duskt 1.1s var(--e-out);}
+  @keyframes duskin{0%{opacity:0;}15%{opacity:1;}72%{opacity:1;}100%{opacity:0;}}
+  @keyframes duskt{0%{opacity:0;transform:translateY(12px) scale(.95);}22%{opacity:1;transform:none;}78%{opacity:1;transform:none;}100%{opacity:0;transform:scale(1.03);}}
+  @media (prefers-reduced-motion: reduce){.dusk{display:none;}}
+
   /* ===== V6 NO-SCROLL PASS: slim run chrome, dense draft, landscape grids ===== */
   body.run .head>div:first-child{display:none;}
   body.run .best{display:none;}
@@ -760,6 +785,7 @@
 </svg>
 <div id="bgart"></div>
 <div id="embers"></div>
+<div class="battleframe"></div>
 <div id="flash"></div>
 <div id="sand"></div>
 <div id="app">

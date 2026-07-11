@@ -324,7 +324,7 @@ function renderDraft(){
   const ds=$('doorS');if(ds)ds.onclick=takeSafe;
   renderSheet();
 }
-function renderAll(){document.body.classList.add('run');renderBest();renderRivals();renderRibbon();renderAno();renderTrow();if(G.phase==='draft'){renderDraft();}}
+function renderAll(){document.body.classList.add('run');document.body.classList.toggle('fight',G.phase==='fight');renderBest();renderRivals();renderRibbon();renderAno();renderTrow();if(G.phase==='draft'){renderDraft();}}
 /* ============ ECONOMY ACTIONS ============ */
 function buyWare(i){
   if(G.phase!=='draft')return;
@@ -451,6 +451,13 @@ function handleEvents(F,evs){
 }
 function startFight(me,foe,opts){
   G.phase='fight';G.sel=null;music('battle');
+  document.body.classList.add('fight');
+  if(!RM){
+    const dk=document.createElement('div');dk.className='dusk';
+    dk.innerHTML='<div class="dt">Dusk Falls</div><div class="d2">Round '+G.round+' &middot; '+esc(foe.nm)+'</div>';
+    document.body.appendChild(dk);
+    setTimeout(function(){dk.remove();},1150);
+  }
   const F=createFight({a:me,b:foe,stormAt:(opts&&opts.stormAt)||stormAt(G.round),seed:(G.seed+G.round*7919+(++G.fightN)*104729)>>>0,playerIs:'a'});
   G.F=F;
   function pad(items){const u=items.reduce(function(s,x){return s+x.size;},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
@@ -927,7 +934,8 @@ function openHeroPick(cont){
    +'<div class="kick gold">Choose Your Merchant</div>'
    +'<h2 class="big" style="font-size:23px">Who tends the stall tonight?</h2>'
    +'<div class="picks">'+HEROES.map(function(h){
-      return '<div class="pick" data-h="'+h.id+'"><div class="ph2">'+ic(h.g,'','width:28px;height:28px')+'</div><div class="pn">'+h.n+'</div><div class="pd">'+h.d+'</div></div>';
+      return '<div class="pick hero" data-h="'+h.id+'"><div class="ph2">'+ic(h.g,'','width:58px;height:58px')+'</div><div class="pn">'+h.n+'</div><div class="pd">'+h.d+'</div>'
+       +'<div class="pt" style="color:'+CATC[h.tag]+'">Favors '+CATN[h.tag]+'</div></div>';
     }).join('')+'</div></div>');
   o.querySelectorAll('.pick').forEach(function(p){
     p.onclick=function(){
