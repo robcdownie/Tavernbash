@@ -21,6 +21,7 @@ function snapshotRun(){
   const item=function(it){return {id:it.id,rarity:it.rarity,size:it.size,ench:it.ench||null};};
   const d={v:SAVE_VERSION,seed:G.seed,rngSeed:(G.seed+G.round*1013904223+7)>>>0,
     round:G.round,gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,fightN:G.fightN,hero:G.hero||null,
+    nextOppI:G.nextOpp?G.nextOpp.i:-1,pairsI:(G.nextPairs||[]).map(function(pr){return [pr[0].i,pr[1]?pr[1].i:-1];}),
     anom:G.anom.id,tags:G.tags.slice(),usedMon:Object.assign({},G.usedMon),
     board:G.board.map(item),vault:G.vault.map(item),shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null};}),
     trinkets:G.trinkets.map(function(t){return t.id;}),
@@ -58,6 +59,11 @@ function restoreRun(d){
   }
   G.you=G.players[0];
   const H=heroOf();if(H){G.players[0].p=H.g;}
+  const byI=function(i){return G.players.filter(function(p){return p.i===i;})[0]||null;};
+  if(d.pairsI){
+    G.nextOpp=d.nextOppI>=0?byI(d.nextOppI):null;
+    G.nextPairs=d.pairsI.map(function(pr){return [byI(pr[0]),pr[1]>=0?byI(pr[1]):null];}).filter(function(pr){return pr[0];});
+  }else{pairRound();}
   computeT();
   renderAll();
   toast('Run resumed at round '+G.round);
@@ -331,7 +337,7 @@ function renderDraft(){
   h+='<div class="dock"><div class="docktop"><div class="label" style="margin:0">'+(G.dockV?'The Vault':'Your Stall')
    +'<span class="side">'+(G.dockV?'no fights, no forging':used+' / '+slots+' slots')+'</span></div>'
    +'<button class="btn mini" id="dockFlip">'+(G.dockV?'Stall':'Vault'+(G.vault.length?' ('+G.vault.length+')':''))+'</button>'
-   +'<button class="btn gold tob" id="btnGo">'+ic('e-blade','bi')+' To Battle</button></div>';
+   +'<button class="btn gold tob" id="btnGo">'+ic(G.nextOpp?G.nextOpp.p:'m-qareen','bi vsp')+' Duel '+esc(G.nextOpp?shortName(G.nextOpp.n):'the Departed')+'</button></div>';
   if(G.dockV){
     h+='<div class="vault" id="vlt">'+G.vault.map(function(it,i){
         const d=ITEMS[it.id];
@@ -668,9 +674,29 @@ function departedSide(){
   const rb=genRival(G.round,PERSONAS[0],G.rng,G.A);
   return {nm:'A wandering ghost',portrait:'m-qareen',hp:fightHP(G.round,0,G.A),items:rb.items,lifesteal:0};
 }
+/* pairings roll at round start so the draft can telegraph tonight's
+   duel; deaths only happen during battle resolution, so the pairing
+   stays valid all round */
+function pairRound(){
+  const alive=G.players.filter(function(p){return p.alive;});
+  const order=alive.slice();shuffle(order,G.rng);
+  const pairs=[];let solo=null;
+  for(let i=0;i+1<order.length;i+=2){pairs.push([order[i],order[i+1]]);}
+  if(order.length%2===1){solo=order[order.length-1];}
+  let opp=null;const others=[];
+  for(let i=0;i<pairs.length;i++){
+    const pr=pairs[i];
+    if(pr[0].i===0){opp=pr[1];}
+    else if(pr[1].i===0){opp=pr[0];}
+    else{others.push(pr);}
+  }
+  if(solo&&solo.i!==0){others.push([solo,null]);}
+  G.nextOpp=opp;G.nextPairs=others;
+}
 function toBattle(){
   if(G.phase!=='draft')return;
   if(!G.board.length){toast('Your stall is empty. Buy a ware first.');return;}
+  if(G.nextOpp===undefined){pairRound();}
   for(let k=0;k<G.players.length;k++){
     const p=G.players[k];
     if(p.i>0&&p.alive){
@@ -679,24 +705,9 @@ function toBattle(){
       p.lastCur=p.cur;
     }
   }
-  const alive=G.players.filter(function(p){return p.alive;});
-  const order=alive.slice();shuffle(order,G.rng);
-  const pairs=[];let solo=null;
-  for(let i=0;i+1<order.length;i+=2){pairs.push([order[i],order[i+1]]);}
-  if(order.length%2===1){solo=order[order.length-1];}
-  let opp=null;G.otherPairs=[];
-  for(let i=0;i<pairs.length;i++){
-    const pr=pairs[i];
-    if(pr[0].i===0){opp=pr[1];}
-    else if(pr[1].i===0){opp=pr[0];}
-    else{G.otherPairs.push(pr);}
-  }
-  if(solo){
-    if(solo.i===0){opp=null;}
-    else{G.otherPairs.push([solo,null]);}
-  }
-  G.pendOpp=opp;
-  openScout(opp);
+  G.otherPairs=G.nextPairs||[];
+  G.pendOpp=G.nextOpp||null;
+  openScout(G.pendOpp);
 }
 function openScout(opp){
   const foe=opp?sideOf(opp):departedSide();
@@ -875,6 +886,7 @@ function nextRound(){
   G.gold=income();
   rollShop();rollDoor();
   G.sel=null;G.phase='draft';G.dtab='market';G.dockV=false;
+  pairRound();
   if(!RM){
     const dk=document.createElement('div');dk.className='dusk dawn';
     dk.innerHTML='<div class="dt">Round '+G.round+'</div><div class="d2">'+BANDN[bandOf(G.round)]+'</div>';
