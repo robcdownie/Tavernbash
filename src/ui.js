@@ -1,6 +1,6 @@
 "use strict";
 import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,BANDN,BANDC,ANONE,
-        ITEMS,TRINKETS,ANOMALIES,PERSONAS,MONSTERS,MONBAND,MONCHIP,ENCH,ENCH_CHANCE,ENCH_PREMIUM} from './data.js';
+        ITEMS,TRINKETS,ANOMALIES,PERSONAS,MONSTERS,MONBAND,MONCHIP,ENCH,ENCH_CHANCE,ENCH_PREMIUM,HEROES} from './data.js';
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,usedCells,
         playerFightItems,monsterSide,genRival,createFight,runHeadless,boardRegen} from './engine.js';
 import {ic} from './art.js';
@@ -20,7 +20,7 @@ function snapshotRun(){
   const s=store();if(!s||!G||!G.door)return;
   const item=function(it){return {id:it.id,rarity:it.rarity,size:it.size,ench:it.ench||null};};
   const d={v:SAVE_VERSION,seed:G.seed,rngSeed:(G.seed+G.round*1013904223+7)>>>0,
-    round:G.round,gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,fightN:G.fightN,
+    round:G.round,gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,fightN:G.fightN,hero:G.hero||null,
     anom:G.anom.id,tags:G.tags.slice(),usedMon:Object.assign({},G.usedMon),
     board:G.board.map(item),vault:G.vault.map(item),shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null};}),
     trinkets:G.trinkets.map(function(t){return t.id;}),
@@ -43,7 +43,7 @@ function restoreRun(d){
   G={seed:d.seed,rng:mulberry(d.rngSeed),round:d.round,anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.tags,
      players:[],board:d.board.map(reviveItem),vault:(d.vault||[]).map(reviveItem),
      shop:d.shop.slice(),trinkets:d.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean),
-     T:null,gold:d.gold,tier:d.tier,tierCost:d.tierCost,relicIncome:d.relicIncome,
+     T:null,hero:d.hero||null,gold:d.gold,tier:d.tier,tierCost:d.tierCost,relicIncome:d.relicIncome,
      door:d.door,sel:null,phase:'draft',fightN:d.fightN,
      departed:d.departed?{board:d.departed.board.map(reviveItem),nm:d.departed.nm,p:d.departed.p}:null,
      feed:[],usedMon:d.usedMon||{},fiv:null,burned:0,enteredGold:0,
@@ -57,6 +57,7 @@ function restoreRun(d){
     }
   }
   G.you=G.players[0];
+  const H=heroOf();if(H){G.players[0].p=H.g;}
   computeT();
   renderAll();
   toast('Run resumed at round '+G.round);
@@ -484,7 +485,7 @@ function startMonsterFight(){
   G.enteredGold=G.gold;sCreak();
   const M=MONSTERS[D.mid];
   const foe=monsterSide(D.mid,doorCtx());
-  const me={nm:'You',portrait:'p-0',hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
+  const me={nm:'You',portrait:G.you.p,hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
   startFight(me,foe,{onEnd:endMonsterFight,stormAt:M.stormAt?M.stormAt*1000:0});
 }
 function endMonsterFight(F){
@@ -591,7 +592,7 @@ function openScout(opp){
 }
 function launchGhost(){
   G.burned=G.gold;G.gold=0;
-  const me={nm:'You',portrait:'p-0',hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
+  const me={nm:'You',portrait:G.you.p,hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
   startFight(me,G.pendFoe,{onEnd:endGhostFight});
 }
 function chkDeath(p,feed){
@@ -648,10 +649,14 @@ function banner(iWon,dmg,opp){
   o.querySelector('#bGo').onclick=function(){ovClose(o);nextRound();};
 }
 /* ============ ROUND FLOW ============ */
+function heroOf(){return G&&G.hero?HEROES.filter(function(h){return h.id===G.hero;})[0]:null;}
 function computeT(){
-  G.T={weaponFlat:0,poisonMul:1,burnMul:1,shieldMul:1,healMul:1,cdMul:1,hpFlat:0,income:0,lifesteal:0,firstDouble:false};
-  for(let i=0;i<G.trinkets.length;i++){
-    const m=G.trinkets[i].mod;
+  G.T={weaponFlat:0,poisonMul:1,burnMul:1,shieldMul:1,healMul:1,cdMul:1,hpFlat:0,income:0,lifesteal:0,firstDouble:false,firstFlat:0};
+  const H=heroOf();
+  const mods=(H?[H.mod]:[]).concat(G.trinkets.map(function(t){return t.mod;}));
+  for(let i=0;i<mods.length;i++){
+    const m=mods[i];
+    if(m.firstFlat)G.T.firstFlat+=m.firstFlat;
     if(m.weaponFlat)G.T.weaponFlat+=m.weaponFlat;
     if(m.poisonMul)G.T.poisonMul*=m.poisonMul;
     if(m.burnMul)G.T.burnMul*=m.burnMul;
@@ -677,6 +682,7 @@ function rollShop(){
   const keep=G.shop?G.shop.filter(function(w){return w.free&&!w.bought;}):[];
   const n=G.A.shopN;
   const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique;});
+  const hTag=heroOf()?heroOf().tag:null;
   const out=[];
   for(let k=0;k<n;k++){
     let tot=0;
@@ -684,6 +690,7 @@ function rollShop(){
       const d=ITEMS[id];
       let w=d.tier===1?8:(d.tier===2?7:6);
       if(G.tags.indexOf(d.cat)>=0)w*=2.2;
+      if(hTag===d.cat)w*=2.2;
       const own=G.board.filter(function(x){return x.id===id&&x.rarity===0;}).length;
       if(own===1||own===2)w*=1.6;
       tot+=w;return w;
@@ -901,7 +908,7 @@ function newLobby(){
   const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
   const per=PERSONAS.slice();shuffle(per,rng);
   G={seed:seed,rng:rng,round:0,anom:anom,A:Object.assign({},ANONE,anom.m),tags:[cats[0],cats[1]],
-     players:[],board:[],vault:[],shop:[],trinkets:[],T:null,gold:0,tier:1,tierCost:TIERCOST[2],relicIncome:0,
+     players:[],board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:0,tier:1,tierCost:TIERCOST[2],relicIncome:0,
      door:null,sel:null,phase:'draft',fightN:0,departed:null,feed:[],usedMon:{},fiv:null,burned:0,enteredGold:0,
      otherPairs:[],pendOpp:null,pendFoe:null,F:null,you:null};
   G.players.push({i:0,n:'You',short:'You',p:'p-0',hp:40,alive:true,shrine:false,place:null});
@@ -913,7 +920,25 @@ function newLobby(){
   computeT();
   renderBest();renderRivals();renderAno();renderTrow();
   $('ribbon').innerHTML='';$('main').innerHTML='';
-  openReveal();
+  openHeroPick(openReveal);
+}
+function openHeroPick(cont){
+  const o=ovOpen('<div class="card"><div class="rays"></div>'
+   +'<div class="kick gold">Choose Your Merchant</div>'
+   +'<h2 class="big" style="font-size:23px">Who tends the stall tonight?</h2>'
+   +'<div class="picks">'+HEROES.map(function(h){
+      return '<div class="pick" data-h="'+h.id+'"><div class="ph2">'+ic(h.g,'','width:28px;height:28px')+'</div><div class="pn">'+h.n+'</div><div class="pd">'+h.d+'</div></div>';
+    }).join('')+'</div></div>');
+  o.querySelectorAll('.pick').forEach(function(p){
+    p.onclick=function(){
+      const h=HEROES.filter(function(x){return x.id===p.dataset.h;})[0];
+      G.hero=h.id;G.players[0].p=h.g;
+      if(h.start){G.board.push(makeItem(h.start,0));}
+      computeT();
+      toast(h.n+' opens the stall');
+      ovClose(o);cont();
+    };
+  });
 }
 /* ============ BOOT ============ */
 function initEmbers(){

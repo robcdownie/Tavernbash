@@ -47,7 +47,7 @@ export function playerFightItems(board,T,A,scale){
     });
     const fd=(T.firstDouble&&idx===0)?2:1;
     const fx={};
-    if(def.fx&&def.fx.dmg){fx.dmg=Math.max(1,Math.round(((def.fx.dmg*rs)+adj+(T.weaponFlat||0))*fd*A.dmgMul));}
+    if(def.fx&&def.fx.dmg){fx.dmg=Math.max(1,Math.round(((def.fx.dmg*rs)+adj+(T.weaponFlat||0)+(idx===0?(T.firstFlat||0):0))*fd*A.dmgMul));}
     if(def.fx&&def.fx.poison){fx.poison=Math.max(1,Math.round(def.fx.poison*rs*(T.poisonMul||1)*fd*A.poisonMul));}
     if(def.fx&&def.fx.burn){fx.burn=Math.max(1,Math.round(def.fx.burn*rs*(T.burnMul||1)*fd*A.burnMul));}
     if(def.fx&&def.fx.shield){fx.shield=Math.max(1,Math.round(def.fx.shield*rs*(T.shieldMul||1)*fd));}

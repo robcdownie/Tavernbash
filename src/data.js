@@ -58,6 +58,16 @@ export const ITEMS={
  gavel:{n:"The Gavel",size:2,tier:3,cat:"dmg",cd:5,fx:{dmg:12,disable:true},unique:true,
    d:"Boss bounty. Sold: the finest enemy ware, out of the fight."}
 };
+/* ============ HEROES ============ */
+/* Picked at run start. The personal tag weights your shop like a lobby
+   featured tag; mods merge into the trinket aggregate; a start id lands
+   on the board before round 1. */
+export const HEROES=[
+ {id:"kiln",n:"The Kilnkeeper",tag:"burn",g:"h-kiln",d:"Starts with an Oil Torch. Burn wares seek your stall.",start:"torch",mod:{}},
+ {id:"apoth",n:"The Apothecary",tag:"heal",g:"h-apoth",d:"+6 fight health every battle. Heal wares seek your stall.",mod:{hpFlat:6}},
+ {id:"knife",n:"The Knifegrinder",tag:"dmg",g:"h-knife",d:"Your leftmost ware strikes +2 harder. Weapon wares seek your stall.",mod:{firstFlat:2}},
+ {id:"lender",n:"The Moneylender",tag:"util",g:"h-lender",d:"+1 income each round, -4 fight health. Economy wares seek your stall.",mod:{income:1,hpFlat:-4}}
+];
 /* ============ ENCHANTS ============ */
 /* need: "dmg" requires a damage effect, "cd" requires an active cooldown,
    null fits any ware. Riders are applied in playerFightItems; rivals

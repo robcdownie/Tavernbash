@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,readdirSync,statSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname,join,extname} from 'node:path';
-import {ITEMS,MONSTERS,TRINKETS,ANOMALIES,PERSONAS} from '../src/data.js';
+import {ITEMS,MONSTERS,TRINKETS,ANOMALIES,PERSONAS,HEROES} from '../src/data.js';
 
 const root=dirname(dirname(fileURLToPath(import.meta.url)));
 const SCAN_EXT=['.js','.html','.md','.json','.css','.webmanifest','.toml'];
@@ -48,6 +48,7 @@ test('symbol coverage: every glyph the data references exists in the sprite',()=
   for(const t of TRINKETS)needed.add(t.g);
   for(const a of ANOMALIES)needed.add(a.g);
   for(const p of PERSONAS)needed.add(p.p);
+  for(const h of HEROES)needed.add(h.g);
   needed.add('p-0');
   for(const id of ['g-coin','g-heart','g-gem','g-crown','g-door','g-crack','g-medallion','g-phoenix','g-lantern','g-flourish',
                    'e-blade','e-skull','e-flame','e-shield','e-heart','e-bolt','e-clock']){needed.add(id);}

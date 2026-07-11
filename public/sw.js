@@ -1,6 +1,6 @@
 /* Cache-first service worker. Bump CACHE_V on every deploy that must
    invalidate old assets; the activate step deletes stale caches. */
-const CACHE_V = 'bb-v20';
+const CACHE_V = 'bb-v21';
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE_V).then(function (c) {
     return c.addAll(['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png']);

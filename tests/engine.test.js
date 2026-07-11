@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createFight,runHeadless,makeItem,fuseScan,genRival,playerFightItems,monsterSide,
         fightHP,stormAt,mulberry,boardRegen,pickTarget} from '../src/engine.js';
-import {ANONE,PERSONAS,ITEMS,MONSTERS,ENCH} from '../src/data.js';
+import {ANONE,PERSONAS,ITEMS,MONSTERS,ENCH,HEROES} from '../src/data.js';
 import {integOf} from '../src/engine.js';
 
 function duel(a,b,round,seed,playerIs){
@@ -115,6 +115,22 @@ function ammoItem(over){
     fx:{dmg:14},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,crit:0,
     rattle:null,selfdestruct:false,ammo:5,maxAmmo:5,uid:941},over);
 }
+test('heroes: the Knifegrinder edge lands on the leftmost ware only',()=>{
+  const items=playerFightItems([makeItem('dagger',0),makeItem('sword',0)],{firstFlat:2},ANONE,1);
+  assert.equal(items[0].fx.dmg,8,'leftmost dagger 6 plus 2');
+  assert.equal(items[1].fx.dmg,11,'the sword behind is untouched');
+});
+
+test('heroes: four to choose, every tag a real shop category',()=>{
+  assert.equal(HEROES.length,4);
+  const cats=new Set(Object.values(ITEMS).map(d=>d.cat));
+  for(const h of HEROES){
+    assert.ok(cats.has(h.tag),h.n+' tag maps to a ware category');
+    assert.ok(h.g&&h.n&&h.d,h.n+' carries glyph, name, and pitch');
+    if(h.start)assert.ok(ITEMS[h.start],h.n+' starting ware exists');
+  }
+});
+
 test('enchants: every rider does exactly what its label says',()=>{
   const one=(id,en)=>playerFightItems([makeItem(id,0,en)],{},ANONE,1)[0];
   assert.equal(one('mace','fiery').fx.burn,8,'Fiery adds a third of 24 as burn');
