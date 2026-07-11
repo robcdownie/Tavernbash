@@ -26,6 +26,7 @@ export function scanArt(rootDir) {
     ['items', function (n) { return 'g-' + n; }],
     ['monsters', function (n) { return 'm-' + n; }],
     ['portraits', function (n) { return n.replace(/^p(\d+)$/, 'p-$1'); }],
+    ['ui', function (n) { return 'g-' + n; }],
     ['frames', function (n) { return n.replace(/_/g, '-'); }],
     ['board', function (n) { return n.replace(/_/g, '-'); }],
     ['bg', function (n) { return n.replace(/_/g, '-'); }]
