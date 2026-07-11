@@ -712,6 +712,21 @@
   .battleframe{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .7s ease;
     background:radial-gradient(130% 100% at 50% -10%, transparent 60%, rgba(140,28,14,.25)),radial-gradient(130% 100% at 50% 110%, transparent 60%, rgba(140,28,14,.3));}
   body.fight .battleframe{opacity:1;}
+  /* ===== V21 PORTRAIT PASS: no clipped chips, no dead half-screen ===== */
+  @media (orientation:portrait){
+    /* the ribbon wraps to two rows instead of scrolling sideways; the
+       right inset keeps row one clear of the floating mute button */
+    .ribbon{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;overflow:visible;padding-right:36px;}
+    .chip{min-width:0;justify-content:center;padding:8px 5px;}
+    .chip .lab2{max-width:none;}
+    .chip.act.grow{grid-column:span 2;}
+    /* fights fill the screen: the column stretches and the log grows
+       into what used to be empty backdrop */
+    body.fight #app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;}
+    body.fight #main{flex:1;display:flex;flex-direction:column;min-height:0;}
+    #main.fight .log{flex:1 1 auto;height:auto;min-height:110px;font-size:12px;}
+  }
+
   /* the tutorial coach */
   .coach{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:80;
     width:min(92vw,360px);padding:10px 12px;border-radius:14px;text-align:left;
