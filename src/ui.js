@@ -22,7 +22,7 @@ function snapshotRun(){
   const s=store();if(!s||!G||!G.door)return;
   const item=function(it){return {id:it.id,rarity:it.rarity,size:it.size,ench:it.ench||null};};
   const d={v:SAVE_VERSION,seed:G.seed,rngSeed:(G.seed+G.round*1013904223+7)>>>0,
-    round:G.round,gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,spoils:G.spoils||0,fightN:G.fightN,hero:G.hero||null,
+    round:G.round,gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,spoils:G.spoils||0,frozen:!!G.frozen,fightN:G.fightN,hero:G.hero||null,
     nextOppI:G.nextOpp?G.nextOpp.i:-1,pairsI:(G.nextPairs||[]).map(function(pr){return [pr[0].i,pr[1]?pr[1].i:-1];}),
     anom:G.anom.id,tags:G.tags.slice(),usedMon:Object.assign({},G.usedMon),
     board:G.board.map(item),vault:G.vault.map(item),shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null};}),
@@ -46,7 +46,7 @@ function restoreRun(d){
   G={seed:d.seed,rng:mulberry(d.rngSeed),round:d.round,anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.tags,
      players:[],board:d.board.map(reviveItem),vault:(d.vault||[]).map(reviveItem),
      shop:d.shop.slice(),trinkets:d.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean),
-     T:null,hero:d.hero||null,gold:d.gold,tier:d.tier,tierCost:d.tierCost,relicIncome:d.relicIncome,spoils:d.spoils||0,
+     T:null,hero:d.hero||null,gold:d.gold,tier:d.tier,tierCost:d.tierCost,relicIncome:d.relicIncome,spoils:d.spoils||0,frozen:!!d.frozen,
      door:d.door,sel:null,phase:'draft',fightN:d.fightN,
      departed:d.departed?{board:d.departed.board.map(reviveItem),nm:d.departed.nm,p:d.departed.p}:null,
      feed:[],usedMon:d.usedMon||{},fiv:null,burned:0,enteredGold:0,
@@ -282,7 +282,7 @@ function wareHTML(w,i){
   let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=d.size?'on':'')+'"></i>';}
   const en=w.ench?ENCH[w.ench]:null;
   const anim=G._wfresh?';animation-delay:'+(i*45)+'ms':';animation:none';
-  return '<div class="ware'+(w.bought?' gone':(can?'':' cant'))+(en?' enchw':'')+(trip?' trip':'')+'" data-w="'+i+'" style="--cat:'+CATC[d.cat]+(en?';--ec:'+en.c:'')+anim+'">'
+  return '<div class="ware'+(w.bought?' gone':(can?'':' cant'))+(en?' enchw':'')+(trip?' trip':'')+(G.frozen&&!w.bought?' icew':'')+'" data-w="'+i+'" style="--cat:'+CATC[d.cat]+(en?';--ec:'+en.c:'')+anim+'">'
    +'<div class="ph">'+ic('g-'+w.id,'gi')+'<span class="cost'+(w.free?' free':'')+'">'+ic('g-coin')+'<b>'+(w.free?'FREE':cost)+'</b></span></div>'
    +'<div class="tg">'+gems+'</div>'
    +'<div class="wn">'+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div>'
@@ -328,6 +328,7 @@ function renderDraft(){
   h+='<div class="controls">'
     +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'Tier '+(G.tier+1)+' ('+G.tierCost+')')+'</button>'
     +'<button class="btn" id="btnRe"'+(G.gold<1?' disabled':'')+'>Reroll 1</button>'
+    +'<button class="btn'+(G.frozen?' iceon':'')+'" id="btnFrz">'+(G.frozen?'Frozen':'Freeze')+'</button>'
   +'</div></div>';
   h+='</div>';
   h+='<div class="dock"><div class="docktop"><div class="label" style="margin:0">'+(G.dockV?'The Vault':'Your Stall')
@@ -365,6 +366,7 @@ function renderDraft(){
   document.querySelectorAll('.ware').forEach(function(w){w.onclick=function(){buyWare(+w.dataset.w);};});
   const bt=$('btnTier');if(bt)bt.onclick=tierUp;
   const br=$('btnRe');if(br)br.onclick=reroll;
+  const bf=$('btnFrz');if(bf)bf.onclick=toggleFreeze;
   const bg=$('btnGo');if(bg)bg.onclick=toBattle;
   renderSheet();
 }
@@ -463,7 +465,12 @@ function tierUp(){
   if(dk&&!RM){dk.classList.add('flare');setTimeout(function(){dk.classList.remove('flare');},650);}
 }
 function reroll(){
-  if(G.gold<1)return;G.gold-=1;rollShop();renderRibbon();renderDraft();
+  if(G.gold<1)return;G.gold-=1;G.frozen=false;rollShop();renderRibbon();renderDraft();
+}
+function toggleFreeze(){
+  G.frozen=!G.frozen;
+  toast(G.frozen?'The shop holds until dawn.':'The shop thaws.');
+  renderDraft();
 }
 /* the gate: the doors stand between the market and the duel. Tapping
    To Battle opens this once per round; the player fights the monster
@@ -874,8 +881,12 @@ function income(){
   return Math.round(inc*G.A.goldMul);
 }
 function rollShop(){
-  const keep=G.shop?G.shop.filter(function(w){return w.free&&!w.bought;}):[];
-  const n=G.A.shopN;
+  /* free bounty cards always carry over; a frozen shop keeps its paid
+     cards too, counted against the roll, then the freeze is spent */
+  const freeKeep=G.shop?G.shop.filter(function(w){return w.free&&!w.bought;}):[];
+  const frozenKeep=(G.frozen&&G.shop)?G.shop.filter(function(w){return !w.free&&!w.bought;}):[];
+  G.frozen=false;
+  const n=Math.max(0,G.A.shopN-frozenKeep.length);
   const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique;});
   const hTag=heroOf()?heroOf().tag:null;
   const out=[];
@@ -903,7 +914,7 @@ function rollShop(){
     }
     out.push({id:pick,free:false,bought:false,ench:ench});
   }
-  G.shop=out.concat(keep);
+  G.shop=frozenKeep.concat(out).concat(freeKeep);
   G.shopFresh=true;
 }
 function rollDoor(){
@@ -1114,7 +1125,7 @@ function newLobby(){
   const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
   const per=PERSONAS.slice();shuffle(per,rng);
   G={seed:seed,rng:rng,round:0,anom:anom,A:Object.assign({},ANONE,anom.m),tags:[cats[0],cats[1]],
-     players:[],board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:0,tier:1,tierCost:TIERCOST[2],relicIncome:0,spoils:0,
+     players:[],board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:0,tier:1,tierCost:TIERCOST[2],relicIncome:0,spoils:0,frozen:false,
      door:null,sel:null,phase:'draft',fightN:0,departed:null,feed:[],usedMon:{},fiv:null,burned:0,enteredGold:0,
      otherPairs:[],pendOpp:null,pendFoe:null,F:null,you:null};
   G.players.push({i:0,n:'You',short:'You',p:'p-0',hp:40,alive:true,shrine:false,place:null});
