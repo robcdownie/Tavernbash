@@ -30,6 +30,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const ITEM_IDS = ['dagger','sword','fangs','serpent','mace','crossbow','hammer','vial','venom','torch','bomb','magma','buckler','brassbuckler','barricade','tower','aegis','bandage','salve','chalice','sanctum','purse','ledger','whetstone','hourglass','adren','serpentcrown','tidewall','weepingstone','flyingcharm','prism','rocegg','feather','coincannon','coinhopper','azhfang','gavel'];
 const MONSTER_IDS = ['imp','rats','ghul','lamassu','kark','debt','ifrit','qareen','samovar','shahmaran','marid','nasnas','matron','sandling','monkey','icebox','peri','roc','simurgh','golem','azhdaha','auctioneer','vizier'];
 const PORTRAIT_IDS = ['p0','p1','p2','p3','p4','p5','p6','p7'];
+const HERO_MAP = {kilnkeeper:'h-kiln', apothecary:'h-apoth', knifegrinder:'h-knife', moneylender:'h-lender'};
 const FRAME_METALS = ['bronze','silver','gold','diamond'];
 
 /* Tokens a generator tends to leave in a saved filename when the target id
@@ -51,6 +52,7 @@ export function targetFor(filename) {
   for (const id of ITEM_IDS) if (tokens.has(id)) hits.push({dir:'items', name:id + '.png', kind:'icon'});
   for (const id of MONSTER_IDS) if (tokens.has(id)) hits.push({dir:'monsters', name:id + '.png', kind:'icon'});
   for (const id of PORTRAIT_IDS) if (tokens.has(id)) hits.push({dir:'portraits', name:id + '.png', kind:'icon'});
+  for (const t of Object.keys(HERO_MAP)) if (tokens.has(t)) hits.push({dir:'portraits', name:HERO_MAP[t] + '.png', kind:'icon'});
   if (tokens.has('frame')) for (const m of FRAME_METALS) if (tokens.has(m)) hits.push({dir:'frames', name:'frame_' + m + '.png', kind:'frame'});
   if (tokens.has('board') || tokens.has('wood')) hits.push({dir:'board', name:'board_wood.png', kind:'board'});
   if (tokens.has('bg')) hits.push({dir:'bg', name:'bg_market.png', kind:'bg'});

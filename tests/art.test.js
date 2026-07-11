@@ -6,7 +6,7 @@ import {dirname, join} from 'node:path';
 import {scanArt, manifestSource} from '../scripts/make-art-manifest.js';
 import {ART} from '../src/art-manifest.js';
 import {ic, icMarkup} from '../src/art.js';
-import {ITEMS, MONSTERS, PERSONAS} from '../src/data.js';
+import {ITEMS, MONSTERS, PERSONAS, HEROES} from '../src/data.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -21,6 +21,7 @@ test('every painted art file maps to a glyph id the game actually uses', () => {
   for (const id of Object.keys(ITEMS)) known.add('g-' + id);
   for (const m of Object.values(MONSTERS)) known.add(m.glyph);
   for (const p of PERSONAS) known.add(p.p);
+  for (const h of HEROES) known.add(h.g);
   known.add('p-0');
   for (const id of ['frame-bronze','frame-silver','frame-gold','frame-diamond','board-wood','bg-market','music-market','music-battle']) known.add(id);
   const orphans = Object.keys(scanArt(root)).filter(id => !known.has(id));
