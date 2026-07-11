@@ -562,6 +562,14 @@
   @media (prefers-reduced-motion: reduce){.rays{animation:none;}}
   .card .bigic{border-radius:50%;padding:9px;background:radial-gradient(closest-side, rgba(58,38,18,.95), rgba(26,16,8,.98));
     box-shadow:0 0 0 3px rgba(216,162,74,.55), 0 0 28px rgba(240,180,90,.3), 0 10px 24px rgba(0,0,0,.6);}
+  /* overlay cards sit on the painted market, not flat brown: the art is
+     darkened hard so text stays first; falls back clean with no manifest */
+  .card{background:
+    radial-gradient(130% 100% at 50% 0%, rgba(24,15,8,.42), rgba(17,11,6,.9) 74%),
+    linear-gradient(180deg, rgba(43,29,17,.55), rgba(24,16,9,.72)),
+    var(--card-art, linear-gradient(180deg,var(--surface2),var(--surface))) center 30%/cover no-repeat;}
+  .card.reveal .rays{opacity:.3;}
+  .card.reveal .rays.red{opacity:.22;}
 
   /* ===== V18 KNOCK PASS: the door announces itself ===== */
   .card.knock .bigic.knockic{width:82px;height:82px;border-radius:50%;
@@ -701,10 +709,10 @@
     background:radial-gradient(130% 100% at 50% -10%, transparent 60%, rgba(140,28,14,.25)),radial-gradient(130% 100% at 50% 110%, transparent 60%, rgba(140,28,14,.3));}
   body.fight .battleframe{opacity:1;}
   .dusk{position:fixed;inset:0;z-index:60;pointer-events:none;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;
-    background:radial-gradient(circle at 50% 50%, rgba(12,6,3,.55), rgba(7,3,1,.97) 72%);animation:duskin 1.1s var(--e-out) forwards;}
+    background:radial-gradient(circle at 50% 50%, rgba(12,6,3,.55), rgba(7,3,1,.97) 72%);animation:duskin 2.2s var(--e-out) forwards;}
   .dusk .dt{font-family:"Rakkas",serif;font-size:36px;color:var(--brass-hi);letter-spacing:1px;text-shadow:0 4px 26px rgba(0,0,0,.9);}
   .dusk .d2{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);font-weight:800;}
-  .dusk>*{animation:duskt 1.1s var(--e-out);}
+  .dusk>*{animation:duskt 2.2s var(--e-out);}
   @keyframes duskin{0%{opacity:0;}15%{opacity:1;}72%{opacity:1;}100%{opacity:0;}}
   @keyframes duskt{0%{opacity:0;transform:translateY(12px) scale(.95);}22%{opacity:1;transform:none;}78%{opacity:1;transform:none;}100%{opacity:0;transform:scale(1.03);}}
   @media (prefers-reduced-motion: reduce){.dusk{display:none;}}

@@ -651,7 +651,7 @@ function startFight(me,foe,opts){
     const dk=document.createElement('div');dk.className='dusk';
     dk.innerHTML='<div class="dt">Dusk Falls</div><div class="d2">Round '+G.round+' &middot; '+esc(foe.nm)+'</div>';
     document.body.appendChild(dk);
-    setTimeout(function(){dk.remove();},1150);
+    setTimeout(function(){dk.remove();},2250);
   }
   const F=createFight({a:me,b:foe,stormAt:(opts&&opts.stormAt)||stormAt(G.round),seed:(G.seed+G.round*7919+(++G.fightN)*104729)>>>0,playerIs:'a'});
   G.F=F;
@@ -692,7 +692,9 @@ function startFight(me,foe,opts){
   paintCds();
   let acc=0;
   G.fiv=setInterval(function(){
-    acc+=40*SPEED*FSPD;let evs=[];
+    /* the last shot: a genuine photo finish plays out at half speed */
+    const tight=!F.done&&Math.min(F.a.hp,F.b.hp)<=20&&Math.max(F.a.hp,F.b.hp)<=45;
+    acc+=40*SPEED*FSPD*(tight?0.45:1);let evs=[];
     while(acc>=TICK&&!F.done){acc-=TICK;const e2=F.step(TICK);for(let q=0;q<e2.length;q++){evs.push(e2[q]);}}
     if(evs.length)handleEvents(F,evs);
     paintFight(F);
@@ -990,7 +992,7 @@ function nextRound(){
     const dk=document.createElement('div');dk.className='dusk dawn';
     dk.innerHTML='<div class="dt">Round '+G.round+'</div><div class="d2">'+BANDN[bandOf(G.round)]+'</div>';
     document.body.appendChild(dk);
-    setTimeout(function(){dk.remove();},1150);
+    setTimeout(function(){dk.remove();},2250);
   }
   if(G.round===5||G.round===8){openTrinkets(function(){snapshotRun();renderAll();});}
   else{snapshotRun();renderAll();}
