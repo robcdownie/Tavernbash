@@ -283,7 +283,10 @@ function renderDraft(){
   let h='';
   h+='<div class="sec secstall"><div class="label">Your Stall<span class="side">'+used+' / '+slots+' slots</span></div>';
   h+=boardHTML(G.board,slots,G.sel);
-  h+='<div class="label" style="margin-top:6px">The Vault<span class="side">stored wares neither fight nor forge</span></div>';
+  h+='<div id="sheet"></div></div>';
+  h+='<div class="sec secdoors"><div class="label">The Doors<span class="side">'+BANDN[bandOf(G.round)]+'</span></div>';
+  h+=doorsHTML();
+  h+='<div class="label" style="margin-top:6px">The Vault<span class="side">no fights, no forging</span></div>';
   h+='<div class="vault" id="vlt">'+G.vault.map(function(it,i){
       const d=ITEMS[it.id];
       return '<div class="cell it s1 rar'+it.rarity+'" style="--cat:'+CATC[d.cat]+'" data-v="'+i+'">'
@@ -293,10 +296,7 @@ function renderDraft(){
        +(it.rarity>0?'<span class="fuse">'+RNAME[it.rarity].charAt(0)+'</span>':'')+'</div>';
     }).join('');
   for(let v=G.vault.length;v<3;v++){h+='<div class="cell empty"></div>';}
-  h+='</div>';
-  h+='<div id="sheet"></div></div>';
-  h+='<div class="sec secdoors"><div class="label">The Doors<span class="side">'+BANDN[bandOf(G.round)]+'</span></div>';
-  h+=doorsHTML()+'</div>';
+  h+='</div></div>';
   h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
   h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
   h+='<div class="controls">'
