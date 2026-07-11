@@ -2,7 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createFight,runHeadless,makeItem,fuseScan,genRival,playerFightItems,monsterSide,
         fightHP,stormAt,mulberry,boardRegen,pickTarget} from '../src/engine.js';
-import {ANONE,PERSONAS,ITEMS,MONSTERS} from '../src/data.js';
+import {ANONE,PERSONAS,ITEMS,MONSTERS,ENCH} from '../src/data.js';
+import {integOf} from '../src/engine.js';
 
 function duel(a,b,round,seed,playerIs){
   return runHeadless(createFight({a:a,b:b,stormAt:stormAt(round),seed:seed,playerIs:playerIs||null}));
@@ -114,6 +115,36 @@ function ammoItem(over){
     fx:{dmg:14},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,crit:0,
     rattle:null,selfdestruct:false,ammo:5,maxAmmo:5,uid:941},over);
 }
+test('enchants: every rider does exactly what its label says',()=>{
+  const one=(id,en)=>playerFightItems([makeItem(id,0,en)],{},ANONE,1)[0];
+  assert.equal(one('mace','fiery').fx.burn,8,'Fiery adds a third of 24 as burn');
+  assert.equal(one('mace','fiery').fx.dmg,24,'and keeps the damage');
+  assert.equal(one('vial','venomous').fx.poison,4,'Venomous adds 2 poison to the 2');
+  assert.equal(one('buckler','stout').integ,Math.round(14*1.6),'Stout raises Integrity 60%');
+  assert.equal(integOf(makeItem('buckler',0,'stout')),Math.round(14*1.6),'and the draft board agrees');
+  assert.equal(one('mace','swift').cd,Math.round(4500*0.85),'Swift trims the cooldown');
+  assert.equal(one('dagger','winged').flying,true,'Winged flies');
+  assert.equal(one('dagger','icy').freezeOnce,2,'Icy carries one 2 s frost');
+});
+
+test('enchants: Icy freezes exactly once, then the frost is spent',()=>{
+  const me=playerFightItems([makeItem('sword',0,'icy')],{},ANONE,1);
+  const tgt={nm:'Dummy',g:'g-buckler',size:1,cd:3000,timer:0,alive:true,integ:900,maxI:900,
+             fx:{},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,crit:0,rattle:null,selfdestruct:false,ammo:0,maxAmmo:0,uid:951};
+  const F=createFight({a:{nm:'x',hp:900,items:me,lifesteal:0},b:{nm:'d',hp:900,items:[tgt],lifesteal:0},stormAt:999000,seed:6,playerIs:'a'});
+  let freezes=0;
+  while(F.t<15000){for(const e of F.step(50)){if(e.k==='freeze')freezes++;}}
+  assert.equal(freezes,1,'one frost, on the first swing only');
+});
+
+test('enchants: fusion keeps the first enchanted copy',()=>{
+  const board=[makeItem('dagger',0),makeItem('dagger',0,'fiery'),makeItem('dagger',0)];
+  fuseScan(board);
+  assert.equal(board.length,1);
+  assert.equal(board[0].ench,'fiery','the forge remembers the flame');
+  assert.equal(board[0].rarity,1);
+});
+
 test('The Azhdaha: each fallen head halves the survivors, and a rich board still wins',()=>{
   const foe=monsterSide('azhdaha',{round:10,gold:0,A:ANONE,gilded:false});
   assert.equal(foe.hp,550);

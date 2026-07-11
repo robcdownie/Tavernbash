@@ -1,6 +1,6 @@
 "use strict";
 import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,BANDN,BANDC,ANONE,
-        ITEMS,TRINKETS,ANOMALIES,PERSONAS,MONSTERS,MONBAND,MONCHIP} from './data.js';
+        ITEMS,TRINKETS,ANOMALIES,PERSONAS,MONSTERS,MONBAND,MONCHIP,ENCH,ENCH_CHANCE,ENCH_PREMIUM} from './data.js';
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,usedCells,
         playerFightItems,monsterSide,genRival,createFight,runHeadless,boardRegen} from './engine.js';
 import {ic} from './art.js';
@@ -18,11 +18,11 @@ function loadBest(){const s=store();if(!s)return;try{const d=JSON.parse(s.getIte
 function clearRun(){const s=store();if(!s)return;try{s.removeItem(SAVE_KEY);}catch(e){}}
 function snapshotRun(){
   const s=store();if(!s||!G||!G.door)return;
-  const item=function(it){return {id:it.id,rarity:it.rarity,size:it.size};};
+  const item=function(it){return {id:it.id,rarity:it.rarity,size:it.size,ench:it.ench||null};};
   const d={v:SAVE_VERSION,seed:G.seed,rngSeed:(G.seed+G.round*1013904223+7)>>>0,
     round:G.round,gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,fightN:G.fightN,
     anom:G.anom.id,tags:G.tags.slice(),usedMon:Object.assign({},G.usedMon),
-    board:G.board.map(item),shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought};}),
+    board:G.board.map(item),shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null};}),
     trinkets:G.trinkets.map(function(t){return t.id;}),
     door:{mid:G.door.mid,gilded:G.door.gilded,safe:G.door.safe,done:G.door.done,result:G.door.result},
     departed:G.departed?{board:G.departed.board.map(item),nm:G.departed.nm,p:G.departed.p}:null,
@@ -37,7 +37,7 @@ function loadRun(){
     return d;
   }catch(e){return null;}
 }
-function reviveItem(b){const it=makeItem(b.id,b.rarity);it.size=b.size;return it;}
+function reviveItem(b){const it=makeItem(b.id,b.rarity,b.ench||null);it.size=b.size;return it;}
 function restoreRun(d){
   const anom=ANOMALIES.filter(function(a){return a.id===d.anom;})[0]||ANOMALIES[0];
   G={seed:d.seed,rng:mulberry(d.rngSeed),round:d.round,anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.tags,
@@ -129,6 +129,7 @@ function cellHTML(it,i,sel){
    +'<span class="stat sr">'+integOf(it)+'</span>'
    +(d.bulwark?ic('e-shield','bw'):'')
    +(it.rarity>0?'<span class="fuse">'+RNAME[it.rarity].charAt(0)+'</span>':'')
+   +(it.ench?'<i class="edot" style="background:'+ENCH[it.ench].c+'"></i>':'')
   +'</div>';
 }
 function boardHTML(board,slots,selIdx){
@@ -147,6 +148,7 @@ function fightCellHTML(fi,i,side){
    +'<span class="stat sr" id="fi-'+side+'-'+i+'">'+fi.integ+'</span>'
    +(fi.bulwark?ic('e-shield','bw'):'')
    +'<div class="ash">'+ic('g-crack','','width:20px;height:20px')+'</div>'
+   +(fi.ench?'<i class="edot" style="background:'+ENCH[fi.ench].c+'"></i>':'')
   +'</div>';
 }
 /* ============ TOP RENDERERS ============ */
@@ -238,17 +240,18 @@ function doorsHTML(){
 /* ============ MARKET ============ */
 function wareHTML(w,i){
   const d=ITEMS[w.id];
-  const cost=w.free?0:COST[d.size];
+  const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
   const can=!w.bought&&(w.free||G.gold>=cost)&&(usedCells(G.board)+d.size<=4+G.tier);
   const own=G.board.filter(function(x){return x.id===w.id&&x.rarity===0;}).length;
   let gems='';for(let g=0;g<d.tier;g++){gems+=ic('g-gem');}
   let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=d.size?'on':'')+'"></i>';}
-  return '<div class="ware'+(w.bought?' gone':(can?'':' cant'))+'" data-w="'+i+'" style="--cat:'+CATC[d.cat]+';animation-delay:'+(i*45)+'ms">'
+  const en=w.ench?ENCH[w.ench]:null;
+  return '<div class="ware'+(w.bought?' gone':(can?'':' cant'))+(en?' enchw':'')+'" data-w="'+i+'" style="--cat:'+CATC[d.cat]+(en?';--ec:'+en.c:'')+';animation-delay:'+(i*45)+'ms">'
    +'<div class="ph">'+ic('g-'+w.id,'gi')+'<span class="cost'+(w.free?' free':'')+'">'+ic('g-coin')+'<b>'+(w.free?'FREE':cost)+'</b></span></div>'
    +'<div class="tg">'+gems+'</div>'
-   +'<div class="wn">'+d.n+'</div>'
+   +'<div class="wn">'+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div>'
    +'<div class="sz">'+pips+'</div>'
-   +'<div class="chips">'+effChips(w.id,0)+'</div>'
+   +'<div class="chips">'+effChips(w.id,0)+(en?'<span class="eff util" style="color:'+en.c+'">'+ic('e-bolt','mi')+' '+en.d+'</span>':'')+'</div>'
    +'<div class="wr">'+(d.cd>0?ic('e-clock','mi')+' '+d.cd+'s':'<span>passive</span>')+'<span>'+ic('e-shield','mi')+' '+Math.round(BASEINTEG[d.size]*(d.integMul||1))+'</span></div>'
    +(own>0?'<div class="own">'+own+'/3</div>':'')
   +'</div>';
@@ -257,8 +260,9 @@ function renderSheet(){
   const sh=$('sheet');if(!sh)return;
   if(G.sel==null||!G.board[G.sel]){sh.innerHTML='';return;}
   const it=G.board[G.sel];const d=ITEMS[it.id];
+  const en=it.ench?ENCH[it.ench]:null;
   sh.innerHTML='<div class="sheet"><div class="st"><span class="ico" style="width:34px;height:34px">'+ic('g-'+it.id,'','width:100%;height:100%')+'</span>'
-   +'<div><div class="nm">'+RNAME[it.rarity]+' '+d.n+'</div><div class="ds">'+d.d+'</div>'
+   +'<div><div class="nm">'+RNAME[it.rarity]+' '+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div><div class="ds">'+(en?en.d+' ':'')+d.d+'</div>'
    +'<div style="margin-top:5px">'+effChips(it.id,it.rarity)+'<span class="eff util">'+ic('e-shield','mi')+' '+integOf(it)+'</span>'+(d.cd>0?'<span class="eff util">'+ic('e-clock','mi')+' '+d.cd+'s</span>':'')+'</div></div></div>'
    +'<div class="bs"><button class="btn" id="mvL"'+(G.sel===0?' disabled':'')+'>&#9664; Move</button>'
    +'<button class="btn" id="mvR"'+(G.sel>=G.board.length-1?' disabled':'')+'>Move &#9654;</button>'
@@ -298,11 +302,11 @@ function renderAll(){document.body.classList.add('run');renderBest();renderRival
 function buyWare(i){
   if(G.phase!=='draft')return;
   const w=G.shop[i];if(!w||w.bought)return;
-  const d=ITEMS[w.id];const cost=w.free?0:COST[d.size];
+  const d=ITEMS[w.id];const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
   if(G.gold<cost){toast('Not enough gold');return;}
   if(usedCells(G.board)+d.size>4+G.tier){toast('No room on your stall');return;}
   G.gold-=cost;w.bought=true;sCoin();
-  G.board.push(makeItem(w.id,0));
+  G.board.push(makeItem(w.id,0,w.ench||null));
   const forged=fuseScan(G.board);
   renderAll();
   if(forged.length){
@@ -660,7 +664,16 @@ function rollShop(){
     });
     let r=G.rng()*tot,pick=ids[0];
     for(let i=0;i<ids.length;i++){r-=ws[i];if(r<=0){pick=ids[i];break;}}
-    out.push({id:pick,free:false,bought:false});
+    let ench=null;
+    if(G.rng()<ENCH_CHANCE){
+      const d2=ITEMS[pick];
+      const opts=Object.keys(ENCH).filter(function(e){
+        const req=ENCH[e].need;
+        return !req||(req==='dmg'?!!(d2.fx&&d2.fx.dmg):d2.cd>0);
+      });
+      if(opts.length){ench=opts[Math.floor(G.rng()*opts.length)];}
+    }
+    out.push({id:pick,free:false,bought:false,ench:ench});
   }
   G.shop=out.concat(keep);
 }

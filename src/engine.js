@@ -1,5 +1,5 @@
 "use strict";
-import {TICK,RSTAT,RINTEG,BASEINTEG,COST,ANONE,ITEMS,MONSTERS} from './data.js';
+import {TICK,RSTAT,RINTEG,BASEINTEG,COST,ANONE,ITEMS,MONSTERS,ENCH} from './data.js';
 /* ============ RNG ============ */
 export function mulberry(seed){let t=seed>>>0;return function(){t+=0x6D2B79F5;let r=Math.imul(t^t>>>15,1|t);r^=r+Math.imul(r^r>>>7,61|r);return((r^r>>>14)>>>0)/4294967296;};}
 export function fightHP(round,hpFlat,A){return Math.round((90+round*8+(hpFlat||0))*((A||ANONE).hpMul));}
@@ -7,8 +7,8 @@ export function stormAt(round){return Math.max(16,34-round*1.5)*1000;}
 export function gateOK(defTier,yourTier){return defTier===1||(defTier===2&&yourTier>=2)||(defTier===3&&yourTier>=4);}
 /* ============ ITEM INSTANCES + FUSION ============ */
 let UID=1;
-export function makeItem(id,rarity){return {uid:UID++,id:id,rarity:rarity||0,size:ITEMS[id].size};}
-export function integOf(it){return Math.round(BASEINTEG[it.size]*(ITEMS[it.id].integMul||1)*RINTEG[it.rarity]);}
+export function makeItem(id,rarity,ench){return {uid:UID++,id:id,rarity:rarity||0,size:ITEMS[id].size,ench:ench||null};}
+export function integOf(it){return Math.round(BASEINTEG[it.size]*(ITEMS[it.id].integMul||1)*RINTEG[it.rarity]*(it.ench==="stout"?1.6:1));}
 export function fuseScan(board){
   const forged=[];
   let again=true;
@@ -20,7 +20,8 @@ export function fuseScan(board){
       if(same.length>=3&&a.rarity<3){
         const three=same.slice(0,3);
         const idx=board.indexOf(three[0]);
-        const nu={uid:UID++,id:a.id,rarity:a.rarity+1,size:Math.min(3,a.size+1)};
+        const nu={uid:UID++,id:a.id,rarity:a.rarity+1,size:Math.min(3,a.size+1),
+          ench:three.map(t=>t.ench).find(Boolean)||null};
         for(const t of three){board.splice(board.indexOf(t),1);}
         board.splice(Math.min(idx,board.length),0,nu);
         forged.push(nu);
@@ -55,12 +56,17 @@ export function playerFightItems(board,T,A,scale){
     if(def.fx&&def.fx.hasteAll){fx.hasteAll=def.fx.hasteAll;}
     if(def.fx&&def.fx.reload){fx.reload=def.fx.reload;}
     if(def.fx&&def.fx.disable){fx.disable=true;}
-    return {nm:def.n,g:"g-"+it.id,size:it.size,rarity:it.rarity,cat:def.cat,tier:def.tier,
-      cd:def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd)):0,
+    /* enchant riders, all built from existing keywords */
+    const en=it.ench;
+    if(en==="fiery"&&fx.dmg){fx.burn=(fx.burn||0)+Math.max(1,Math.round(fx.dmg/3));}
+    if(en==="venomous"){fx.poison=(fx.poison||0)+Math.max(1,Math.round(2*rs));}
+    if(en==="winged"){fly=true;}
+    return {nm:(en?ENCH[en].n+" ":"")+def.n,g:"g-"+it.id,size:it.size,rarity:it.rarity,cat:def.cat,tier:def.tier,
+      cd:def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd*(en==="swift"?0.85:1))):0,
       timer:0,alive:true,integ:integOf(it),maxI:integOf(it),
       fx:fx,bulwark:!!def.bulwark,targeting:def.targeting||null,charge:null,flying:fly,frozen:0,
       crit:fx.dmg?Math.min(0.9,(def.crit||0)+boardCrit):0,rattle:def.rattle||null,selfdestruct:!!def.selfdestruct,
-      ammo:def.ammo||0,maxAmmo:def.ammo||0,uid:it.uid};
+      ammo:def.ammo||0,maxAmmo:def.ammo||0,freezeOnce:en==="icy"?2:0,ench:en||null,uid:it.uid};
   });
 }
 export function monsterFightItems(mid,ctx){
@@ -193,6 +199,12 @@ export function createFight(cfg){
        hatch is just a deathrattle on a fuse */
     if(it.selfdestruct){it.alive=false;it.integ=0;ev.push({k:"destroy",side:S.key,i:idx,nm:it.nm});rattleOf(S,idx,ev);return;}
     if(it.maxAmmo>0){it.ammo--;ev.push({k:"ammo",side:S.key,i:idx,left:it.ammo});}
+    /* icy enchant: the first activation also freezes, then the frost is spent */
+    if(it.freezeOnce>0){
+      let fi=-1;for(let j=0;j<D.items.length;j++){if(D.items[j].alive){fi=j;break;}}
+      if(fi>=0){D.items[fi].frozen=(D.items[fi].frozen||0)+it.freezeOnce*1000;ev.push({k:"freeze",side:D.key,i:fi,amt:it.freezeOnce});}
+      it.freezeOnce=0;
+    }
     const fx=it.fx;
     if(fx.dmg){
       /* crit rolls draw from the fight's seeded rng, so replays and the

@@ -58,6 +58,19 @@ export const ITEMS={
  gavel:{n:"The Gavel",size:2,tier:3,cat:"dmg",cd:5,fx:{dmg:12,disable:true},unique:true,
    d:"Boss bounty. Sold: the finest enemy ware, out of the fight."}
 };
+/* ============ ENCHANTS ============ */
+/* need: "dmg" requires a damage effect, "cd" requires an active cooldown,
+   null fits any ware. Riders are applied in playerFightItems; rivals
+   never roll enchants, so fight parity holds. */
+export const ENCH={
+ fiery:{n:"Fiery",c:"#e0863a",need:"dmg",d:"Adds burn equal to a third of its damage."},
+ venomous:{n:"Venomous",c:"#9dbb45",need:"cd",d:"Adds poison with every activation."},
+ icy:{n:"Icy",c:"#9ad8ef",need:"cd",d:"Its first strike freezes the enemy's leftmost ware for 2 s."},
+ stout:{n:"Stout",c:"#b9c4d0",need:null,d:"Integrity raised by 60%."},
+ swift:{n:"Swift",c:"#f4cf7c",need:"cd",d:"Cooldown 15% faster."},
+ winged:{n:"Winged",c:"#e8eef4",need:null,d:"It flies; enemy weapons cannot reach it."}
+};
+export const ENCH_CHANCE=0.12, ENCH_PREMIUM=3;
 /* ============ TRINKETS ============ */
 export const TRINKETS=[
  {id:"smith",n:"Master Smith",tag:"dmg",g:"g-whetstone",d:"Your weapons strike for +5.",mod:{weaponFlat:5}},
