@@ -534,6 +534,19 @@
     .ln,.rv .crn,.vsrow .vm{animation:none !important;}
   }
 
+  /* ===== V12 VOICE PASS: your hero watches you play ===== */
+  .bark{position:fixed;left:10px;bottom:calc(env(safe-area-inset-bottom) + 96px);z-index:45;display:flex;gap:9px;align-items:center;
+    max-width:280px;padding:8px 13px 8px 8px;border-radius:16px;pointer-events:none;
+    background:linear-gradient(180deg,#3d2d1d,#281b11 85%);border:1px solid rgba(216,162,74,.45);
+    box-shadow:0 12px 30px rgba(0,0,0,.55), inset 0 1.5px 0 rgba(255,255,255,.12);
+    font-size:11.5px;line-height:1.35;color:var(--ink);font-style:italic;
+    animation:barkin .3s var(--e-out);transition:opacity .4s ease, transform .4s ease;}
+  .bark b{font-style:normal;color:var(--brass);font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;}
+  .bark .bkp{width:34px;height:34px;flex:0 0 auto;border-radius:50%;
+    box-shadow:0 0 0 2px #7a4d16, 0 4px 10px rgba(0,0,0,.5);}
+  .bark.out{opacity:0;transform:translateY(8px);}
+  @keyframes barkin{from{opacity:0;transform:translateY(10px) scale(.96);}to{opacity:1;transform:none;}}
+
   /* ===== V11 DUEL PASS: a fight between faces ===== */
   .fh .fp{width:46px;height:46px;border-radius:50%;
     box-shadow:0 0 0 2px #7a4d16, 0 0 0 3.5px rgba(244,207,124,.35), 0 8px 16px rgba(0,0,0,.55);}

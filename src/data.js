@@ -63,10 +63,30 @@ export const ITEMS={
    featured tag; mods merge into the trinket aggregate; a start id lands
    on the board before round 1. */
 export const HEROES=[
- {id:"kiln",n:"The Kilnkeeper",tag:"burn",g:"h-kiln",d:"Starts with an Oil Torch. Burn wares seek your stall.",start:"torch",mod:{}},
- {id:"apoth",n:"The Apothecary",tag:"heal",g:"h-apoth",d:"+6 fight health every battle. Heal wares seek your stall.",mod:{hpFlat:6}},
- {id:"knife",n:"The Knifegrinder",tag:"dmg",g:"h-knife",d:"Your leftmost ware strikes +2 harder. Weapon wares seek your stall.",mod:{firstFlat:2}},
- {id:"lender",n:"The Moneylender",tag:"util",g:"h-lender",d:"+1 income each round, -4 fight health. Economy wares seek your stall.",mod:{income:1,hpFlat:-4}}
+ {id:"kiln",n:"The Kilnkeeper",tag:"burn",g:"h-kiln",d:"Starts with an Oil Torch. Burn wares seek your stall.",start:"torch",mod:{},
+  barks:{forge:["Three become one. The kiln approves.","Now that is proper heat."],
+         win:["The fire held.","Ash on their side of the street."],
+         loss:["Smoke stings. We stoke again.","Even kilns crack. Patch it and burn on."],
+         boss:["That gate breathes like a furnace. Mind yourself."],
+         broke:["Empty purse, warm forge. Priorities."]}},
+ {id:"apoth",n:"The Apothecary",tag:"heal",g:"h-apoth",d:"+6 fight health every battle. Heal wares seek your stall.",mod:{hpFlat:6},
+  barks:{forge:["Distilled to its essence.","Three doses become a cure."],
+         win:["The remedy took.","Steady hands, steady heart."],
+         loss:["A bitter draught. Note the dose.","We survive worse every day."],
+         boss:["I smell ash beyond that gate. Bring bandages."],
+         broke:["Spent to the last drop."]}},
+ {id:"knife",n:"The Knifegrinder",tag:"dmg",g:"h-knife",d:"Your leftmost ware strikes +2 harder. Weapon wares seek your stall.",mod:{firstFlat:2},
+  barks:{forge:["Three blades, one edge. Efficient.","The wheel sings tonight."],
+         win:["Clean cut.","They will feel that one tomorrow."],
+         loss:["Nicked. It happens.","Dull night. Sharpen and return."],
+         boss:["Big door. Bigger target."],
+         broke:["Gold dulls. Steel does not."]}},
+ {id:"lender",n:"The Moneylender",tag:"util",g:"h-lender",d:"+1 income each round, -4 fight health. Economy wares seek your stall.",mod:{income:1,hpFlat:-4},
+  barks:{forge:["Consolidation! I love consolidation.","Three small debts, one great asset."],
+         win:["Profit!","The ledger smiles on us tonight."],
+         loss:["A write down. Painful, survivable.","We book the loss and move on."],
+         boss:["Careful. That gate charges interest."],
+         broke:["We are, how to say it, illiquid."]}}
 ];
 /* ============ ENCHANTS ============ */
 /* need: "dmg" requires a damage effect, "cd" requires an active cooldown,

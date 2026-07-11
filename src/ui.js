@@ -349,6 +349,9 @@ function renderDraft(){
   h+='<div id="sheet"></div></div>';
   $('main').className='draft';
   $('main').innerHTML=h;
+  if(G.dtab==='doors'&&G.door&&!G.door.done&&MONSTERS[G.door.mid].band===4&&!G.barkedBoss){
+    G.barkedBoss=true;bark('boss',true);
+  }
   const tm=$('tabM');if(tm)tm.onclick=function(){G.dtab='market';G.sel=null;renderDraft();};
   const td=$('tabD');if(td)td.onclick=function(){G.dtab='doors';G.sel=null;renderDraft();};
   const df=$('dockFlip');if(df)df.onclick=function(){G.dockV=!G.dockV;G.sel=null;renderDraft();};
@@ -371,6 +374,21 @@ function renderDraft(){
   renderSheet();
 }
 function renderAll(){document.body.classList.add('run');document.body.classList.toggle('fight',G.phase==='fight');renderBest();renderRivals();renderRibbon();renderAno();renderTrow();if(G.phase==='draft'){renderDraft();}}
+/* ============ THE VOICE: your hero watches you play ============ */
+function bark(ev,always){
+  const h=heroOf();if(!h||!h.barks||!h.barks[ev]||!h.barks[ev].length)return;
+  const now=Date.now();
+  if(!always&&G.lastBark&&now-G.lastBark<18000)return;
+  if(!always&&Math.random()<0.45)return;
+  G.lastBark=now;
+  const line=h.barks[ev][Math.floor(Math.random()*h.barks[ev].length)];
+  const old=document.querySelector('.bark');if(old)old.remove();
+  const d=document.createElement('div');d.className='bark';
+  d.innerHTML=ic(h.g,'bkp')+'<div><b>'+h.n+'</b><br>'+line+'</div>';
+  document.body.appendChild(d);
+  setTimeout(function(){d.classList.add('out');},2400);
+  setTimeout(function(){d.remove();},2900);
+}
 /* ============ JUICE: objects behave like objects ============ */
 function flyGhost(from,to,iconHtml,onEnd){
   if(RM||!from||!to){if(onEnd)onEnd();return;}
@@ -432,7 +450,9 @@ function buyWare(i){
     sForge();
     const cells=document.querySelectorAll('#bd .cell.it');
     forged.forEach(function(f){const idx=G.board.indexOf(f);if(cells[idx]){cells[idx].classList.add('forge');const p=ctrOf(cells[idx]);if(p&&!RM)fxForge(p.x,p.y);}});
+    bark('forge');
   }
+  else if(G.gold===0){bark('broke');}
 }
 function tierUp(){
   if(G.tier>=6||G.gold<G.tierCost)return;
@@ -628,12 +648,14 @@ function endMonsterFight(F){
     if(b.pickUnique){renderAll();openUniquePick('The vault opens. Take one.');return;}
     toast(M.n+' slain. Bounty added to the market.');
     renderAll();
+    bark('win');
   }else{
     D.result='DRIVEN OFF';
     G.you.hp-=MONCHIP[M.band];
     toast('Driven off. Lost '+MONCHIP[M.band]+' health.');
     if(G.you.hp<=0){handleYourDeath(function(){renderAll();});return;}
     renderAll();
+    bark('loss');
   }
 }
 /* ============ GHOST DUELS ============ */
@@ -1099,6 +1121,6 @@ export function boot(){
      matches the service worker's, so the live site never carries them */
   if(typeof location!=='undefined'&&location.hostname.match(/^(localhost|127\.)/)){
     globalThis.BBDEV={g:function(){return G;},rollDoor:rollDoor,rollShop:rollShop,renderAll:renderAll,
-      openUniquePick:openUniquePick,bandOf:bandOf,startMonsterFight:startMonsterFight};
+      openUniquePick:openUniquePick,bandOf:bandOf,startMonsterFight:startMonsterFight,bark:bark};
   }
 }
