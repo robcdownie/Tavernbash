@@ -24,6 +24,8 @@ export const ART={
  "g-crown":"art/ui/crown.png",
  "g-dagger":"art/items/dagger.png",
  "g-door":"art/ui/door.png",
+ "g-door_monster":"art/ui/door_monster.png",
+ "g-door_safe":"art/ui/door_safe.png",
  "g-fangs":"art/items/fangs.png",
  "g-feather":"art/items/feather.png",
  "g-flyingcharm":"art/items/flyingcharm.png",
