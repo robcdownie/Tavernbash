@@ -534,6 +534,23 @@
     .ln,.rv .crn,.vsrow .vm{animation:none !important;}
   }
 
+  /* ===== V19 VELVET PASS: card interiors worth their frames ===== */
+  .card::before,.scout::before{content:"";position:absolute;inset:-26px;z-index:0;
+    background:var(--card-art, radial-gradient(120% 100% at 50% 0%, #3a2a1a, #241812)) center 30%/cover;
+    filter:blur(7px) saturate(.85) brightness(.42);}
+  .card::after,.scout::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 28%, rgba(20,12,6,.2), rgba(14,9,4,.9) 80%),
+               linear-gradient(180deg, rgba(27,19,47,.3), transparent 38%, rgba(10,6,3,.45));}
+  .card>*,.scout>*{position:relative;z-index:1;}
+  .card>.rays,.card>.coinrain{position:absolute;z-index:1;}
+  .rays{background:radial-gradient(closest-side, rgba(255,214,120,.34), rgba(255,190,90,.13) 45%, transparent 70%);
+    -webkit-mask:none;mask:none;animation:bloom 5.5s ease-in-out infinite alternate;}
+  .rays.red{background:radial-gradient(closest-side, rgba(255,150,90,.32), rgba(200,64,46,.13) 45%, transparent 70%);}
+  @keyframes bloom{from{opacity:.55;transform:translate(-50%,-50%) scale(.92);}to{opacity:1;transform:translate(-50%,-50%) scale(1.07);}}
+  @media (prefers-reduced-motion: reduce){.rays{animation:none;}}
+  .card .bigic{border-radius:50%;padding:9px;background:radial-gradient(closest-side, rgba(58,38,18,.95), rgba(26,16,8,.98));
+    box-shadow:0 0 0 3px rgba(216,162,74,.55), 0 0 28px rgba(240,180,90,.3), 0 10px 24px rgba(0,0,0,.6);}
+
   /* ===== V18 KNOCK PASS: the door announces itself ===== */
   .card.knock .bigic.knockic{width:82px;height:82px;border-radius:50%;
     box-shadow:0 0 0 3px rgba(216,162,74,.5), 0 10px 24px rgba(0,0,0,.6);}

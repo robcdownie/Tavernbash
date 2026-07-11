@@ -25,6 +25,7 @@ export function applyBigArt(doc) {
   if (ART['bg-market']) {
     const el = d.getElementById('bgart');
     if (el) { el.style.backgroundImage = 'url(' + ART['bg-market'] + ')'; el.style.display = 'block'; }
+    d.documentElement.style.setProperty('--card-art', 'url(' + ART['bg-market'] + ')');
   }
   if (ART['board-wood']) {
     d.documentElement.style.setProperty('--board-art', 'url(' + ART['board-wood'] + ')');
