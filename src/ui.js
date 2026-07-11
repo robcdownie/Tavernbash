@@ -450,7 +450,11 @@ function buyWare(i){
   const landCell=cells[cells.length-1];
   if(landCell&&fromRect){
     flyGhost(fromRect,landCell.getBoundingClientRect(),ic('g-'+w.id,'','width:100%;height:100%'),function(){
-      if(landCell.isConnected){landCell.classList.add('land');setTimeout(function(){landCell.classList.remove('land');},320);}
+      if(landCell.isConnected){
+        landCell.classList.add('land');
+        if(w.ench){landCell.style.setProperty('--ec',ENCH[w.ench].c);landCell.classList.add('eland');}
+        setTimeout(function(){landCell.classList.remove('land');landCell.classList.remove('eland');},720);
+      }
     });
   }
   if(forged.length){
@@ -1072,7 +1076,7 @@ function championScreen(){
 }
 /* ============ LOBBY ============ */
 function openReveal(){
-  const o=ovOpen('<div class="card"><div class="rays"></div>'
+  const o=ovOpen('<div class="card reveal"><div class="rays"></div><div class="rays red"></div>'
    +'<div class="kick gold">Tonight in the Market</div>'
    +ic(G.anom.g,'bigic')
    +'<h2 class="big">'+G.anom.n+'</h2><p>'+G.anom.d+'</p>'
