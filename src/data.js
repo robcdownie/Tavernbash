@@ -19,9 +19,11 @@ export const ITEMS={
  mace:{n:"Spiked Mace",size:2,tier:2,cat:"dmg",cd:4.5,fx:{dmg:24},d:"Slow, heavy, convincing."},
  crossbow:{n:"Bazaar Crossbow",size:2,tier:2,cat:"dmg",cd:3,fx:{dmg:15},d:"Steady bolts over the crowd."},
  hammer:{n:"Warhammer",size:3,tier:3,cat:"dmg",cd:5.5,fx:{dmg:42},d:"One swing settles most arguments."},
- serpent:{n:"Serpent Blade",size:1,tier:2,cat:"dmg",cd:3.5,fx:{dmg:6,poison:3},d:"Cuts, then lingers."},
- vial:{n:"Toxin Vial",size:1,tier:1,cat:"poison",cd:3,fx:{poison:2},d:"Poison ignores shields entirely."},
- venom:{n:"Venom Idol",size:3,tier:3,cat:"poison",cd:4.5,fx:{poison:7},d:"An old god of slow endings."},
+ /* poison trim, approved 2026-07-11: serpent 3 to 2, vial cd 3 to 3.5,
+    venom 7 to 5; recorded in the parity test's rebalance ledger */
+ serpent:{n:"Serpent Blade",size:1,tier:2,cat:"dmg",cd:3.5,fx:{dmg:6,poison:2},d:"Cuts, then lingers."},
+ vial:{n:"Toxin Vial",size:1,tier:1,cat:"poison",cd:3.5,fx:{poison:2},d:"Poison ignores shields entirely."},
+ venom:{n:"Venom Idol",size:3,tier:3,cat:"poison",cd:4.5,fx:{poison:5},d:"An old god of slow endings."},
  torch:{n:"Oil Torch",size:1,tier:1,cat:"burn",cd:3,fx:{burn:3},d:"Burn ticks fade one per second."},
  bomb:{n:"Fire Bomb",size:2,tier:2,cat:"burn",cd:4,fx:{dmg:8,burn:4},d:"A bang, then the smolder."},
  magma:{n:"Magma Heart",size:3,tier:3,cat:"burn",cd:4.5,fx:{burn:10},d:"It never quite cools."},
@@ -169,7 +171,9 @@ export const MONSTERS={
  marid:{n:"Marid of the Cistern",band:3,hp:280,tag:"shield",glyph:"m-marid",fl:"The cistern breathes, and the water answers.",
    bounty:{items:["tidewall"]},
    board:[{nm:"Tide Wall",g:"g-tidewall",size:3,cd:6,integ:36,fx:{shield:25}},{nm:"Spring",g:"g-chalice",size:2,cd:5,integ:22,fx:{heal:12}},{nm:"Drip",g:"g-vial",size:1,cd:3,integ:10,fx:{dmg:4}}]},
- nasnas:{n:"Nasnas",band:2,hp:180,tag:"dmg",glyph:"m-nasnas",fl:"Half of everything, twice as much of it.",
+ /* moved from band 2, approved 2026-07-11: on-curve band 2 boards beat
+    it only 31% of the time; its double-stat court belongs in band 3 */
+ nasnas:{n:"Nasnas",band:3,hp:180,tag:"dmg",glyph:"m-nasnas",fl:"Half of everything, twice as much of it.",
    bounty:{mote:true},
    board:[{nm:"Half Buckler",g:"g-buckler",size:1,cd:4,integ:14,fx:{shield:20}},{nm:"Half Dagger",g:"g-dagger",size:1,cd:3,integ:14,fx:{dmg:12}},{nm:"Half Torch",g:"g-torch",size:1,cd:3,integ:14,fx:{burn:6}},{nm:"Half Vial",g:"g-vial",size:1,cd:3,integ:14,fx:{poison:4}},{nm:"Half Bandage",g:"g-bandage",size:1,cd:4,integ:14,fx:{heal:24}}]},
  matron:{n:"Ghul Matron",band:2,hp:160,tag:"poison",glyph:"m-matron",fl:"She mends as fast as you can cut.",regen:2,
@@ -212,5 +216,5 @@ export const MONSTERS={
           {nm:"Frost Scepter",g:"g-tidewall",size:2,cd:7,integ:36,fx:{freeze:3}},
           {nm:"Ash Chalice",g:"g-chalice",size:2,cd:5,integ:36,fx:{heal:20}}]}
 };
-export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","nasnas","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc","simurgh","golem"],4:["azhdaha","auctioneer","vizier"]};
+export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc","simurgh","golem","nasnas"],4:["azhdaha","auctioneer","vizier"]};
 export const MONCHIP={1:2,2:4,3:6,4:8};

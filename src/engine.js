@@ -104,7 +104,9 @@ export function genRival(round,persona,rng,A){
   A=A||ANONE;
   const tier=Math.min(6,1+Math.ceil(round/2));
   const slots=4+tier;
-  let budget=9+round*5.5;
+  /* rival curve, approved 2026-07-11: round 1 near player parity,
+     converging on the old 9+5.5r line by the late game */
+  let budget=8+(round-1)*6;
   const scale=1+Math.max(0,round-5)*0.03;
   const ids=Object.keys(ITEMS).filter(id=>gateOK(ITEMS[id].tier,tier)&&!ITEMS[id].unique);
   const board=[];
