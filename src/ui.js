@@ -1216,8 +1216,31 @@ function initEmbers(){
     box.appendChild(e);
   }
 }
+/* the debug strip: ?debug in the URL (or bb-debug=1 in storage) pins a
+   tiny readout to the corner: build tag, PWA vs browser tab, viewport,
+   fps, and a count of elements leaking past the viewport edge. Exists
+   so phone screenshots label themselves. */
+function initDebug(){
+  let on=false;
+  try{on=/(^|[?&])debug/.test(location.search)||window.localStorage.getItem('bb-debug')==='1';}catch(e){}
+  if(!on)return;
+  const d=document.createElement('div');d.id='dbg';d.textContent='debug';
+  document.body.appendChild(d);
+  let tag='?';
+  fetch('/sw.js').then(function(r){return r.text();}).then(function(t){const m=t.match(/CACHE_V\s*=\s*'([^']+)'/);if(m)tag=m[1];}).catch(function(){});
+  let frames=0,fps=0,last=performance.now();
+  function raf(){frames++;const now=performance.now();if(now-last>=1000){fps=frames;frames=0;last=now;}requestAnimationFrame(raf);}
+  requestAnimationFrame(raf);
+  setInterval(function(){
+    let over=0;const dw=document.documentElement.clientWidth;
+    document.querySelectorAll('#app *').forEach(function(el){const r=el.getBoundingClientRect();if(r.width&&(r.right>dw+1||r.left<-1))over++;});
+    const standalone=(typeof matchMedia!=='undefined'&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+    d.textContent=tag+' '+(standalone?'PWA':'TAB')+' '+window.innerWidth+'x'+window.innerHeight+' '+fps+'fps ovf '+over;
+  },1000);
+}
 export function boot(){
   RM=(typeof matchMedia!=='undefined')&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  initDebug();
   const mb=$('muteBtn');
   if(mb){
     if(sfxMuted())mb.classList.add('off');

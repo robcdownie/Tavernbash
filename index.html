@@ -708,6 +708,9 @@
   .battleframe{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .7s ease;
     background:radial-gradient(130% 100% at 50% -10%, transparent 60%, rgba(140,28,14,.25)),radial-gradient(130% 100% at 50% 110%, transparent 60%, rgba(140,28,14,.3));}
   body.fight .battleframe{opacity:1;}
+  #dbg{position:fixed;top:calc(4px + env(safe-area-inset-top));right:calc(6px + env(safe-area-inset-right));z-index:99;
+    font-family:ui-monospace,monospace;font-size:9px;letter-spacing:.3px;color:#9ad8ef;background:rgba(0,0,0,.55);
+    padding:2px 6px;border-radius:6px;pointer-events:none;}
   .dusk{position:fixed;inset:0;z-index:60;pointer-events:none;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;
     background:radial-gradient(circle at 50% 50%, rgba(12,6,3,.55), rgba(7,3,1,.97) 72%);animation:duskin 2.2s var(--e-out) forwards;}
   .dusk .dt{font-family:"Rakkas",serif;font-size:36px;color:var(--brass-hi);letter-spacing:1px;text-shadow:0 4px 26px rgba(0,0,0,.9);}
