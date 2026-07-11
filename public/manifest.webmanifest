@@ -1,6 +1,6 @@
 {
-  "name": "Bazaar Brawler",
-  "short_name": "Bazaar",
+  "name": "Tavern Bash",
+  "short_name": "Tavern Bash",
   "description": "Night market duels. An auto-battler of stalls, storms, and unspent gold.",
   "start_url": "/",
   "scope": "/",

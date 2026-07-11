@@ -265,7 +265,7 @@ function doorsHTML(){
     +'<div class="risk">Defeat costs '+MONCHIP[M.band]+' health. Tap to fight.</div>'
    +'</div>'
    +'<div class="door safe" id="doorS">'+ic('g-door','sfi')
-    +'<div class="dn">The Quiet Door</div>'
+    +'<div class="dn">The Easy Way Out</div>'
     +'<div class="bounty">'+safeText(D.safe)+'</div>'
    +'</div>'
   +'</div>';
@@ -506,7 +506,7 @@ function takeSafe(){
   if(s.t==='gold'){G.gold+=3;}
   else if(s.t==='patch'){G.you.hp=Math.min(40,G.you.hp+4);}
   else{G.shop.push({id:s.id,free:true,bought:false});}
-  D.done=true;D.result='SAFE PATH';toast('The quiet door closes behind you.');
+  D.done=true;D.result='SAFE PATH';toast('You take the easy way out.');
   renderAll();
 }
 /* ============ FIGHT UI ============ */
