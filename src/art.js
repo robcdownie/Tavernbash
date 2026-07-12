@@ -27,6 +27,10 @@ export function applyBigArt(doc) {
     if (el) { el.style.backgroundImage = 'url(' + ART['bg-market'] + ')'; el.style.display = 'block'; }
     d.documentElement.style.setProperty('--card-art', 'url(' + ART['bg-market'] + ')');
   }
+  if (ART['bg-battle']) {
+    d.documentElement.style.setProperty('--battle-art', 'url(' + ART['bg-battle'] + ')');
+    d.documentElement.classList.add('art-battle');
+  }
   if (ART['board-wood']) {
     d.documentElement.style.setProperty('--board-art', 'url(' + ART['board-wood'] + ')');
     d.documentElement.classList.add('art-board');

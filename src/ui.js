@@ -570,7 +570,7 @@ function openGate(){
    +'<div class="kick'+(D.gilded?' gold':'')+'">'+(D.gilded?'A Gilded Door Bars the Way':'A Door Bars the Way')+'</div>'
    +'<h2 class="big" style="font-size:24px">'+BANDN[bandOf(G.round)]+'</h2>'
    +doorsHTML()
-   +'<p style="font-size:11px;color:var(--dim);margin-top:8px">Win your spoils, then the market reopens before the duel.</p></div>');
+   +'<p style="font-size:11px;color:var(--dim);margin-top:8px">Win, and the market reopens to spend your winnings before the duel.</p></div>');
   if(G.tut==='ready'){G.tut='gate';renderCoach();}
   const dm=o.querySelector('#doorM');if(dm)dm.onclick=function(){if(G.tut==='gate'){G.tut='wait';renderCoach();}ovClose(o);startMonsterFight();};
   const ds=o.querySelector('#doorS');if(ds)ds.onclick=function(){if(G.tut==='gate'){G.tut='wait';renderCoach();}ovClose(o);takeSafe();};
@@ -802,12 +802,14 @@ function endMonsterFight(F){
     bark('win');
     returnToMarket();
   }else{
+    /* a loss wins nothing to spend, so no market break: straight to the
+       duel (the winnings-shopping interlude is a reward for a win) */
     D.result='DRIVEN OFF';if(G.stats)G.stats.driven++;
     G.you.hp-=MONCHIP[M.band];
-    toast('Driven off. Lost '+MONCHIP[M.band]+' health.');
+    toast('Driven off. Lost '+MONCHIP[M.band]+' health. To the duel.');
     if(G.you.hp<=0){handleYourDeath(function(){renderAll();});return;}
     bark('loss');
-    returnToMarket();
+    proceedToDuel();
   }
 }
 /* ============ GHOST DUELS ============ */
@@ -1260,7 +1262,7 @@ function endScreen(place){
   music(null);sting('lament');
   const o=ovOpen('<div class="card"><div class="rays red"></div>'
    +'<div class="kick">The Stall Closes</div>'
-   +ic('e-skull','bigic','color:#d8c9b0')
+   +ic('g-skull','bigic skullic','')
    +'<h2 class="big bad">'+ord(place)+' of 8</h2>'
    +'<div class="score">Fell on round<b>'+G.round+'</b></div>'
    +'<div style="display:flex;gap:8px;justify-content:center;margin-top:8px">'
@@ -1368,10 +1370,10 @@ function initEmbers(){
 const TUT={
  hero:{t:'Pick your merchant. Each favors one kind of ware, and the market listens.',ov:true},
  market:{t:'The night market. Every ware fights on its own timer. Buy your first ware.',a:'.shop'},
- forge:{t:'Own three copies of one ware and they forge into a stronger one, even from the vault. Two Gold copies forge Diamond. A held pair glimmers, and the shop card that completes it glows.',next:true},
- dusk:{t:'Gold never carries over: spend it or it burns at dusk. Reroll for 1, or Freeze to keep tonight\'s shop for tomorrow.',a:'.controls',next:true},
- ready:{t:'When you are ready, tap the Duel button. Tonight\'s opponent is already decided.',a:'#btnGo'},
- gate:{t:'Every duel waits behind a door. Fight the monster for its bounty, or take the easy way out. Gold spoils arrive at dawn.',ov:true},
+ forge:{t:'Match wares to forge them stronger: three of a kind make a Silver, then two Silver a Gold, two Gold a Diamond. Fused wares keep their size, and copies in your vault count. A held pair glimmers, and the shop card that completes it glows.',next:true},
+ dusk:{t:'Gold never carries over: spend it or it burns at dusk. Reroll for 1, Freeze to hold tonight\'s shop for tomorrow, or stash a ware in the Vault behind the flip.',a:'.controls',next:true},
+ ready:{t:'When you are ready, tap To Battle. Tonight\'s opponent is already set.',a:'#btnGo'},
+ gate:{t:'A door bars the way each round. Fight the monster for its bounty, or take the easy way out. Win, and the market reopens to spend your winnings before the duel.',ov:true},
  last:{t:'Lobby health only falls when you lose, and the last stall standing takes the night. You are on your own now, merchant.',next:true}
 };
 function tutDone(){G.tut=null;try{window.localStorage.setItem('bb-tut','1');}catch(e){}renderCoach();}
