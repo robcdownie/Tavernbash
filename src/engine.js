@@ -9,10 +9,12 @@ export function gateOK(defTier,yourTier){return defTier===1||(defTier===2&&yourT
 let UID=1;
 export function makeItem(id,rarity,ench){return {uid:UID++,id:id,rarity:rarity||0,size:ITEMS[id].size,ench:ench||null};}
 export function integOf(it){return Math.round(BASEINTEG[it.size]*(ITEMS[it.id].integMul||1)*RINTEG[it.rarity]*(it.ench==="stout"?1.6:1));}
-/* three copies forge the next rarity, except Gold: a pair of Golds
-   forges Diamond (approved 2026-07-12; 27 bronze for a Diamond was
-   unreachable, 18 is a real late-game goal) */
-export function fuseNeed(rarity){return rarity===2?2:3;}
+/* fusion counts, approved 2026-07-12: 3 bronze forge a silver, then
+   2 silver a gold, 2 gold a diamond (a full diamond is 3 bronze then
+   2+2, a real late-game goal). Fused wares keep their original size
+   footprint (approved 2026-07-12): a Small stays Small through Diamond,
+   power scaling comes from the rarity multipliers, not board space. */
+export function fuseNeed(rarity){return rarity===0?3:2;}
 export function fuseScan(board){
   const forged=[];
   let again=true;
@@ -24,7 +26,7 @@ export function fuseScan(board){
       if(same.length>=fuseNeed(a.rarity)&&a.rarity<3){
         const three=same.slice(0,fuseNeed(a.rarity));
         const idx=board.indexOf(three[0]);
-        const nu={uid:UID++,id:a.id,rarity:a.rarity+1,size:Math.min(3,a.size+1),
+        const nu={uid:UID++,id:a.id,rarity:a.rarity+1,size:a.size,
           ench:three.map(t=>t.ench).find(Boolean)||null};
         for(const t of three){board.splice(board.indexOf(t),1);}
         board.splice(Math.min(idx,board.length),0,nu);
@@ -135,8 +137,9 @@ export function genRival(round,persona,rng,A){
     if(round>=8&&g<Math.min(0.5,(round-7)*0.07)){r=2;}
     else if(round>=4&&rng()<Math.min(0.6,0.18+(round-4)*0.06)){r=1;}
     const it=makeItem(pick,r);
-    if(r>0){it.size=Math.min(3,it.size+ (r>=2?2:1));}
-    if(it.size>slots-usedCells(board)){it.size=ITEMS[pick].size;it.rarity=0;}
+    /* fused wares keep their footprint now (2026-07-12), so a rival's
+       upgraded ware stays its base size too */
+    if(it.size>slots-usedCells(board)){it.rarity=0;}
     board.push(it);
     budget-=COST[ITEMS[pick].size];
   }

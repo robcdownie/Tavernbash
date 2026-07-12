@@ -392,37 +392,45 @@ test('unique wares never appear in rival boards',()=>{
   }
 });
 
-test('fusion: 3 daggers forge to 1 Silver Medium',()=>{
+test('fusion: 3 daggers forge to 1 Silver, footprint kept',()=>{
   const board=[makeItem('dagger'),makeItem('dagger'),makeItem('dagger')];
   const forged=fuseScan(board);
   assert.equal(forged.length,1);
   assert.equal(board.length,1);
   assert.equal(board[0].rarity,1,'Silver');
-  assert.equal(board[0].size,2,'Medium');
+  assert.equal(board[0].size,1,'stays Small');
 });
 
-test('fusion: 9 daggers chain to 1 Gold Large',()=>{
-  const board=[];for(let i=0;i<9;i++){board.push(makeItem('dagger'));}
+test('fusion: 3 bronze then 2 silver then 2 gold reach Diamond, still Small',()=>{
+  /* one silver from three bronze */
+  const board=[];for(let i=0;i<3;i++){board.push(makeItem('dagger'));}
+  fuseScan(board);
+  assert.equal(board.length,1);assert.equal(board[0].rarity,1,'Silver');
+  /* two silvers make a gold */
+  board.push(makeItem('dagger',1));
+  fuseScan(board);
+  assert.equal(board.length,1);assert.equal(board[0].rarity,2,'Gold');
+  /* two golds make a diamond */
+  board.push(makeItem('dagger',2));
   fuseScan(board);
   assert.equal(board.length,1);
-  assert.equal(board[0].rarity,2,'Gold');
-  assert.equal(board[0].size,3,'Large');
-});
-
-test('fusion: a pair of Golds forges Diamond (approved 2026-07-12)',()=>{
-  const board=[makeItem('dagger',2),makeItem('dagger',2)];
-  const forged=fuseScan(board);
-  assert.equal(forged.length,1);
-  assert.equal(board.length,1);
   assert.equal(board[0].rarity,3,'Diamond');
+  assert.equal(board[0].size,1,'Diamond keeps the Small footprint');
 });
 
-test('fusion: two Silvers do not forge, three still do',()=>{
+test('fusion: two Silvers now forge a Gold (2026-07-12 counts)',()=>{
   const pair=[makeItem('dagger',1),makeItem('dagger',1)];
+  const forged=fuseScan(pair);
+  assert.equal(forged.length,1);
+  assert.equal(pair[0].rarity,2,'Gold');
+});
+
+test('fusion: two bronze do not forge, three still do',()=>{
+  const pair=[makeItem('dagger'),makeItem('dagger')];
   assert.equal(fuseScan(pair).length,0);
-  const trio=[makeItem('dagger',1),makeItem('dagger',1),makeItem('dagger',1)];
+  const trio=[makeItem('dagger'),makeItem('dagger'),makeItem('dagger')];
   assert.equal(fuseScan(trio).length,1);
-  assert.equal(trio[0].rarity,2,'Gold');
+  assert.equal(trio[0].rarity,1,'Silver');
 });
 
 test('Debt Collector gains exactly +150 HP and +20 damage at 10 held gold',()=>{

@@ -570,19 +570,18 @@ function openGate(){
    +'<div class="kick'+(D.gilded?' gold':'')+'">'+(D.gilded?'A Gilded Door Bars the Way':'A Door Bars the Way')+'</div>'
    +'<h2 class="big" style="font-size:24px">'+BANDN[bandOf(G.round)]+'</h2>'
    +doorsHTML()
-   +'<p style="font-size:11px;color:var(--dim);margin-top:8px">Gold spoils arrive at dawn. Tonight, the duel.</p></div>');
+   +'<p style="font-size:11px;color:var(--dim);margin-top:8px">Win your spoils, then the market reopens before the duel.</p></div>');
   if(G.tut==='ready'){G.tut='gate';renderCoach();}
   const dm=o.querySelector('#doorM');if(dm)dm.onclick=function(){if(G.tut==='gate'){G.tut='wait';renderCoach();}ovClose(o);startMonsterFight();};
   const ds=o.querySelector('#doorS');if(ds)ds.onclick=function(){if(G.tut==='gate'){G.tut='wait';renderCoach();}ovClose(o);takeSafe();};
 }
 function takeSafe(){
   const D=G.door;if(D.done||G.phase!=='draft')return;const s=D.safe;
-  if(s.t==='gold'){G.spoils=(G.spoils||0)+3;toast('You take the easy way out. 3 gold at dawn.');}
+  if(s.t==='gold'){G.gold+=3;toast('You take the easy way out. 3 gold.');}
   else if(s.t==='patch'){G.you.hp=Math.min(40,G.you.hp+4);toast('You take the easy way out. 4 health mended.');}
-  else{G.shop.push({id:s.id,free:true,bought:false});toast('You take the easy way out. A free '+ITEMS[s.id].n+' waits in tomorrow\'s market.');}
+  else{G.shop.push({id:s.id,free:true,bought:false});toast('You take the easy way out. A free '+ITEMS[s.id].n+' in the market.');}
   D.done=true;D.result='SAFE PATH';if(G.stats)G.stats.safe++;
-  renderAll();
-  proceedToDuel();
+  returnToMarket();
 }
 /* ============ FIGHT UI ============ */
 function fighterHTML(s,side){
@@ -766,9 +765,16 @@ function startMonsterFight(){
   const me={nm:'You',portrait:G.you.p,hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
   startFight(me,foe,{onEnd:endMonsterFight,stormAt:M.stormAt?M.stormAt*1000:0,boss:M.band===4});
 }
+/* the market reopens between the door and the duel so winnings can be
+   spent before the real opponent; a second To Battle runs the duel */
+function returnToMarket(){
+  G.phase='draft';G.sel=null;
+  snapshotRun();renderAll();
+  toast('The market reopens. Spend your winnings, then face '+(G.nextOpp?shortName(G.nextOpp.n):'the Departed')+'.');
+}
 function endMonsterFight(F){
   const D=G.door;const M=MONSTERS[D.mid];D.done=true;G.phase='draft';
-  if(F.lotPaid){G.spoils=(G.spoils||0)+F.lotPaid;toast('The Auctioneer owes you '+F.lotPaid+' gold, paid at dawn.');}
+  if(F.lotPaid){G.gold+=F.lotPaid;toast('The Auctioneer paid you '+F.lotPaid+' gold for your wares.');}
   if(F.winner==='a'){
     D.result='SLAIN';if(G.stats)G.stats.slain++;
     const b=M.bounty;
@@ -781,29 +787,27 @@ function endMonsterFight(F){
       if(drained>0){toast('The monkey kept '+drained+' gold of the bounty.');}
     }
     if(coin<1)coin=1;
-    G.spoils=(G.spoils||0)+coin;
+    G.gold+=coin;
     if(b.items){b.items.forEach(function(id){G.shop.push({id:id,free:true,bought:false});});}
     if(b.relic&&G.enteredGold>=8){G.relicIncome+=1;toast('Income relic: +1 gold every round');}
     if(b.mote){
       const counts={};G.board.forEach(function(it){if(it.rarity===0&&!ITEMS[it.id].unique)counts[it.id]=(counts[it.id]||0)+1;});
       let best=null;Object.keys(counts).forEach(function(id){if(!best||counts[id]>counts[best])best=id;});
       if(best){G.shop.push({id:best,free:true,bought:false});}
-      else{G.spoils+=3;toast('The mote found nothing bronze to copy. 3 gold at dawn instead.');}
+      else{G.gold+=3;toast('The mote found nothing bronze to copy. 3 gold instead.');}
     }
-    if(b.gild){renderAll();openGild('The mirror bows. Gild one ware.',proceedToDuel);return;}
-    if(b.pickUnique){renderAll();openUniquePick('The vault opens. Take one.',proceedToDuel);return;}
-    toast(M.n+' slain. '+coin+' gold at dawn'+(b.items?', bounty wares in tomorrow\'s market':'')+'.');
-    renderAll();
+    if(b.gild){renderAll();openGild('The mirror bows. Gild one ware.',returnToMarket);return;}
+    if(b.pickUnique){renderAll();openUniquePick('The vault opens. Take one.',returnToMarket);return;}
+    toast(M.n+' slain. '+coin+' gold'+(b.items?', bounty wares in the market':'')+'.');
     bark('win');
-    proceedToDuel();
+    returnToMarket();
   }else{
     D.result='DRIVEN OFF';if(G.stats)G.stats.driven++;
     G.you.hp-=MONCHIP[M.band];
-    toast('Driven off. Lost '+MONCHIP[M.band]+' health. The duel still waits.');
+    toast('Driven off. Lost '+MONCHIP[M.band]+' health.');
     if(G.you.hp<=0){handleYourDeath(function(){renderAll();});return;}
-    renderAll();
     bark('loss');
-    proceedToDuel();
+    returnToMarket();
   }
 }
 /* ============ GHOST DUELS ============ */
@@ -999,7 +1003,9 @@ function rollShop(){
     let r=G.rng()*tot,pick=ids[0];
     for(let i=0;i<ids.length;i++){r-=ws[i];if(r<=0){pick=ids[i];break;}}
     let ench=null;
-    if(G.rng()<ENCH_CHANCE){
+    /* no enchanted wares in the Back Alleys (rounds 1 to 3): early
+       gold is too tight to ever afford the premium */
+    if(G.round>=4&&G.rng()<ENCH_CHANCE){
       const d2=ITEMS[pick];
       const opts=Object.keys(ENCH).filter(function(e){
         const req=ENCH[e].need;
@@ -1105,10 +1111,15 @@ function handleYourDeath(cont){
   }
 }
 function openShrine(cont){
+  /* three parallel boons on distinct axes: power, economy, tempo, each
+     with a sensible fallback when it cannot apply */
   const boons=[
-   {n:'Gild a Ware',d:'Raise one item a rarity',g:'g-gem',f:function(){openGild('Choose a ware to gild',cont);}},
-   {n:'Coin Blessing',d:'+8 gold now, +1 income forever',g:'g-coin',f:function(){G.gold+=8;G.relicIncome+=1;cont();renderAll();}},
-   {n:'Free Ascent',d:(G.tier<6?'Tier up at no cost':'+6 gold instead'),g:'g-lantern',f:function(){if(G.tier<6){G.tier++;G.tierCost=TIERCOST[G.tier+1]||0;}else{G.gold+=6;}cont();renderAll();}}
+   {n:'Gild a Ware',d:(G.board.length?'Raise one ware a rarity':'+5 gold (no wares)'),g:'g-gem',
+    f:function(){if(G.board.length){openGild('Choose a ware to gild',cont);}else{G.gold+=5;cont();renderAll();}}},
+   {n:'Merchant Blessing',d:'+1 income forever, +4 gold now',g:'g-coin',
+    f:function(){G.relicIncome+=1;G.gold+=4;cont();renderAll();}},
+   {n:'Free Ascent',d:(G.tier<6?'Tier up at no cost':'+1 income forever'),g:'g-lantern',
+    f:function(){if(G.tier<6){G.tier++;G.tierCost=TIERCOST[G.tier+1]||0;}else{G.relicIncome+=1;}cont();renderAll();}}
   ];
   const o=ovOpen('<div class="card"><div class="rays"></div>'
    +'<div class="kick gold">The Quqnus Rises</div>'
@@ -1148,7 +1159,7 @@ function openUniquePick(msg,cont){
       &&!G.board.some(function(b){return b.id===id;})
       &&!G.shop.some(function(w){return w.id===id&&!w.bought;});
   });
-  if(!ids.length){G.spoils=(G.spoils||0)+10;toast('The vault is bare. 10 gold at dawn instead.');renderAll();if(cont)cont();return;}
+  if(!ids.length){G.gold+=10;toast('The vault is bare. 10 gold instead.');renderAll();if(cont)cont();return;}
   const o=ovOpen('<div class="card"><div class="rays"></div>'
    +'<div class="kick gold">The Vault</div>'
    +'<h2 class="big" style="font-size:23px">'+msg+'</h2>'
@@ -1175,23 +1186,50 @@ function coinRain(box){
     box.appendChild(s);
   }
 }
-/* the run report: one tap turns a finished run into a paste-ready
-   block for the standing playtest doc */
+/* the run report: one tap turns a finished run into an Obsidian
+   callout with dataview inline fields, ready to paste into the
+   standing playtest note */
 function runReport(place){
   const H=heroOf();
   const item=function(it){return RNAME[it.rarity]+' '+(it.ench?ENCH[it.ench].n+' ':'')+ITEMS[it.id].n;};
-  return [
-   'Tavern Bash v'+pkg.version+' run, '+new Date().toISOString().slice(0,16).replace('T',' '),
-   'Result: '+(place===1?'Champion':ord(place)+' of 8')+', '+(place===1?'won':'fell')+' round '+G.round,
-   'Hero: '+(H?H.n:'none'),
-   'Tier '+G.tier+', lobby health '+Math.max(0,G.you.hp)+', gold at end '+G.gold+(G.spoils?' plus '+G.spoils+' spoils pending':''),
-   'Omen: '+G.anom.n+'; featured '+CATN[G.tags[0]]+' and '+CATN[G.tags[1]],
-   'Stall: '+(G.board.length?G.board.map(item).join(', '):'empty'),
-   'Vault: '+(G.vault.length?G.vault.map(item).join(', '):'empty'),
-   'Charms: '+(G.trinkets.length?G.trinkets.map(function(t){return t.n;}).join(', '):'none'),
-   'Doors: '+(G.stats?(G.stats.slain+' slain, '+G.stats.driven+' driven off, '+G.stats.safe+' easy ways out'):'untracked'),
-   'Shrine: '+(G.you.shrine?'used':'unused')
-  ].join('\n');
+  const list=function(arr,map){return arr.length?arr.map(map).join(', '):'none';};
+  const st=G.stats||{slain:0,driven:0,safe:0};
+  const L=[
+   '> [!abstract] Tavern Bash Run Summary',
+   '> **Game**:: Tavern Bash',
+   '> **Version**:: '+pkg.version,
+   '> **Date**:: '+new Date().toISOString().slice(0,16).replace('T',' '),
+   '> ',
+   '> ---',
+   '> ### Hero & Placement',
+   '> **Hero**:: '+(H?H.n:'none'),
+   '> **Rank**:: '+place,
+   '> **Lobby Size**:: 8',
+   '> **Round Fell**:: '+G.round,
+   '> **Tier**:: '+G.tier,
+   '> **Lobby Health**:: '+Math.max(0,G.you.hp),
+   '> **End Gold**:: '+G.gold,
+   '> **Spoils Pending**:: '+(G.spoils||0),
+   '> ',
+   '> ---',
+   '> ### Omen & Environment',
+   '> **Omen**:: '+G.anom.n,
+   '> **Featured**:: '+CATN[G.tags[0]]+', '+CATN[G.tags[1]],
+   '> ',
+   '> ---',
+   '> ### Loadout',
+   '> **Stall**:: '+list(G.board,item),
+   '> **Vault**:: '+list(G.vault,item),
+   '> **Charms**:: '+list(G.trinkets,function(t){return t.n;}),
+   '> ',
+   '> ---',
+   '> ### Stats',
+   '> **Doors Slain**:: '+st.slain,
+   '> **Doors Driven Off**:: '+st.driven,
+   '> **Easy Ways Out**:: '+st.safe,
+   '> **Shrine Used**:: '+(G.you.shrine?'true':'false')
+  ];
+  return L.join('\n');
 }
 function showReport(txt){
   const o=ovOpen('<div class="card"><div class="kick gold">Run Report</div>'
