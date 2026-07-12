@@ -849,13 +849,14 @@
     background:url('/art/ui/btn_stone.png') center/100% 100% no-repeat;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));
     transition:transform .09s var(--e-out);}
   .stonebtn:active{transform:translateY(1px) scale(.98);}
-  /* portrait shows the painted nameplate; landscape crops to the dragon
-     and shows our overlaid title instead so nothing is clipped */
+  /* portrait uses the tall painting with its baked nameplate; landscape
+     uses the wide painting fit whole (dark vignette edges blend the
+     letterbox), buttons dropped onto its painted plaques */
   @media (orientation:portrait){#intro{justify-content:flex-end;}}
   @media (orientation:landscape){
-    #intro{background-position:center 56%;}
-    #intro .ititle{display:block;font-size:44px;}
-    #intro .ibtns{margin-bottom:calc(12px + env(safe-area-inset-bottom));}
+    #intro{justify-content:flex-end;background-image:url('/art/bg/bg_intro_wide.png');background-position:center;background-size:contain;}
+    #intro .ibtns{width:min(58vw,560px);gap:min(6vw,64px);margin-bottom:min(4vh,26px);}
+    #intro .stonebtn{height:min(15vh,82px);font-size:min(4.4vh,30px);}
   }
   #dbg{position:fixed;top:calc(4px + env(safe-area-inset-top));right:calc(6px + env(safe-area-inset-right));z-index:99;
     font-family:ui-monospace,monospace;font-size:9px;letter-spacing:.3px;color:#9ad8ef;background:rgba(0,0,0,.55);

@@ -23,7 +23,7 @@ test('every painted art file maps to a glyph id the game actually uses', () => {
   for (const p of PERSONAS) known.add(p.p);
   for (const h of HEROES) known.add(h.g);
   known.add('p-0');
-  for (const id of ['frame-bronze','frame-silver','frame-gold','frame-diamond','board-wood','bg-market','bg-intro',
+  for (const id of ['frame-bronze','frame-silver','frame-gold','frame-diamond','board-wood','bg-market','bg-intro','bg-intro-wide',
                     'music-market','music-battle','music-title','music-boss',
                     'music-dawnsting','music-fanfarewin','music-forgesting','music-lament','music-windstorm',
                     'g-coin','g-heart','g-gem','g-crown','g-door','g-lantern','g-phoenix','g-medallion','g-btn_stone','g-door_monster','g-door_safe']) known.add(id);
