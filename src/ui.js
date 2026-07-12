@@ -7,7 +7,7 @@ import {ic} from './art.js';
 import {ART} from './art-manifest.js';
 import {fxHit,fxDestroy,fxForge,fxCoinRain,fxStorm} from './fx.js';
 import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxToggle,sfxMuted} from './sfx.js';
-import {initMusic,music,musicMute,sting} from './music.js';
+import {initMusic,music,musicMute,sting,musicNow} from './music.js';
 import pkg from '../package.json';
 /* ============ SESSION + UI PRIMITIVES ============ */
 let G=null;let RM=false;const BEST={place:null,round:0};
@@ -1416,6 +1416,6 @@ export function boot(){
   if(typeof location!=='undefined'&&location.hostname.match(/^(localhost|127\.)/)){
     globalThis.BBDEV={g:function(){return G;},rollDoor:rollDoor,rollShop:rollShop,renderAll:renderAll,
       openUniquePick:openUniquePick,bandOf:bandOf,startMonsterFight:startMonsterFight,bark:bark,
-      runReport:runReport,endScreen:endScreen};
+      runReport:runReport,endScreen:endScreen,music:music,musicNow:musicNow};
   }
 }

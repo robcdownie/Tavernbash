@@ -666,7 +666,11 @@
   .dock .cell.it .gi{filter:drop-shadow(0 5px 4px rgba(0,0,0,.55));}
   .dock .cell.empty,.dock .cell.lock{background:rgba(10,5,2,.32);box-shadow:inset 0 3px 8px rgba(0,0,0,.5);}
   .stage{background:linear-gradient(180deg, rgba(27,19,47,.14), transparent 26%);}
-  .door{border-radius:44px 44px 13px 13px;padding-top:12px;}
+  /* painted doors carry their own arch now, so the card is a clean
+     rounded rect; the big 44px top curve used to clip the health text */
+  .door{border-radius:16px;padding:12px 13px;}
+  .door .dh{align-items:flex-start;}
+  .door .dhp{padding-left:6px;}
   .door.mon{border-top:2px solid var(--bandc);}
   .door.safe{border-top:2px solid rgba(216,162,74,.5);}
   .door .dh .md{box-shadow:0 0 0 2px rgba(216,162,74,.35), 0 6px 14px rgba(0,0,0,.5);border-radius:50%;}
@@ -990,7 +994,10 @@
     #ribbon .heroP .hpv{display:block;width:100%;height:92px;}
     #ribbon .heroP::after{content:"";position:absolute;inset:auto 0 0 0;height:34px;
       background:linear-gradient(180deg, transparent, rgba(29,20,9,.95));pointer-events:none;}
-    /* fights hide the rail (rule above); the duel takes the full width */
+    /* fights hide the rail and reclaim its column; this must sit after
+       the body.run #ribbon rule above to win on source order */
+    body.fight #app{grid-template-columns:minmax(0,1fr);}
+    body.fight #ribbon{display:none;}
     body.fight #main{grid-column:1 / -1;}
   }
 </style>

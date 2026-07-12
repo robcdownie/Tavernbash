@@ -12,8 +12,8 @@
    toggle as sfx via musicMute. */
 import {ART} from './art-manifest.js';
 
-const XFADE=2.2, VOL=0.32;
-let ctx=null, out=null, muted=false, want=null, cur=null, bufs={}, loading={}, timer=null;
+const XFADE=1.2, VOL=0.32;
+let ctx=null, out=null, muted=false, want=null, cur=null, bufs={}, loading={};
 
 export function initMusic(startMuted){
   if(typeof document==='undefined')return;
@@ -48,33 +48,27 @@ async function load(name){
   return loading[name];
 }
 
+/* one looping source per track, faded in. Only one plays at a time, so
+   switching tracks can hard-stop the outgoing one and nothing bleeds
+   through (the old overlapping-crossfade design leaked market audio into
+   fights on iOS, where orphaned sources would not stop). */
 function startLoop(buf){
-  /* one pass of the buffer with a fade at both ends; reschedules itself
-     XFADE seconds before it ends so the next pass overlaps */
   const t=ctx.currentTime;
-  const s=ctx.createBufferSource();s.buffer=buf;
+  const s=ctx.createBufferSource();s.buffer=buf;s.loop=true;
   const g=ctx.createGain();
   g.gain.setValueAtTime(0,t);
   g.gain.linearRampToValueAtTime(1,t+XFADE);
-  g.gain.setValueAtTime(1,t+buf.duration-XFADE);
-  g.gain.linearRampToValueAtTime(0,t+buf.duration);
   s.connect(g);g.connect(out);s.start(t);
-  return {src:s,g:g,until:t+buf.duration};
-}
-function schedule(name,buf){
-  const pass=startLoop(buf);
-  cur={name:name,pass:pass};
-  const waitMs=Math.max(200,(buf.duration-XFADE)*1000);
-  timer=setTimeout(function(){if(cur&&cur.name===name)schedule(name,buf);},waitMs);
+  return {src:s,g:g};
 }
 function stopCur(){
-  if(timer){clearTimeout(timer);timer=null;}
   if(cur&&cur.pass){
     const p=cur.pass,t=ctx.currentTime;
     p.g.gain.cancelScheduledValues(t);
     p.g.gain.setValueAtTime(p.g.gain.value,t);
-    p.g.gain.linearRampToValueAtTime(0,t+XFADE*.6);
-    setTimeout(function(){try{p.src.stop();}catch(e){}},XFADE*700);
+    p.g.gain.linearRampToValueAtTime(0,t+XFADE);
+    /* hard stop after the fade, and again as a belt-and-braces guard */
+    setTimeout(function(){try{p.src.stop();}catch(e){}try{p.src.disconnect();}catch(e){}},XFADE*1000+80);
   }
   cur=null;
 }
@@ -84,7 +78,7 @@ async function playTrack(name){
   if(!buf||want!==name)return;
   if(cur&&cur.name===name)return;
   stopCur();
-  schedule(name,buf);
+  cur={name:name,pass:startLoop(buf)};
 }
 export function music(name){
   /* market, battle, title, boss, or null to stop */
