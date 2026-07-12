@@ -1,6 +1,6 @@
 # Tavern Bash (repo: bazaar-brawler)
 
-A mobile auto-battler set in a Persian night market. The display name became Tavern Bash in 0.38.1; the repo, URLs, and internal ids keep the old name. This repo is self-contained and independent of Robbie's second-brain vault; nothing here should be written there, and nothing there is needed here.
+A mobile auto-battler set in a Persian night market. The display name became Tavern Bash in 0.38.1; the repo, URLs, and internal ids keep the old name. 0.53.0 was the clean hands pass, scrubbing names that collided with other games' properties (all internal ids unchanged, deviations recorded in the parity test's rename ledgers): Bazaar Crossbow to Souk Crossbow, Bazaar Rats to Souk Rats, the Venomancer charm to Poisonmonger (Dota hero name), enchants Fiery and Icy to Blazing and Frosted (The Bazaar's enchant names), the sandstorm to the simoom everywhere players see it, and the display words Trinkets and Anomaly to Charms and Omen (both are Hearthstone Battlegrounds seasonal mechanic names). Flagged and unresolved: the title Tavern Bash sits close to Hearthstone's Tavern Brawl and Bob's Tavern; Robbie is choosing whether to rename. This repo is self-contained and independent of Robbie's second-brain vault; nothing here should be written there, and nothing there is needed here.
 
 ## Source of truth
 

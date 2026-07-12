@@ -29,6 +29,15 @@ const REBALANCED_ITEMS={
   serpent:{cd:3.5,fx:{dmg:6,poison:2}},
   vial:{cd:3.5,fx:{poison:2}},
   venom:{cd:4.5,fx:{poison:5}},
+  /* 2026-07-12, the clean hands pass, approved by Robbie: names that
+     collided with The Bazaar or Dota properties were renamed */
+  crossbow:{n:"Souk Crossbow"},
+};
+const RENAMED_MONSTERS={
+  rats:{n:"Souk Rats"},
+};
+const RENAMED_TRINKETS={
+  venomancer:{n:"Poisonmonger"},
 };
 
 /* Combat-engine parity. Rival generation is deliberately retuned, so
@@ -89,9 +98,16 @@ test('parity: data tables identical to the original outside the rebalance ledger
   }
   for(const k of Object.keys(ITEMS)){if(!(k in ORIG.ITEMS))assert.ok(ITEMS[k].unique,'new item '+k+' must be flagged unique');}
   /* Phase 5 adds monsters the original never shipped; every monster the
-     original did ship must stay byte-identical */
-  for(const k of Object.keys(ORIG.MONSTERS)){assert.deepEqual(j(MONSTERS[k]),j(ORIG.MONSTERS[k]),'monster '+k);}
-  assert.deepEqual(j(TRINKETS),j(ORIG.TRINKETS));
+     original did ship must stay byte-identical outside the rename ledger */
+  for(const k of Object.keys(ORIG.MONSTERS)){
+    const expected=Object.assign(j(ORIG.MONSTERS[k]),j(RENAMED_MONSTERS[k]||{}));
+    assert.deepEqual(j(MONSTERS[k]),expected,'monster '+k);
+  }
+  for(const ot of ORIG.TRINKETS){
+    const now=TRINKETS.filter(function(t){return t.id===ot.id;})[0];
+    const expected=Object.assign(j(ot),j(RENAMED_TRINKETS[ot.id]||{}));
+    assert.deepEqual(j(now),expected,'trinket '+ot.id);
+  }
   assert.deepEqual(j(ANOMALIES),j(ORIG.ANOMALIES));
   assert.deepEqual(j(PERSONAS),j(ORIG.PERSONAS));
   assert.deepEqual(j(ANONE),j(ORIG.ANONE));

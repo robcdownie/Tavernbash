@@ -17,7 +17,7 @@ export const ITEMS={
  sword:{n:"Iron Sword",size:1,tier:1,cat:"dmg",cd:3.5,fx:{dmg:11},d:"The backbone of any stall."},
  fangs:{n:"Twin Fangs",size:1,tier:2,cat:"dmg",cd:2,fx:{dmg:9},d:"Fast little bites."},
  mace:{n:"Spiked Mace",size:2,tier:2,cat:"dmg",cd:4.5,fx:{dmg:24},d:"Slow, heavy, convincing."},
- crossbow:{n:"Bazaar Crossbow",size:2,tier:2,cat:"dmg",cd:3,fx:{dmg:15},d:"Steady bolts over the crowd."},
+ crossbow:{n:"Souk Crossbow",size:2,tier:2,cat:"dmg",cd:3,fx:{dmg:15},d:"Steady bolts over the crowd."},
  hammer:{n:"Warhammer",size:3,tier:3,cat:"dmg",cd:5.5,fx:{dmg:42},d:"One swing settles most arguments."},
  /* poison trim, approved 2026-07-11: serpent 3 to 2, vial cd 3 to 3.5,
     venom 7 to 5; recorded in the parity test's rebalance ledger */
@@ -95,9 +95,9 @@ export const HEROES=[
    null fits any ware. Riders are applied in playerFightItems; rivals
    never roll enchants, so fight parity holds. */
 export const ENCH={
- fiery:{n:"Fiery",c:"#e0863a",need:"dmg",d:"Adds burn equal to a third of its damage."},
+ fiery:{n:"Blazing",c:"#e0863a",need:"dmg",d:"Adds burn equal to a third of its damage."},
  venomous:{n:"Venomous",c:"#9dbb45",need:"cd",d:"Adds poison with every activation."},
- icy:{n:"Icy",c:"#9ad8ef",need:"cd",d:"Its first strike freezes the enemy's leftmost ware for 2 s."},
+ icy:{n:"Frosted",c:"#9ad8ef",need:"cd",d:"Its first strike freezes the enemy's leftmost ware for 2 s."},
  stout:{n:"Stout",c:"#b9c4d0",need:null,d:"Integrity raised by 60%."},
  swift:{n:"Swift",c:"#f4cf7c",need:"cd",d:"Cooldown 15% faster."},
  winged:{n:"Winged",c:"#e8eef4",need:null,d:"It flies; enemy weapons cannot reach it."}
@@ -107,7 +107,7 @@ export const ENCH_CHANCE=0.12, ENCH_PREMIUM=3;
 export const TRINKETS=[
  {id:"smith",n:"Master Smith",tag:"dmg",g:"g-whetstone",d:"Your weapons strike for +5.",mod:{weaponFlat:5}},
  {id:"sharp",n:"Sharpshooter",tag:"dmg",g:"g-crossbow",d:"Your leftmost item works at double strength.",mod:{firstDouble:true}},
- {id:"venomancer",n:"Venomancer",tag:"poison",g:"g-venom",d:"Your poison is 60% stronger.",mod:{poisonMul:1.6}},
+ {id:"venomancer",n:"Poisonmonger",tag:"poison",g:"g-venom",d:"Your poison is 60% stronger.",mod:{poisonMul:1.6}},
  {id:"pyro",n:"Pyromancer",tag:"burn",g:"g-magma",d:"Your burn is 60% stronger.",mod:{burnMul:1.6}},
  {id:"ironhide",n:"Ironhide Charm",tag:"shield",g:"g-aegis",d:"+30 fight health every battle.",mod:{hpFlat:30}},
  {id:"bulwarkf",n:"Bulwark Faith",tag:"shield",g:"g-brassbuckler",d:"Your shields are half again as strong.",mod:{shieldMul:1.5}},
@@ -142,7 +142,7 @@ export const MONSTERS={
  imp:{n:"Lamp Imp",band:1,hp:40,tag:"burn",glyph:"m-imp",fl:"It steals wicks and grins about it.",
    bounty:{gold:3,items:["dagger"]},
    board:[{nm:"Ember Spark",g:"g-torch",size:1,cd:3,integ:10,fx:{dmg:4}}]},
- rats:{n:"Bazaar Rats",band:1,hp:45,tag:"dmg",glyph:"m-rats",fl:"Four sets of teeth, one appetite.",
+ rats:{n:"Souk Rats",band:1,hp:45,tag:"dmg",glyph:"m-rats",fl:"Four sets of teeth, one appetite.",
    bounty:{items:["fangs","dagger"]},
    board:[{nm:"Rat Fangs",g:"g-fangs",size:1,cd:2.5,integ:8,fx:{dmg:2}},{nm:"Rat Fangs",g:"g-fangs",size:1,cd:2.5,integ:8,fx:{dmg:2}},{nm:"Rat Fangs",g:"g-fangs",size:1,cd:2.5,integ:8,fx:{dmg:2}},{nm:"Rat Fangs",g:"g-fangs",size:1,cd:2.5,integ:8,fx:{dmg:2}}]},
  ghul:{n:"Rust Ghul",band:1,hp:60,tag:"dmg",glyph:"m-ghul",fl:"Its cleaver hungers for your finest.",

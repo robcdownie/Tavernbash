@@ -207,14 +207,14 @@ function openStandings(){
   o.onclick=function(){ovClose(o);};
 }
 function openAnoInfo(){
-  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick">Anomaly</div>'
+  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick">Tonight\'s Omen</div>'
    +ic(G.anom.g,'bigic')+'<h2 class="big" style="font-size:25px">'+G.anom.n+'</h2>'
    +'<p>'+G.anom.d+'</p><p>Featured wares: <b>'+CATN[G.tags[0]]+' + '+CATN[G.tags[1]]+'</b></p>'
    +'<p style="opacity:.7">Tap anywhere to close</p></div>');
   o.onclick=function(){ovClose(o);};
 }
 function openTrkInfo(){
-  const o=ovOpen('<div class="card"><div class="kick gold">Trinkets</div>'
+  const o=ovOpen('<div class="card"><div class="kick gold">Charms</div>'
    +'<h2 class="big" style="font-size:23px">Your Charms</h2>'
    +G.trinkets.map(function(t){return '<p><b>'+t.n+'</b> '+t.d+'</p>';}).join('')
    +'<p style="opacity:.7">Tap anywhere to close</p></div>');
@@ -648,7 +648,7 @@ function paintFight(F){
   });
   const st=$('stormT');const sc=$('storm');
   if(st&&sc){
-    if(F.stormOn){sc.classList.add('live');st.textContent='SANDSTORM';$('sand').classList.add('on');}
+    if(F.stormOn){sc.classList.add('live');st.textContent='SIMOOM';$('sand').classList.add('on');}
     else{st.textContent='Storm '+Math.max(0,Math.ceil((F.stormAt-F.t)/1000))+'s';}
   }
 }
@@ -686,7 +686,7 @@ function handleEvents(F,evs){
     else if(e.k==='lot'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('lot');logLine('<b class="y">SOLD: '+esc(e.nm)+'</b> leaves the fight','e-clock','#e8c27a');}
     else if(e.k==='lotpay'){fltFx(e.side,'+'+e.amt+'g','#e8c27a','e-bolt',false);}
     else if(e.k==='spawn'){const c=$('fc-'+e.side+'-'+e.i);const S=e.side==='a'?F.a:F.b;if(c&&S.items[e.i]){c.outerHTML=fightCellHTML(S.items[e.i],e.i,e.side);}logLine('<b class="t">'+esc(e.nm)+'</b> emerges','e-skull','#9dbb45');sDestroy();}
-    else if(e.k==='stormstart'){logLine('<b class="y">The sandstorm arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);sStorm(true);}
+    else if(e.k==='stormstart'){logLine('<b class="y">The simoom arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);sStorm(true);}
   }
 }
 function startFight(me,foe,opts){
@@ -1076,13 +1076,13 @@ function openTrinkets(cont){
   if(!offers.length){cont();return;}
   const o=ovOpen('<div class="card"><div class="rays"></div>'
    +'<div class="kick gold">Round '+G.round+' Caravan</div>'
-   +'<h2 class="big">Choose a Trinket</h2><p>A permanent boon for this run. Offers lean toward your stall.</p>'
+   +'<h2 class="big">Choose a Charm</h2><p>A permanent boon for this run. Offers lean toward your stall.</p>'
    +'<div class="picks">'+offers.map(function(t,i){return '<div class="pick" data-t="'+i+'" style="animation-delay:'+(i*60)+'ms"><div class="ph2">'+ic(t.g,'','width:30px;height:30px')+'</div><div class="pn">'+t.n+'</div><div class="pd">'+t.d+'</div></div>';}).join('')+'</div></div>');
   o.querySelectorAll('.pick').forEach(function(p){
     p.onclick=function(){
       const t=offers[+p.dataset.t];
       G.trinkets.push(t);computeT();
-      toast('Trinket: '+t.n);
+      toast('Charm: '+t.n);
       ovClose(o);cont();
     };
   });
@@ -1184,10 +1184,10 @@ function runReport(place){
    'Result: '+(place===1?'Champion':ord(place)+' of 8')+', '+(place===1?'won':'fell')+' round '+G.round,
    'Hero: '+(H?H.n:'none'),
    'Tier '+G.tier+', lobby health '+Math.max(0,G.you.hp)+', gold at end '+G.gold+(G.spoils?' plus '+G.spoils+' spoils pending':''),
-   'Anomaly: '+G.anom.n+'; featured '+CATN[G.tags[0]]+' and '+CATN[G.tags[1]],
+   'Omen: '+G.anom.n+'; featured '+CATN[G.tags[0]]+' and '+CATN[G.tags[1]],
    'Stall: '+(G.board.length?G.board.map(item).join(', '):'empty'),
    'Vault: '+(G.vault.length?G.vault.map(item).join(', '):'empty'),
-   'Trinkets: '+(G.trinkets.length?G.trinkets.map(function(t){return t.n;}).join(', '):'none'),
+   'Charms: '+(G.trinkets.length?G.trinkets.map(function(t){return t.n;}).join(', '):'none'),
    'Doors: '+(G.stats?(G.stats.slain+' slain, '+G.stats.driven+' driven off, '+G.stats.safe+' easy ways out'):'untracked'),
    'Shrine: '+(G.you.shrine?'used':'unused')
   ].join('\n');
