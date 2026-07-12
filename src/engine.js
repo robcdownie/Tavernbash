@@ -66,9 +66,13 @@ export function playerFightItems(board,T,A,scale){
     if(def.fx&&def.fx.reload){fx.reload=def.fx.reload;}
     if(def.fx&&def.fx.disable){fx.disable=true;}
     /* enchant riders, all built from existing keywords */
+    /* enchant riders now run their own keyword's multipliers so a Wildfire
+       or Plague night affects them like any burn or poison (consistency fix
+       2026-07-12); they skip the leftmost first-double to avoid the spike
+       the review flagged */
     const en=it.ench;
-    if(en==="fiery"&&fx.dmg){fx.burn=(fx.burn||0)+Math.max(1,Math.round(fx.dmg/3));}
-    if(en==="venomous"){fx.poison=(fx.poison||0)+Math.max(1,Math.round(2*rs));}
+    if(en==="fiery"&&fx.dmg){fx.burn=(fx.burn||0)+Math.max(1,Math.round((fx.dmg/3)*(T.burnMul||1)*A.burnMul));}
+    if(en==="venomous"){fx.poison=(fx.poison||0)+Math.max(1,Math.round(2*rs*(T.poisonMul||1)*A.poisonMul));}
     if(en==="winged"){fly=true;}
     return {nm:(en?ENCH[en].n+" ":"")+def.n,g:"g-"+it.id,size:it.size,rarity:it.rarity,cat:def.cat,tier:def.tier,
       cd:def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd*(en==="swift"?0.85:1))):0,

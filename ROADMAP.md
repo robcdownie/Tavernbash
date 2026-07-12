@@ -6,7 +6,21 @@ type: roadmap
 
 # Tavern Bash roadmap
 
-Current build: 0.54.3, live on the test site (https://bazaar-brawler-v1.netlify.app, CACHE_V bb-v28). Tests green at 70. The full backlog bestiary, every system, art, the nine-track Suno score, the tutorial, and the landscape UI are all in. What remains is judgment and polish, not new systems.
+Current build: 0.57.0. The full backlog bestiary, every system, art, the nine-track Suno score, the tutorial, and the landscape UI are all in. As of 0.57 the combat sim has had its structural stabilization pass; what remains is a chosen product pivot plus judgment and polish.
+
+## The big direction, decided 2026-07-12
+
+An adversarial code+design review (`tavern_bash_adversarial_review.md`, `tavern_bash_roadmaps_bug_ui_fixes.md`, both in the session uploads) landed two forks. Robbie's calls:
+
+1. **Product identity: single-player roguelite, not a persistent-rival lobby.** The 8-CPU lobby with fresh random rival boards was the review's #1 flaw ("the lobby is functionally fake"). Rather than build persistent rival economies/AI, Robbie chose to lean into the Persian-market roguelite: routes through the city, handcrafted encounters, bosses that test mechanics, run health, doors as branches. This is the next structural arc (Roadmap B in the review). It means eventually: drop the fake lobby simulation, replace placement with route progress, make rival duels authored encounters, add a map. Large, multi-version.
+2. **Combat sim: stabilization approved and DONE in 0.57.0.** The review's Milestone 1. Poison decays (~18%/s, no longer a forever-nuke; damage share fell from 44% dominant to a healthy 10-27% that scales with rarity), burn decays proportionally (no more quadratic packets), large weapons cleave overkill by size (Large full / Medium half / Small none, killing the chaff-tank exploit and giving big weapons identity; weapons rose to 30-41% share), haste is capped (the two-Hourglass reactor loop is dead), lifesteal heals from damage dealt not nominal, rivals start round 1 at tier 1 (real parity). The byte-identical fight-parity test retired (job done, we now deliberately diverge); five combat invariants replace it in `tests/engine.test.js`. Harness note: early-game (r1-3) now leans on the storm (~48%) because bronze boards are too weak to finish each other, which is the storm's designed timeout role but is the one thing to feel-check on device.
+
+## Not-yet-built from the review (real, but Robbie's pace)
+
+- **Fusion of multiplicative passives can still downgrade** (Adrenaline Draught's cdMul, stacking flat passives). Narrow (most of the review's examples were `unique` items that can't fuse). Needs a design call: don't auto-fuse passives, or make them scale hard enough. Flagged, not fixed.
+- **Heroes as rules, not flat stats; anomalies as tradeoffs, not multipliers.** Real design reworks; reopen settled design.
+- **Gold carry-cap vs reroll-to-zero spam.** The review wants a cap of ~3. Directly contradicts the settled "gold burns, never carries" rule, so it needs Robbie's explicit re-decision.
+- **Disable (Gavel) is permanent; combat screen is log-heavy; post-fight damage breakdown.** All real, all deferred behind the roguelite pivot and on-device feel.
 
 ## Decisions owed by Robbie (blockers, not code)
 

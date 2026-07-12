@@ -376,7 +376,7 @@ function renderDraft(){
   h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
   h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
   h+='<div class="controls">'
-    +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'Tier '+(G.tier+1)+' ('+G.tierCost+')')+'</button>'
+    +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'Tier '+(G.tier+1)+' &middot; '+G.tierCost+'g &rarr; '+(5+G.tier)+' slots')+'</button>'
     +'<button class="btn" id="btnRe"'+(G.gold<1?' disabled':'')+'>'+ic('g-coin','bi')+' Reroll 1</button>'
     +'<button class="btn frz'+(G.frozen?' iceon':'')+'" id="btnFrz">'+ic('e-frost','bi')+' '+(G.frozen?'Frozen':'Freeze')+'</button>'
   +'</div></div>';
