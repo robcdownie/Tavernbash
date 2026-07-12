@@ -6,6 +6,8 @@ type: reflection
 
 # Reflection notes: highest leverage improvements, 2026-07-11
 
+> Status as of 2026-07-12: every buildable item below shipped. Debug overlay, balance harness plus tuning, ship script, art-batch skill, device checklist, and onboarding are all in. The three remaining items are Robbie's, not builds: the on-device playthrough (checklist ready at `playthrough-checklist.md`), the name decision, and the v1 deploy decision. See `ROADMAP.md` for the current forward plan.
+
 Diagnosis only. Two subagents mined the two substantial Claude Code transcripts for this project; I clustered the signals and judged each cluster against build cost. Sources:
 
 - Session A, 2026-07-10 (5c4fe01a): the art pipeline day. 20 human messages, 364 tool calls, 8 hard tool errors. Phases 2 to 4, art and music ingest, no-scroll layout.
