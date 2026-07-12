@@ -719,6 +719,30 @@
     #main.fight .log{flex:1 1 auto;height:auto;min-height:110px;font-size:12px;}
   }
 
+  /* ===== V23 SHELF PASS: the market becomes furniture ===== */
+  /* The market section is a carved panel like the crest bar: cards
+     rest on a surface instead of floating on the backdrop, and the
+     controls dock as the panel's bottom rail. In portrait the shop is
+     two-up (no orphan card), the panel stretches, and the stall pins
+     to the bottom so no raw backdrop band is left mid-screen. */
+  .sec.secmarket{border-radius:14px;padding:2px 10px 10px;
+    background:linear-gradient(180deg, rgba(46,32,18,.92), rgba(26,17,9,.94) 90%);
+    box-shadow:inset 0 1.5px 0 rgba(255,255,255,.07), inset 0 0 0 1px rgba(216,162,74,.18), 0 8px 18px rgba(0,0,0,.4);}
+  .secmarket .controls{border-top:1px solid rgba(216,162,74,.16);padding-top:9px;margin-top:11px;}
+  .secmarket .controls .btn{flex:1;max-width:none;}
+  /* round thumbs in round ports: the scene crop clips to the circle */
+  .ware .ph{overflow:hidden;}
+  .ware .ph .gi{border-radius:50%;}
+  @media (orientation:portrait){
+    .secmarket .shop{grid-template-columns:1fr 1fr;gap:8px;}
+    body.run:not(.fight) #app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;}
+    body.run:not(.fight) #main{flex:1;display:flex;flex-direction:column;}
+    #main.draft .stage{flex:1;display:flex;flex-direction:column;}
+    #main.draft .stage .sec.secmarket{flex:1;display:flex;flex-direction:column;}
+    #main.draft .secmarket .shop{flex:1;align-content:start;}
+    #main.draft .secmarket .controls{margin-top:auto;}
+  }
+
   /* ===== V22 CREST PASS: the ribbon becomes one carved bar ===== */
   /* One wooden rail with brass keylines instead of seven loose boxes.
      Every segment shares the same anatomy: etched label above, value
@@ -746,6 +770,38 @@
   @media (orientation:landscape) and (min-width:640px){
     body.run #ribbon .chip{padding:3px 4px;font-size:12px;min-height:36px;border-radius:0;}
     #ribbon .chip .val{font-size:12.5px;}
+  }
+
+  /* ===== V24 LEGIBILITY PASS: read it in two seconds ===== */
+  /* active resources step forward, passive context recedes */
+  #ribbon .chip .val{color:rgba(240,230,214,.78);}
+  #ribbon .chip.gold .val{color:var(--brass-hi);font-size:18px;}
+  #ribbon .chip.hp .val{color:#8fe6cf;font-size:18px;}
+  #ribbon .chip.gold .ci,#ribbon .chip.hp .ci{width:15px;height:15px;}
+  #ribbon .chip.grow{flex:1.7 1 0;}
+  /* the buy decision leads the card, the fine print follows */
+  .ware .chips .eff{font-size:12px;padding:3px 8px;}
+  .ware .chips .eff .mi{width:12px;height:12px;}
+  .ware .wr{opacity:.7;}
+  .ware .sz i{width:10px;height:6px;box-shadow:inset 0 1px 2px rgba(0,0,0,.7);}
+  .ware .szl{font-size:7px;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);margin-left:4px;align-self:center;}
+  /* controls with identities: coin to roll, frost to hold */
+  .secmarket .controls{gap:10px;}
+  .btn.frz{color:#bfe2f2;border-color:rgba(154,216,239,.35);}
+  .controls .btn:disabled{opacity:.6;filter:saturate(.55);}
+  /* the stall invites instead of swallowing light */
+  .board{position:relative;}
+  .bhint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:rgba(216,162,74,.45);pointer-events:none;z-index:1;}
+  .cell.empty{box-shadow:inset 0 2px 7px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.03);}
+  .cell.empty.nxt{box-shadow:inset 0 0 14px rgba(244,207,124,.12), inset 0 0 0 1px rgba(244,207,124,.25);animation:pairglim 3s ease-in-out infinite;}
+  @media (prefers-reduced-motion: reduce){.cell.empty.nxt{animation:none;}}
+  /* the call to battle reads as an action, the telegraph stays */
+  .btn.tob{display:flex;align-items:center;justify-content:center;gap:7px;}
+  .tob .tbt{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;text-align:left;}
+  .tob .tbl{font-size:7.5px;letter-spacing:1.5px;text-transform:uppercase;opacity:.8;font-weight:800;}
+  .tob .tbn{font-size:13px;font-weight:800;}
+  @media (orientation:portrait){
+    #ribbon .chip.gold .val,#ribbon .chip.hp .val{font-size:15.5px;}
   }
 
   /* the tutorial coach */
@@ -1001,6 +1057,7 @@
 <symbol id="e-bolt" viewBox="0 0 12 12"><polygon fill="currentColor" points="7.2,.4 2.9,6.6 5.5,6.6 4.3,11.6 9.2,5 6.4,5"/></symbol>
 <symbol id="e-sound" viewBox="0 0 12 12"><path d="M1.4 4.4 H3.6 L6.6 1.9 V10.1 L3.6 7.6 H1.4 Z" fill="currentColor"/><path d="M8.2 4.1 Q9.7 6 8.2 7.9" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M9.6 3 Q11.6 6 9.6 9" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity=".6"/></symbol>
 <symbol id="e-clock" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.9" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 3.2 V6 L8.1 7.3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+<symbol id="e-frost" viewBox="0 0 12 12"><path d="M6 1v10M1.7 3.5l8.6 5M10.3 3.5l-8.6 5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
 </svg>
 <div id="bgart"></div>
 <div id="embers"></div>

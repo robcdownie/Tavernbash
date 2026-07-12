@@ -145,9 +145,10 @@ function cellHTML(it,i,sel){
 }
 function boardHTML(board,slots,selIdx){
   let h='';
+  if(!board.length){h+='<div class="bhint">Your wares fight from here</div>';}
   board.forEach(function(it,i){h+=cellHTML(it,i,i===selIdx);});
   const used=usedCells(board);
-  for(let c=used;c<slots;c++){h+='<div class="cell empty"></div>';}
+  for(let c=used;c<slots;c++){h+='<div class="cell empty'+(c===used?' nxt':'')+'"></div>';}
   for(let c=slots;c<10;c++){h+='<div class="cell lock"></div>';}
   return '<div class="board" id="bd">'+h+'</div>';
 }
@@ -287,7 +288,7 @@ function wareHTML(w,i){
    +'<div class="ph">'+ic('g-'+w.id,'gi')+'<span class="cost'+(w.free?' free':'')+'">'+ic('g-coin')+'<b>'+(w.free?'FREE':cost)+'</b></span></div>'
    +'<div class="tg">'+gems+'</div>'
    +'<div class="wn">'+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div>'
-   +'<div class="sz">'+pips+'</div>'
+   +'<div class="sz">'+pips+'<span class="szl">'+(d.size===1?'1 slot':d.size+' slots')+'</span></div>'
    +'<div class="chips">'+effChips(w.id,0)+(en?'<span class="eff util" style="color:'+en.c+'">'+ic('e-bolt','mi')+' '+en.d+'</span>':'')+(trip?'<span class="eff trip">'+ic('e-bolt','mi')+' Forges Silver</span>':'')+'</div>'
    +'<div class="wr">'+(d.cd>0?ic('e-clock','mi')+' '+d.cd+'s':'<span>passive</span>')+'<span>'+ic('e-shield','mi')+' '+Math.round(BASEINTEG[d.size]*(d.integMul||1))+'</span></div>'
    +(own>0?'<div class="own">'+own+'/3</div>':'')
@@ -370,14 +371,15 @@ function renderDraft(){
   h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
   h+='<div class="controls">'
     +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'Tier '+(G.tier+1)+' ('+G.tierCost+')')+'</button>'
-    +'<button class="btn" id="btnRe"'+(G.gold<1?' disabled':'')+'>Reroll 1</button>'
-    +'<button class="btn'+(G.frozen?' iceon':'')+'" id="btnFrz">'+(G.frozen?'Frozen':'Freeze')+'</button>'
+    +'<button class="btn" id="btnRe"'+(G.gold<1?' disabled':'')+'>'+ic('g-coin','bi')+' Reroll 1</button>'
+    +'<button class="btn frz'+(G.frozen?' iceon':'')+'" id="btnFrz">'+ic('e-frost','bi')+' '+(G.frozen?'Frozen':'Freeze')+'</button>'
   +'</div></div>';
   h+='</div>';
   h+='<div class="dock"><div class="docktop"><div class="label" style="margin:0">'+(G.dockV?'The Vault':'Your Stall')
    +'<span class="side">'+(G.dockV?'no fights, no forging':(G.swapV!=null?'tap a ware to trade with the vault':used+' / '+slots+' slots'))+'</span></div>'
    +'<button class="btn mini" id="dockFlip">'+(G.dockV?'Stall':'Vault'+(G.vault.length?' ('+G.vault.length+')':''))+'</button>'
-   +'<button class="btn gold tob" id="btnGo">'+ic(G.nextOpp?G.nextOpp.p:'m-qareen','bi vsp')+' Duel '+esc(G.nextOpp?shortName(G.nextOpp.n):'the Departed')+'</button></div>';
+   +'<button class="btn gold tob" id="btnGo">'+ic(G.nextOpp?G.nextOpp.p:'m-qareen','bi vsp')
+    +'<span class="tbt"><span class="tbl">To Battle</span><span class="tbn">'+esc(G.nextOpp?shortName(G.nextOpp.n):'the Departed')+'</span></span></button></div>';
   if(G.dockV){
     h+='<div class="vault" id="vlt">'+G.vault.map(function(it,i){
         const d=ITEMS[it.id];
