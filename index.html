@@ -737,10 +737,13 @@
     .secmarket .shop{grid-template-columns:1fr 1fr;gap:8px;}
     body.run:not(.fight) #app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;}
     body.run:not(.fight) #main{flex:1;display:flex;flex-direction:column;}
-    #main.draft .stage{flex:1;display:flex;flex-direction:column;}
-    #main.draft .stage .sec.secmarket{flex:1;display:flex;flex-direction:column;}
-    #main.draft .secmarket .shop{flex:1;align-content:start;}
-    #main.draft .secmarket .controls{margin-top:auto;}
+    #main.draft .stage{flex:1;display:flex;flex-direction:column;min-height:0;}
+    #main.draft .stage .sec.secmarket{flex:1;display:flex;flex-direction:column;min-height:0;}
+    /* the grid is the flexible zone: slack spreads between rows so
+       cards reach the rail; excess scrolls inside the shelf and the
+       controls and stall never move */
+    #main.draft .secmarket .shop{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;align-content:space-evenly;}
+    #main.draft .secmarket .controls{margin-top:11px;}
   }
 
   /* ===== V22 CREST PASS: the ribbon becomes one carved bar ===== */
