@@ -176,8 +176,10 @@ function renderAno(){$('anobar').innerHTML='';}
 function renderTrow(){$('trow').innerHTML='';}
 function renderRibbon(){
   const s=standingsInfo();
+  const H=heroOf();
   $('ribbon').innerHTML=
-   '<div class="chip"><span class="lab">Round</span><span class="val">'+G.round+'</span></div>'
+   '<div class="heroP">'+ic(H?H.g:(G.you?G.you.p:'p-0'),'hpv')+'</div>'
+  +'<div class="chip"><span class="lab">Round</span><span class="val">'+G.round+'</span></div>'
   +'<div class="chip gold"><span class="lab">Gold</span><span class="val">'+ic('g-coin','ci')+G.gold+'</span></div>'
   +'<div class="chip hp"><span class="lab">Health</span><span class="val">'+ic('g-heart','ci')+Math.max(0,G.you.hp)+'</span></div>'
   +'<div class="chip"><span class="lab">Tier</span><span class="val">'+ic('g-gem','ci')+G.tier+'</span></div>'
