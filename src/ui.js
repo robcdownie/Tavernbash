@@ -176,13 +176,13 @@ function renderTrow(){$('trow').innerHTML='';}
 function renderRibbon(){
   const s=standingsInfo();
   $('ribbon').innerHTML=
-   '<div class="chip"><span class="lab">Round</span>'+G.round+'</div>'
-  +'<div class="chip gold">'+ic('g-coin','ci')+G.gold+'</div>'
-  +'<div class="chip hp">'+ic('g-heart','ci')+Math.max(0,G.you.hp)+'</div>'
-  +'<div class="chip"><span class="lab">Tier</span><span>'+ic('g-gem','ci')+' '+G.tier+'</span></div>'
-  +'<button class="chip act" id="chipStand">'+ic('g-crown','ci')+ord(s.place)+' of '+s.alive+'</button>'
-  +'<button class="chip act grow" id="chipAno">'+ic(G.anom.g,'ci')+'<span class="lab2">'+G.anom.n+'</span></button>'
-  +(G.trinkets.length?'<button class="chip act" id="chipTrk">'+G.trinkets.map(function(t){return ic(t.g,'ci');}).join('')+'</button>':'');
+   '<div class="chip"><span class="lab">Round</span><span class="val">'+G.round+'</span></div>'
+  +'<div class="chip gold"><span class="lab">Gold</span><span class="val">'+ic('g-coin','ci')+G.gold+'</span></div>'
+  +'<div class="chip hp"><span class="lab">Health</span><span class="val">'+ic('g-heart','ci')+Math.max(0,G.you.hp)+'</span></div>'
+  +'<div class="chip"><span class="lab">Tier</span><span class="val">'+ic('g-gem','ci')+G.tier+'</span></div>'
+  +'<button class="chip act" id="chipStand"><span class="lab">Place</span><span class="val">'+ic('g-crown','ci')+ord(s.place)+'<span class="sub">/'+s.alive+'</span></span></button>'
+  +'<button class="chip act grow" id="chipAno"><span class="lab">Tonight</span><span class="lab2">'+G.anom.n+'</span></button>'
+  +(G.trinkets.length?'<button class="chip act" id="chipTrk"><span class="lab">Charms</span><span class="val">'+G.trinkets.map(function(t){return ic(t.g,'ci');}).join('')+'</span></button>':'');
   const a=$('chipStand');if(a)a.onclick=openStandings;
   const b=$('chipAno');if(b)b.onclick=openAnoInfo;
   const c=$('chipTrk');if(c)c.onclick=openTrkInfo;

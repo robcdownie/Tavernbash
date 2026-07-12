@@ -712,19 +712,40 @@
   .battleframe{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .7s ease;
     background:radial-gradient(130% 100% at 50% -10%, transparent 60%, rgba(140,28,14,.25)),radial-gradient(130% 100% at 50% 110%, transparent 60%, rgba(140,28,14,.3));}
   body.fight .battleframe{opacity:1;}
-  /* ===== V21 PORTRAIT PASS: no clipped chips, no dead half-screen ===== */
+  /* ===== V21 PORTRAIT PASS: fights fill the screen ===== */
   @media (orientation:portrait){
-    /* the ribbon wraps to two rows instead of scrolling sideways; the
-       right inset keeps row one clear of the floating mute button */
-    .ribbon{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;overflow:visible;padding-right:36px;}
-    .chip{min-width:0;justify-content:center;padding:8px 5px;}
-    .chip .lab2{max-width:none;}
-    .chip.act.grow{grid-column:span 2;}
-    /* fights fill the screen: the column stretches and the log grows
-       into what used to be empty backdrop */
     body.fight #app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;}
     body.fight #main{flex:1;display:flex;flex-direction:column;min-height:0;}
     #main.fight .log{flex:1 1 auto;height:auto;min-height:110px;font-size:12px;}
+  }
+
+  /* ===== V22 CREST PASS: the ribbon becomes one carved bar ===== */
+  /* One wooden rail with brass keylines instead of seven loose boxes.
+     Every segment shares the same anatomy: etched label above, value
+     below. The right inset is the mute button's nest. */
+  #ribbon{display:flex;align-items:stretch;gap:0;margin-bottom:8px;border-radius:12px;overflow:hidden;padding:0 32px 0 0;
+    background:linear-gradient(180deg,#2c1f11,#1d1409 85%);
+    box-shadow:inset 0 1.5px 0 rgba(255,255,255,.09), inset 0 0 0 1px rgba(216,162,74,.22), 0 6px 14px rgba(0,0,0,.35);}
+  #ribbon .chip{flex:1 1 0;min-width:0;flex-direction:column;justify-content:center;gap:2px;padding:6px 4px;min-height:46px;
+    background:none;border:0;border-radius:0;box-shadow:none;border-left:1px solid rgba(216,162,74,.16);}
+  #ribbon .chip:first-child{border-left:0;}
+  #ribbon .chip .lab{font-size:7.5px;letter-spacing:1.4px;text-transform:uppercase;color:rgba(216,162,74,.8);font-weight:800;}
+  #ribbon .chip .val{display:flex;align-items:center;gap:4px;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;color:var(--ink);}
+  #ribbon .chip .val .sub{opacity:.55;font-size:11px;}
+  #ribbon .chip.gold .val{color:var(--brass-hi);}
+  #ribbon .chip.hp .val{color:#8fe6cf;}
+  #ribbon .chip .ci{width:13px;height:13px;}
+  #ribbon .chip.act:active{background:rgba(216,162,74,.1);}
+  #ribbon .chip .lab2{font-size:10.5px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  @media (orientation:portrait){
+    #ribbon .chip{min-height:42px;padding:5px 3px;}
+    #ribbon .chip .val{font-size:13px;}
+    #ribbon .chip .lab{font-size:7px;letter-spacing:1px;}
+    #ribbon .chip .lab2{font-size:9.5px;}
+  }
+  @media (orientation:landscape) and (min-width:640px){
+    body.run #ribbon .chip{padding:3px 4px;font-size:12px;min-height:36px;border-radius:0;}
+    #ribbon .chip .val{font-size:12.5px;}
   }
 
   /* the tutorial coach */
