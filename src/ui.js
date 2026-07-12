@@ -1,7 +1,7 @@
 "use strict";
 import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,BANDN,BANDC,ANONE,
         ITEMS,TRINKETS,ANOMALIES,PERSONAS,MONSTERS,MONBAND,MONCHIP,ENCH,ENCH_CHANCE,ENCH_PREMIUM,HEROES} from './data.js';
-import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,usedCells,
+import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,usedCells,
         playerFightItems,monsterSide,genRival,createFight,runHeadless,boardRegen} from './engine.js';
 import {ic} from './art.js';
 import {ART} from './art-manifest.js';
@@ -181,7 +181,7 @@ function renderRibbon(){
   +'<div class="chip gold"><span class="lab">Gold</span><span class="val">'+ic('g-coin','ci')+G.gold+'</span></div>'
   +'<div class="chip hp"><span class="lab">Health</span><span class="val">'+ic('g-heart','ci')+Math.max(0,G.you.hp)+'</span></div>'
   +'<div class="chip"><span class="lab">Tier</span><span class="val">'+ic('g-gem','ci')+G.tier+'</span></div>'
-  +'<button class="chip act" id="chipStand"><span class="lab">Place</span><span class="val">'+ic('g-crown','ci')+ord(s.place)+'<span class="sub">/'+s.alive+'</span></span></button>'
+  +'<button class="chip act" id="chipStand"><span class="lab">Place</span><span class="val">'+ic('g-crown','ci')+ord(s.place)+'</span></button>'
   +'<button class="chip act grow" id="chipAno"><span class="lab">Tonight</span><span class="lab2">'+G.anom.n+'</span></button>'
   +(G.trinkets.length?'<button class="chip act" id="chipTrk"><span class="lab">Charms</span><span class="val">'+G.trinkets.map(function(t){return ic(t.g,'ci');}).join('')+'</span></button>':'');
   const a=$('chipStand');if(a)a.onclick=openStandings;
@@ -278,7 +278,8 @@ function wareHTML(w,i){
   const d=ITEMS[w.id];
   const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
   const can=!w.bought&&(w.free||G.gold>=cost)&&(usedCells(G.board)+d.size<=4+G.tier);
-  const own=G.board.filter(function(x){return x.id===w.id&&x.rarity===0;}).length;
+  const own=G.board.filter(function(x){return x.id===w.id&&x.rarity===0;}).length
+    +G.vault.filter(function(x){return x.id===w.id&&x.rarity===0;}).length;
   const trip=own>=2&&!w.bought;
   let gems='';for(let g=0;g<d.tier;g++){gems+=ic('g-gem');}
   let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=d.size?'on':'')+'"></i>';}
@@ -313,6 +314,7 @@ function renderVaultSheet(sh){
     const forged=fuseScan(G.board);
     if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();}
     else{toast(ITEMS[it.id].n+' returns to the stall');}
+    fuseWithVault();
     renderAll();
   };
   const W=$('vSwp');if(W)W.onclick=function(){
@@ -336,6 +338,7 @@ function vaultSwap(i){
   const forged=fuseScan(G.board);
   if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();}
   else{toast(ITEMS[outIt.id].n+' rests in the vault. '+ITEMS[inIt.id].n+' takes the stall.');}
+  fuseWithVault();
   renderAll();
 }
 function renderSheet(){
@@ -467,6 +470,39 @@ function flyCoins(from,n){
   }
 }
 /* ============ ECONOMY ACTIONS ============ */
+/* a bought or returned copy can complete a forge whose other copies
+   rest in the vault: pull them through and fuse automatically. If the
+   pull leaves the stall over capacity, the newest piece rests in the
+   vault slots the copies just freed. */
+function fuseWithVault(){
+  let forgedAny=false,guard=0;
+  while(guard++<8){
+    let pulled=false;
+    for(const it of G.board.slice()){
+      if(it.rarity>=3)continue;
+      const need=fuseNeed(it.rarity);
+      const onB=G.board.filter(function(x){return x.id===it.id&&x.rarity===it.rarity;}).length;
+      const inV=G.vault.filter(function(x){return x.id===it.id&&x.rarity===it.rarity;}).length;
+      if(onB>=need||onB+inV<need)continue;
+      for(let k=0;k<need-onB;k++){
+        const vi=G.vault.findIndex(function(x){return x.id===it.id&&x.rarity===it.rarity;});
+        G.board.push(G.vault.splice(vi,1)[0]);
+      }
+      pulled=true;
+    }
+    const forged=fuseScan(G.board);
+    if(forged.length){
+      forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});
+      sForge();forgedAny=true;
+    }
+    if(!pulled&&!forged.length)break;
+  }
+  while(usedCells(G.board)>4+G.tier&&G.vault.length<3){
+    const last=G.board.pop();G.vault.push(last);
+    toast(ITEMS[last.id].n+' waits in the vault: no room on the stall');
+  }
+  return forgedAny;
+}
 function buyWare(i){
   if(G.phase!=='draft')return;
   const w=G.shop[i];if(!w||w.bought)return;
@@ -478,6 +514,7 @@ function buyWare(i){
   G.gold-=cost;w.bought=true;sCoin();
   G.board.push(makeItem(w.id,0,w.ench||null));
   const forged=fuseScan(G.board);
+  fuseWithVault();
   if(G.tut==='market'){G.tut='forge';}
   renderAll();
   const cells=document.querySelectorAll('#bd .cell.it');
@@ -696,6 +733,11 @@ function startFight(me,foe,opts){
   }
   paintCds();
   let acc=0;
+  /* hold the sim while Dusk Falls owns the screen; the first swing
+     lands as the curtain lifts */
+  const duskHold=RM?0:1500;
+  setTimeout(function(){
+  if(G.F!==F)return;
   G.fiv=setInterval(function(){
     /* the last shot: a genuine photo finish plays out at half speed */
     const tight=!F.done&&Math.min(F.a.hp,F.b.hp)<=20&&Math.max(F.a.hp,F.b.hp)<=45;
@@ -710,6 +752,7 @@ function startFight(me,foe,opts){
       setTimeout(function(){$('sand').classList.remove('on');opts.onEnd(F);},850);
     }
   },40);
+  },duskHold);
 }
 /* ============ MONSTER FIGHTS ============ */
 function startMonsterFight(){
@@ -1087,6 +1130,7 @@ function openGild(msg,cont){
       if(it.rarity>=3)return;
       it.rarity++;
       toast('Gilded: '+RNAME[it.rarity]+' '+ITEMS[it.id].n);
+      fuseScan(G.board);fuseWithVault();
       ovClose(o);if(cont)cont();renderAll();
     };
   });
@@ -1231,7 +1275,7 @@ function initEmbers(){
 const TUT={
  hero:{t:'Pick your merchant. Each favors one kind of ware, and the market listens.',ov:true},
  market:{t:'The night market. Every ware fights on its own timer. Buy your first ware.',a:'.shop'},
- forge:{t:'Own three copies of one ware and they forge into a stronger one. A held pair glimmers, and the shop card that completes it glows.',next:true},
+ forge:{t:'Own three copies of one ware and they forge into a stronger one, even from the vault. Two Gold copies forge Diamond. A held pair glimmers, and the shop card that completes it glows.',next:true},
  dusk:{t:'Gold never carries over: spend it or it burns at dusk. Reroll for 1, or Freeze to keep tonight\'s shop for tomorrow.',a:'.controls',next:true},
  ready:{t:'When you are ready, tap the Duel button. Tonight\'s opponent is already decided.',a:'#btnGo'},
  gate:{t:'Every duel waits behind a door. Fight the monster for its bounty, or take the easy way out. Gold spoils arrive at dawn.',ov:true},

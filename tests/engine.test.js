@@ -409,6 +409,22 @@ test('fusion: 9 daggers chain to 1 Gold Large',()=>{
   assert.equal(board[0].size,3,'Large');
 });
 
+test('fusion: a pair of Golds forges Diamond (approved 2026-07-12)',()=>{
+  const board=[makeItem('dagger',2),makeItem('dagger',2)];
+  const forged=fuseScan(board);
+  assert.equal(forged.length,1);
+  assert.equal(board.length,1);
+  assert.equal(board[0].rarity,3,'Diamond');
+});
+
+test('fusion: two Silvers do not forge, three still do',()=>{
+  const pair=[makeItem('dagger',1),makeItem('dagger',1)];
+  assert.equal(fuseScan(pair).length,0);
+  const trio=[makeItem('dagger',1),makeItem('dagger',1),makeItem('dagger',1)];
+  assert.equal(fuseScan(trio).length,1);
+  assert.equal(trio[0].rarity,2,'Gold');
+});
+
 test('Debt Collector gains exactly +150 HP and +20 damage at 10 held gold',()=>{
   const base=monsterSide('collector',{round:5,gold:0,A:ANONE,gilded:false});
   const rich=monsterSide('collector',{round:5,gold:10,A:ANONE,gilded:false});

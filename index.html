@@ -675,7 +675,9 @@
   #rivals,#anobar,#trow{display:none;}
   body.run #app{height:100dvh;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
   body.run #main{flex:1;min-height:0;}
-  #main.draft{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:0;height:100%;}
+  /* two rows since the gate pass removed the tabs: the stage scrolls
+     inside its track and the dock never leaves the screen */
+  #main.draft{display:grid;grid-template-rows:minmax(0,1fr) auto;min-height:0;height:100%;}
   .stage{overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;}
   .tabs{display:flex;gap:6px;margin:5px 0 4px;}
   .tab{flex:1;position:relative;padding:8px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.28);
@@ -1084,7 +1086,7 @@
     <ul>
       <li><b>The lobby.</b> Eight merchants, 40 health each. Lose a duel and you take round number plus the winner's surviving item tiers. Last stall standing wins.</li>
       <li><b>Your stall.</b> Items are Small, Medium, or Large (1 to 3 slots). Tier up to unlock a slot and better wares. Gold does not carry over: spend it or it burns at dusk.</li>
-      <li><b>Fusion.</b> Own three copies of the same ware and they forge into one of the next rarity, one size larger, roughly double the power. Rarity runs Bronze, Silver, Gold, Diamond.</li>
+      <li><b>Fusion.</b> Own three copies of the same ware and they forge into one of the next rarity, one size larger, roughly double the power. Two Gold copies forge Diamond. Copies waiting in the vault count. Rarity runs Bronze, Silver, Gold, Diamond.</li>
       <li><b>Fighting.</b> Weapons strike the enemy's leftmost intact item first (a Bulwark forces itself in front). Break the board, then hit the merchant. Excess damage is wasted, so wide boards blunt big weapons. Burn and poison skip the board and tick the merchant directly: poison ignores shields, shields halve burn.</li>
       <li><b>The storm.</b> Late in every fight a sandstorm drains both merchants harder each second. Shields and healing hold it back for a while.</li>
       <li><b>The doors.</b> Each round you may fight one monster with its board and bounty shown in full, or take the safe door. Losing costs a chip of health but not the round.</li>

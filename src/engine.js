@@ -9,6 +9,10 @@ export function gateOK(defTier,yourTier){return defTier===1||(defTier===2&&yourT
 let UID=1;
 export function makeItem(id,rarity,ench){return {uid:UID++,id:id,rarity:rarity||0,size:ITEMS[id].size,ench:ench||null};}
 export function integOf(it){return Math.round(BASEINTEG[it.size]*(ITEMS[it.id].integMul||1)*RINTEG[it.rarity]*(it.ench==="stout"?1.6:1));}
+/* three copies forge the next rarity, except Gold: a pair of Golds
+   forges Diamond (approved 2026-07-12; 27 bronze for a Diamond was
+   unreachable, 18 is a real late-game goal) */
+export function fuseNeed(rarity){return rarity===2?2:3;}
 export function fuseScan(board){
   const forged=[];
   let again=true;
@@ -17,8 +21,8 @@ export function fuseScan(board){
     for(let i=0;i<board.length;i++){
       const a=board[i];
       const same=board.filter(x=>x.id===a.id&&x.rarity===a.rarity);
-      if(same.length>=3&&a.rarity<3){
-        const three=same.slice(0,3);
+      if(same.length>=fuseNeed(a.rarity)&&a.rarity<3){
+        const three=same.slice(0,fuseNeed(a.rarity));
         const idx=board.indexOf(three[0]);
         const nu={uid:UID++,id:a.id,rarity:a.rarity+1,size:Math.min(3,a.size+1),
           ench:three.map(t=>t.ench).find(Boolean)||null};
