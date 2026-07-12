@@ -1365,7 +1365,8 @@ function renderCoach(){
 function openIntro(){
   if(!ART['bg-intro']){newLobby();return;}
   const o=document.createElement('div');o.id='intro';
-  o.innerHTML='<div class="ibtns">'
+  o.innerHTML='<div class="ititle">Tavern Bash</div>'
+   +'<div class="ibtns">'
    +'<button class="stonebtn" id="inNew">New Game</button>'
    +'<button class="stonebtn" id="inTut">Tutorial</button>'
   +'</div>';
