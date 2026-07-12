@@ -1,9 +1,10 @@
 "use strict";
-/* Music player for the Suno tracks. Two loops: market (draft and lobby) and
-   battle (fights). Tracks live in public/music/{market,battle}.mp3 and are
-   listed in the generated art manifest under music-market and music-battle;
-   with no files present every call is a no-op, so this ships before the
-   tracks exist.
+/* Music player for the Suno tracks. Four loops: title (intro), market
+   (draft and lobby), battle (fights), boss (band 4 gates), plus one-shot
+   stingers (dawnsting, fanfarewin, forgesting, lament, windstorm). Files
+   live in public/music/{name}.mp3, listed in the generated art manifest
+   under music-{name}; with no file present every call is a no-op, so this
+   ships before any track exists.
 
    Loading waits for the first tap (the same iOS unlock moment as sfx), then
    fetches and decodes lazily. Loops are crossfaded near the end of each pass
@@ -86,10 +87,28 @@ async function playTrack(name){
   schedule(name,buf);
 }
 export function music(name){
-  /* market, battle, or null to stop */
+  /* market, battle, title, boss, or null to stop */
   want=name;
   if(!ctx){return;}
   if(!name){stopCur();return;}
   playTrack(name);
 }
 export function musicNow(){return cur?cur.name:null;}
+
+/* one-shot stingers over the loop: dawnsting, fanfarewin, forgesting,
+   lament, windstorm. Fire and forget, a touch louder than the bed, a
+   no-op before unlock or with no file. */
+const STING_VOL=0.5;
+export function sting(name){
+  if(!ctx||muted)return;
+  load(name).then(function(buf){
+    if(!buf||!ctx)return;
+    const t=ctx.currentTime;
+    const s=ctx.createBufferSource();s.buffer=buf;
+    const g=ctx.createGain();
+    g.gain.setValueAtTime(STING_VOL,t);
+    g.gain.setValueAtTime(STING_VOL,t+buf.duration-0.3);
+    g.gain.linearRampToValueAtTime(0,t+buf.duration);
+    s.connect(g);g.connect(ctx.destination);s.start(t);
+  });
+}

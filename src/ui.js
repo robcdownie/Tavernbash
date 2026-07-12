@@ -7,7 +7,7 @@ import {ic} from './art.js';
 import {ART} from './art-manifest.js';
 import {fxHit,fxDestroy,fxForge,fxCoinRain,fxStorm} from './fx.js';
 import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxToggle,sfxMuted} from './sfx.js';
-import {initMusic,music,musicMute} from './music.js';
+import {initMusic,music,musicMute,sting} from './music.js';
 import pkg from '../package.json';
 /* ============ SESSION + UI PRIMITIVES ============ */
 let G=null;let RM=false;const BEST={place:null,round:0};
@@ -315,7 +315,7 @@ function renderVaultSheet(sh){
     if(usedCells(G.board)+it.size>4+G.tier)return;
     G.vault.splice(G.vsel,1);G.vsel=null;G.board.push(it);
     const forged=fuseScan(G.board);
-    if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();}
+    if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();sting('forgesting');}
     else{toast(ITEMS[it.id].n+' returns to the stall');}
     fuseWithVault();
     renderAll();
@@ -339,7 +339,7 @@ function vaultSwap(i){
   if(usedCells(G.board)-outIt.size+inIt.size>4+G.tier){toast('No room for that trade');return;}
   G.vault[vi]=outIt;G.board[i]=inIt;G.swapV=null;G.sel=null;
   const forged=fuseScan(G.board);
-  if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();}
+  if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();sting('forgesting');}
   else{toast(ITEMS[outIt.id].n+' rests in the vault. '+ITEMS[inIt.id].n+' takes the stall.');}
   fuseWithVault();
   renderAll();
@@ -496,7 +496,7 @@ function fuseWithVault(){
     const forged=fuseScan(G.board);
     if(forged.length){
       forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});
-      sForge();forgedAny=true;
+      sForge();sting('forgesting');forgedAny=true;
     }
     if(!pulled&&!forged.length)break;
   }
@@ -533,7 +533,7 @@ function buyWare(i){
   }
   if(forged.length){
     forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});
-    sForge();
+    sForge();sting('forgesting');
     const cells=document.querySelectorAll('#bd .cell.it');
     forged.forEach(function(f){const idx=G.board.indexOf(f);if(cells[idx]){cells[idx].classList.add('forge');const p=ctrOf(cells[idx]);if(p&&!RM)fxForge(p.x,p.y);}});
     bark('forge');
@@ -686,11 +686,11 @@ function handleEvents(F,evs){
     else if(e.k==='lot'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('lot');logLine('<b class="y">SOLD: '+esc(e.nm)+'</b> leaves the fight','e-clock','#e8c27a');}
     else if(e.k==='lotpay'){fltFx(e.side,'+'+e.amt+'g','#e8c27a','e-bolt',false);}
     else if(e.k==='spawn'){const c=$('fc-'+e.side+'-'+e.i);const S=e.side==='a'?F.a:F.b;if(c&&S.items[e.i]){c.outerHTML=fightCellHTML(S.items[e.i],e.i,e.side);}logLine('<b class="t">'+esc(e.nm)+'</b> emerges','e-skull','#9dbb45');sDestroy();}
-    else if(e.k==='stormstart'){logLine('<b class="y">The simoom arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);sStorm(true);}
+    else if(e.k==='stormstart'){logLine('<b class="y">The simoom arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);sStorm(true);sting('windstorm');}
   }
 }
 function startFight(me,foe,opts){
-  G.phase='fight';G.sel=null;music('battle');
+  G.phase='fight';G.sel=null;music((opts&&opts.boss)?'boss':'battle');
   document.body.classList.add('fight');
   if(!RM){
     const dk=document.createElement('div');dk.className='dusk';
@@ -764,7 +764,7 @@ function startMonsterFight(){
   const M=MONSTERS[D.mid];
   const foe=monsterSide(D.mid,doorCtx());
   const me={nm:'You',portrait:G.you.p,hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
-  startFight(me,foe,{onEnd:endMonsterFight,stormAt:M.stormAt?M.stormAt*1000:0});
+  startFight(me,foe,{onEnd:endMonsterFight,stormAt:M.stormAt?M.stormAt*1000:0,boss:M.band===4});
 }
 function endMonsterFight(F){
   const D=G.door;const M=MONSTERS[D.mid];D.done=true;G.phase='draft';
@@ -1041,6 +1041,7 @@ function nextRound(){
   G.sel=null;G.vsel=null;G.swapV=null;G.phase='draft';G.dockV=false;
   if(G.tut&&G.round===2){G.tut='last';}
   pairRound();
+  music('market');sting('dawnsting');
   if(!RM){
     const dk=document.createElement('div');dk.className='dusk dawn';
     dk.innerHTML='<div class="dt">Round '+G.round+'</div><div class="d2">'+BANDN[bandOf(G.round)]+'</div>';
@@ -1218,6 +1219,7 @@ function copyReport(place,btn){
   }catch(e){fallback();}
 }
 function endScreen(place){
+  music(null);sting('lament');
   const o=ovOpen('<div class="card"><div class="rays red"></div>'
    +'<div class="kick">The Stall Closes</div>'
    +ic('e-skull','bigic','color:#d8c9b0')
@@ -1245,7 +1247,7 @@ function championScreen(){
    +'<button class="btn gold" id="nlb2">New Lobby</button></div></div>');
   coinRain(o.querySelector('#crn2'));
   if(!RM)fxCoinRain();
-  sWin();
+  sWin();music(null);sting('fanfarewin');
   o.querySelector('#rpb2').onclick=function(){copyReport(1,o.querySelector('#rpb2'));};
   o.querySelector('#nlb2').onclick=function(){ovClose(o);newLobby();};
 }
@@ -1402,12 +1404,12 @@ export function boot(){
     mb.onclick=function(){const m=sfxToggle();mb.classList.toggle('off',m);musicMute(m);};
   }
   initMusic(sfxMuted());
-  music('market');
   initEmbers();
   loadBest();
   const d=loadRun();
-  if(d&&d.round>=1){openContinue(d);}
-  else{openIntro();}
+  /* title theme over the intro; a resumed run drops straight to market */
+  if(d&&d.round>=1){music('market');openContinue(d);}
+  else{music('title');openIntro();}
   /* dev-only hooks for driving playtests from the console; the guard
      matches the service worker's, so the live site never carries them */
   if(typeof location!=='undefined'&&location.hostname.match(/^(localhost|127\.)/)){
