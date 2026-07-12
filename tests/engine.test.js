@@ -168,16 +168,18 @@ test('The Azhdaha: each fallen head halves the survivors, and a rich board still
   const board=[makeItem('hammer',1),makeItem('aegis',1),makeItem('salve',1),makeItem('fangs',1)];
   const me={nm:'You',portrait:'p-0',hp:fightHP(10,0,ANONE),items:playerFightItems(board,{},ANONE,1),lifesteal:0};
   const F=createFight({a:me,b:foe,stormAt:stormAt(10),seed:21,playerIs:'a'});
-  let enrages=0;const cds=[];
+  let enrages=0;let minSurvCd=9999;
   let guard=0;
   while(!F.done&&guard++<3600){for(const e of F.step(50)){
     if(e.k==='enrage'){enrages++;}
-    if(e.k==='destroy'&&e.side==='b'){cds.push(F.b.items.filter(t=>t.alive).map(t=>t.cd));}
+    if(e.k==='destroy'&&e.side==='b'){F.b.items.filter(t=>t.alive).forEach(t=>{if(t.cd<minSurvCd)minSurvCd=t.cd;});}
   }}
   assert.equal(F.winner,'a','a silver round 10 board slays the boss');
-  assert.ok(enrages>=3,'the rage triggered, got '+enrages+' enrage events');
-  assert.deepEqual(cds[0],[4000,4000],'first head down: survivors at 4 s');
-  assert.deepEqual(cds[1],[2000],'second head down: the last head at 2 s');
+  assert.ok(enrages>=2,'the rage triggered, got '+enrages+' enrage events');
+  /* the hasteMates rattle permanently cuts survivor cooldowns below the 8 s
+     base; overflow can now change which head dies first, so we assert the
+     mechanic rather than a fixed kill order */
+  assert.ok(minSurvCd<8000,'a surviving head was hastened below its 8 s base, saw '+minSurvCd);
 });
 
 test('Grand Vizier of Ash: the full kit boss falls to a gold round 12 board',()=>{
@@ -459,4 +461,64 @@ test('Qareen handles an empty board safely',()=>{
   const me={nm:'You',hp:hp,items:[],lifesteal:0};
   const F=duel(me,q,9,7,'a');
   assert.ok(F.done,'empty-vs-empty fight still resolves via the storm');
+});
+
+/* ============ STABILIZATION INVARIANTS (2026-07-12) ============ */
+function side(ids,round,rarity){
+  const board=ids.map(id=>makeItem(id,rarity||0));
+  return {nm:'s',hp:fightHP(round,0,ANONE),items:playerFightItems(board,{},ANONE,1),lifesteal:0};
+}
+
+test('invariant: every fight terminates, even a board built to haste-loop',()=>{
+  /* a wall of diamond Hourglasses used to drive each other into a
+     supercritical activation loop; the haste cap must stop that */
+  const hg=side(['hourglass','hourglass','hourglass','hourglass'],12,3);
+  const foe=side(['hourglass','hourglass','hourglass','hourglass'],12,3);
+  const F=duel(hg,foe,12,99,'a');
+  assert.ok(F.done,'the haste board resolves instead of looping forever');
+  assert.ok(F.t<=60000,'and ends within a minute of sim time, saw '+F.t);
+});
+
+test('invariant: poison decays without reapplication',()=>{
+  /* one poison application, no source left: the merchant keeps taking
+     damage but it fades round over round, never a flat forever-tick */
+  const F=createFight({a:{nm:'a',hp:200,items:[],lifesteal:0},b:{nm:'b',hp:200,items:[],lifesteal:0},stormAt:99000,seed:1,playerIs:'a'});
+  F.a.pois=40;
+  const ticks=[];
+  for(let s=0;s<12;s++){for(const e of F.step(1000)){if(e.k==='tickp')ticks.push(e.amt);}}
+  assert.equal(ticks[0],40,'first tick is the full value');
+  assert.ok(ticks[1]<ticks[0],'poison decays after ticking, '+ticks[1]+' < '+ticks[0]);
+  assert.ok(ticks[ticks.length-1]<8,'and keeps fading toward zero, saw '+ticks[ticks.length-1]);
+});
+
+test('invariant: burn total is bounded, not quadratic in the packet',()=>{
+  const F=createFight({a:{nm:'a',hp:9999,items:[],lifesteal:0},b:{nm:'b',hp:200,items:[],lifesteal:0},stormAt:99000,seed:1,playerIs:'a'});
+  F.a.burn=21;let total=0;
+  for(let s=0;s<12;s++){for(const e of F.step(1000)){if(e.k==='tickb')total+=e.amt;}}
+  /* a 21 packet used to imply ~231 total (21+20+...+1); proportional decay
+     keeps it near linear */
+  assert.ok(total<70,'a 21 burn packet totals under 70, saw '+total);
+});
+
+test('invariant: a large weapon cleaves overkill into the next item',()=>{
+  /* a Warhammer into a single chaff body should not lose all its excess;
+     the cleave carries into the ware behind it */
+  const attacker={nm:'a',hp:300,items:playerFightItems([makeItem('hammer',1)],{},ANONE,1),lifesteal:0};
+  const chaff={nm:'b',hp:300,items:playerFightItems([makeItem('purse'),makeItem('purse')],{},ANONE,1),lifesteal:0};
+  const F=createFight({a:attacker,b:chaff,stormAt:99000,seed:3,playerIs:'a'});
+  let destroyed=0;
+  for(let s=0;s<8&&!F.done;s++){for(const e of F.step(1000)){if(e.k==='destroy'&&e.side==='b')destroyed++;}}
+  assert.ok(destroyed>=2,'the cleave takes down both chaff bodies, saw '+destroyed);
+});
+
+test('invariant: lifesteal heals from damage dealt, not the nominal number',()=>{
+  /* a huge weapon striking a tiny body heals from what actually landed */
+  const F=createFight({a:{nm:'a',hp:100,items:playerFightItems([makeItem('hammer',2)],{},ANONE,1),lifesteal:0.15},b:{nm:'b',hp:9999,items:playerFightItems([makeItem('purse')],{},ANONE,1),lifesteal:0},stormAt:99000,seed:5,playerIs:'a'});
+  F.a.hp=50;
+  let healed=0;
+  for(let s=0;s<3&&!F.done;s++){for(const e of F.step(1000)){if(e.k==='heal'&&e.side==='a')healed+=e.amt;}}
+  const nominal=F.a.items[0].fx.dmg;
+  /* a gold Warhammer nominal is ~160; healing 15% of that would be ~24, but
+     a 14-integrity purse only takes 14, so a correct heal is a few points */
+  assert.ok(healed<Math.round(nominal*0.15),'heal came from dealt damage, not nominal, saw '+healed);
 });

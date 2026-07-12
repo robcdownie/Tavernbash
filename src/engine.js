@@ -58,7 +58,10 @@ export function playerFightItems(board,T,A,scale){
     if(def.fx&&def.fx.burn){fx.burn=Math.max(1,Math.round(def.fx.burn*rs*(T.burnMul||1)*fd*A.burnMul));}
     if(def.fx&&def.fx.shield){fx.shield=Math.max(1,Math.round(def.fx.shield*rs*(T.shieldMul||1)*fd));}
     if(def.fx&&def.fx.heal){fx.heal=Math.max(1,Math.round(def.fx.heal*rs*(T.healMul||1)*fd));}
-    if(def.fx&&def.fx.haste){fx.haste=def.fx.haste*rs;}
+    /* haste is capped (stabilization 2026-07-12) so rarity can never push a
+       single charge past a neighbour's cooldown, which is what let two high
+       rarity Hourglasses drive each other into a supercritical loop */
+    if(def.fx&&def.fx.haste){fx.haste=Math.min(1.2,def.fx.haste*rs);}
     if(def.fx&&def.fx.hasteAll){fx.hasteAll=def.fx.hasteAll;}
     if(def.fx&&def.fx.reload){fx.reload=def.fx.reload;}
     if(def.fx&&def.fx.disable){fx.disable=true;}
@@ -108,7 +111,10 @@ export function monsterSide(mid,ctx){
 /* ============ RIVAL GENERATION ============ */
 export function genRival(round,persona,rng,A){
   A=A||ANONE;
-  const tier=Math.min(6,1+Math.ceil(round/2));
+  /* rival tier, stabilization 2026-07-12: round 1 is tier 1 (was tier 2 via
+     1+ceil), so a fresh rival board is genuine parity with the player, not
+     six slots of tier-2 wares while you start at five slots of tier 1 */
+  const tier=Math.min(6,Math.ceil(round/2)||1);
   const slots=4+tier;
   /* rival curve, approved 2026-07-11: round 1 near player parity,
      converging on the old 9+5.5r line by the late game */
@@ -220,14 +226,31 @@ export function createFight(cfg){
          headless runner stay deterministic; items without crit never roll */
       let dmg=fx.dmg;
       if(it.crit>0&&rng()<it.crit){dmg*=2;ev.push({k:"crit",side:S.key,i:idx});}
-      const ti=pickTarget(D.items,it.targeting);
-      if(ti>=0){
+      /* overflow by size (stabilization 2026-07-12): a Large weapon cleaves
+         all its excess into the next item, a Medium half, a Small none. This
+         gives big weapons a real identity and stops a bronze chaff body from
+         absorbing an entire overkill. Lifesteal heals from damage actually
+         dealt (integrity + merchant), never the nominal number. */
+      const over=it.size>=3?1:(it.size===2?0.5:0);
+      let remaining=dmg,dealt=0,guard=0;
+      while(remaining>0&&guard++<12){
+        const ti=pickTarget(D.items,it.targeting);
+        if(ti<0){hHit(D,remaining,ev);dealt+=remaining;remaining=0;break;}
         const tgt=D.items[ti];
-        tgt.integ-=dmg;
-        if(tgt.integ<=0){tgt.integ=0;tgt.alive=false;ev.push({k:"chip",side:D.key,i:ti,amt:dmg,integ:0});ev.push({k:"destroy",side:D.key,i:ti,nm:tgt.nm});rattleOf(D,ti,ev);}
-        else{ev.push({k:"chip",side:D.key,i:ti,amt:dmg,integ:tgt.integ});}
-      }else{hHit(D,dmg,ev);}
-      if(S.ls>0){healSide(S,Math.max(1,Math.round(dmg*S.ls)),ev,true);}
+        const hit=Math.min(tgt.integ,remaining);
+        tgt.integ-=hit;dealt+=hit;
+        const excess=remaining-hit;remaining=0;
+        if(tgt.integ<=0){
+          tgt.integ=0;tgt.alive=false;
+          ev.push({k:"chip",side:D.key,i:ti,amt:hit,integ:0});
+          ev.push({k:"destroy",side:D.key,i:ti,nm:tgt.nm});
+          rattleOf(D,ti,ev);
+          if(excess>0&&over>0){remaining=Math.round(excess*over);}
+        }else{
+          ev.push({k:"chip",side:D.key,i:ti,amt:hit,integ:tgt.integ});
+        }
+      }
+      if(S.ls>0&&dealt>0){healSide(S,Math.max(1,Math.round(dealt*S.ls)),ev,true);}
     }
     if(fx.shield){S.shield+=fx.shield;ev.push({k:"shield",side:S.key,amt:fx.shield,val:S.shield});}
     if(fx.heal){healSide(S,fx.heal,ev,false);S.pois=Math.max(0,S.pois-1);S.burn=Math.max(0,S.burn-1);}
@@ -292,10 +315,16 @@ export function createFight(cfg){
     while(F.t>=F.secMark+1000){
       F.secMark+=1000;
       for(const S of [A,B]){
-        if(S.pois>0){S.hp-=S.pois;ev.push({k:"tickp",side:S.key,amt:S.pois});}
+        /* poison ticks its current value, then decays ~30% (stabilization
+           2026-07-12): a lone poison hit fades unless reapplied, so poison
+           is sustained pressure, not a one-swing merchant nuke */
+        if(S.pois>0){S.hp-=S.pois;ev.push({k:"tickp",side:S.key,amt:S.pois});S.pois=Math.floor(S.pois*0.82);}
+        /* burn decays proportionally (~45%/s) instead of 1/s, so a big
+           packet no longer implies quadratic total damage; shield still
+           halves each tick */
         if(S.burn>0){
           const eff=S.burn;const abs=Math.min(S.shield,Math.floor(eff/2));S.shield-=abs;const hpd=eff-abs;S.hp-=hpd;
-          ev.push({k:"tickb",side:S.key,amt:hpd});S.burn=Math.max(0,S.burn-1);
+          ev.push({k:"tickb",side:S.key,amt:hpd});S.burn=Math.floor(S.burn*0.6);
         }
         /* regen knits fight health every second, capped at the starting
            pool; it does not cleanse stacks and cannot raise the dead */

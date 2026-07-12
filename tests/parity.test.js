@@ -40,50 +40,14 @@ const RENAMED_TRINKETS={
   venomancer:{n:"Poisonmonger"},
 };
 
-/* Combat-engine parity. Rival generation is deliberately retuned, so
-   fights run on fixed boards built from items the ledger does not touch:
-   same ids, same rarities, same seeds through both engines, and every
-   event-visible outcome must match byte for byte. This pins targeting,
-   bulwarks, burn, shields, heals, adjacency, storm, and the tick loop. */
-const SAFE_IDS=['dagger','sword','fangs','mace','crossbow','hammer','torch','bomb','magma',
-  'buckler','brassbuckler','barricade','tower','aegis','bandage','salve','chalice','sanctum',
-  'whetstone','hourglass','adren'];
-function fixedBoard(bb,seed){
-  const rng=bb.mulberry(seed);
-  const n=3+Math.floor(rng()*4);
-  const board=[];
-  for(let i=0;i<n;i++){
-    const id=SAFE_IDS[Math.floor(rng()*SAFE_IDS.length)];
-    const r=Math.floor(rng()*3);
-    board.push(bb.makeItem(id,r));
-  }
-  return board;
-}
-function fightOutcome(bb,round,seed){
-  const a=fixedBoard(bb,seed*31+1),b=fixedBoard(bb,seed*31+2);
-  const F=bb.runHeadless(bb.createFight({
-    a:{nm:'a',hp:bb.fightHP(round,0,bb.ANONE),items:bb.playerFightItems(a,{},bb.ANONE,1),lifesteal:0},
-    b:{nm:'b',hp:bb.fightHP(round,0,bb.ANONE),items:bb.playerFightItems(b,{},bb.ANONE,1),lifesteal:0},
-    stormAt:bb.stormAt(round),seed:seed*2654435761>>>0,playerIs:null}));
-  return {winner:F.winner,t:F.t,aHp:F.a.hp,bHp:F.b.hp,
-          boards:a.map(i=>i.id+':'+i.rarity).join(',')+' vs '+b.map(i=>i.id+':'+i.rarity).join(',')};
-}
-
-const NEW={createFight:engine.createFight,runHeadless:engine.runHeadless,makeItem:engine.makeItem,
-  playerFightItems:engine.playerFightItems,fightHP:engine.fightHP,stormAt:engine.stormAt,
-  mulberry:engine.mulberry,ANONE:ANONE};
-
-test('parity: the combat engine reproduces the original fight for fight on fixed boards',()=>{
-  assert.ok(ORIG&&ORIG.createFight,'original BB export loaded');
-  for(let round=1;round<=12;round++){
-    for(let s=1;s<=3;s++){
-      const seed=round*97+s;
-      const a=fightOutcome(ORIG,round,seed);
-      const b=fightOutcome(NEW,round,seed);
-      assert.deepEqual(b,a,'round '+round+' seed '+seed);
-    }
-  }
-});
+/* The byte-identical fight-for-fight parity test was retired on 2026-07-12.
+   Its job was to prove the module extraction faithfully reproduced the
+   original single-file game; it did that through 0.56. The stabilization
+   pass then deliberately diverges the combat sim (poison decay, burn
+   packets, weapon overflow, haste cap, lifesteal from damage dealt), so a
+   byte-match against the original is no longer the goal. The data-table
+   parity below still pins every original item/monster/trinket outside the
+   rebalance ledger, and combat invariants now live in engine.test.js. */
 
 test('parity: data tables identical to the original outside the rebalance ledger',()=>{
   const j=x=>JSON.parse(JSON.stringify(x));
