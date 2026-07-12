@@ -8,6 +8,7 @@ import {ART} from './art-manifest.js';
 import {fxHit,fxDestroy,fxForge,fxCoinRain,fxStorm} from './fx.js';
 import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxToggle,sfxMuted} from './sfx.js';
 import {initMusic,music,musicMute} from './music.js';
+import pkg from '../package.json';
 /* ============ SESSION + UI PRIMITIVES ============ */
 let G=null;let RM=false;const BEST={place:null,round:0};
 let FSPD=(function(){try{return +window.localStorage.getItem('bb-speed')||1;}catch(e){return 1;}})();
@@ -23,7 +24,7 @@ function snapshotRun(){
   const s=store();if(!s||!G||!G.door)return;
   const item=function(it){return {id:it.id,rarity:it.rarity,size:it.size,ench:it.ench||null};};
   const d={v:SAVE_VERSION,seed:G.seed,rngSeed:(G.seed+G.round*1013904223+7)>>>0,
-    round:G.round,gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,spoils:G.spoils||0,frozen:!!G.frozen,fightN:G.fightN,hero:G.hero||null,
+    round:G.round,gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,spoils:G.spoils||0,frozen:!!G.frozen,stats:Object.assign({},G.stats||{slain:0,driven:0,safe:0}),fightN:G.fightN,hero:G.hero||null,
     nextOppI:G.nextOpp?G.nextOpp.i:-1,pairsI:(G.nextPairs||[]).map(function(pr){return [pr[0].i,pr[1]?pr[1].i:-1];}),
     anom:G.anom.id,tags:G.tags.slice(),usedMon:Object.assign({},G.usedMon),
     board:G.board.map(item),vault:G.vault.map(item),shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null};}),
@@ -47,7 +48,7 @@ function restoreRun(d){
   G={seed:d.seed,rng:mulberry(d.rngSeed),round:d.round,anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.tags,
      players:[],board:d.board.map(reviveItem),vault:(d.vault||[]).map(reviveItem),
      shop:d.shop.slice(),trinkets:d.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean),
-     T:null,hero:d.hero||null,gold:d.gold,tier:d.tier,tierCost:d.tierCost,relicIncome:d.relicIncome,spoils:d.spoils||0,frozen:!!d.frozen,
+     T:null,hero:d.hero||null,gold:d.gold,tier:d.tier,tierCost:d.tierCost,relicIncome:d.relicIncome,spoils:d.spoils||0,frozen:!!d.frozen,stats:d.stats||{slain:0,driven:0,safe:0},
      door:d.door,sel:null,vsel:null,swapV:null,tut:null,phase:'draft',fightN:d.fightN,
      departed:d.departed?{board:d.departed.board.map(reviveItem),nm:d.departed.nm,p:d.departed.p}:null,
      feed:[],usedMon:d.usedMon||{},fiv:null,burned:0,enteredGold:0,
@@ -579,7 +580,7 @@ function takeSafe(){
   if(s.t==='gold'){G.spoils=(G.spoils||0)+3;toast('You take the easy way out. 3 gold at dawn.');}
   else if(s.t==='patch'){G.you.hp=Math.min(40,G.you.hp+4);toast('You take the easy way out. 4 health mended.');}
   else{G.shop.push({id:s.id,free:true,bought:false});toast('You take the easy way out. A free '+ITEMS[s.id].n+' waits in tomorrow\'s market.');}
-  D.done=true;D.result='SAFE PATH';
+  D.done=true;D.result='SAFE PATH';if(G.stats)G.stats.safe++;
   renderAll();
   proceedToDuel();
 }
@@ -769,7 +770,8 @@ function endMonsterFight(F){
   const D=G.door;const M=MONSTERS[D.mid];D.done=true;G.phase='draft';
   if(F.lotPaid){G.spoils=(G.spoils||0)+F.lotPaid;toast('The Auctioneer owes you '+F.lotPaid+' gold, paid at dawn.');}
   if(F.winner==='a'){
-    D.result='SLAIN';const b=M.bounty;
+    D.result='SLAIN';if(G.stats)G.stats.slain++;
+    const b=M.bounty;
     /* every kill pays: at least 1 gold rides home even from item bounties */
     let coin=0;
     if(b.gold){
@@ -795,7 +797,7 @@ function endMonsterFight(F){
     bark('win');
     proceedToDuel();
   }else{
-    D.result='DRIVEN OFF';
+    D.result='DRIVEN OFF';if(G.stats)G.stats.driven++;
     G.you.hp-=MONCHIP[M.band];
     toast('Driven off. Lost '+MONCHIP[M.band]+' health. The duel still waits.');
     if(G.you.hp<=0){handleYourDeath(function(){renderAll();});return;}
@@ -1172,13 +1174,59 @@ function coinRain(box){
     box.appendChild(s);
   }
 }
+/* the run report: one tap turns a finished run into a paste-ready
+   block for the standing playtest doc */
+function runReport(place){
+  const H=heroOf();
+  const item=function(it){return RNAME[it.rarity]+' '+(it.ench?ENCH[it.ench].n+' ':'')+ITEMS[it.id].n;};
+  return [
+   'Tavern Bash v'+pkg.version+' run, '+new Date().toISOString().slice(0,16).replace('T',' '),
+   'Result: '+(place===1?'Champion':ord(place)+' of 8')+', '+(place===1?'won':'fell')+' round '+G.round,
+   'Hero: '+(H?H.n:'none'),
+   'Tier '+G.tier+', lobby health '+Math.max(0,G.you.hp)+', gold at end '+G.gold+(G.spoils?' plus '+G.spoils+' spoils pending':''),
+   'Anomaly: '+G.anom.n+'; featured '+CATN[G.tags[0]]+' and '+CATN[G.tags[1]],
+   'Stall: '+(G.board.length?G.board.map(item).join(', '):'empty'),
+   'Vault: '+(G.vault.length?G.vault.map(item).join(', '):'empty'),
+   'Trinkets: '+(G.trinkets.length?G.trinkets.map(function(t){return t.n;}).join(', '):'none'),
+   'Doors: '+(G.stats?(G.stats.slain+' slain, '+G.stats.driven+' driven off, '+G.stats.safe+' easy ways out'):'untracked'),
+   'Shrine: '+(G.you.shrine?'used':'unused')
+  ].join('\n');
+}
+function showReport(txt){
+  const o=ovOpen('<div class="card"><div class="kick gold">Run Report</div>'
+   +'<textarea class="rpt" readonly></textarea>'
+   +'<p style="font-size:10px;color:var(--dim)">Tap the text to select it, copy, then tap outside to close</p></div>');
+  const ta=o.querySelector('.rpt');ta.value=txt;
+  ta.onclick=function(){ta.focus();ta.select();ta.setSelectionRange(0,txt.length);};
+  o.onclick=function(e){if(e.target===o)ovClose(o);};
+}
+function copyReport(place,btn){
+  const txt=runReport(place);
+  const done=function(ok){
+    if(ok){if(btn)btn.textContent='Copied';}
+    else{showReport(txt);}
+  };
+  const fallback=function(){
+    const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.focus();ta.select();
+    let ok=false;try{ok=document.execCommand('copy');}catch(e){}
+    ta.remove();done(ok);
+  };
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){done(true);},fallback);}
+    else{fallback();}
+  }catch(e){fallback();}
+}
 function endScreen(place){
   const o=ovOpen('<div class="card"><div class="rays red"></div>'
    +'<div class="kick">The Stall Closes</div>'
    +ic('e-skull','bigic','color:#d8c9b0')
    +'<h2 class="big bad">'+ord(place)+' of 8</h2>'
    +'<div class="score">Fell on round<b>'+G.round+'</b></div>'
-   +'<button class="btn gold" id="nlb">New Lobby</button></div>');
+   +'<div style="display:flex;gap:8px;justify-content:center;margin-top:8px">'
+   +'<button class="btn" id="rpb">Copy Run Report</button>'
+   +'<button class="btn gold" id="nlb">New Lobby</button></div></div>');
+  o.querySelector('#rpb').onclick=function(){copyReport(place,o.querySelector('#rpb'));};
   o.querySelector('#nlb').onclick=function(){ovClose(o);newLobby();};
 }
 function championScreen(){
@@ -1192,10 +1240,13 @@ function championScreen(){
    +'<h2 class="big">Champion</h2>'
    +'<p>The night market is yours. Every rival packed up or burned down.</p>'
    +'<div class="score">1st of 8 &middot; Round<b>'+G.round+'</b></div>'
-   +'<button class="btn gold" id="nlb2">New Lobby</button></div>');
+   +'<div style="display:flex;gap:8px;justify-content:center;margin-top:8px">'
+   +'<button class="btn" id="rpb2">Copy Run Report</button>'
+   +'<button class="btn gold" id="nlb2">New Lobby</button></div></div>');
   coinRain(o.querySelector('#crn2'));
   if(!RM)fxCoinRain();
   sWin();
+  o.querySelector('#rpb2').onclick=function(){copyReport(1,o.querySelector('#rpb2'));};
   o.querySelector('#nlb2').onclick=function(){ovClose(o);newLobby();};
 }
 /* ============ LOBBY ============ */
@@ -1220,7 +1271,7 @@ function newLobby(){
   const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
   const per=PERSONAS.slice();shuffle(per,rng);
   G={seed:seed,rng:rng,round:0,anom:anom,A:Object.assign({},ANONE,anom.m),tags:[cats[0],cats[1]],
-     players:[],board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:0,tier:1,tierCost:TIERCOST[2],relicIncome:0,spoils:0,frozen:false,
+     players:[],board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:0,tier:1,tierCost:TIERCOST[2],relicIncome:0,spoils:0,frozen:false,stats:{slain:0,driven:0,safe:0},
      door:null,sel:null,vsel:null,swapV:null,tut:null,phase:'draft',fightN:0,departed:null,feed:[],usedMon:{},fiv:null,burned:0,enteredGold:0,
      otherPairs:[],pendOpp:null,pendFoe:null,F:null,you:null};
   G.players.push({i:0,n:'You',short:'You',p:'p-0',hp:40,alive:true,shrine:false,place:null});
@@ -1361,6 +1412,7 @@ export function boot(){
      matches the service worker's, so the live site never carries them */
   if(typeof location!=='undefined'&&location.hostname.match(/^(localhost|127\.)/)){
     globalThis.BBDEV={g:function(){return G;},rollDoor:rollDoor,rollShop:rollShop,renderAll:renderAll,
-      openUniquePick:openUniquePick,bandOf:bandOf,startMonsterFight:startMonsterFight,bark:bark};
+      openUniquePick:openUniquePick,bandOf:bandOf,startMonsterFight:startMonsterFight,bark:bark,
+      runReport:runReport,endScreen:endScreen};
   }
 }
