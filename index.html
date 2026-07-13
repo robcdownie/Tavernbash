@@ -1024,8 +1024,12 @@
     .door .dn{font-size:12px;}
     .door{padding:8px;min-height:0;}
     .sheet{margin-top:5px;padding:8px;}
-    #main.fight{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto minmax(0,1fr);gap:3px 12px;
-      grid-template-areas:"fgb fga" "bdb bda" "vs vs" "log log";}
+    /* fights stack full width: enemy board on top, yours on the bottom,
+       the versus medallion between. Cells roughly double vs the old
+       side-by-side split and fill the floor that used to sit empty. */
+    #main.fight{display:grid;grid-template-columns:1fr;
+      grid-template-rows:auto auto auto auto auto minmax(44px,1fr);gap:2px 0;
+      grid-template-areas:"fgb" "bdb" "vs" "bda" "fga" "log";}
     #fg-b{grid-area:fgb;}
     #fg-a{grid-area:fga;}
     .bd-b{grid-area:bdb;}
@@ -1034,6 +1038,14 @@
     #fx-a{grid-area:bda;}
     #main.fight .vsrow{grid-area:vs;margin:1px 0;}
     #main.fight .log{grid-area:log;height:auto;min-height:0;margin-top:2px;}
+    #main.fight .fighter{margin-bottom:2px;}
+    #main.fight .fh{margin:0 2px 2px;}
+    #main.fight .fh .fp{width:30px;height:30px;}
+    #main.fight .board.combat{padding:4px;gap:4px;}
+    #main.fight .cell.f{height:64px;}
+    #main.fight .cell.f .gi{width:42px;height:42px;}
+    #main.fight .cell.f.s2 .gi{width:52px;height:52px;}
+    #main.fight .cell.f.s3 .gi{width:60px;height:60px;}
     .card{max-width:520px;padding:18px 26px;}
     .scout{max-width:660px;margin:auto;}
     .scout .board .cell{height:44px;}
