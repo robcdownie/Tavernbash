@@ -6,19 +6,59 @@
    aggregate and a v1 to v2 migration behind this same module. */
 import {MAP_VERSION} from './map.js';
 
-export const ROUTE_SAVE_VERSION = 1;
+export const ROUTE_SAVE_VERSION = 2;
 export const ROUTE_KEY = 'bb-route-run';
 
-/* read + version-gate; a save from a stale generator or save version is dropped
-   so restore falls back to a fresh run rather than trusting an old shape */
+function highestId(list,key){
+  let mx=0;
+  (list||[]).forEach(function(x){ if(x&&x[key]!=null&&x[key]>mx)mx=x[key]; });
+  return mx;
+}
+
+/* pure v1 -> v2 migration. v1 kept the controller state at the top level
+   (routeState), the economy flat under run, hero/anom/tags/fightN under run,
+   and no durable instance ids. v2 nests the controller state and the economy
+   inside the run aggregate, moves setup out, and stamps every ware/offer with
+   an id. No engine import: this transforms wire objects only. Deterministic
+   (board then vault then shop order) and idempotent, and it honors any ids
+   already present so a partially migrated save never reissues one. */
+export function migrateV1toV2(d){
+  const r=d.run||{};
+  const seed=(r.seed>>>0);
+  let next=(r.ids&&r.ids.nextItem)||1;
+  const hi=Math.max(highestId(r.board,'iid'),highestId(r.vault,'iid'),highestId(r.shop,'offerId'));
+  if(next<hi+1)next=hi+1;
+  const stampWare=function(w){ return (w&&w.iid!=null)?w:Object.assign({},w,{iid:next++}); };
+  const stampOffer=function(o){ return (o&&o.offerId!=null)?o:Object.assign({},o,{offerId:next++}); };
+  const board=(r.board||[]).map(stampWare);
+  const vault=(r.vault||[]).map(stampWare);
+  const shop=(r.shop||[]).map(stampOffer);
+  return {
+    saveVersion:2,mapVersion:d.mapVersion,
+    run:{schemaVersion:2,runId:r.runId||('r'+seed.toString(36)),revision:r.revision||0,seed:seed,
+      route:d.routeState,
+      economy:{gold:r.gold,tier:r.tier,tierCost:r.tierCost,relicIncome:r.relicIncome,
+        freeReroll:!!r.freeReroll,frozen:!!r.frozen,
+        board:board,vault:vault,shop:shop,trinkets:r.trinkets||[]},
+      ids:{nextItem:next}},
+    setup:{hero:r.hero||null,anom:r.anom,tags:r.tags||[]},
+    fightN:r.fightN||0,
+    market:d.market||null,opening:!!d.opening,combat:d.combat||null
+  };
+}
+
+/* read, migrate, then version-gate. A save from a stale generator (mapVersion)
+   is dropped regardless of format. A v1 save is migrated to v2 in memory. Any
+   failure (bad JSON, a migration throw) falls back to null so restore starts a
+   fresh run rather than trusting a broken shape; it never corrupts. */
 export function readRouteSave(storage){
   if(!storage)return null;
   try{
-    const d=JSON.parse(storage.getItem(ROUTE_KEY)||'null');
-    if(!d||d.saveVersion!==ROUTE_SAVE_VERSION||d.mapVersion!==MAP_VERSION){
-      if(d)storage.removeItem(ROUTE_KEY);
-      return null;
-    }
+    let d=JSON.parse(storage.getItem(ROUTE_KEY)||'null');
+    if(!d)return null;
+    if(d.mapVersion!==MAP_VERSION){storage.removeItem(ROUTE_KEY);return null;}
+    if(d.saveVersion===1){d=migrateV1toV2(d);}
+    if(!d||d.saveVersion!==ROUTE_SAVE_VERSION){storage.removeItem(ROUTE_KEY);return null;}
     return d;
   }catch(e){return null;}
 }

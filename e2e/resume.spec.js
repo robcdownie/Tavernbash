@@ -66,6 +66,61 @@ test('every ware and offer carries a unique durable id, disjoint across the pool
   expect(r.nextAboveMax).toBe(true);
 });
 
+test('durable ids are stable across a reload (v2 save persistence)', async ({page}) => {
+  await freshRoute(page);
+  const before = await page.evaluate(() => {
+    const G = window.BBDEV.g();
+    return {board: G.board.map(w => w.iid), gold: G.gold};
+  });
+  await reloadAndContinue(page);
+  await page.waitForSelector('.rmplot');
+  const after = await page.evaluate(() => {
+    const G = window.BBDEV.g();
+    return {board: G.board.map(w => w.iid), gold: G.gold, schemaV: G.run.schemaVersion};
+  });
+  expect(after.schemaV).toBe(2);
+  expect(after.board).toEqual(before.board);   /* same iids, not renumbered */
+  expect(after.gold).toBe(before.gold);
+});
+
+test('a legacy v1 save migrates to v2 and continues on load', async ({page}) => {
+  await freshRoute(page);
+  /* craft a faithful v1 save from the live v2 one (strip the durable ids and
+     flatten the shape) so the migration path is exercised end to end */
+  await page.evaluate(() => {
+    const v2 = JSON.parse(localStorage.getItem('bb-route-run'));
+    const e = v2.run.economy;
+    const plainW = w => ({id: w.id, rarity: w.rarity, size: w.size, ench: w.ench});
+    const v1 = {
+      saveVersion: 1, mapVersion: v2.mapVersion,
+      routeState: v2.run.route, phase: 'routeMap',
+      run: {seed: v2.run.seed, hero: v2.setup.hero, anom: v2.setup.anom, tags: v2.setup.tags,
+        gold: e.gold, tier: e.tier, tierCost: e.tierCost, relicIncome: e.relicIncome,
+        frozen: e.frozen, freeReroll: e.freeReroll, fightN: v2.fightN,
+        board: e.board.map(plainW), vault: e.vault.map(plainW),
+        shop: e.shop.map(o => ({id: o.id, free: o.free, bought: o.bought, ench: o.ench})),
+        trinkets: e.trinkets},
+      market: v2.market, opening: v2.opening, combat: v2.combat
+    };
+    localStorage.setItem('bb-route-run', JSON.stringify(v1));
+  });
+  await reloadAndContinue(page);
+  await page.waitForSelector('.rmplot');
+  const after = await page.evaluate(() => {
+    const G = window.BBDEV.g();
+    const ids = G.board.map(w => w.iid).concat(G.shop.map(o => o.offerId));
+    return {
+      schemaV: G.run.schemaVersion,
+      allStamped: G.board.every(w => Number.isInteger(w.iid)),
+      nextAboveMax: ids.length === 0 || G.run.ids.nextItem > Math.max(...ids),
+      gold: G.gold
+    };
+  });
+  expect(after.schemaV).toBe(2);           /* migrated */
+  expect(after.allStamped).toBe(true);     /* wares got ids */
+  expect(after.nextAboveMax).toBe(true);
+});
+
 test('resume at the map preserves gold, Resolve, and progress', async ({page}) => {
   await freshRoute(page);
   const snap = () => page.evaluate(() => { const G = window.BBDEV.g(); const s = window.BBDEV.routeState(); return {phase: s.phase, gold: G.gold, resolve: s.resolve, path: s.path.length}; });

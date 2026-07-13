@@ -72,6 +72,20 @@ export function allocId(run){
   return id;
 }
 
+/* enforce the id invariant after a revive: the counter must sit above every
+   live iid/offerId so the next allocation can never collide with a restored
+   one. The migration already computes this, but a hand-built or stale save
+   might not, so revival calls this as a floor. */
+export function ensureIdFloor(run){
+  const e=run.economy||{};
+  let mx=0;
+  (e.board||[]).forEach(function(w){ if(w&&w.iid>mx)mx=w.iid; });
+  (e.vault||[]).forEach(function(w){ if(w&&w.iid>mx)mx=w.iid; });
+  (e.shop||[]).forEach(function(o){ if(o&&o.offerId>mx)mx=o.offerId; });
+  if(run.ids.nextItem<=mx)run.ids.nextItem=mx+1;
+  return run;
+}
+
 /* the ONLY place the navigation controller advances. Mutates run.route in
    place, bumps the revision, and hands the caller the effects to run. */
 export function advance(run, map, action){

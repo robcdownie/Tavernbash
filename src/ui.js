@@ -7,7 +7,7 @@ import {genMap,MAP_VERSION,isCombat} from './map.js';
 import {frontier,currentDistrict,visitedSet,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,classifyEdges} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
 import {planReward} from './route-rewards.js';
-import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy,allocId} from './route-run.js';
+import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy,allocId,ensureIdFloor} from './route-run.js';
 import {ic} from './art.js';
 import {effChips,wareDetailHTML} from './cards.js';
 import {ART} from './art-manifest.js';
@@ -783,15 +783,25 @@ function routeState(){return G.run.route;}
 
 /* ---- route saves (independent of the lobby save) ---- */
 function snapshotRoute(){
-  const s=store();if(!s||!G||G.mode!=='route'||!G.route)return;
-  const item=function(it){return {id:it.id,rarity:it.rarity,size:it.size,ench:it.ench||null};};
-  const R=G.route;
-  const d={saveVersion:ROUTE_SAVE_VERSION,mapVersion:MAP_VERSION,routeState:G.run.route,phase:G.phase,
-    run:{seed:G.seed,runId:G.run.runId,revision:G.run.revision,ids:{nextItem:G.run.ids.nextItem},hero:G.hero||null,anom:G.anom.id,tags:G.tags.slice(),
-      gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,frozen:!!G.frozen,freeReroll:!!G.freeReroll,fightN:G.fightN,
-      board:G.board.map(item),vault:G.vault.map(item),
-      shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null};}),
-      trinkets:G.trinkets.map(function(t){return t.id;})},
+  const s=store();if(!s||!G||G.mode!=='route'||!G.run)return;
+  /* v2 envelope: the run aggregate is the durable truth (controller state +
+     economy + ids all nested), read straight from G.run rather than through the
+     G accessors. Wares keep their iid, offers their offerId, so ids are stable
+     across a reload. setup and the route session (fightN, market/opening/combat)
+     stay durable outside the ten economy fields. G.phase is derived on resume,
+     never stored. */
+  const item=function(it){return {id:it.id,rarity:it.rarity,size:it.size,ench:it.ench||null,iid:it.iid};};
+  const R=G.route,E=G.run.economy;
+  const d={saveVersion:ROUTE_SAVE_VERSION,mapVersion:MAP_VERSION,
+    run:{schemaVersion:G.run.schemaVersion,runId:G.run.runId,revision:G.run.revision,seed:G.run.seed,
+      route:G.run.route,
+      economy:{gold:E.gold,tier:E.tier,tierCost:E.tierCost,relicIncome:E.relicIncome,freeReroll:!!E.freeReroll,frozen:!!E.frozen,
+        board:E.board.map(item),vault:E.vault.map(item),
+        shop:E.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null,offerId:w.offerId};}),
+        trinkets:E.trinkets.map(function(t){return t.id;})},
+      ids:{nextItem:G.run.ids.nextItem}},
+    setup:{hero:G.hero||null,anom:G.anom.id,tags:G.tags.slice()},
+    fightN:G.fightN,
     market:R.market?{nodeId:R.market.nodeId,rollIndex:R.market.rollIndex}:null,opening:!!R.opening,
     /* the fight's settlement context, so a reload during a fight or victory
        recap still pays the right bounty (Debt Collector entered gold, Pilfer
@@ -1154,22 +1164,26 @@ function routeEnd(cause){
 }
 /* resume a saved route at whatever phase it stopped */
 function restoreRoute(d){
-  const anom=ANOMALIES.filter(function(a){return a.id===d.run.anom;})[0]||ANOMALIES[0];
+  const anom=ANOMALIES.filter(function(a){return a.id===d.setup.anom;})[0]||ANOMALIES[0];
   const map=genMap(d.run.seed);
-  if(!validRoute(d.routeState,map)){clearRoute();openIntro();return;}
-  G={mode:'route',seed:d.run.seed,rng:mulberry((d.run.seed+(d.run.fightN||0)*2654435761+7)>>>0),round:0,
-     anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.run.tags,
-     T:null,hero:d.run.hero||null,
+  if(!validRoute(d.run.route,map)){clearRoute();openIntro();return;}
+  G={mode:'route',seed:d.run.seed,rng:mulberry((d.run.seed+(d.fightN||0)*2654435761+7)>>>0),round:0,
+     anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.setup.tags,
+     T:null,hero:d.setup.hero||null,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
-     phase:'routeMap',fightN:d.run.fightN||0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
-     run:reviveRun({runId:d.run.runId,revision:d.run.revision,seed:d.run.seed,route:d.routeState,ids:d.run.ids}),
+     phase:'routeMap',fightN:d.fightN||0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
+     run:reviveRun(d.run),
      route:{map:map,selectedId:null,market:d.market||null,combat:d.combat||null,opening:!!d.opening}};
-  /* revive the economy into the aggregate. Presence checks, not `||`: tierCost 0,
-     frozen false, and empty arrays are all valid saved values. */
-  G.run.economy={gold:d.run.gold,tier:d.run.tier,tierCost:d.run.tierCost,relicIncome:d.run.relicIncome,
-     freeReroll:!!d.run.freeReroll,frozen:!!d.run.frozen,
-     board:d.run.board.map(reviveItem),vault:(d.run.vault||[]).map(reviveItem),
-     shop:d.run.shop.map(reviveOffer),trinkets:d.run.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean)};
+  /* revive the economy into live objects. Presence checks, not `||`: tierCost 0,
+     frozen false, and empty arrays are all valid saved values. reviveItem/
+     reviveOffer copy the saved iid/offerId (stable across reload); the id floor
+     guards the counter against a stale save. */
+  const E=d.run.economy;
+  G.run.economy={gold:E.gold,tier:E.tier,tierCost:E.tierCost,relicIncome:E.relicIncome,
+     freeReroll:!!E.freeReroll,frozen:!!E.frozen,
+     board:E.board.map(reviveItem),vault:(E.vault||[]).map(reviveItem),
+     shop:E.shop.map(reviveOffer),trinkets:E.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean)};
+  ensureIdFloor(G.run);
   bindEconomy(G);
   const H=heroOf();if(H)G.you.p=H.g;
   computeT();
@@ -1190,11 +1204,11 @@ function resumeRoutePhase(){
 }
 function openRouteContinue(d){
   const map=genMap(d.run.seed);
-  const di=validRoute(d.routeState,map)?currentDistrict(d.routeState,map):0;
+  const di=validRoute(d.run.route,map)?currentDistrict(d.run.route,map):0;
   const o=ovOpen('<div class="card"><div class="rays"></div>'
    +'<div class="kick gold">The Lantern Still Burns</div>'+ic('g-lantern','bigic')
    +'<h2 class="big">The Road Waits</h2>'
-   +'<p>Your caravan rests in <b>'+esc(DISTRICTS[di].name)+'</b> with <b>'+Math.max(0,d.routeState.resolve)+'</b> Resolve.</p>'
+   +'<p>Your caravan rests in <b>'+esc(DISTRICTS[di].name)+'</b> with <b>'+Math.max(0,d.run.route.resolve)+'</b> Resolve.</p>'
    +'<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
    +'<button class="btn gold" id="ctGo">Continue Run</button>'
    +'<button class="btn" id="ctNew">New Run</button></div></div>');

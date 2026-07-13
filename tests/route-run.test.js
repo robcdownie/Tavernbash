@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {SCHEMA_VERSION, newRun, advance, serializeRun, reviveRun, newEconomy, bindEconomy, allocId} from '../src/route-run.js';
+import {SCHEMA_VERSION, newRun, advance, serializeRun, reviveRun, newEconomy, bindEconomy, allocId, ensureIdFloor} from '../src/route-run.js';
 import {genMap} from '../src/map.js';
 import {initRoute, transition, validRoute} from '../src/route.js';
 
@@ -123,6 +123,24 @@ test('allocId hands out a fresh id every call and advances the counter', () => {
   /* wares and offers both draw here, so an owned ware and the offer that spawned
      it can never share a value */
   assert.notEqual(a, b);
+});
+
+test('ensureIdFloor lifts the counter above every restored id', () => {
+  const run = newRun({seed: SEED});
+  run.economy.board = [{id:'a', iid: 3}, {id:'b', iid: 9}];
+  run.economy.vault = [{id:'c', iid: 5}];
+  run.economy.shop = [{id:'d', offerId: 12}];
+  run.ids.nextItem = 1;                 /* a stale counter */
+  ensureIdFloor(run);
+  assert.equal(run.ids.nextItem, 13, 'one past the highest id across all pools');
+});
+
+test('ensureIdFloor leaves an already-correct counter alone', () => {
+  const run = newRun({seed: SEED});
+  run.economy.board = [{id:'a', iid: 2}];
+  run.ids.nextItem = 8;
+  ensureIdFloor(run);
+  assert.equal(run.ids.nextItem, 8);
 });
 
 test('revive fills defaults for an older save that omits identity or the id counter', () => {
