@@ -1316,22 +1316,25 @@ function renderGateCamp(){
 }
 function routeEnd(cause){
   G.phase='routeEnd';clearRoute();music(null);
+  const result=cause==='won'?'win':'loss';
+  const endBtns='<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
+   +'<button class="btn" id="reRpt">Copy Run Report</button>'
+   +'<button class="btn gold" id="reGo">New Run</button></div>';
+  let o;
   if(cause==='won'){
     sting('fanfarewin');if(!RM)fxCoinRain();
-    const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">The Long Bazaar</div>'
+    o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">The Long Bazaar</div>'
      +ic('g-crown','bigic')+'<h2 class="big">The Vizier Falls</h2>'
-     +'<p>You walked the whole road. The night market is yours.</p>'
-     +'<button class="btn gold" id="reGo" style="width:100%;margin-top:10px">New Run</button></div>');
-    o.querySelector('#reGo').onclick=function(){ovClose(o);newRoute();};
+     +'<p>You walked the whole road. The night market is yours.</p>'+endBtns+'</div>');
   }else{
     sting('lament');
     const st=routeState();const D=DISTRICTS[currentDistrict(st,routeMap())];
-    const o=ovOpen('<div class="card"><div class="rays red"></div><div class="kick">The Road Ends</div>'
+    o=ovOpen('<div class="card"><div class="rays red"></div><div class="kick">The Road Ends</div>'
      +ic('g-skull','bigic skullic')+'<h2 class="big bad">Resolve Spent</h2>'
-     +'<p>Your caravan broke in '+esc(D.name)+' after '+st.path.length+' encounters.</p>'
-     +'<button class="btn gold" id="reGo" style="width:100%;margin-top:10px">New Run</button></div>');
-    o.querySelector('#reGo').onclick=function(){ovClose(o);newRoute();};
+     +'<p>Your caravan broke in '+esc(D.name)+' after '+st.path.length+' encounter'+(st.path.length===1?'':'s')+'.</p>'+endBtns+'</div>');
   }
+  o.querySelector('#reRpt').onclick=function(){copyText(routeRunReport(result),o.querySelector('#reRpt'));};
+  o.querySelector('#reGo').onclick=function(){ovClose(o);newRoute();};
 }
 /* resume a saved route at whatever phase it stopped */
 function restoreRoute(d){
@@ -1811,12 +1814,10 @@ function showReport(txt){
   ta.onclick=function(){ta.focus();ta.select();ta.setSelectionRange(0,txt.length);};
   o.onclick=function(e){if(e.target===o)ovClose(o);};
 }
-function copyReport(place,btn){
-  const txt=runReport(place);
-  const done=function(ok){
-    if(ok){if(btn)btn.textContent='Copied';}
-    else{showReport(txt);}
-  };
+/* copy any report text to the clipboard, falling back to execCommand and then
+   to a selectable panel when the clipboard is refused (iOS standalone) */
+function copyText(txt,btn){
+  const done=function(ok){if(ok){if(btn)btn.textContent='Copied';}else{showReport(txt);}};
   const fallback=function(){
     const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
     document.body.appendChild(ta);ta.focus();ta.select();
@@ -1827,6 +1828,43 @@ function copyReport(place,btn){
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){done(true);},fallback);}
     else{fallback();}
   }catch(e){fallback();}
+}
+function copyReport(place,btn){copyText(runReport(place),btn);}
+/* the route run report: real Obsidian YAML frontmatter so a pasted note is
+   queryable in a vault, for tracking balance results across runs */
+function routeRunReport(result){
+  const st=routeState(),map=routeMap(),H=heroOf();
+  const di=currentDistrict(st,map);
+  const bosses=st.path.filter(function(id){return /boss$/.test(id);}).length;
+  const item=function(it){return RNAME[it.rarity]+' '+(it.ench?ENCH[it.ench].n+' ':'')+ITEMS[it.id].n;};
+  const yList=function(arr,fn){return arr.length?arr.map(function(x){return '\n  - '+fn(x);}).join(''):' []';};
+  const L=[
+   '---',
+   'game: Tavern Bash',
+   'mode: The Long Bazaar',
+   'version: '+pkg.version,
+   'date: '+new Date().toISOString().slice(0,16).replace('T',' '),
+   'result: '+result,
+   'hero: '+(H?H.n:'none'),
+   'omen: '+G.anom.n,
+   'featured: '+CATN[G.tags[0]]+', '+CATN[G.tags[1]],
+   'district_reached: '+DISTRICTS[di].name,
+   'bosses_beaten: '+bosses,
+   'nodes_visited: '+st.path.length,
+   'resolve: '+Math.max(0,st.resolve),
+   'resolve_max: '+st.resolveMax,
+   'gold: '+G.gold,
+   'tier: '+G.tier,
+   'board:'+yList(G.board,item),
+   'vault:'+yList(G.vault,item),
+   'charms:'+yList(G.trinkets,function(t){return t.n;}),
+   '---',
+   '',
+   (result==='win'
+     ?'Cleared the Long Bazaar and felled the Grand Vizier.'
+     :'The caravan broke in '+DISTRICTS[di].name+' after '+st.path.length+' encounter'+(st.path.length===1?'':'s')+'.')
+  ];
+  return L.join('\n');
 }
 function endScreen(place){
   music(null);sting('lament');
