@@ -26,13 +26,13 @@ async function startFirstFight(page) {
     const mon = window.BBDEV.frontier()[0];
     window.BBDEV.dispatchRoute({type: 'commit', nodeId: mon, choice: 'challenge'});
     if (G.fiv) { clearInterval(G.fiv); G.fiv = null; }   /* the preview freezes the fight; stop the timer */
-    return G.route.state.fightSeed;
+    return window.BBDEV.routeState().fightSeed;
   });
 }
 
 test('resume at the map preserves gold, Resolve, and progress', async ({page}) => {
   await freshRoute(page);
-  const snap = () => page.evaluate(() => { const G = window.BBDEV.g(); const s = G.route.state; return {phase: s.phase, gold: G.gold, resolve: s.resolve, path: s.path.length}; });
+  const snap = () => page.evaluate(() => { const G = window.BBDEV.g(); const s = window.BBDEV.routeState(); return {phase: s.phase, gold: G.gold, resolve: s.resolve, path: s.path.length}; });
   const before = await snap();
   await reloadAndContinue(page);
   await page.waitForSelector('.rmplot');
@@ -46,7 +46,7 @@ test('resume mid-fight restarts the same fight from the same seed', async ({page
   const after = await page.evaluate(() => {
     const G = window.BBDEV.g();
     if (G.fiv) { clearInterval(G.fiv); G.fiv = null; }
-    return {uiPhase: G.phase, hasFight: !!G.F, seed: G.route.state.fightSeed, statePhase: G.route.state.phase};
+    return {uiPhase: G.phase, hasFight: !!G.F, seed: window.BBDEV.routeState().fightSeed, statePhase: window.BBDEV.routeState().phase};
   });
   expect(after.hasFight).toBe(true);
   expect(after.statePhase).toBe('encounter');
@@ -59,12 +59,12 @@ test('resume during the victory recap settles the reward exactly once', async ({
   const before = await page.evaluate(() => {
     const G = window.BBDEV.g();
     window.BBDEV.dispatchRoute({type: 'fightResult', winner: 'a', survTier: 0});   /* -> reward phase, recap shown */
-    return {gold: G.gold, path: G.route.state.path.length, phase: G.route.state.phase};
+    return {gold: G.gold, path: window.BBDEV.routeState().path.length, phase: window.BBDEV.routeState().phase};
   });
   expect(before.phase).toBe('reward');
   await reloadAndContinue(page);                 /* resumeRoutePhase dispatches settleReward */
   await page.waitForSelector('.rmplot');
-  const after = await page.evaluate(() => { const G = window.BBDEV.g(); const s = G.route.state; return {gold: G.gold, path: s.path.length, phase: s.phase}; });
+  const after = await page.evaluate(() => { const G = window.BBDEV.g(); const s = window.BBDEV.routeState(); return {gold: G.gold, path: s.path.length, phase: s.phase}; });
   expect(after.phase).toBe('map');
   expect(after.path).toBe(before.path + 1);      /* the node completed once, not zero or twice */
   expect(after.gold).toBeGreaterThanOrEqual(before.gold + 3);   /* base monster gold paid once */

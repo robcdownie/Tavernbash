@@ -4,9 +4,10 @@ import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,ANONE,
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,usedCells,
         playerFightItems,monsterSide,createFight,boardRegen} from './engine.js';
 import {genMap,MAP_VERSION,isCombat} from './map.js';
-import {initRoute,transition as routeTransition,frontier,currentDistrict,visitedSet,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,classifyEdges} from './route.js';
+import {frontier,currentDistrict,visitedSet,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,classifyEdges} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
 import {planReward} from './route-rewards.js';
+import {newRun,advance as advanceRun,serializeRun,reviveRun} from './route-run.js';
 import {ic} from './art.js';
 import {effChips,wareDetailHTML} from './cards.js';
 import {ART} from './art-manifest.js';
@@ -94,7 +95,7 @@ function renderRivals(){$('rivals').innerHTML='';}
 function renderAno(){$('anobar').innerHTML='';}
 function renderTrow(){$('trow').innerHTML='';}
 function renderRibbon(){
-  const st=G.route.state;const H=heroOf();
+  const st=routeState();const H=heroOf();
   $('ribbon').innerHTML=
     '<div class="heroP">'+ic(H?H.g:'p-0','hpv')+'</div>'
    +'<div class="chip hp"><span class="lab">Resolve</span><span class="val">'+ic('g-heart','ci')+Math.max(0,st.resolve)+'</span></div>'
@@ -767,15 +768,15 @@ function nodeAnchor(n){
 }
 function nodeLabel(n){return isCombat(n)?MONSTERS[n.monId].n:(NODELABEL[n.type]||n.type);}
 function routeMap(){return G.route.map;}
-function routeState(){return G.route.state;}
+function routeState(){return G.run.route;}
 
 /* ---- route saves (independent of the lobby save) ---- */
 function snapshotRoute(){
   const s=store();if(!s||!G||G.mode!=='route'||!G.route)return;
   const item=function(it){return {id:it.id,rarity:it.rarity,size:it.size,ench:it.ench||null};};
   const R=G.route;
-  const d={saveVersion:ROUTE_SAVE_VERSION,mapVersion:MAP_VERSION,routeState:R.state,phase:G.phase,
-    run:{seed:G.seed,hero:G.hero||null,anom:G.anom.id,tags:G.tags.slice(),
+  const d={saveVersion:ROUTE_SAVE_VERSION,mapVersion:MAP_VERSION,routeState:G.run.route,phase:G.phase,
+    run:{seed:G.seed,runId:G.run.runId,revision:G.run.revision,ids:{nextItem:G.run.ids.nextItem},hero:G.hero||null,anom:G.anom.id,tags:G.tags.slice(),
       gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,frozen:!!G.frozen,freeReroll:!!G.freeReroll,fightN:G.fightN,
       board:G.board.map(item),vault:G.vault.map(item),
       shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null};}),
@@ -804,7 +805,8 @@ function newRoute(){
      board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:6,tier:1,tierCost:TIERCOST[2],relicIncome:0,frozen:false,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,freeReroll:false,
      phase:'routeMap',fightN:0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
-     route:{map:genMap(seed),state:initRoute(seed),selectedId:null,market:null,combat:null,opening:false}};
+     run:newRun({seed:seed}),
+     route:{map:genMap(seed),selectedId:null,market:null,combat:null,opening:false}};
   computeT();
   renderAno();renderTrow();
   $('ribbon').innerHTML='';$('main').innerHTML='';
@@ -823,9 +825,8 @@ function openRouteReveal(){
 
 /* ---- the single dispatch: only place that calls the controller ---- */
 function dispatchRoute(action,ctx){
-  const r=routeTransition(G.route.state,G.route.map,action);
-  G.route.state=r.state;
-  runEffects(r.effects,0,ctx);
+  const effects=advanceRun(G.run,routeMap(),action);
+  runEffects(effects,0,ctx);
 }
 /* consume effects in order; combat, recap, reward overlays, gate camp, and the
    end screen pause the queue and resume from their own callbacks */
@@ -1151,7 +1152,8 @@ function restoreRoute(d){
      T:null,hero:d.run.hero||null,gold:d.run.gold,tier:d.run.tier,tierCost:d.run.tierCost,relicIncome:d.run.relicIncome,frozen:!!d.run.frozen,freeReroll:!!d.run.freeReroll,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:d.run.fightN||0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
-     route:{map:map,state:d.routeState,selectedId:null,market:d.market||null,combat:d.combat||null,opening:!!d.opening}};
+     run:reviveRun({runId:d.run.runId,revision:d.run.revision,seed:d.run.seed,route:d.routeState,ids:d.run.ids}),
+     route:{map:map,selectedId:null,market:d.market||null,combat:d.combat||null,opening:!!d.opening}};
   const H=heroOf();if(H)G.you.p=H.g;
   computeT();
   resumeRoutePhase();
@@ -1206,7 +1208,7 @@ function computeT(){
    the route layer will map map-node depth to Threat so noncombat nodes do not
    inflate fight health or storm timing. Fed to fightHP and stormAt everywhere. */
 function runThreat(){
-  if(G&&G.mode==='route'&&G.route){const st=G.route.state;if(st.pendingId)return nodeOf(G.route.map,st.pendingId).threat;}
+  if(G&&G.mode==='route'&&G.run&&G.route){const st=G.run.route;if(st.pendingId)return nodeOf(G.route.map,st.pendingId).threat;}
   return G.round;
 }
 function openGild(msg,cont){
@@ -1435,7 +1437,7 @@ export function boot(){
   if(typeof location!=='undefined'&&location.hostname.match(/^(localhost|127\.)/)){
     globalThis.BBDEV={g:function(){return G;},rollShop:rollShop,renderAll:renderAll,
       openUniquePick:openUniquePick,bark:bark,music:music,musicNow:musicNow,
-      newRoute:newRoute,dispatchRoute:dispatchRoute,frontier:function(){return frontier(G.route.state,G.route.map);},
-      routeState:function(){return G.route.state;}};
+      newRoute:newRoute,dispatchRoute:dispatchRoute,frontier:function(){return frontier(G.run.route,G.route.map);},
+      routeState:function(){return G.run.route;}};
   }
 }
