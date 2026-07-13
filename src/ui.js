@@ -1,8 +1,8 @@
 "use strict";
-import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,BANDN,BANDC,ANONE,
-        ITEMS,TRINKETS,ANOMALIES,PERSONAS,MONSTERS,MONBAND,MONCHIP,ENCH,ENCH_CHANCE,ENCH_PREMIUM,HEROES,DISTRICTS} from './data.js';
+import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,ANONE,
+        ITEMS,TRINKETS,ANOMALIES,PERSONAS,MONSTERS,ENCH,ENCH_CHANCE,ENCH_PREMIUM,HEROES,DISTRICTS} from './data.js';
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,usedCells,
-        playerFightItems,monsterSide,genRival,createFight,runHeadless,boardRegen} from './engine.js';
+        playerFightItems,monsterSide,createFight,boardRegen} from './engine.js';
 import {genMap,MAP_VERSION,isCombat} from './map.js';
 import {initRoute,transition as routeTransition,frontier,currentDistrict,visitedSet,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,classifyEdges} from './route.js';
 import {ic} from './art.js';
@@ -13,88 +13,18 @@ import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxTo
 import {initMusic,music,musicMute,sting,musicNow} from './music.js';
 import pkg from '../package.json';
 /* ============ SESSION + UI PRIMITIVES ============ */
-let G=null;let RM=false;const BEST={place:null,round:0};
+let G=null;let RM=false;
 let FSPD=(function(){try{return +window.localStorage.getItem('bb-speed')||1;}catch(e){return 1;}})();
 if(FSPD!==2)FSPD=1;
 /* ============ SAVES ============ */
-const SAVE_VERSION=1;
-const SAVE_KEY='bb-run', BEST_KEY='bb-best';
-/* the Long Bazaar route saves independently of the lobby so both coexist while
-   the route is built out. The map regenerates from the seed; only the route
-   controller state and the economy are stored. */
+/* the route regenerates its map from the seed; only the controller state and the
+   economy are stored */
 const ROUTE_SAVE_VERSION=1;
 const ROUTE_KEY='bb-route-run';
 function store(){try{return window.localStorage;}catch(e){return null;}}
-function persistBest(){const s=store();if(!s)return;try{s.setItem(BEST_KEY,JSON.stringify({v:SAVE_VERSION,place:BEST.place,round:BEST.round}));}catch(e){}}
-function loadBest(){const s=store();if(!s)return;try{const d=JSON.parse(s.getItem(BEST_KEY)||'null');if(d&&d.v===SAVE_VERSION){BEST.place=d.place;BEST.round=d.round;}}catch(e){}}
-function clearRun(){const s=store();if(!s)return;try{s.removeItem(SAVE_KEY);}catch(e){}}
-function snapshotRun(){
-  const s=store();if(!s||!G||!G.door)return;
-  const item=function(it){return {id:it.id,rarity:it.rarity,size:it.size,ench:it.ench||null};};
-  const d={v:SAVE_VERSION,seed:G.seed,rngSeed:(G.seed+G.round*1013904223+7)>>>0,
-    round:G.round,gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,spoils:G.spoils||0,frozen:!!G.frozen,stats:Object.assign({},G.stats||{slain:0,driven:0,safe:0}),fightN:G.fightN,hero:G.hero||null,
-    nextOppI:G.nextOpp?G.nextOpp.i:-1,pairsI:(G.nextPairs||[]).map(function(pr){return [pr[0].i,pr[1]?pr[1].i:-1];}),
-    anom:G.anom.id,tags:G.tags.slice(),usedMon:Object.assign({},G.usedMon),
-    board:G.board.map(item),vault:G.vault.map(item),shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null};}),
-    trinkets:G.trinkets.map(function(t){return t.id;}),
-    door:{mid:G.door.mid,gilded:G.door.gilded,safe:G.door.safe,done:G.door.done,result:G.door.result},
-    departed:G.departed?{board:G.departed.board.map(item),nm:G.departed.nm,p:G.departed.p}:null,
-    players:G.players.map(function(p){return {i:p.i,hp:p.hp,alive:p.alive,shrine:p.shrine,place:p.place,persona:p.persona?p.persona.n:null};})};
-  try{s.setItem(SAVE_KEY,JSON.stringify(d));}catch(e){}
-}
-function loadRun(){
-  const s=store();if(!s)return null;
-  try{
-    const d=JSON.parse(s.getItem(SAVE_KEY)||'null');
-    if(!d||d.v!==SAVE_VERSION){if(d)s.removeItem(SAVE_KEY);return null;}
-    return d;
-  }catch(e){return null;}
-}
 function reviveItem(b){const it=makeItem(b.id,b.rarity,b.ench||null);it.size=b.size;return it;}
-function restoreRun(d){
-  const anom=ANOMALIES.filter(function(a){return a.id===d.anom;})[0]||ANOMALIES[0];
-  G={seed:d.seed,rng:mulberry(d.rngSeed),round:d.round,anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.tags,
-     players:[],board:d.board.map(reviveItem),vault:(d.vault||[]).map(reviveItem),
-     shop:d.shop.slice(),trinkets:d.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean),
-     T:null,hero:d.hero||null,gold:d.gold,tier:d.tier,tierCost:d.tierCost,relicIncome:d.relicIncome,spoils:d.spoils||0,frozen:!!d.frozen,stats:d.stats||{slain:0,driven:0,safe:0},
-     door:d.door,sel:null,vsel:null,swapV:null,tut:null,phase:'draft',fightN:d.fightN,
-     departed:d.departed?{board:d.departed.board.map(reviveItem),nm:d.departed.nm,p:d.departed.p}:null,
-     feed:[],usedMon:d.usedMon||{},fiv:null,burned:0,enteredGold:0,
-     otherPairs:[],pendOpp:null,pendFoe:null,F:null,you:null};
-  for(let k=0;k<d.players.length;k++){
-    const sp=d.players[k];
-    if(sp.i===0){G.players.push({i:0,n:'You',short:'You',p:'p-0',hp:sp.hp,alive:sp.alive,shrine:sp.shrine,place:sp.place});}
-    else{
-      const per=PERSONAS.filter(function(x){return x.n===sp.persona;})[0]||PERSONAS[sp.i-1];
-      G.players.push({i:sp.i,n:per.n,short:shortName(per.n),p:per.p,hp:sp.hp,alive:sp.alive,shrine:sp.shrine,persona:per,cur:null,lastCur:null,place:sp.place});
-    }
-  }
-  G.you=G.players[0];
-  const H=heroOf();if(H){G.players[0].p=H.g;}
-  const byI=function(i){return G.players.filter(function(p){return p.i===i;})[0]||null;};
-  if(d.pairsI){
-    G.nextOpp=d.nextOppI>=0?byI(d.nextOppI):null;
-    G.nextPairs=d.pairsI.map(function(pr){return [byI(pr[0]),pr[1]>=0?byI(pr[1]):null];}).filter(function(pr){return pr[0];});
-  }else{pairRound();}
-  computeT();
-  renderAll();
-  toast('Run resumed at round '+G.round);
-}
-function openContinue(d){
-  const o=ovOpen('<div class="card"><div class="rays"></div>'
-   +'<div class="kick gold">The Lantern Still Burns</div>'
-   +ic('g-lantern','bigic')
-   +'<h2 class="big">Round '+d.round+' Awaits</h2>'
-   +'<p>Your stall from last time is still standing.</p>'
-   +'<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
-   +'<button class="btn gold" id="ctGo">Continue Run</button>'
-   +'<button class="btn" id="ctNew">New Lobby</button></div></div>');
-  o.querySelector('#ctGo').onclick=function(){ovClose(o);restoreRun(d);};
-  o.querySelector('#ctNew').onclick=function(){ovClose(o);clearRun();newLobby();};
-}
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-function ord(n){const s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
 function shuffle(a,rng){for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;}
 function ovOpen(html){const d=document.createElement('div');d.className='ov';d.innerHTML=html;document.body.appendChild(d);return d;}
 function ovClose(d){if(d&&d.parentNode){d.parentNode.removeChild(d);}}
@@ -107,7 +37,6 @@ function toast(msg){
   t.textContent=msg;t.style.opacity='1';
   clearTimeout(toastT);toastT=setTimeout(function(){t.style.opacity='0';},1700);
 }
-function bandOf(r){return r<=3?1:(r<=6?2:(r<=9?3:4));}
 function shake(){if(RM)return;const a=$('app');a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake');}
 function flashScr(){if(RM)return;const f=$('flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');}
 /* ============ STAT DISPLAY HELPERS ============ */
@@ -159,59 +88,22 @@ function fightCellHTML(fi,i,side){
   +'</div>';
 }
 /* ============ TOP RENDERERS ============ */
-function renderBest(){$('best').innerHTML=(BEST.place?('Best <b>'+ord(BEST.place)+'</b><br>'):'')+'Round <b>'+(G?G.round:0)+'</b>';}
-function standingsInfo(){
-  const ps=G.players.slice().sort(function(a,b){if(a.alive!==b.alive)return a.alive?-1:1;return b.hp-a.hp;});
-  return {ps:ps,top:(ps[0]&&ps[0].alive)?ps[0]:null,place:ps.indexOf(G.you)+1,alive:ps.filter(function(p){return p.alive;}).length};
-}
 /* the acts pass folded the rivals strip, anomaly bar, and trinket row
    into ribbon chips with tap drawers; the old containers stay empty */
 function renderRivals(){$('rivals').innerHTML='';}
 function renderAno(){$('anobar').innerHTML='';}
 function renderTrow(){$('trow').innerHTML='';}
 function renderRibbon(){
-  if(G&&G.mode==='route'){
-    const st=G.route.state;const H=heroOf();
-    $('ribbon').innerHTML=
-      '<div class="heroP">'+ic(H?H.g:'p-0','hpv')+'</div>'
-     +'<div class="chip hp"><span class="lab">Resolve</span><span class="val">'+ic('g-heart','ci')+Math.max(0,st.resolve)+'</span></div>'
-     +'<div class="chip gold"><span class="lab">Gold</span><span class="val">'+ic('g-coin','ci')+G.gold+'</span></div>'
-     +'<div class="chip"><span class="lab">Tier</span><span class="val">'+ic('g-gem','ci')+G.tier+'</span></div>'
-     +'<button class="chip act grow" id="chipAno"><span class="lab">Omen</span><span class="lab2">'+G.anom.n+'</span></button>'
-     +(G.trinkets.length?'<button class="chip act" id="chipTrk"><span class="lab">Charms</span><span class="val">'+G.trinkets.map(function(t){return ic(t.g,'ci');}).join('')+'</span></button>':'');
-    const ab=$('chipAno');if(ab)ab.onclick=openAnoInfo;
-    const cb=$('chipTrk');if(cb)cb.onclick=openTrkInfo;
-    return;
-  }
-  const s=standingsInfo();
-  const H=heroOf();
+  const st=G.route.state;const H=heroOf();
   $('ribbon').innerHTML=
-   '<div class="heroP">'+ic(H?H.g:(G.you?G.you.p:'p-0'),'hpv')+'</div>'
-  +'<div class="chip"><span class="lab">Round</span><span class="val">'+G.round+'</span></div>'
-  +'<div class="chip gold"><span class="lab">Gold</span><span class="val">'+ic('g-coin','ci')+G.gold+'</span></div>'
-  +'<div class="chip hp"><span class="lab">Health</span><span class="val">'+ic('g-heart','ci')+Math.max(0,G.you.hp)+'</span></div>'
-  +'<div class="chip"><span class="lab">Tier</span><span class="val">'+ic('g-gem','ci')+G.tier+'</span></div>'
-  +'<button class="chip act" id="chipStand"><span class="lab">Place</span><span class="val">'+ic('g-crown','ci')+ord(s.place)+'</span></button>'
-  +'<button class="chip act grow" id="chipAno"><span class="lab">Tonight</span><span class="lab2">'+G.anom.n+'</span></button>'
-  +(G.trinkets.length?'<button class="chip act" id="chipTrk"><span class="lab">Charms</span><span class="val">'+G.trinkets.map(function(t){return ic(t.g,'ci');}).join('')+'</span></button>':'');
-  const a=$('chipStand');if(a)a.onclick=openStandings;
-  const b=$('chipAno');if(b)b.onclick=openAnoInfo;
-  const c=$('chipTrk');if(c)c.onclick=openTrkInfo;
-}
-function openStandings(){
-  const s=standingsInfo();
-  const o=ovOpen('<div class="card"><div class="kick gold">The Lobby</div>'
-   +'<h2 class="big" style="font-size:23px">Standings</h2>'
-   +'<div class="rivals drawer">'+s.ps.map(function(p){
-      const w=Math.max(0,Math.min(100,p.hp/40*100));
-      return '<div class="rv'+(p.i===0?' you':'')+(p.alive?'':' dead')+'">'
-       +((p===s.top)?ic('g-crown','crn'):'')
-       +ic(p.p,'pv')+'<div class="nm">'+esc(p.short)+'</div>'
-       +'<div class="rh"><i style="width:'+w+'%"></i></div><b>'+Math.max(0,p.hp)+'</b>'
-       +(p.alive?'':'<div class="skl">'+ic('e-skull','','width:16px;height:16px')+'</div>')
-      +'</div>';}).join('')+'</div>'
-   +'<p style="margin-top:10px;opacity:.7">Tap anywhere to close</p></div>');
-  o.onclick=function(){ovClose(o);};
+    '<div class="heroP">'+ic(H?H.g:'p-0','hpv')+'</div>'
+   +'<div class="chip hp"><span class="lab">Resolve</span><span class="val">'+ic('g-heart','ci')+Math.max(0,st.resolve)+'</span></div>'
+   +'<div class="chip gold"><span class="lab">Gold</span><span class="val">'+ic('g-coin','ci')+G.gold+'</span></div>'
+   +'<div class="chip"><span class="lab">Tier</span><span class="val">'+ic('g-gem','ci')+G.tier+'</span></div>'
+   +'<button class="chip act grow" id="chipAno"><span class="lab">Omen</span><span class="lab2">'+G.anom.n+'</span></button>'
+   +(G.trinkets.length?'<button class="chip act" id="chipTrk"><span class="lab">Charms</span><span class="val">'+G.trinkets.map(function(t){return ic(t.g,'ci');}).join('')+'</span></button>':'');
+  const ab=$('chipAno');if(ab)ab.onclick=openAnoInfo;
+  const cb=$('chipTrk');if(cb)cb.onclick=openTrkInfo;
 }
 function openAnoInfo(){
   const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick">Tonight\'s Omen</div>'
@@ -226,62 +118,6 @@ function openTrkInfo(){
    +G.trinkets.map(function(t){return '<p><b>'+t.n+'</b> '+t.d+'</p>';}).join('')
    +'<p style="opacity:.7">Tap anywhere to close</p></div>');
   o.onclick=function(){ovClose(o);};
-}
-/* ============ DOORS ============ */
-function doorCtx(){return {gold:G.gold,round:G.round,A:G.A,gilded:G.door.gilded,playerBoard:G.board,playerHp:fightHP(G.round,G.T.hpFlat,G.A)};}
-function bountyText(D){
-  const M=MONSTERS[D.mid];const b=M.bounty;const parts=[];
-  if(b.gold){parts.push((b.gold*(D.gilded?2:1))+' gold');}
-  if(b.items){b.items.forEach(function(id){parts.push(ITEMS[id].n+' (free)');});}
-  if(b.gild){parts.push('Gild one of your wares');}
-  if(b.relic){parts.push('enter with 8+ gold for +1 income forever');}
-  if(b.mote){parts.push('Fusion Mote: a free bronze copy of your commonest ware');}
-  if(b.drain){parts.push('minus 1 for every Sticky Paws grab');}
-  if(b.pickUnique){parts.push('Pick any unique ware from the vault');}
-  return parts.join(' &middot; ');
-}
-function safeText(s){
-  if(s.t==='gold')return '<b>3 gold</b>, no questions asked';
-  if(s.t==='patch')return 'Mend <b>4 health</b>';
-  return 'A free <b>'+ITEMS[s.id].n+'</b>';
-}
-function doorsHTML(){
-  const D=G.door;const M=MONSTERS[D.mid];
-  if(D.done){
-    return '<div class="door mon" style="--bandc:'+BANDC[M.band]+';min-height:60px"><div class="dh"><div class="md">'+ic(M.glyph,'','width:30px;height:30px')+'</div><div><div class="dn">'+M.n+'</div><div class="db">'+BANDN[M.band]+'</div></div></div><div class="stamp">'+D.result+'</div></div>';
-  }
-  const side=monsterSide(D.mid,doorCtx());
-  const mb=side.items.map(function(fi){
-    const ps=primStat(fi);
-    return '<div class="mb">'+ic(fi.g,'','width:22px;height:22px')
-     +(ps?'<span class="md2">'+ps[1]+'</span>':'')
-     +'<span class="ms">'+fi.integ+'</span></div>';
-  }).join('');
-  const mirrorNote=(M.special==='mirror')?'<div class="risk" style="color:var(--dim)">It copies your stall at 85% strength.</div>':'';
-  const goldNote=(M.special==='gold')?'<div class="risk" style="color:var(--dim)">Its health and blade grow with your unspent gold.</div>':'';
-  const regenNote=M.regen?'<div class="risk" style="color:var(--dim)">It knits shut: +'+side.regen+' health a second.</div>':'';
-  const stormNote=M.stormAt?'<div class="risk" style="color:var(--dim)">The sand comes early: storm at '+M.stormAt+' s.</div>':'';
-  const frostNote=side.items.some(function(fi){return fi.fx&&fi.fx.freeze;})?'<div class="risk" style="color:var(--dim)">It breathes cold: your leftmost ware freezes solid.</div>':'';
-  const critMax=side.items.reduce(function(m,fi){return Math.max(m,fi.crit||0);},0);
-  const critNote=critMax>0?'<div class="risk" style="color:var(--dim)">It strikes true: '+Math.round(critMax*100)+'% chance of double damage.</div>':'';
-  const rattleNote=side.items.some(function(fi){return fi.rattle;})?'<div class="risk" style="color:var(--dim)">Break it or wait: either way, something worse gets out.</div>':'';
-  const ammoNote=side.items.some(function(fi){return fi.maxAmmo>0;})?'<div class="risk" style="color:var(--dim)">It runs on ammunition: kill the reloader and it falls silent.</div>':'';
-  const lotNote=side.items.some(function(fi){return fi.fx&&fi.fx.disable;})?'<div class="risk" style="color:var(--dim)">It auctions your finest weapon every few seconds, and pays you for it.</div>':'';
-  return '<div class="doors">'
-   +'<div class="door mon'+(D.gilded?' gild':'')+'" id="doorM" style="--bandc:'+BANDC[M.band]+'">'
-    +'<div class="dh"><div class="md">'+ic(M.glyph,'','width:30px;height:30px')+'</div>'
-    +'<div><div class="dn">'+M.n+'</div><div class="db">'+BANDN[M.band]+(D.gilded?' &middot; GILDED':'')+'</div></div>'
-    +'<div class="dhp">HEALTH<b>'+side.hp+'</b></div></div>'
-    +'<div class="mbrow">'+mb+'</div>'
-    +'<div class="bounty">Bounty: <b>'+bountyText(D)+'</b></div>'
-    +mirrorNote+goldNote+regenNote+stormNote+frostNote+critNote+rattleNote+ammoNote+lotNote
-    +'<div class="risk">Defeat costs '+MONCHIP[M.band]+' health. Tap to fight.</div>'
-   +'</div>'
-   +'<div class="door safe" id="doorS">'+ic('g-door','sfi')
-    +'<div class="dn">The Easy Way Out</div>'
-    +'<div class="bounty">'+safeText(D.safe)+'</div>'
-   +'</div>'
-  +'</div>';
 }
 /* ============ MARKET ============ */
 function wareHTML(w,i){
@@ -388,9 +224,7 @@ function renderDraft(){
   h+='<div class="dock"><div class="docktop"><div class="label" style="margin:0">'+(G.dockV?'The Vault':'Your Stall')
    +'<span class="side">'+(G.dockV?'no fights, no forging':(G.swapV!=null?'tap a ware to trade with the vault':used+' / '+slots+' slots'))+'</span></div>'
    +'<button class="btn mini" id="dockFlip">'+(G.dockV?'Stall':'Vault'+(G.vault.length?' ('+G.vault.length+')':''))+'</button>'
-   +(G.mode==='route'
-     ?'<button class="btn gold tob" id="btnGo">'+ic('g-lantern','bi vsp')+'<span class="tbt"><span class="tbl">'+(G.route.opening?'Set out':'Leave')+'</span><span class="tbn">'+(G.route.opening?'onto the road':'back to the road')+'</span></span></button></div>'
-     :'<button class="btn gold tob" id="btnGo">'+ic(G.nextOpp?G.nextOpp.p:'m-qareen','bi vsp')+'<span class="tbt"><span class="tbl">To Battle</span><span class="tbn">'+esc(G.nextOpp?shortName(G.nextOpp.n):'the Departed')+'</span></span></button></div>');
+   +'<button class="btn gold tob" id="btnGo">'+ic('g-lantern','bi vsp')+'<span class="tbt"><span class="tbl">'+(G.route.opening?'Set out':'Leave')+'</span><span class="tbn">'+(G.route.opening?'onto the road':'back to the road')+'</span></span></button></div>';
   if(G.dockV){
     h+='<div class="vault" id="vlt">'+G.vault.map(function(it,i){
         const d=ITEMS[it.id];
@@ -425,23 +259,16 @@ function renderDraft(){
   const bt=$('btnTier');if(bt)bt.onclick=tierUp;
   const br=$('btnRe');if(br)br.onclick=reroll;
   const bf=$('btnFrz');if(bf)bf.onclick=toggleFreeze;
-  const bg=$('btnGo');if(bg)bg.onclick=(G.mode==='route')?(G.route.opening?leaveOpeningMarket:function(){dispatchRoute({type:'leaveMarket'});}):toBattle;
+  const bg=$('btnGo');if(bg)bg.onclick=G.route.opening?leaveOpeningMarket:function(){dispatchRoute({type:'leaveMarket'});};
   renderSheet();
-  if(G.mode==='route')snapshotRoute();
+  snapshotRoute();
 }
 function renderAll(){
-  document.body.classList.add('run');document.body.classList.toggle('fight',G.phase==='fight');
-  const isRoute=G&&G.mode==='route';
-  document.body.classList.toggle('route',isRoute);
-  document.body.classList.toggle('classic',!isRoute);
-  if(isRoute){
-    renderRibbon();renderAno();renderTrow();
-    if(G.phase==='routeMap')renderRouteMap();
-    else if(G.phase==='draft')renderDraft();
-    else if(G.phase==='gateCamp')renderGateCamp();
-    return;
-  }
-  renderBest();renderRivals();renderRibbon();renderAno();renderTrow();if(G.phase==='draft'){renderDraft();}renderCoach();
+  document.body.classList.add('run','route');document.body.classList.toggle('fight',G.phase==='fight');
+  renderRibbon();renderAno();renderTrow();
+  if(G.phase==='routeMap')renderRouteMap();
+  else if(G.phase==='draft')renderDraft();
+  else if(G.phase==='gateCamp')renderGateCamp();
 }
 /* ============ THE VOICE: your hero watches you play ============ */
 function bark(ev,always){
@@ -558,7 +385,6 @@ function buyWare(i){
   G.board.push(makeItem(w.id,0,w.ench||null));
   const forged=fuseScan(G.board);
   fuseWithVault();
-  if(G.tut==='market'){G.tut='forge';}
   renderAll();
   const cells=document.querySelectorAll('#bd .cell.it');
   const landCell=cells[cells.length-1];
@@ -603,32 +429,6 @@ function toggleFreeze(){
   G.frozen=!G.frozen;
   toast(G.frozen?'The shop holds until dawn.':'The shop thaws.');
   renderDraft();
-}
-/* the gate: the doors stand between the market and the duel. Tapping
-   To Battle opens this once per round; the player fights the monster
-   or takes the easy way out, then the duel begins. Gold spoils would
-   burn at dusk seconds after they landed, so they wait for dawn. */
-function openGate(){
-  if(!G.door||G.door.done||G.phase!=='draft'){proceedToDuel();return;}
-  const D=G.door;const M=MONSTERS[D.mid];
-  if(M.band===4&&!G.barkedBoss){G.barkedBoss=true;bark('boss',true);}
-  const o=ovOpen('<div class="card knock'+(D.gilded?' gild':'')+'">'
-   +'<div class="rays'+(D.gilded?'':' red')+'"></div>'
-   +'<div class="kick'+(D.gilded?' gold':'')+'">'+(D.gilded?'A Gilded Door Bars the Way':'A Door Bars the Way')+'</div>'
-   +'<h2 class="big" style="font-size:24px">'+BANDN[bandOf(G.round)]+'</h2>'
-   +doorsHTML()
-   +'<p style="font-size:11px;color:var(--dim);margin-top:8px">Win, and the market reopens to spend your winnings before the duel.</p></div>');
-  if(G.tut==='ready'){G.tut='gate';renderCoach();}
-  const dm=o.querySelector('#doorM');if(dm)dm.onclick=function(){if(G.tut==='gate'){G.tut='wait';renderCoach();}ovClose(o);startMonsterFight();};
-  const ds=o.querySelector('#doorS');if(ds)ds.onclick=function(){if(G.tut==='gate'){G.tut='wait';renderCoach();}ovClose(o);takeSafe();};
-}
-function takeSafe(){
-  const D=G.door;if(D.done||G.phase!=='draft')return;const s=D.safe;
-  if(s.t==='gold'){G.gold+=3;toast('You take the easy way out. 3 gold.');}
-  else if(s.t==='patch'){G.you.hp=Math.min(40,G.you.hp+4);toast('You take the easy way out. 4 health mended.');}
-  else{G.shop.push({id:s.id,free:true,bought:false});toast('You take the easy way out. A free '+ITEMS[s.id].n+' in the market.');}
-  D.done=true;D.result='SAFE PATH';if(G.stats)G.stats.safe++;
-  returnToMarket();
 }
 /* ============ FIGHT UI ============ */
 function fighterHTML(s,side){
@@ -860,69 +660,6 @@ function startFight(me,foe,opts){
   },40);
   },duskHold);
 }
-/* ============ MONSTER FIGHTS ============ */
-function startMonsterFight(){
-  const D=G.door;if(!D||D.done||G.phase!=='draft')return;
-  G.enteredGold=G.gold;sCreak();
-  const M=MONSTERS[D.mid];
-  const foe=monsterSide(D.mid,doorCtx());
-  const me={nm:'You',portrait:G.you.p,hp:fightHP(runThreat(),G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
-  startFight(me,foe,{onEnd:endMonsterFight,stormAt:M.stormAt?M.stormAt*1000:0,boss:M.band===4});
-}
-/* the market reopens between the door and the duel so winnings can be
-   spent before the real opponent; a second To Battle runs the duel */
-function returnToMarket(){
-  G.phase='draft';G.sel=null;
-  snapshotRun();renderAll();
-  toast('The market reopens. Spend your winnings, then face '+(G.nextOpp?shortName(G.nextOpp.n):'the Departed')+'.');
-}
-/* post-fight recap: a plain readout of what happened, so a win or a loss is
-   legible after the wares stop moving. Damage is tallied by type from the
-   event stream during the fight (weapon, poison, burn, storm). */
-function dmgBreakdown(t){
-  const parts=[];
-  if(t.wpn>0)parts.push(['dmg','e-blade',Math.round(t.wpn)]);
-  if(t.pois>0)parts.push(['poison','e-skull',Math.round(t.pois)]);
-  if(t.burn>0)parts.push(['burn','e-flame',Math.round(t.burn)]);
-  if(t.storm>0)parts.push(['util','e-bolt',Math.round(t.storm)]);
-  return parts.map(function(p){return '<span class="eff '+p[0]+'">'+ic(p[1],'mi')+' '+p[2]+'</span>';}).join('')||'<span class="eff util">nothing</span>';
-}
-function fightRecapHTML(won,foeName){
-  const R=G.recap||{a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
-  const dealt=R.b.wpn+R.b.pois+R.b.burn+R.b.storm;
-  const took=R.a.wpn+R.a.pois+R.a.burn+R.a.storm;
-  return '<div class="card recapcard"><div class="rays'+(won?'':' red')+'"></div>'
-   +'<div class="kick'+(won?' gold':'')+'">'+(won?'Victory':'Defeat')+'</div>'
-   +'<h2 class="big'+(won?'':' bad')+'">'+(won?esc(foeName)+' slain':'Driven off')+'</h2>'
-   +'<div class="recaprow"><div class="rlab">You dealt <b>'+Math.round(dealt)+'</b></div><div class="rchips">'+dmgBreakdown(R.b)+'</div></div>'
-   +'<div class="recaprow"><div class="rlab">You took <b>'+Math.round(took)+'</b></div><div class="rchips">'+dmgBreakdown(R.a)+'</div></div>'
-   +(R.a.dead.length?'<div class="recaplost">Destroyed this fight: '+R.a.dead.map(esc).join(', ')+'</div>':'')
-   +'<button class="btn gold" id="recapGo" style="width:100%;margin-top:12px">Continue</button></div>';
-}
-function showFightRecap(won,foeName,onDone){
-  const o=ovOpen(fightRecapHTML(won,foeName));
-  const b=o.querySelector('#recapGo');if(b)b.onclick=function(){ovClose(o);onDone();};
-}
-function endMonsterFight(F){
-  showFightRecap(F.winner==='a',MONSTERS[G.door.mid].n,function(){resolveMonsterFight(F);});
-}
-function resolveMonsterFight(F){
-  const D=G.door;const M=MONSTERS[D.mid];D.done=true;G.phase='draft';
-  if(F.lotPaid){G.gold+=F.lotPaid;toast('The Auctioneer paid you '+F.lotPaid+' gold for your wares.');}
-  if(F.winner==='a'){
-    D.result='SLAIN';if(G.stats)G.stats.slain++;
-    settleMonsterReward({mid:D.mid,gilded:D.gilded,baseGold:0,minGold:1,enteredGold:G.enteredGold,pocketed:F.pocketed,cont:returnToMarket});
-  }else{
-    /* a loss wins nothing to spend, so no market break: straight to the
-       duel (the winnings-shopping interlude is a reward for a win) */
-    D.result='DRIVEN OFF';if(G.stats)G.stats.driven++;
-    G.you.hp-=MONCHIP[M.band];
-    toast('Driven off. Lost '+MONCHIP[M.band]+' health. To the duel.');
-    if(G.you.hp<=0){handleYourDeath(function(){renderAll();});return;}
-    bark('loss');
-    proceedToDuel();
-  }
-}
 /* shared victory settlement: the win reward for both the lobby door and a route
    node. Applies base + bounty gold, item/relic/mote bounties, then finishes
    synchronously via cont() or opens an async gild/pickUnique overlay that calls
@@ -999,7 +736,7 @@ function loadRoute(){
   }catch(e){return null;}
 }
 function clearRoute(){const s=store();if(!s)return;try{s.removeItem(ROUTE_KEY);}catch(e){}}
-function checkpointActiveRun(){if(G&&G.mode==='route')snapshotRoute();else snapshotRun();}
+function checkpointActiveRun(){snapshotRoute();}
 
 /* ---- run construction ---- */
 function newRoute(){
@@ -1392,145 +1129,6 @@ function openRouteContinue(d){
   o.querySelector('#ctGo').onclick=function(){ovClose(o);restoreRoute(d);};
   o.querySelector('#ctNew').onclick=function(){ovClose(o);clearRoute();newRoute();};
 }
-/* ============ GHOST DUELS ============ */
-function scaleFor(round){return 1+Math.max(0,round-5)*0.03;}
-function sideOf(p){return {nm:p.n,portrait:p.p,hp:p.cur.hp,items:playerFightItems(p.cur.board,{},G.A,scaleFor(G.round)),lifesteal:0};}
-function departedSide(){
-  if(G.departed&&G.departed.board.length){
-    return {nm:G.departed.nm,portrait:G.departed.p,hp:fightHP(G.round,0,G.A),items:playerFightItems(G.departed.board,{},G.A,1),lifesteal:0};
-  }
-  const rb=genRival(G.round,PERSONAS[0],G.rng,G.A);
-  return {nm:'A wandering ghost',portrait:'m-qareen',hp:fightHP(G.round,0,G.A),items:rb.items,lifesteal:0};
-}
-/* pairings roll at round start so the draft can telegraph tonight's
-   duel; deaths only happen during battle resolution, so the pairing
-   stays valid all round */
-function pairRound(){
-  const alive=G.players.filter(function(p){return p.alive;});
-  const order=alive.slice();shuffle(order,G.rng);
-  const pairs=[];let solo=null;
-  for(let i=0;i+1<order.length;i+=2){pairs.push([order[i],order[i+1]]);}
-  if(order.length%2===1){solo=order[order.length-1];}
-  let opp=null;const others=[];
-  for(let i=0;i<pairs.length;i++){
-    const pr=pairs[i];
-    if(pr[0].i===0){opp=pr[1];}
-    else if(pr[1].i===0){opp=pr[0];}
-    else{others.push(pr);}
-  }
-  if(solo&&solo.i!==0){others.push([solo,null]);}
-  G.nextOpp=opp;G.nextPairs=others;
-}
-function toBattle(){
-  if(G.phase!=='draft')return;
-  if(!G.board.length){toast('Your stall is empty. Buy a ware first.');return;}
-  if(G.door&&!G.door.done){openGate();return;}
-  proceedToDuel();
-}
-function proceedToDuel(){
-  if(G.phase!=='draft')return;
-  if(G.nextOpp===undefined){pairRound();}
-  for(let k=0;k<G.players.length;k++){
-    const p=G.players[k];
-    if(p.i>0&&p.alive){
-      const rb=genRival(G.round,p.persona,G.rng,G.A);
-      p.cur={board:rb.board,hp:fightHP(G.round,0,G.A)};
-      p.lastCur=p.cur;
-    }
-  }
-  G.otherPairs=G.nextPairs||[];
-  G.pendOpp=G.nextOpp||null;
-  openScout(G.pendOpp);
-}
-function openScout(opp){
-  const foe=opp?sideOf(opp):departedSide();
-  G.pendFoe=foe;
-  const o=ovOpen('<div class="scout">'
-   +'<div class="sh2">'+ic(foe.portrait,'fp')+'<div><div class="t">'+esc(foe.nm)+'</div>'
-   +'<div class="u">'+(opp?('Lobby health '+opp.hp):'A ghost of a fallen stall')+'</div></div>'
-   +'<div class="cd" id="scd">8</div></div>'
-   +'<div class="lab2">Their stall</div>'
-   +'<div class="board combat" style="pointer-events:none">'+foe.items.map(function(fi,i){return fightCellHTML(fi,i,'s');}).join('')+'</div>'
-   +'<div class="lab2">Your stall &middot; tap to reorder, left is struck first</div>'
-   +'<div id="scb"></div><div id="scm"></div>'
-   +'<button class="btn gold" id="scGo" style="width:100%;margin-top:10px">'+ic('e-blade','bi')+' Fight</button>'
-  +'</div>');
-  let sel=null;let done=false;
-  function draw(){
-    o.querySelector('#scb').innerHTML='<div class="board">'+G.board.map(function(it,i){return cellHTML(it,i,i===sel);}).join('')+'</div>';
-    o.querySelectorAll('#scb .cell.it').forEach(function(c){c.onclick=function(){const i=+c.dataset.i;sel=(sel===i?null:i);draw();};});
-    o.querySelector('#scm').innerHTML=(sel==null)?'':'<div style="display:flex;gap:6px;margin-top:7px"><button class="btn" id="sml" style="flex:1"'+(sel===0?' disabled':'')+'>&#9664; Move</button><button class="btn" id="smr" style="flex:1"'+(sel>=G.board.length-1?' disabled':'')+'>Move &#9654;</button></div>';
-    if(sel!=null){
-      const l=o.querySelector('#sml');const r=o.querySelector('#smr');
-      if(l)l.onclick=function(){if(sel>0){const t=G.board[sel];G.board[sel]=G.board[sel-1];G.board[sel-1]=t;sel--;draw();}};
-      if(r)r.onclick=function(){if(sel<G.board.length-1){const t=G.board[sel];G.board[sel]=G.board[sel+1];G.board[sel+1]=t;sel++;draw();}};
-    }
-  }
-  draw();
-  let left=8;
-  const tm=setInterval(function(){left--;const e=o.querySelector('#scd');if(e)e.textContent=left;if(left<=0)go();},1000);
-  function go(){if(done)return;done=true;clearInterval(tm);ovClose(o);launchGhost();}
-  o.querySelector('#scGo').onclick=go;
-}
-function launchGhost(){
-  /* persistent gold: nothing burns at dusk anymore. Gold carries the run */
-  G.burned=0;
-  const me={nm:'You',portrait:G.you.p,hp:fightHP(runThreat(),G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
-  startFight(me,G.pendFoe,{onEnd:endGhostFight});
-}
-function chkDeath(p,feed){
-  if(p.hp>0)return;
-  if(!p.shrine){p.shrine=true;p.hp=15;feed.push('<b>'+esc(p.short)+'</b> rose from the ashes');return;}
-  const place=G.players.filter(function(x){return x.alive;}).length;
-  p.alive=false;p.hp=0;p.place=place;
-  G.departed={board:(p.cur?p.cur.board.slice():[]),nm:p.short+"'s ghost",p:p.p};
-  feed.push('<span class="fk">'+esc(p.short)+' closes shop: '+ord(place)+' of 8</span>');
-}
-function endGhostFight(F){
-  const opp=G.pendOpp;const feed=[];const iWon=(F.winner==='a');
-  const dmg=G.round+F.survTiers(F.winner);
-  if(iWon){
-    if(opp){opp.hp-=dmg;feed.push('<b>You</b> beat '+esc(opp.short)+' <span class="fd">(-'+dmg+')</span>');chkDeath(opp,feed);}
-    else{feed.push('<b>You</b> scattered the departed ghost');}
-  }else{
-    G.you.hp-=dmg;
-    feed.push('<b>'+(opp?esc(opp.short):'The departed')+'</b> beat You <span class="fd">(-'+dmg+')</span>');
-  }
-  for(let i=0;i<G.otherPairs.length;i++){
-    const pr=G.otherPairs[i];const p1=pr[0],p2=pr[1];
-    const s1=sideOf(p1);const s2=p2?sideOf(p2):departedSide();
-    const f2=runHeadless(createFight({a:s1,b:s2,stormAt:stormAt(G.round),seed:(G.seed+G.round*31+p1.i*977+(p2?p2.i:99)*613)>>>0,playerIs:null}));
-    const d2=G.round+f2.survTiers(f2.winner);
-    if(f2.winner==='a'){
-      if(p2){p2.hp-=d2;feed.push('<b>'+esc(p1.short)+'</b> beat '+esc(p2.short)+' <span class="fd">(-'+d2+')</span>');chkDeath(p2,feed);}
-      else{feed.push('<b>'+esc(p1.short)+'</b> held off the departed');}
-    }else{
-      p1.hp-=d2;
-      feed.push('<b>'+(p2?esc(p2.short):'The departed')+'</b> beat '+esc(p1.short)+' <span class="fd">(-'+d2+')</span>');
-      chkDeath(p1,feed);
-    }
-  }
-  G.feed=feed;
-  renderRivals();
-  const contin=function(){
-    if(!G.players.some(function(p){return p.i>0&&p.alive;})){championScreen();return;}
-    banner(iWon,dmg,opp);
-  };
-  if(G.you.hp<=0){handleYourDeath(contin);}else{contin();}
-}
-function banner(iWon,dmg,opp){
-  const who=opp?esc(opp.short):'the departed';
-  if(iWon&&!RM)fxCoinRain();
-  if(iWon)sWin();else sLose();
-  const o=ovOpen('<div class="card"><div class="rays'+(iWon?'':' red')+'"></div>'
-   +'<div class="kick'+(iWon?' gold':'')+'">Round '+G.round+' &middot; Dusk</div>'
-   +'<h2 class="big'+(iWon?'':' bad')+'">'+(iWon?'Victory':'Defeat')+'</h2>'
-   +'<p>'+(iWon?('You beat '+who+'. They lose <b style="color:#ff8d76">'+dmg+'</b> health.'):('You lost to '+who+' and take <b style="color:#ff8d76">'+dmg+'</b> health.'))+'</p>'
-   +'<div class="feed">'+G.feed.map(function(f){return '<div>'+f+'</div>';}).join('')+'</div>'
-   +'<button class="btn gold" id="bGo">Morning Comes</button></div>');
-  o.querySelector('#bGo').onclick=function(){ovClose(o);nextRound();};
-}
-/* ============ ROUND FLOW ============ */
 function heroOf(){return G&&G.hero?HEROES.filter(function(h){return h.id===G.hero;})[0]:null;}
 function computeT(){
   G.T={weaponFlat:0,poisonMul:1,burnMul:1,shieldMul:1,healMul:1,cdMul:1,hpFlat:0,income:0,lifesteal:0,firstDouble:false,firstFlat:0};
@@ -1557,169 +1155,6 @@ function computeT(){
 function runThreat(){
   if(G&&G.mode==='route'&&G.route){const st=G.route.state;if(st.pendingId)return nodeOf(G.route.map,st.pendingId).threat;}
   return G.round;
-}
-function income(){
-  let inc=Math.min(10,3+G.round);
-  for(let i=0;i<G.board.length;i++){
-    const d=ITEMS[G.board[i].id];
-    if(d.inc){inc+=Math.round(d.inc*RSTAT[G.board[i].rarity]);}
-  }
-  inc+=G.T.income+G.relicIncome;
-  return Math.round(inc*G.A.goldMul);
-}
-function rollShop(){
-  /* free bounty cards always carry over; a frozen shop keeps its paid
-     cards too, counted against the roll, then the freeze is spent */
-  const freeKeep=G.shop?G.shop.filter(function(w){return w.free&&!w.bought;}):[];
-  const frozenKeep=(G.frozen&&G.shop)?G.shop.filter(function(w){return !w.free&&!w.bought;}):[];
-  G.frozen=false;
-  const n=Math.max(0,G.A.shopN-frozenKeep.length);
-  /* income wares are dead in route mode (income() never runs), so keep them out
-     of route shops until the approved rework gives them route semantics */
-  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique&&(G.mode!=='route'||!ITEMS[id].inc);});
-  const hTag=heroOf()?heroOf().tag:null;
-  const out=[];
-  for(let k=0;k<n;k++){
-    let tot=0;
-    const ws=ids.map(function(id){
-      const d=ITEMS[id];
-      let w=d.tier===1?8:(d.tier===2?7:6);
-      if(G.tags.indexOf(d.cat)>=0)w*=2.2;
-      if(hTag===d.cat)w*=2.2;
-      const own=G.board.filter(function(x){return x.id===id&&x.rarity===0;}).length;
-      if(own===1||own===2)w*=1.6;
-      tot+=w;return w;
-    });
-    let r=G.rng()*tot,pick=ids[0];
-    for(let i=0;i<ids.length;i++){r-=ws[i];if(r<=0){pick=ids[i];break;}}
-    let ench=null;
-    /* no enchanted wares in the Back Alleys (early Threat): early gold is
-       too tight to ever afford the premium */
-    if(runThreat()>=4&&G.rng()<ENCH_CHANCE){
-      const d2=ITEMS[pick];
-      const opts=Object.keys(ENCH).filter(function(e){
-        const req=ENCH[e].need;
-        return !req||(req==='dmg'?!!(d2.fx&&d2.fx.dmg):d2.cd>0);
-      });
-      if(opts.length){ench=opts[Math.floor(G.rng()*opts.length)];}
-    }
-    out.push({id:pick,free:false,bought:false,ench:ench});
-  }
-  G.shop=frozenKeep.concat(out).concat(freeKeep);
-  G.shopFresh=true;
-}
-function rollDoor(){
-  let b=bandOf(G.round);
-  let pool=MONBAND[b].filter(function(m){return !G.usedMon[m];});
-  /* every boss slain: fall back to the Palace Quarter pool instead of
-     making rounds past the Dragon Gate a boss treadmill */
-  if(!pool.length&&b===4){b=3;pool=MONBAND[b].filter(function(m){return !G.usedMon[m];});}
-  if(!pool.length){for(let i=0;i<MONBAND[b].length;i++){delete G.usedMon[MONBAND[b][i]];}pool=MONBAND[b].slice();}
-  let tot=0;
-  const ws=pool.map(function(m){let w=1;if(G.tags.indexOf(MONSTERS[m].tag)>=0)w*=2;tot+=w;return w;});
-  let r=G.rng()*tot,mid=pool[0];
-  for(let i=0;i<pool.length;i++){r-=ws[i];if(r<=0){mid=pool[i];break;}}
-  G.usedMon[mid]=1;
-  const opts=[{t:'gold',v:3},{t:'patch',v:4},{t:'ware'}];
-  const s=opts[Math.floor(G.rng()*3)];
-  if(s.t==='ware'){
-    const smalls=Object.keys(ITEMS).filter(function(id){return ITEMS[id].tier===1&&ITEMS[id].size===1;});
-    s.id=smalls[Math.floor(G.rng()*smalls.length)];
-  }
-  G.door={mid:mid,gilded:(G.rng()<0.10),safe:s,done:false,result:''};
-}
-function nextRound(){
-  G.round++;
-  if(G.round>1&&G.tier<6){G.tierCost=Math.max(1,G.tierCost-1);}
-  G.gold+=income();
-  if(G.spoils){G.gold+=G.spoils;toast('Spoils at dawn: +'+G.spoils+' gold');G.spoils=0;}
-  rollShop();rollDoor();
-  G.sel=null;G.vsel=null;G.swapV=null;G.shopSel=null;G.phase='draft';G.dockV=false;
-  if(G.tut&&G.round===2){G.tut='last';}
-  pairRound();
-  music('market');sting('dawnsting');
-  if(!RM){
-    const dk=document.createElement('div');dk.className='dusk dawn';
-    dk.innerHTML='<div class="dt">Round '+G.round+'</div><div class="d2">'+BANDN[bandOf(G.round)]+'</div>';
-    document.body.appendChild(dk);
-    setTimeout(function(){dk.remove();},2250);
-  }
-  if(G.round===5||G.round===8){openTrinkets(function(){snapshotRun();renderAll();});}
-  else{snapshotRun();renderAll();}
-  const rb=document.getElementById('ribbon');
-  if(rb&&!RM){setTimeout(function(){flyCoins({left:rb.getBoundingClientRect().left+40,top:-24,width:60,height:10},6);},1100);}
-}
-/* ============ TRINKETS ============ */
-function trinketOffers(){
-  const counts={};
-  for(let i=0;i<G.board.length;i++){const c=ITEMS[G.board[i].id].cat;counts[c]=(counts[c]||0)+1;}
-  let top=null,tc=1;
-  for(const c in counts){if(c!=='util'&&counts[c]>=2&&counts[c]>tc){tc=counts[c];top=c;}}
-  const pool=TRINKETS.filter(function(t){return G.trinkets.indexOf(t)<0;});
-  const offers=[];
-  function take(f){
-    const cs=pool.filter(function(t){return offers.indexOf(t)<0&&(!f||f(t));});
-    if(!cs.length)return;
-    offers.push(cs[Math.floor(G.rng()*cs.length)]);
-  }
-  if(top)take(function(t){return t.tag===top;});
-  take(function(t){return t.tag==='neutral';});
-  let guard=0;
-  while(offers.length<4&&offers.length<pool.length&&guard++<20){take(null);}
-  return shuffle(offers,G.rng);
-}
-function openTrinkets(cont){
-  const offers=trinketOffers();
-  if(!offers.length){cont();return;}
-  const o=ovOpen('<div class="card"><div class="rays"></div>'
-   +'<div class="kick gold">Round '+G.round+' Caravan</div>'
-   +'<h2 class="big">Choose a Charm</h2><p>A permanent boon for this run. Offers lean toward your stall.</p>'
-   +'<div class="picks">'+offers.map(function(t,i){return '<div class="pick" data-t="'+i+'" style="animation-delay:'+(i*60)+'ms"><div class="ph2">'+ic(t.g,'','width:30px;height:30px')+'</div><div class="pn">'+t.n+'</div><div class="pd">'+t.d+'</div></div>';}).join('')+'</div></div>');
-  o.querySelectorAll('.pick').forEach(function(p){
-    p.onclick=function(){
-      const t=offers[+p.dataset.t];
-      G.trinkets.push(t);computeT();
-      toast('Charm: '+t.n);
-      ovClose(o);cont();
-    };
-  });
-}
-/* ============ DEATH, SHRINE, ENDINGS ============ */
-function handleYourDeath(cont){
-  if(!G.you.shrine){
-    G.you.shrine=true;G.you.hp=15;
-    renderRivals();renderRibbon();
-    openShrine(cont);
-  }else{
-    const place=G.players.filter(function(p){return p.alive;}).length;
-    G.you.alive=false;G.you.hp=0;
-    if(BEST.place===null||place<BEST.place)BEST.place=place;
-    if(G.round>BEST.round)BEST.round=G.round;
-    persistBest();clearRun();
-    renderRivals();
-    endScreen(place);
-  }
-}
-function openShrine(cont){
-  /* three parallel boons on distinct axes: power, economy, tempo, each
-     with a sensible fallback when it cannot apply */
-  const boons=[
-   {n:'Gild a Ware',d:(G.board.length?'Raise one ware a rarity':'+5 gold (no wares)'),g:'g-gem',
-    f:function(){if(G.board.length){openGild('Choose a ware to gild',cont);}else{G.gold+=5;cont();renderAll();}}},
-   {n:'Merchant Blessing',d:'+1 income forever, +4 gold now',g:'g-coin',
-    f:function(){G.relicIncome+=1;G.gold+=4;cont();renderAll();}},
-   {n:'Free Ascent',d:(G.tier<6?'Tier up at no cost':'+1 income forever'),g:'g-lantern',
-    f:function(){if(G.tier<6){G.tier++;G.tierCost=TIERCOST[G.tier+1]||0;}else{G.relicIncome+=1;}cont();renderAll();}}
-  ];
-  const o=ovOpen('<div class="card"><div class="rays"></div>'
-   +'<div class="kick gold">The Quqnus Rises</div>'
-   +ic('g-phoenix','bigic')
-   +'<h2 class="big">From the Ashes</h2>'
-   +'<p>Your stall burns but you do not. Return at <b style="color:#ff9d8a">15 health</b> and take a boon. The next fall is final.</p>'
-   +'<div class="picks p3">'+boons.map(function(b,i){return '<div class="pick" data-b="'+i+'"><div class="ph2">'+ic(b.g,'','width:28px;height:28px')+'</div><div class="pn">'+b.n+'</div><div class="pd">'+b.d+'</div></div>';}).join('')+'</div></div>');
-  o.querySelectorAll('.pick').forEach(function(p){
-    p.onclick=function(){const b=boons[+p.dataset.b];ovClose(o);b.f();};
-  });
 }
 function openGild(msg,cont){
   if(!G.board.length){G.gold+=5;toast('No wares to gild. 5 gold instead.');if(cont)cont();renderAll();return;}
@@ -1779,48 +1214,6 @@ function coinRain(box){
 /* the run report: one tap turns a finished run into an Obsidian
    callout with dataview inline fields, ready to paste into the
    standing playtest note */
-function runReport(place){
-  const H=heroOf();
-  const item=function(it){return RNAME[it.rarity]+' '+(it.ench?ENCH[it.ench].n+' ':'')+ITEMS[it.id].n;};
-  const list=function(arr,map){return arr.length?arr.map(map).join(', '):'none';};
-  const st=G.stats||{slain:0,driven:0,safe:0};
-  const L=[
-   '> [!abstract] Tavern Bash Run Summary',
-   '> **Game**:: Tavern Bash',
-   '> **Version**:: '+pkg.version,
-   '> **Date**:: '+new Date().toISOString().slice(0,16).replace('T',' '),
-   '> ',
-   '> ---',
-   '> ### Hero & Placement',
-   '> **Hero**:: '+(H?H.n:'none'),
-   '> **Rank**:: '+place,
-   '> **Lobby Size**:: 8',
-   '> **Round Fell**:: '+G.round,
-   '> **Tier**:: '+G.tier,
-   '> **Lobby Health**:: '+Math.max(0,G.you.hp),
-   '> **End Gold**:: '+G.gold,
-   '> **Spoils Pending**:: '+(G.spoils||0),
-   '> ',
-   '> ---',
-   '> ### Omen & Environment',
-   '> **Omen**:: '+G.anom.n,
-   '> **Featured**:: '+CATN[G.tags[0]]+', '+CATN[G.tags[1]],
-   '> ',
-   '> ---',
-   '> ### Loadout',
-   '> **Stall**:: '+list(G.board,item),
-   '> **Vault**:: '+list(G.vault,item),
-   '> **Charms**:: '+list(G.trinkets,function(t){return t.n;}),
-   '> ',
-   '> ---',
-   '> ### Stats',
-   '> **Doors Slain**:: '+st.slain,
-   '> **Doors Driven Off**:: '+st.driven,
-   '> **Easy Ways Out**:: '+st.safe,
-   '> **Shrine Used**:: '+(G.you.shrine?'true':'false')
-  ];
-  return L.join('\n');
-}
 function showReport(txt){
   const o=ovOpen('<div class="card"><div class="kick gold">Run Report</div>'
    +'<textarea class="rpt" readonly></textarea>'
@@ -1844,7 +1237,6 @@ function copyText(txt,btn){
     else{fallback();}
   }catch(e){fallback();}
 }
-function copyReport(place,btn){copyText(runReport(place),btn);}
 /* the route run report: real Obsidian YAML frontmatter so a pasted note is
    queryable in a vault, for tracking balance results across runs */
 function routeRunReport(result){
@@ -1881,82 +1273,13 @@ function routeRunReport(result){
   ];
   return L.join('\n');
 }
-function endScreen(place){
-  music(null);sting('lament');
-  const o=ovOpen('<div class="card"><div class="rays red"></div>'
-   +'<div class="kick">The Stall Closes</div>'
-   +ic('g-skull','bigic skullic','')
-   +'<h2 class="big bad">'+ord(place)+' of 8</h2>'
-   +'<div class="score">Fell on round<b>'+G.round+'</b></div>'
-   +'<div style="display:flex;gap:8px;justify-content:center;margin-top:8px">'
-   +'<button class="btn" id="rpb">Copy Run Report</button>'
-   +'<button class="btn gold" id="nlb">New Lobby</button></div></div>');
-  o.querySelector('#rpb').onclick=function(){copyReport(place,o.querySelector('#rpb'));};
-  o.querySelector('#nlb').onclick=function(){ovClose(o);newLobby();};
-}
-function championScreen(){
-  G.you.place=1;
-  if(BEST.place===null||BEST.place>1)BEST.place=1;
-  if(G.round>BEST.round)BEST.round=G.round;
-  persistBest();clearRun();
-  const o=ovOpen('<div class="card"><div class="rays"></div><div class="coinrain" id="crn2"></div>'
-   +'<div class="kick gold">Last Stall Standing</div>'
-   +ic('g-crown','bigic')
-   +'<h2 class="big">Champion</h2>'
-   +'<p>The night market is yours. Every rival packed up or burned down.</p>'
-   +'<div class="score">1st of 8 &middot; Round<b>'+G.round+'</b></div>'
-   +'<div style="display:flex;gap:8px;justify-content:center;margin-top:8px">'
-   +'<button class="btn" id="rpb2">Copy Run Report</button>'
-   +'<button class="btn gold" id="nlb2">New Lobby</button></div></div>');
-  coinRain(o.querySelector('#crn2'));
-  if(!RM)fxCoinRain();
-  sWin();music(null);sting('fanfarewin');
-  o.querySelector('#rpb2').onclick=function(){copyReport(1,o.querySelector('#rpb2'));};
-  o.querySelector('#nlb2').onclick=function(){ovClose(o);newLobby();};
-}
-/* ============ LOBBY ============ */
-function openReveal(){
-  const o=ovOpen('<div class="card reveal"><div class="rays"></div><div class="rays red"></div>'
-   +'<div class="kick gold">Tonight in the Market</div>'
-   +ic(G.anom.g,'bigic')
-   +'<h2 class="big">'+G.anom.n+'</h2><p>'+G.anom.d+'</p>'
-   +'<p>Featured wares: <b style="color:var(--brass)">'+CATN[G.tags[0]]+'</b> and <b style="color:var(--brass)">'+CATN[G.tags[1]]+'</b></p>'
-   +'<p style="font-size:11px">Seven rivals wait. Last stall standing takes the night.</p>'
-   +'<button class="btn gold" id="rvGo">Open the Market</button></div>');
-  o.querySelector('#rvGo').onclick=function(){ovClose(o);nextRound();};
-}
-function shortName(n){
-  const w=n.split(' ');
-  return (w[0]==='Old'||w[0]==='The')?w[1]:w[0];
-}
-function newLobby(){
-  const seed=((Date.now()>>>0)^0x9e3779b9)>>>0;
-  const rng=mulberry(seed);
-  const anom=ANOMALIES[Math.floor(rng()*ANOMALIES.length)];
-  const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
-  const per=PERSONAS.slice();shuffle(per,rng);
-  G={seed:seed,rng:rng,round:0,anom:anom,A:Object.assign({},ANONE,anom.m),tags:[cats[0],cats[1]],
-     players:[],board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:0,tier:1,tierCost:TIERCOST[2],relicIncome:0,spoils:0,frozen:false,stats:{slain:0,driven:0,safe:0},
-     door:null,sel:null,vsel:null,swapV:null,tut:null,phase:'draft',fightN:0,departed:null,feed:[],usedMon:{},fiv:null,burned:0,enteredGold:0,
-     otherPairs:[],pendOpp:null,pendFoe:null,F:null,you:null};
-  G.players.push({i:0,n:'You',short:'You',p:'p-0',hp:40,alive:true,shrine:false,place:null});
-  for(let k=0;k<per.length;k++){
-    const ps=per[k];
-    G.players.push({i:k+1,n:ps.n,short:shortName(ps.n),p:ps.p,hp:40,alive:true,shrine:false,persona:ps,cur:null,lastCur:null,place:null});
-  }
-  G.you=G.players[0];
-  computeT();
-  renderBest();renderRivals();renderAno();renderTrow();
-  $('ribbon').innerHTML='';$('main').innerHTML='';
-  openHeroPick(openReveal);
-}
 function openHeroPick(cont){
   /* selected-hero layout: a portrait rail up top, one large hero with its
      rule below, and a Confirm. Scales to eight heroes where the old grid
      clipped at four on a short landscape screen. */
   /* the Moneylender's whole identity is income, which is dead in route; hold it
-     out of the route picker until the hero rework */
-  const pool=(G&&G.mode==='route')?HEROES.filter(function(h){return h.id!=='lender';}):HEROES;
+     out of the picker until the hero rework */
+  const pool=HEROES.filter(function(h){return h.id!=='lender';});
   let sel=pool[0].id;
   const o=ovOpen('<div class="card heropick"><div class="rays"></div>'
    +'<div class="kick gold">Choose Your Merchant</div>'
@@ -1979,11 +1302,10 @@ function openHeroPick(cont){
   draw();
   o.querySelector('#heroGo').onclick=function(){
     const h=HEROES.filter(function(x){return x.id===sel;})[0];
-    G.hero=h.id;G.you.p=h.g;                        /* G.you is players[0] in lobby mode */
+    G.hero=h.id;G.you.p=h.g;
     if(h.start){G.board.push(makeItem(h.start,0));}
     computeT();
     toast(h.n+' opens the stall');
-    if(G.tut==='hero'){G.tut='market';renderCoach();}
     ovClose(o);cont();
   };
 }
@@ -2002,62 +1324,22 @@ function initEmbers(){
     box.appendChild(e);
   }
 }
-/* ============ THE TUTORIAL: a guided first night ============ */
-/* A coach card walks the first round of a real run: seven steps, each
-   either action-advanced or Next-advanced, skippable at every stop.
-   State lives on G.tut and never rides the save; finishing or skipping
-   marks bb-tut in storage. Steps with ov:true float above overlays. */
-const TUT={
- hero:{t:'Pick your merchant. Each favors one kind of ware, and the market listens.',ov:true},
- market:{t:'The night market. Every ware fights on its own timer. Buy your first ware.',a:'.shop'},
- forge:{t:'Match wares to forge them stronger: three of a kind make a Silver, then two Silver a Gold, two Gold a Diamond. Fused wares keep their size, and copies in your vault count. A held pair glimmers, and the shop card that completes it glows.',next:true},
- dusk:{t:'Gold never carries over: spend it or it burns at dusk. Reroll for 1, Freeze to hold tonight\'s shop for tomorrow, or stash a ware in the Vault behind the flip.',a:'.controls',next:true},
- ready:{t:'When you are ready, tap To Battle. Tonight\'s opponent is already set.',a:'#btnGo'},
- gate:{t:'A door bars the way each round. Fight the monster for its bounty, or take the easy way out. Win, and the market reopens to spend your winnings before the duel.',ov:true},
- last:{t:'Lobby health only falls when you lose, and the last stall standing takes the night. You are on your own now, merchant.',next:true}
-};
-function tutDone(){G.tut=null;try{window.localStorage.setItem('bb-tut','1');}catch(e){}renderCoach();}
-function renderCoach(){
-  document.querySelectorAll('.tuthl').forEach(function(el){el.classList.remove('tuthl');});
-  const old=document.querySelector('.coach');if(old)old.remove();
-  if(!G||!G.tut||!TUT[G.tut])return;
-  const s=TUT[G.tut];
-  if(G.phase!=='draft')return;
-  if(!s.ov&&document.querySelector('.ov'))return;
-  const d=document.createElement('div');d.className='coach';
-  d.innerHTML='<div class="ct">'+s.t+'</div><div class="cb">'
-   +(s.next?'<button class="btn gold mini" id="ctN">Next</button>':'')
-   +'<button class="btn mini" id="ctS">Skip the lesson</button></div>';
-  document.body.appendChild(d);
-  if(s.a){const el=document.querySelector(s.a);if(el)el.classList.add('tuthl');}
-  const n=d.querySelector('#ctN');
-  if(n)n.onclick=function(){
-    if(G.tut==='forge'){G.tut='dusk';}
-    else if(G.tut==='dusk'){G.tut='ready';}
-    else if(G.tut==='last'){tutDone();return;}
-    renderCoach();
-  };
-  d.querySelector('#ctS').onclick=tutDone;
-}
 /* the title screen: Robbie's painted intro. Two stone plaques, New Game
    and Tutorial. Falls straight through to the lobby when the painted
    art has not landed (tests, art-less checkouts). */
 function openIntro(){
-  /* The Long Bazaar is now the default game; New Game walks the route. The
-     classic 8-merchant lobby stays reachable as a secondary link until 0.68
-     retires it. Tutorial still teaches the shared market and combat basics. */
+  /* The Long Bazaar is the only game now. Both painted plaques start a route;
+     a route-native tutorial is owed (the old lobby coach was deleted in 0.68). */
   if(!ART['bg-intro']){newRoute();return;}
   const o=document.createElement('div');o.id='intro';
   o.innerHTML='<div class="ititle">Tavern Bash</div>'
    +'<div class="ibtns">'
    +'<button class="stonebtn" id="inNew">New Game</button>'
    +'<button class="stonebtn" id="inTut">Tutorial</button>'
-   +'<button class="introroute" id="inClassic">Classic Lobby</button>'
   +'</div>';
   document.body.appendChild(o);
   o.querySelector('#inNew').onclick=function(){o.remove();newRoute();};
-  o.querySelector('#inTut').onclick=function(){o.remove();newLobby();G.tut='hero';renderCoach();};
-  o.querySelector('#inClassic').onclick=function(){o.remove();newLobby();};
+  o.querySelector('#inTut').onclick=function(){o.remove();newRoute();};
 }
 /* the debug strip: ?debug in the URL (or bb-debug=1 in storage) pins a
    tiny readout to the corner: build tag, PWA vs browser tab, viewport,
@@ -2091,19 +1373,15 @@ export function boot(){
   }
   initMusic(sfxMuted());
   initEmbers();
-  loadBest();
   const dr=loadRoute();
-  const d=loadRun();
-  /* a saved route takes precedence; then a saved lobby; else the title */
+  /* a saved route resumes; otherwise the title */
   if(dr){music('market');openRouteContinue(dr);}
-  else if(d&&d.round>=1){music('market');openContinue(d);}
   else{music('title');openIntro();}
   /* dev-only hooks for driving playtests from the console; the guard
      matches the service worker's, so the live site never carries them */
   if(typeof location!=='undefined'&&location.hostname.match(/^(localhost|127\.)/)){
-    globalThis.BBDEV={g:function(){return G;},rollDoor:rollDoor,rollShop:rollShop,renderAll:renderAll,
-      openUniquePick:openUniquePick,bandOf:bandOf,startMonsterFight:startMonsterFight,bark:bark,
-      runReport:runReport,endScreen:endScreen,music:music,musicNow:musicNow,
+    globalThis.BBDEV={g:function(){return G;},rollShop:rollShop,renderAll:renderAll,
+      openUniquePick:openUniquePick,bark:bark,music:music,musicNow:musicNow,
       newRoute:newRoute,dispatchRoute:dispatchRoute,frontier:function(){return frontier(G.route.state,G.route.map);},
       routeState:function(){return G.route.state;}};
   }
