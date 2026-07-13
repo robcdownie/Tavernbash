@@ -1085,22 +1085,64 @@ function enterRouteMarket(nodeId){
   G.phase='draft';checkpointActiveRun();renderAll();
 }
 
-/* ---- stubbed noncombat events: they still complete the node ---- */
+/* ---- noncombat events. Treasure is the full three-choice node; Rest, Shrine,
+   and Negotiation carry a single intentional outcome until their own versions
+   land (Rest -> Mend/Temper/Refit, Shrine -> three choices, Negotiation ->
+   persona offers). ---- */
 function routeEventDesc(t){
-  return t==='rest'?'Choose Mend, Temper, or Refit. Placeholder: mends 8 Resolve.'
-    :t==='treasure'?'Choose one of three rewards. Placeholder: 6 gold.'
-    :t==='shrine'?'A permanent tradeoff. Placeholder: mends 12 Resolve.'
-    :'A merchant offers trades. Placeholder: no deal yet.';
+  return t==='rest'?'Make camp: restore 8 Resolve.'
+    :t==='treasure'?'Choose one of three face-up rewards.'
+    :t==='shrine'?'The Quqnus renews you: restore 12 Resolve.'
+    :'A merchant clears some odds and ends for gold.';
+}
+const TKIND={gold:{t:'Six Gold',g:'g-coin'},ware:{t:'Free Ware',g:'g-gem'},enchant:{t:'Enchant Kit',g:'g-magma'},silver:{t:'Gild a Ware',g:'g-whetstone'}};
+function treasureDesc(k){
+  return k==='gold'?'Six gold, no strings.':k==='ware'?'A free ware waits at the next market.'
+    :k==='enchant'?'Etch a legal enchant onto a ware.':'Raise one ware to the next rarity.';
+}
+function grantFreeWare(){
+  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique;});
+  if(!ids.length){G.gold+=4;toast('No ware fits. 4 gold instead.');return;}
+  const id=ids[Math.floor(G.rng()*ids.length)];
+  G.shop.push({id:id,free:true,bought:false});
+  toast('A free '+ITEMS[id].n+' waits at the next market.');
+}
+function grantEnchantKit(){
+  for(let i=0;i<G.board.length;i++){
+    const it=G.board[i];if(it.ench)continue;const d=ITEMS[it.id];
+    const opts=Object.keys(ENCH).filter(function(e){const req=ENCH[e].need;return !req||(req==='dmg'?!!(d.fx&&d.fx.dmg):d.cd>0);});
+    if(opts.length){const e=opts[Math.floor(G.rng()*opts.length)];it.ench=e;toast(ENCH[e].n+' etched onto '+d.n);return;}
+  }
+  G.gold+=4;toast('No ware to enchant. 4 gold instead.');
+}
+function applyTreasure(kind,cont){
+  if(kind==='ware'){grantFreeWare();cont();}
+  else if(kind==='enchant'){grantEnchantKit();cont();}
+  else if(kind==='silver'){openGild('Raise one ware a rarity step.',cont);}
+  else{G.gold+=6;toast('Six gold.');cont();}
+}
+function routeTreasureCard(node){
+  const opts=(node.reward&&node.reward.options)?node.reward.options:[{kind:'gold'}];
+  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">Treasure</div>'
+   +'<h2 class="big">Choose Your Spoils</h2><p>Take one; the rest stay buried.</p>'
+   +'<div class="picks">'+opts.map(function(op,i){const k=TKIND[op.kind]||TKIND.gold;
+      return '<div class="pick" data-t="'+i+'"><div class="ph2">'+ic(k.g,'','width:28px;height:28px')+'</div><div class="pn">'+k.t+'</div><div class="pd">'+treasureDesc(op.kind)+'</div></div>';
+    }).join('')+'</div></div>');
+  o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){
+    const kind=opts[+p.dataset.t].kind;ovClose(o);
+    applyTreasure(kind,function(){dispatchRoute({type:'resolveEvent',outcome:'treasure'});});
+  };});
 }
 function routeEventCard(e){
-  const node=e.node;const t=node.type;let delta=0,gold=0,msg='';
-  if(t==='rest'){delta=8;msg='You rest by the road. +8 Resolve.';}
-  else if(t==='treasure'){gold=6;msg='You take the coin. +6 gold.';}
-  else if(t==='shrine'){delta=12;msg='The Quqnus mends you. +12 Resolve.';}
-  else{msg='The merchant shrugs. Negotiations arrive in a later version.';}
+  const node=e.node;const t=node.type;
+  if(t==='treasure'){routeTreasureCard(node);return;}
+  let delta=0,gold=0,msg='';
+  if(t==='rest'){delta=8;msg='You make camp on the road and restore 8 Resolve.';}
+  else if(t==='shrine'){delta=12;msg='The Quqnus stirs and renews you. Restore 12 Resolve.';}
+  else{gold=4;msg='The merchant clears some odds and ends. Take 4 gold.';}
   const o=ovOpen('<div class="card"><div class="kick gold">'+esc(NODELABEL[t]||cap(t))+'</div>'
    +ic(nodeGlyph(node),'bigic')+'<h2 class="big">'+esc(nodeLabel(node))+'</h2>'
-   +'<p>'+msg+'</p><p style="font-size:11px;opacity:.7">Placeholder outcome; the full node arrives later.</p>'
+   +'<p>'+msg+'</p>'
    +'<button class="btn gold" id="evGo" style="width:100%;margin-top:10px">Continue</button></div>');
   o.querySelector('#evGo').onclick=function(){if(gold)G.gold+=gold;ovClose(o);dispatchRoute({type:'resolveEvent',resolveDelta:delta,outcome:t});};
 }
