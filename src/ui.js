@@ -700,8 +700,48 @@ function handleEvents(F,evs){
     else if(e.k==='stormstart'){logLine('<b class="y">The simoom arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);sStorm(true);sting('windstorm');}
   }
 }
+/* tap any ware mid-fight to read what it is and its live state; the sim
+   pauses while the panel is open so a rushing fight stays legible */
+function fightDetailHTML(fi){
+  const f=fi.fx||{};const rows=[];
+  if(f.dmg)rows.push(['dmg','e-blade',f.dmg+' damage']);
+  if(f.poison)rows.push(['poison','e-skull',f.poison+' poison']);
+  if(f.burn)rows.push(['burn','e-flame',f.burn+' burn']);
+  if(f.shield)rows.push(['shield','e-shield',f.shield+' shield']);
+  if(f.heal)rows.push(['heal','e-heart',f.heal+' heal']);
+  if(f.freeze)rows.push(['util','e-frost',f.freeze+'s freeze']);
+  if(f.haste)rows.push(['util','e-bolt','+'+f.haste+'s to neighbors']);
+  if(f.hasteAll)rows.push(['util','e-bolt','+'+f.hasteAll+'s to allies']);
+  if(f.reload)rows.push(['util','e-bolt','reloads '+f.reload]);
+  if(fi.bulwark)rows.push(['shield','e-shield','Bulwark: struck first']);
+  if(fi.crit)rows.push(['dmg','e-blade',Math.round(fi.crit*100)+'% crit']);
+  if(fi.flying)rows.push(['util','e-bolt','Flying: no weapon reaches it']);
+  const chips=rows.length?rows.map(function(r){return '<span class="eff '+r[0]+'">'+ic(r[1],'mi')+' '+r[2]+'</span>';}).join(''):'<span class="eff util">no active effect</span>';
+  const status=[];
+  if(fi.frozen>0)status.push('Frozen '+(fi.frozen/1000).toFixed(1)+'s');
+  if(fi.maxAmmo>0)status.push('Ammo '+fi.ammo+'/'+fi.maxAmmo);
+  if(fi.lot)status.push('Auctioned: inert');
+  if(!fi.alive)status.push('Destroyed');
+  const cd=fi.cd>0?('every '+(fi.cd/1000)+'s'):'passive';
+  return '<div class="st"><span class="ico" style="width:38px;height:38px">'+ic(fi.g,'','width:100%;height:100%')+'</span>'
+   +'<div><div class="nm">'+esc(fi.nm)+'</div>'
+   +'<div class="dchips" style="margin:6px 0">'+chips+'</div>'
+   +'<div class="fstate">'+ic('e-shield','mi')+' '+Math.max(0,Math.round(fi.integ))+' / '+fi.maxI+' &middot; '+cd+(status.length?' &middot; '+status.join(' &middot; '):'')+'</div>'
+   +'</div></div>';
+}
+function openFightInspect(side,i){
+  if(!G.F)return;
+  const S=side==='a'?G.F.a:G.F.b;const fi=S.items[i];if(!fi)return;
+  G.fpaused=true;
+  const o=ovOpen('<div class="card inspectcard"><div class="kick gold">'+(side==='a'?'Your ware':'Enemy ware')+'</div>'
+   +'<div class="sheet">'+fightDetailHTML(fi)+'</div>'
+   +'<button class="btn gold" id="fiResume" style="width:100%;margin-top:12px">Resume fight</button></div>');
+  const done=function(){G.fpaused=false;ovClose(o);};
+  const r=o.querySelector('#fiResume');if(r)r.onclick=done;
+  o.onclick=function(ev){if(ev.target===o)done();};
+}
 function startFight(me,foe,opts){
-  G.phase='fight';G.sel=null;music((opts&&opts.boss)?'boss':'battle');
+  G.phase='fight';G.fpaused=false;G.sel=null;music((opts&&opts.boss)?'boss':'battle');
   document.body.classList.add('fight');
   if(!RM){
     const dk=document.createElement('div');dk.className='dusk';
@@ -746,6 +786,14 @@ function startFight(me,foe,opts){
     }
   }
   paintCds();
+  /* tap-to-inspect: delegated per board so spawned cells stay tappable */
+  ['a','b'].forEach(function(sd){
+    const board=document.querySelector('.bd-'+sd);
+    if(board)board.onclick=function(ev){
+      const cell=ev.target.closest('.cell.f');if(!cell)return;
+      const m=cell.id.match(/^fc-(a|b)-(\d+)$/);if(m)openFightInspect(m[1],+m[2]);
+    };
+  });
   let acc=0;
   /* hold the sim while Dusk Falls owns the screen; the first swing
      lands as the curtain lifts */
@@ -753,6 +801,7 @@ function startFight(me,foe,opts){
   setTimeout(function(){
   if(G.F!==F)return;
   G.fiv=setInterval(function(){
+    if(G.fpaused)return;
     /* the last shot: a genuine photo finish plays out at half speed */
     const tight=!F.done&&Math.min(F.a.hp,F.b.hp)<=20&&Math.max(F.a.hp,F.b.hp)<=45;
     acc+=40*SPEED*FSPD*(tight?0.45:1);let evs=[];
