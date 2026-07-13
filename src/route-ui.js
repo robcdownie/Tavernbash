@@ -103,47 +103,59 @@ function routeEventDesc(t){
     :t==='shrine'?'From the Ashes, Trial by Flame, or Cast Off the Old.'
     :'A merchant offers three bargains, or walk away.';
 }
-const TKIND={gold:{t:'Six Gold',g:'g-coin'},ware:{t:'Free Ware',g:'g-gem'},enchant:{t:'Enchant Kit',g:'g-magma'},silver:{t:'Gild a Ware',g:'g-whetstone'}};
-function treasureDesc(k){
-  return k==='gold'?'Six gold, no strings.':k==='ware'?'A free ware waits at the next market.'
-    :k==='enchant'?'Etch a legal enchant onto a ware.':'Raise one ware to the next rarity.';
+/* face-up Treasure: the option carries a concrete ware id or enchant (rolled at
+   map generation), so the card names exactly what it grants */
+function treasureView(op){
+  if(op.kind==='ware'&&op.id&&ITEMS[op.id])return {g:'g-'+op.id,t:'Free '+ITEMS[op.id].n,d:'This ware, free at the next market.'};
+  if(op.kind==='enchant'&&op.ench&&ENCH[op.ench])return {g:'g-magma',t:ENCH[op.ench].n+' Kit',d:ENCH[op.ench].d};
+  if(op.kind==='silver')return {g:'g-whetstone',t:'Gild a Ware',d:'Raise one ware to the next rarity.'};
+  return {g:'g-coin',t:'Six Gold',d:'Six gold, no strings.'};
 }
 /* event rolls draw from a stream keyed to the node and choice, not the mutable
    G.rng, so a reload reproduces the same reward instead of inventing a new one */
 function eventRng(nodeId,tag){return mulberry(fightSeed(G.seed,nodeId,tag));}
-function grantFreeWare(rng){
+/* grant a free ware. A fixedId (from a face-up Treasure) is used as-is; without
+   one the ware is rolled from the tier-gated pool (the Negotiation Fresh Stock). */
+function grantFreeWare(rng,fixedId){
   rng=rng||G.rng;
-  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique&&!ITEMS[id].inc;});
-  if(!ids.length){G.gold+=4;toast('No ware fits. 4 gold instead.');return;}
-  const id=ids[Math.floor(rng()*ids.length)];
+  let id=fixedId;
+  if(!id){
+    const ids=Object.keys(ITEMS).filter(function(x){return gateOK(ITEMS[x].tier,G.tier)&&!ITEMS[x].unique&&!ITEMS[x].inc;});
+    if(!ids.length){G.gold+=4;toast('No ware fits. 4 gold instead.');return;}
+    id=ids[Math.floor(rng()*ids.length)];
+  }
   G.shop.push(B.mkOffer({id:id,free:true,bought:false}));
   toast('A free '+ITEMS[id].n+' waits at the next market.');
 }
-function grantEnchantKit(rng){
+/* etch an enchant onto the first compatible unenchanted ware. A fixedEnch (from a
+   face-up Treasure) only lands on a ware that satisfies its keyword need, else the
+   gold fallback; without one a legal enchant is rolled (Rest Temper). */
+function grantEnchantKit(rng,fixedEnch){
   rng=rng||G.rng;
+  const compat=function(d,e){const req=ENCH[e].need;return !req||(req==='dmg'?!!(d.fx&&d.fx.dmg):d.cd>0);};
   for(let i=0;i<G.board.length;i++){
     const it=G.board[i];if(it.ench)continue;const d=ITEMS[it.id];
-    const opts=Object.keys(ENCH).filter(function(e){const req=ENCH[e].need;return !req||(req==='dmg'?!!(d.fx&&d.fx.dmg):d.cd>0);});
-    if(opts.length){const e=opts[Math.floor(rng()*opts.length)];it.ench=e;toast(ENCH[e].n+' etched onto '+d.n);return;}
+    const opts=fixedEnch?(compat(d,fixedEnch)?[fixedEnch]:[]):Object.keys(ENCH).filter(function(e){return compat(d,e);});
+    if(opts.length){const e=opts.length===1?opts[0]:opts[Math.floor(rng()*opts.length)];it.ench=e;toast(ENCH[e].n+' etched onto '+d.n);return;}
   }
-  G.gold+=4;toast('No ware to enchant. 4 gold instead.');
+  G.gold+=4;toast((fixedEnch?'No ware fits '+ENCH[fixedEnch].n+'. ':'No ware to enchant. ')+'4 gold instead.');
 }
-function applyTreasure(kind,cont,nodeId){
-  if(kind==='ware'){grantFreeWare(eventRng(nodeId,'tware'));cont();}
-  else if(kind==='enchant'){grantEnchantKit(eventRng(nodeId,'tench'));cont();}
-  else if(kind==='silver'){openGild('Raise one ware a rarity step.',cont);}
+function applyTreasure(opt,cont,nodeId){
+  if(opt.kind==='ware'){grantFreeWare(eventRng(nodeId,'tware'),opt.id);cont();}
+  else if(opt.kind==='enchant'){grantEnchantKit(eventRng(nodeId,'tench'),opt.ench);cont();}
+  else if(opt.kind==='silver'){openGild('Raise one ware a rarity step.',cont);}
   else{G.gold+=6;toast('Six gold.');cont();}
 }
 function routeTreasureCard(node){
   const opts=(node.reward&&node.reward.options)?node.reward.options:[{kind:'gold'}];
   const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">Treasure</div>'
    +'<h2 class="big">Choose Your Spoils</h2><p>Take one; the rest stay buried.</p>'
-   +'<div class="picks">'+opts.map(function(op,i){const k=TKIND[op.kind]||TKIND.gold;
-      return '<div class="pick" data-t="'+i+'"><div class="ph2">'+ic(k.g,'','width:28px;height:28px')+'</div><div class="pn">'+k.t+'</div><div class="pd">'+treasureDesc(op.kind)+'</div></div>';
+   +'<div class="picks">'+opts.map(function(op,i){const v=treasureView(op);
+      return '<div class="pick" data-t="'+i+'"><div class="ph2">'+ic(v.g,'','width:28px;height:28px')+'</div><div class="pn">'+esc(v.t)+'</div><div class="pd">'+esc(v.d)+'</div></div>';
     }).join('')+'</div></div>');
   o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){
-    const kind=opts[+p.dataset.t].kind;ovClose(o);
-    applyTreasure(kind,function(){B.dispatchRoute({type:'resolveEvent',outcome:'treasure'});},node.id);
+    const opt=opts[+p.dataset.t];ovClose(o);
+    applyTreasure(opt,function(){B.dispatchRoute({type:'resolveEvent',outcome:'treasure'});},node.id);
   };});
 }
 /* a generic pick-one card for route events; each choice runs its own effect and

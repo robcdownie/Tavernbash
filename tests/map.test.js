@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {genMap, districtPaths, isCombat} from '../src/map.js';
-import {DISTRICTS, MONSTERS, PERSONAS} from '../src/data.js';
+import {DISTRICTS, MONSTERS, PERSONAS, ITEMS, ENCH} from '../src/data.js';
 
 /* a broad seed spread so the structural rules are proven, not sampled */
 const SEEDS=[];
@@ -193,7 +193,15 @@ test('every Treasure previews three options; every Negotiation names a persona',
     for(const n of allNodes(genMap(s))){
       if(n.type==='treasure'){
         assert.ok(n.reward&&Array.isArray(n.reward.options)&&n.reward.options.length===3,'bad treasure '+n.id);
-        for(const o of n.reward.options)assert.ok(['gold','ware','enchant','silver'].includes(o.kind),'bad reward kind');
+        for(const o of n.reward.options){
+          assert.ok(['gold','ware','enchant','silver'].includes(o.kind),'bad reward kind');
+          /* face-up: the ware/enchant options carry a concrete, valid id at gen time */
+          if(o.kind==='ware'){
+            assert.ok(o.id&&ITEMS[o.id]&&!ITEMS[o.id].unique&&!ITEMS[o.id].inc,'ware option not face-up at '+n.id);
+            if(n.district===1)assert.equal(ITEMS[o.id].tier,1,'district I treasure ware over-tier at '+n.id);
+          }
+          if(o.kind==='enchant')assert.ok(o.ench&&ENCH[o.ench],'enchant option not face-up at '+n.id);
+        }
       }
       if(n.type==='negotiation'){
         assert.ok(Number.isInteger(n.persona)&&PERSONAS[n.persona],'bad persona at '+n.id);

@@ -11,12 +11,12 @@
    totals 22 selected nodes (5+boss thrice, then the Dragon Gate's elite + prep +
    market + Vizier). The full map holds three nodes per grid column so the player
    picks a lane as they move right. */
-import {mulberry} from './engine.js';
-import {DISTRICTS, PERSONAS} from './data.js';
+import {mulberry, gateOK} from './engine.js';
+import {DISTRICTS, PERSONAS, ITEMS, ENCH} from './data.js';
 
 /* bump when the generator's output shape or rules change, so a saved run that
    regenerates its map from the seed can reject a stale layout */
-export const MAP_VERSION=2;
+export const MAP_VERSION=3;
 
 export const COMBAT=new Set(['monster','elite','boss']);
 export function isCombat(n){return COMBAT.has(n.type);}
@@ -70,9 +70,23 @@ const COLTYPES={
   4:[['market',3],['rest',3],['treasure',2],['monster',1]]
 };
 
-function rollTreasure(rng){
-  const opts=[{kind:'gold'},{kind:'ware'},{kind:'enchant'}];
-  return {options:shuffleIn(rng,opts)};
+/* how high a tier a district's free treasure ware may roll, so an early Treasure
+   stays district-appropriate rather than handing out a late-game ware */
+const TREASURE_GATE={1:1,2:2,3:4,4:4};
+/* roll a face-up Treasure at map generation: the ware option carries a concrete
+   ware id and the enchant option a concrete enchant, so the node can be scouted
+   and the card shows exactly what it grants instead of a generic "Free Ware". The
+   result is stored on the node and consumed as-is on arrival. */
+function rollTreasure(rng,districtId){
+  const gate=TREASURE_GATE[districtId]||4;
+  const wareIds=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,gate)&&!ITEMS[id].unique&&!ITEMS[id].inc;});
+  const enchIds=Object.keys(ENCH);
+  const concrete=function(o){
+    if(o.kind==='ware'&&wareIds.length)return {kind:'ware',id:wareIds[Math.floor(rng()*wareIds.length)]};
+    if(o.kind==='enchant'&&enchIds.length)return {kind:'enchant',ench:enchIds[Math.floor(rng()*enchIds.length)]};
+    return o;
+  };
+  return {options:shuffleIn(rng,[{kind:'gold'},{kind:'ware'},{kind:'enchant'}]).map(concrete)};
 }
 
 /* one attempt at a District I to III layout; returns the district or null if it
@@ -89,7 +103,7 @@ function tryDistrict(rng,D,allowShrine){
       threat:col<=1?D.threatEarly:D.threatLate,next:[]};
     if(type==='monster'){n.monId=norm[ni++];}
     else if(type==='elite'){n.monId=elite[ei++];n.gilded=chance(rng,0.12);}
-    else if(type==='treasure'){n.reward=rollTreasure(rng);}
+    else if(type==='treasure'){n.reward=rollTreasure(rng,D.id);}
     else if(type==='negotiation'){n.persona=Math.floor(rng()*PERSONAS.length);}
     if(type==='monster'){n.gilded=chance(rng,0.12);}
     cols[col][lane]=n;
@@ -185,7 +199,7 @@ function genDragonGate(rng,D){
   ];
   const prep=[
     {id:'d4c2l0',type:'rest',district:4,col:1,lane:0,threat:D.threatLate,next:[]},
-    {id:'d4c2l2',type:'treasure',district:4,col:1,lane:2,threat:D.threatLate,reward:rollTreasure(rng),next:[]}
+    {id:'d4c2l2',type:'treasure',district:4,col:1,lane:2,threat:D.threatLate,reward:rollTreasure(rng,D.id),next:[]}
   ];
   const market={id:'d4c3l1',type:'market',district:4,col:2,lane:1,threat:D.threatLate,next:[]};
   const boss={id:'d4boss',type:'boss',district:4,col:3,lane:1,threat:D.threatBoss,monId:D.boss,gilded:false,next:[]};
