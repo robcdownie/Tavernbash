@@ -31,12 +31,12 @@ Read `handoff-bazaar-brawler-2026-07-09.md` in full before making changes, then 
 - `npm test` runs the full suite: engine behavior, parity against the original file, dash scan, sprite symbol coverage, art manifest sync, ingest matcher. Any refactor that breaks it reverts.
 - `npm run ingest -- <folder> [--strip-bg]` files raw image generations into `public/art`: matches each file by an id token in its name, resizes to spec, converts to PNG, optionally flood-fills a solid background to transparent, and regenerates the manifest. Unmatched or ambiguous files are reported and left alone.
 - `npm run dev` serves on the port in `.claude/launch.json` (5199).
-- `npm run build` then `npx netlify deploy --prod --dir dist` ships to https://bazaar-brawler.netlify.app (site already linked via `.netlify/state.json`).
+- Deploy is `git push origin main`: GitHub Actions (`.github/workflows/deploy.yml`) runs `npm ci` + `npm test` + `npm run build` on node 22 and publishes `dist/` to GitHub Pages at https://platosd.com (`public/CNAME`). To ship: bump `package.json` + commit, then `git push origin main`. Netlify is retired and out of the deploy path; the old `npx netlify deploy` route to `bazaar-brawler.netlify.app` / `bazaar-brawler-v1.netlify.app` is dead and the historical Netlify notes in the top paragraph no longer apply. Bump `CACHE_V` in `public/sw.js` on a deploy that must invalidate caches; verify fights on-device at platosd.com since the headless preview throttles motion.
 
 ## Hard rules
 
 - Zero em dashes and zero en dashes anywhere, including docs, comments, and commit messages. The dash scan in `npm test` enforces this and it scans markdown, so this file counts.
 - Approved change batches get applied in full, not piecemeal.
 - Target device is an iPhone in Safari standalone mode, landscape first: test at 844x390 (landscape is the primary orientation, per Robbie on 2026-07-10, superseding the handoff), then 390x844. Respect safe areas, no hover-dependent interactions. In landscape runs the app pins to viewport height and the doors and market columns scroll internally; nothing may push the stall off screen.
-- One new system per version. Each phase ships working, tests green, with the live Netlify URL shown at the end.
+- One new system per version. Each phase ships working, tests green, deployed to https://platosd.com via `git push origin main`.
 - The sim stays pure and the two health layers, targeting rules, and economy in the handoff are settled; do not re-litigate them.
