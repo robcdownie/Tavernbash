@@ -8,6 +8,7 @@ import {frontier,currentDistrict,visitedSet,nodeOf,lossDamage,fightSeed,validRou
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
 import {planReward} from './route-rewards.js';
 import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy,allocId,ensureIdFloor} from './route-run.js';
+import {rewardKey,settleFixed,chooseGild as runtimeChooseGild,chooseUnique as runtimeChooseUnique,refreshPendingChoice,nextPresentation} from './route-runtime.js';
 import {ic} from './art.js';
 import {effChips,wareDetailHTML} from './cards.js';
 import {ART} from './art-manifest.js';
@@ -740,26 +741,85 @@ function showFightRecap(won,foeName,onDone){
   const o=ovOpen(fightRecapHTML(won,foeName));
   const b=o.querySelector('#recapGo');if(b)b.onclick=function(){ovClose(o);onDone();};
 }
-/* shared victory settlement: the win reward for a route node. Applies base + bounty gold, item/relic/mote bounties, then finishes
-   synchronously via cont() or opens an async gild/pickUnique overlay that calls
-   cont() once chosen. Auctioneer pay and Resolve are fight-scoped and handled by
-   the callers, not here. */
-function settleMonsterReward(o){
-  const M=MONSTERS[o.mid];const b=M.bounty||{};
-  const plan=planReward(b,{baseGold:o.baseGold,gilded:o.gilded,enteredGold:o.enteredGold,pocketed:o.pocketed,minGold:o.minGold,board:G.board});
-  G.gold+=plan.gold;
-  if(plan.drained>0){toast('The monkey kept '+plan.drained+' gold of the bounty.');}
-  plan.items.forEach(function(id){G.shop.push(mkOffer({id:id,free:true,bought:false}));});
-  if(plan.relic){G.relicIncome+=1;toast('Income relic: +1 gold each dawn');}
-  if(plan.mote){
-    if(plan.mote.item){G.shop.push(mkOffer({id:plan.mote.item,free:true,bought:false}));}
-    else{G.gold+=plan.mote.gold;toast('The mote found nothing bronze to copy. '+plan.mote.gold+' gold instead.');}
+/* monster reward settlement (R4 commit 4b). The fixed payout (gold, bounty
+   offers, relic, mote) applies exactly once behind a receipt keyed on run, node,
+   and attempt; an owed gild/unique choice is serialized into run.pendingChoice.
+   Ordering is crash-safe: apply fixed -> set receipt + pendingChoice -> one
+   checkpoint -> only then open the overlay or present the map. A reload reopens
+   an interrupted choice rather than re-paying. The event gild path (Treasure,
+   Trial) is separate and keeps its own simpler overlay. */
+function settleRouteReward(e){
+  const c=G.route.combat||{};
+  const M=MONSTERS[e.monId];
+  const key=rewardKey(G.run.runId,e.nodeId,c.attempt||0);
+  const already=!!(G.run.receipts[key]&&G.run.receipts[key].fixedApplied);
+  const plan=planReward(M.bounty||{},{baseGold:e.gold,gilded:e.gilded,enteredGold:c.enteredGold||0,pocketed:c.pocketed||0,minGold:0,board:G.board});
+  settleFixed(G.run,plan,key);
+  if(!already){
+    if(plan.drained>0){toast('The monkey kept '+plan.drained+' gold of the bounty.');}
+    if(plan.relic){toast('Income relic: +1 gold each dawn');}
+    if(plan.mote&&plan.mote.gold){toast('The mote found nothing bronze to copy. '+plan.mote.gold+' gold instead.');}
+    toast(M.n+' slain. '+plan.gold+' gold'+(plan.items.length?', bounty wares in the market':'')+'.');
+    bark('win');
   }
-  if(plan.choice==='gild'){renderAll();openGild('The mirror bows. Gild one ware.',o.cont);return;}
-  if(plan.choice==='pickUnique'){renderAll();openUniquePick('The vault opens. Take one.',o.cont);return;}
-  toast(M.n+' slain. '+plan.gold+' gold'+(plan.items.length?', bounty wares in the market':'')+'.');
-  bark('win');
-  o.cont();
+  G.route.combat=null;
+  /* write-ahead: economy + receipt + pendingChoice saved before any overlay. If
+     the save fails the reward stays correct (a later crash re-settles from the
+     clean pre-reward snapshot, and the receipt keeps it exactly once), so we warn
+     rather than strand the player. A blocking retry UI is owed as R5 polish. */
+  if(!checkpointActiveRun()){toast('Heads up: progress could not be saved.');}
+  presentAfterReward();
+}
+/* present the screen a reward transaction leaves us on: an owed choice reopens,
+   a finished run ends (so a final-boss choice resolves before the win screen),
+   otherwise back to the map */
+function presentAfterReward(){
+  const np=nextPresentation(G.run);
+  if(np.kind==='choice'){openRewardChoice(np.choice);}
+  else if(np.kind==='end'){routeEnd(np.cause);}
+  else{G.phase='routeMap';renderAll();}
+}
+function openRewardChoice(pc){
+  renderAll();
+  if(pc.kind==='gild'){openRewardGild(pc);}else{openRewardUnique(pc);}
+}
+/* gild presenter: renders the serialized board-iid options and dispatches the
+   choice; the runtime applies it, then we run the fusion cascade, checkpoint,
+   and move on */
+function openRewardGild(pc){
+  const o=ovOpen('<div class="card"><div class="rays"></div>'
+   +'<div class="kick gold">Gilding</div>'
+   +'<h2 class="big" style="font-size:23px">The mirror bows. Gild one ware.</h2>'
+   +'<div class="picks">'+pc.options.map(function(opt){
+      const it=G.board.filter(function(w){return w.iid===opt.iid;})[0];if(!it)return '';
+      const d=ITEMS[it.id];
+      return '<div class="pick" data-g="'+it.iid+'"><div class="ph2">'+ic('g-'+it.id,'','width:28px;height:28px')+'</div><div class="pn">'+RNAME[it.rarity]+' '+d.n+'</div><div class="pd">to '+RNAME[it.rarity+1]+'</div></div>';
+    }).join('')+'</div></div>');
+  o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){chooseRewardGild(o,+p.dataset.g);};});
+}
+function chooseRewardGild(o,iid){
+  const res=runtimeChooseGild(G.run,iid);
+  if(!res.ok){return;}   /* a stale click on a vanished target is rejected, not misapplied */
+  toast('Gilded: '+RNAME[res.ware.rarity]+' '+ITEMS[res.ware.id].n);
+  fuseStamp(G.board);fuseWithVault();
+  ovClose(o);checkpointActiveRun();presentAfterReward();
+}
+/* unique presenter: renders the serialized uniqueId options */
+function openRewardUnique(pc){
+  const o=ovOpen('<div class="card"><div class="rays"></div>'
+   +'<div class="kick gold">The Vault</div>'
+   +'<h2 class="big" style="font-size:23px">The vault opens. Take one.</h2>'
+   +'<div class="picks">'+pc.options.map(function(id){
+      const d=ITEMS[id];
+      return '<div class="pick" data-u="'+id+'"><div class="ph2">'+ic('g-'+id,'','width:28px;height:28px')+'</div><div class="pn">'+d.n+'</div><div class="pd">'+d.d+'</div></div>';
+    }).join('')+'</div></div>');
+  o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){chooseRewardUnique(o,p.dataset.u);};});
+}
+function chooseRewardUnique(o,id){
+  const res=runtimeChooseUnique(G.run,id);
+  if(!res.ok){return;}
+  toast(ITEMS[id].n+' waits in the market, free.');
+  ovClose(o);checkpointActiveRun();presentAfterReward();
 }
 
 /* ============ THE LONG BAZAAR ROUTE ============ */
@@ -807,12 +867,14 @@ function snapshotRoute(){
     /* the fight's settlement context, so a reload during a fight or victory
        recap still pays the right bounty (Debt Collector entered gold, Pilfer
        Monkey drain) rather than seeing zero */
-    combat:R.combat?{nodeId:R.combat.nodeId,enteredGold:R.combat.enteredGold||0,threat:R.combat.threat||0,pocketed:R.combat.pocketed||0}:null};
-  writeRouteSave(s,d);
+    combat:R.combat?{nodeId:R.combat.nodeId,enteredGold:R.combat.enteredGold||0,threat:R.combat.threat||0,pocketed:R.combat.pocketed||0,attempt:R.combat.attempt||0}:null};
+  return writeRouteSave(s,d);
 }
 function loadRoute(){return readRouteSave(store());}
 function clearRoute(){clearRouteSave(store());}
-function checkpointActiveRun(){snapshotRoute();}
+/* returns whether the checkpoint was durably written; the reward flow blocks its
+   overlay on a false so a crash cannot present an unsaved reward */
+function checkpointActiveRun(){return snapshotRoute();}
 
 /* ---- run construction ---- */
 function newRoute(){
@@ -856,12 +918,12 @@ function dispatchRoute(action,ctx){
 function runEffects(effects,i,ctx){
   for(;i<effects.length;i++){
     const e=effects[i];
-    if(e.type==='fight'){G.route.combat={nodeId:e.nodeId,enteredGold:G.gold,threat:e.threat,pocketed:0};checkpointActiveRun();startRouteFight(e);return;}
+    if(e.type==='fight'){G.route.combat={nodeId:e.nodeId,enteredGold:G.gold,threat:e.threat,pocketed:0,attempt:(routeState().attempts[e.nodeId]||0)};checkpointActiveRun();startRouteFight(e);return;}
     else if(e.type==='wonFight'){const node=nodeOf(routeMap(),e.nodeId);checkpointActiveRun();
       showFightRecap(true,MONSTERS[node.monId].n,function(){dispatchRoute({type:'settleReward'},ctx);});return;}
     else if(e.type==='lostFight'){const node=nodeOf(routeMap(),e.nodeId);const rest=effects,ni=i+1;checkpointActiveRun();
       showFightRecap(false,MONSTERS[node.monId].n,function(){runEffects(rest,ni,ctx);});return;}
-    else if(e.type==='reward'){const rest=effects,ni=i+1;routeReward(e,function(){runEffects(rest,ni,ctx);});return;}
+    else if(e.type==='reward'){settleRouteReward(e);return;}
     else if(e.type==='slip'){toast('You slip past. Lost '+e.cost+' Resolve.');checkpointActiveRun();}
     else if(e.type==='market'){enterRouteMarket(e.nodeId);return;}
     else if(e.type==='marketDone'){G.route.market=null;G.phase='routeMap';checkpointActiveRun();}
@@ -891,12 +953,6 @@ function endRouteFight(F,e){
   /* the enemy's surviving item tiers, from the engine (fight items carry .tier,
      not .id, so the old ITEMS[it.id] lookup counted every survivor as tier 1) */
   dispatchRoute({type:'fightResult',winner:F.winner,survTier:F.survTiers('b')});
-}
-function routeReward(e,cont){
-  const c=G.route.combat||{};
-  settleMonsterReward({mid:e.monId,gilded:e.gilded,baseGold:e.gold,minGold:0,
-    enteredGold:c.enteredGold||0,pocketed:c.pocketed||0,
-    cont:function(){G.route.combat=null;checkpointActiveRun();cont();}});
 }
 
 /* ---- the opening stall: spend the six starting gold before the first forced
@@ -1194,13 +1250,22 @@ function restoreRoute(d){
 function resumeRoutePhase(){
   const st=routeState();
   if(G.route.opening){G.phase='draft';renderAll();return;}   /* the opening stall */
+  /* an owed reward choice wins over the controller phase: its fixed part is
+     already applied (receipt), so reopen the choice rather than re-settle. If
+     the choice's targets are gone, the fallback resolves it and we present on. */
+  if(G.run.pendingChoice){
+    if(refreshPendingChoice(G.run)){openRewardChoice(G.run.pendingChoice);return;}
+    checkpointActiveRun();presentAfterReward();return;
+  }
   if(st.phase==='encounter'&&st.pendingId){
     const n=nodeOf(routeMap(),st.pendingId);
     startRouteFight({nodeId:n.id,monId:n.monId,threat:n.threat,gilded:n.gilded,boss:n.type==='boss',fightSeed:st.fightSeed});
-  }else if(st.phase==='reward'){dispatchRoute({type:'settleReward'});}
+  }else if(st.phase==='reward'){dispatchRoute({type:'settleReward'});}   /* fixed not saved: re-settle, receipt makes it once */
   else if(st.phase==='market'){G.phase='draft';renderAll();}
   else if(st.phase==='event'){const n=nodeOf(routeMap(),st.pendingId);routeEventCard({node:n});}
   else if(st.phase==='gateCamp'){G.phase='gateCamp';renderAll();}
+  else if(st.phase==='won'){routeEnd('won');}   /* a finished run resumes to its end screen, not the map */
+  else if(st.phase==='lost'){routeEnd('resolve');}
   else{G.phase='routeMap';renderAll();}
 }
 function openRouteContinue(d){
@@ -1470,6 +1535,10 @@ export function boot(){
     globalThis.BBDEV={g:function(){return G;},rollShop:rollShop,renderAll:renderAll,
       openUniquePick:openUniquePick,bark:bark,music:music,musicNow:musicNow,
       newRoute:newRoute,dispatchRoute:dispatchRoute,frontier:function(){return frontier(G.run.route,G.route.map);},
-      routeState:function(){return G.run.route;}};
+      routeState:function(){return G.run.route;},
+      /* reward-flow hooks so the resume e2e can exercise the gild/unique choice
+         branch without walking deep into the route to a choice-bounty monster */
+      settleFixed:function(plan,nodeId){var key=rewardKey(G.run.runId,nodeId||'test',0);settleFixed(G.run,plan,key);return key;},
+      presentAfterReward:presentAfterReward,checkpoint:checkpointActiveRun};
   }
 }

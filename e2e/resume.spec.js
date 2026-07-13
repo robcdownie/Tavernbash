@@ -121,6 +121,55 @@ test('a legacy v1 save migrates to v2 and continues on load', async ({page}) => 
   expect(after.nextAboveMax).toBe(true);
 });
 
+test('an interrupted gild reward reopens on reload and its fixed gold is not re-paid', async ({page}) => {
+  await freshRoute(page);
+  const before = await page.evaluate(() => {
+    const G = window.BBDEV.g();
+    const gold0 = G.gold;
+    /* apply a fixed gold reward that also owes a gild choice, then checkpoint as
+       the real settlement does, leaving the choice pending */
+    window.BBDEV.settleFixed({gold: 5, drained: 0, items: [], relic: false, mote: null, choice: 'gild'}, 'testgild');
+    window.BBDEV.checkpoint();
+    return {gold: G.gold, gold0, pending: !!G.run.pendingChoice};
+  });
+  expect(before.pending).toBe(true);
+  expect(before.gold).toBe(before.gold0 + 5);
+  await reloadAndContinue(page);
+  const after = await page.evaluate(() => {
+    const G = window.BBDEV.g();
+    return {gold: G.gold, pending: !!G.run.pendingChoice, overlay: !!document.querySelector('.picks')};
+  });
+  expect(after.pending).toBe(true);       /* the choice reopened */
+  expect(after.overlay).toBe(true);       /* its overlay is showing */
+  expect(after.gold).toBe(before.gold);   /* fixed gold was NOT applied a second time */
+});
+
+test('choosing a gild reward then reloading does not re-offer or double-apply it', async ({page}) => {
+  await freshRoute(page);
+  const setup = await page.evaluate(() => {
+    const G = window.BBDEV.g();
+    const iid = G.board[0] && G.board[0].iid;
+    const rarity0 = G.board[0] && G.board[0].rarity;
+    window.BBDEV.settleFixed({gold: 0, drained: 0, items: [], relic: false, mote: null, choice: 'gild'}, 'testgild2');
+    window.BBDEV.checkpoint();
+    window.BBDEV.presentAfterReward();               /* open the overlay */
+    const pick = document.querySelector('.pick[data-g="' + iid + '"]');
+    if (pick) pick.click();                          /* choose the gild */
+    const w = G.board.filter(x => x.iid === iid)[0] || {};
+    return {iid, rarity0, rarityAfter: w.rarity, pending: !!G.run.pendingChoice};
+  });
+  expect(setup.rarityAfter).toBe(setup.rarity0 + 1);  /* gilded exactly once */
+  expect(setup.pending).toBe(false);                  /* choice consumed */
+  await reloadAndContinue(page);
+  await page.waitForSelector('.rmplot');
+  const after = await page.evaluate(() => {
+    const G = window.BBDEV.g();
+    return {pending: !!G.run.pendingChoice, overlay: !!document.querySelector('.picks')};
+  });
+  expect(after.pending).toBe(false);   /* not re-offered after reload */
+  expect(after.overlay).toBe(false);
+});
+
 test('resume at the map preserves gold, Resolve, and progress', async ({page}) => {
   await freshRoute(page);
   const snap = () => page.evaluate(() => { const G = window.BBDEV.g(); const s = window.BBDEV.routeState(); return {phase: s.phase, gold: G.gold, resolve: s.resolve, path: s.path.length}; });
