@@ -1,0 +1,211 @@
+"use strict";
+/* The Long Bazaar route generator. Pure and deterministic: one run seed in, one
+   full map out. The route is a three lane horizontal braid across four districts.
+   Districts I to III each run five columns of chosen nodes plus a fixed boss; the
+   Dragon Gate is a short gauntlet (an elite choice, a preparation choice, the
+   Grand Vizier). The generator owns every placement and connection rule from the
+   approved run-structure doc; it renders nothing and never touches the engine.
+
+   Node types: monster, elite, boss (combats) and market, rest, treasure, shrine,
+   negotiation (noncombat). A run visits one node per column plus each boss, which
+   totals 21 selected nodes (5+boss thrice, then 2+boss). The full map holds three
+   nodes per grid column so the player picks a lane as they move right. */
+import {mulberry} from './engine.js';
+import {DISTRICTS, PERSONAS} from './data.js';
+
+export const COMBAT=new Set(['monster','elite','boss']);
+export function isCombat(n){return COMBAT.has(n.type);}
+
+const LANES=3;
+
+function chance(rng,p){return rng()<p;}
+function shuffleIn(rng,a){for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;}
+/* weighted pick over [ [value, weight], ... ] */
+function wpick(rng,entries){
+  let tot=0;for(const e of entries)tot+=e[1];
+  let r=rng()*tot;
+  for(const e of entries){r-=e[1];if(r<=0)return e[0];}
+  return entries[entries.length-1][0];
+}
+
+/* flat id to node lookup for a district (grid nodes plus the boss) */
+function nodeMap(d){
+  const m={};
+  for(const col of d.columns)for(const n of col)m[n.id]=n;
+  m[d.boss.id]=d.boss;
+  return m;
+}
+/* every source to boss path; the graph is a small DAG so full enumeration is cheap */
+export function districtPaths(d){
+  const m=nodeMap(d),out=[];
+  const walk=(n,p)=>{p=p.concat([n]);if(n.type==='boss'){out.push(p);return;}for(const nx of n.next)walk(m[nx],p);};
+  for(const s of d.columns[0])walk(s,[]);
+  return out;
+}
+
+/* planar wiring between two three-lane columns: the straight edges guarantee no
+   dead ends and full column-to-column reach; at most one diagonal per adjacent
+   lane pair keeps edges from crossing while giving most nodes a real branch. */
+function wire(rng,colA,colB){
+  for(let l=0;l<colA.length;l++){if(colB[l])colA[l].next.push(colB[l].id);}
+  for(let l=0;l<colA.length-1;l++){
+    if(chance(rng,0.55)){
+      if(chance(rng,0.5)){if(colB[l+1])colA[l].next.push(colB[l+1].id);}
+      else{if(colB[l])colA[l+1].next.push(colB[l].id);}
+    }
+  }
+}
+
+/* allowed noncombat/other types by column index (0 based). Column 1 is handled
+   separately (always monster doors). Elites and the shrine are pre-placed. */
+const COLTYPES={
+  1:[['market',3],['treasure',2],['negotiation',2],['monster',2]],
+  2:[['market',2],['treasure',3],['monster',2]],
+  3:[['rest',3],['treasure',2],['negotiation',2],['monster',2]],
+  4:[['market',3],['rest',3],['treasure',2],['monster',1]]
+};
+
+function rollTreasure(rng){
+  const opts=[{kind:'gold'},{kind:'ware'},{kind:'enchant'}];
+  return {options:shuffleIn(rng,opts)};
+}
+
+/* one attempt at a District I to III layout; returns the district or null if it
+   breaks a route rule, in which case genDistrict re-rolls with fresh randomness. */
+function tryDistrict(rng,D,allowShrine){
+  const cols=[[],[],[],[],[]];
+  const norm=shuffleIn(rng,D.normals.slice());
+  const elite=shuffleIn(rng,D.elites.slice());
+  let budget=D.normals.length-LANES;      /* monster doors beyond column 1 */
+  let ni=0,ei=0;
+
+  const mk=(col,lane,type)=>{
+    const n={id:'d'+D.id+'c'+(col+1)+'l'+lane,type:type,district:D.id,col:col,lane:lane,
+      threat:col<=1?D.threatEarly:D.threatLate,next:[]};
+    if(type==='monster'){n.monId=norm[ni++];}
+    else if(type==='elite'){n.monId=elite[ei++];n.gilded=chance(rng,0.12);}
+    else if(type==='treasure'){n.reward=rollTreasure(rng);}
+    else if(type==='negotiation'){n.persona=Math.floor(rng()*PERSONAS.length);}
+    if(type==='monster'){n.gilded=chance(rng,0.12);}
+    cols[col][lane]=n;
+    return n;
+  };
+
+  /* column 1: three monster doors */
+  for(let l=0;l<LANES;l++)mk(0,l,'monster');
+
+  /* pre-place at most one elite (columns 3 or 4) and the shrine (column 3) */
+  const eliteCol=chance(rng,0.6)?(chance(rng,0.5)?2:3):-1;
+  const eliteLane=Math.floor(rng()*LANES);
+  const shrineLane=Math.floor(rng()*LANES);
+  if(eliteCol>=0&&D.elites.length)mk(eliteCol,eliteLane,'elite');
+  if(allowShrine)mk(2,shrineLane,'shrine');
+
+  /* fill the rest of columns 2 to 5 from their allowed sets */
+  for(let c=1;c<5;c++){
+    for(let l=0;l<LANES;l++){
+      if(cols[c][l])continue;
+      const allowed=COLTYPES[c].filter(e=>e[0]!=='monster'||budget>0);
+      const t=wpick(rng,allowed);
+      if(t==='monster')budget--;
+      mk(c,l,t);
+    }
+  }
+
+  /* monster ids must not have run dry */
+  if(ni>norm.length)return null;
+
+  /* wire columns, then every last-column node into the boss */
+  for(let c=0;c<4;c++)wire(rng,cols[c],cols[c+1]);
+  const boss={id:'d'+D.id+'boss',type:'boss',district:D.id,col:5,lane:1,threat:D.threatBoss,monId:D.boss,gilded:false,next:[]};
+  for(const n of cols[4])n.next.push(boss.id);
+
+  const d={id:D.id,name:D.name,slip:D.slip,threatBoss:D.threatBoss,columns:cols,boss:boss};
+  return validate(d,allowShrine)?d:null;
+}
+
+/* every route rule that depends on the finished graph */
+function validate(d,allowShrine){
+  const m=nodeMap(d);
+  const paths=districtPaths(d);
+  for(const p of paths){
+    if(p.length!==6)return false;                          /* five columns plus boss */
+    for(let i=0;i+3<=p.length;i++){                         /* never three combats in a row */
+      if(isCombat(p[i])&&isCombat(p[i+1])&&isCombat(p[i+2]))return false;
+    }
+  }
+  /* boss preparation: every column 4 node can reach a Market or Rest in column 5 */
+  for(const n of d.columns[3]){
+    let ok=false;
+    for(const nx of n.next){const t=m[nx].type;if(t==='market'||t==='rest'){ok=true;break;}}
+    if(!ok)return false;
+  }
+  /* a Market must be reachable from every district entrance */
+  for(const s of d.columns[0]){
+    const seen=new Set(),stack=[s];let market=false;
+    while(stack.length){
+      const n=stack.pop();if(seen.has(n.id))continue;seen.add(n.id);
+      if(n.type==='market')market=true;
+      for(const nx of n.next)stack.push(m[nx]);
+    }
+    if(!market)return false;
+  }
+  /* exactly one shrine when this district owns it, none otherwise */
+  let shrines=0;for(const col of d.columns)for(const n of col)if(n.type==='shrine')shrines++;
+  if(allowShrine?shrines!==1:shrines!==0)return false;
+  /* at most one elite node keeps every path under one elite per district */
+  let elites=0;for(const col of d.columns)for(const n of col)if(n.type==='elite')elites++;
+  if(elites>1)return false;
+  return true;
+}
+
+function genDistrict(rng,D,allowShrine){
+  for(let a=0;a<6000;a++){
+    const d=tryDistrict(rng,D,allowShrine);
+    if(d)return d;
+  }
+  throw new Error('map: district '+D.id+' failed to generate');
+}
+
+/* the Dragon Gate: choose one of two elites, then one preparation node, then the
+   Grand Vizier. No monster doors, no shrine, no slipping past. */
+function genDragonGate(rng,D){
+  const elites=[
+    {id:'d4c1l0',type:'elite',district:4,col:0,lane:0,threat:D.threatEarly,monId:D.elites[0],gilded:chance(rng,0.12),next:[]},
+    {id:'d4c1l2',type:'elite',district:4,col:0,lane:2,threat:D.threatLate,monId:D.elites[1],gilded:chance(rng,0.12),next:[]}
+  ];
+  const prep=[
+    {id:'d4c2l0',type:'market',district:4,col:1,lane:0,threat:D.threatLate,next:[]},
+    {id:'d4c2l1',type:'rest',district:4,col:1,lane:1,threat:D.threatLate,next:[]},
+    {id:'d4c2l2',type:'treasure',district:4,col:1,lane:2,threat:D.threatLate,reward:rollTreasure(rng),next:[]}
+  ];
+  const boss={id:'d4boss',type:'boss',district:4,col:2,lane:1,threat:D.threatBoss,monId:D.boss,gilded:false,next:[]};
+  for(const e of elites)for(const p of prep)e.next.push(p.id);
+  for(const p of prep)p.next.push(boss.id);
+  return {id:4,name:D.name,slip:D.slip,threatBoss:D.threatBoss,columns:[elites,prep],boss:boss};
+}
+
+/* the rare bronze to silver treasure upgrade: at most once per run. Fold it into
+   one random treasure node's face-up options after the whole map exists. */
+function injectSilver(rng,districts){
+  if(!chance(rng,0.5))return;
+  const treas=[];
+  for(const d of districts)for(const col of d.columns)for(const n of col)if(n.type==='treasure')treas.push(n);
+  if(!treas.length)return;
+  const t=treas[Math.floor(rng()*treas.length)];
+  t.reward.options[Math.floor(rng()*t.reward.options.length)]={kind:'silver'};
+}
+
+export function genMap(runSeed){
+  const rng=mulberry(runSeed>>>0);
+  const shrineDistrict=chance(rng,0.5)?2:3;
+  const districts=[];
+  for(const D of DISTRICTS){
+    if(D.id===4)districts.push(genDragonGate(rng,D));
+    else districts.push(genDistrict(rng,D,D.id===shrineDistrict));
+  }
+  injectSilver(rng,districts);
+  const nodes={};
+  for(const d of districts){for(const col of d.columns)for(const n of col)nodes[n.id]=n;nodes[d.boss.id]=d.boss;}
+  return {seed:runSeed>>>0,shrineDistrict:shrineDistrict,districts:districts,nodes:nodes,start:districts[0].columns[0].map(n=>n.id)};
+}

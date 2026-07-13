@@ -218,3 +218,19 @@ export const MONSTERS={
 };
 export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc","simurgh","golem","nasnas"],4:["azhdaha","auctioneer","vizier"]};
 export const MONCHIP={1:2,2:4,3:6,4:8};
+/* The Long Bazaar route layer. Districts define the run's four stages: which
+   monsters fill their normal and elite doors, the fixed boss, the map-depth to
+   engine Threat mapping (fed to fightHP and stormAt), and the Slip Past cost in
+   Resolve. This deliberately differs from the legacy MONBAND/band grouping; the
+   route uses these tables, combat still reads MONSTERS for stats. Threat: early
+   is columns 1 to 2, late is columns 3 to 5, boss is its own value. */
+export const DISTRICTS=[
+ {id:1,name:"Back Alleys",boss:"matron",threatEarly:1,threatLate:2,threatBoss:3,slip:3,
+  normals:["imp","rats","samovar","sandling","monkey"],elites:["ghul"]},
+ {id:2,name:"The Souk",boss:"collector",threatEarly:4,threatLate:5,threatBoss:6,slip:5,
+  normals:["lamassu","icebox","peri","nasnas"],elites:["kark"]},
+ {id:3,name:"Palace Quarter",boss:"ifrit",threatEarly:7,threatLate:8,threatBoss:9,slip:7,
+  normals:["qareen","roc","simurgh"],elites:["shahmaran","marid","golem"]},
+ {id:4,name:"The Dragon Gate",boss:"vizier",threatEarly:10,threatLate:11,threatBoss:12,slip:0,
+  normals:[],elites:["azhdaha","auctioneer"]}
+];
