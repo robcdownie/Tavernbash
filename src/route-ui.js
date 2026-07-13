@@ -13,7 +13,7 @@
    ideal, and moving persistence out of render, stay later audited changes). */
 import {G,RM,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
 import {ITEMS,RNAME,ENCH,MONSTERS,DISTRICTS,PERSONAS,CATN} from './data.js';
-import {mulberry,gateOK} from './engine.js';
+import {mulberry,gateOK,monsterSide,fightHP} from './engine.js';
 import {genMap,isCombat} from './map.js';
 import {frontier,currentDistrict,visitedSet,nodeOf,validRoute,classifyEdges,fightSeed} from './route.js';
 import {ic} from './art.js';
@@ -234,21 +234,68 @@ function routeBountyText(n){
   if(b.pickUnique)parts.push('pick any unique');
   return parts.length?parts.join(', '):'coin';
 }
-/* preview pane: header, scrollable body, pinned action footer */
-function routeNodePreviewHTML(n){
-  let acts;
-  if(n.type==='monster')acts='<button class="btn gold" data-a="challenge">Challenge</button>'
-    +'<button class="btn" data-a="slip">Slip Past &middot; '+DISTRICTS[n.district-1].slip+' Resolve</button>';
-  else if(n.type==='elite')acts='<button class="btn gold" data-a="challenge">Challenge the Elite</button>';
-  else if(n.type==='boss')acts='<button class="btn gold" data-a="challenge">Face the Boss</button>';
-  else if(n.type==='market')acts='<button class="btn gold" data-a="enter">Enter the Market</button>';
-  else acts='<button class="btn gold" data-a="enter">Enter</button>';
-  let info;
-  if(isCombat(n))info='<div class="rmpi">Fresh fight health, scaled to Threat '+n.threat+'.</div>'
-    +'<div class="rmpi"><b>Bounty:</b> '+esc(routeBountyText(n))+'</div>'
+/* one line of a scouted monster board: its live effect(s), keywords, and cadence */
+function fightItemBrief(fi){
+  const f=fi.fx||{};const parts=[];
+  if(f.dmg)parts.push(f.dmg+' dmg');
+  if(f.poison)parts.push(f.poison+' poison');
+  if(f.burn)parts.push(f.burn+' burn');
+  if(f.shield)parts.push(f.shield+' shield');
+  if(f.heal)parts.push(f.heal+' heal');
+  if(f.freeze)parts.push('freezes a ware');
+  if(f.hasteAll)parts.push('hastes allies');
+  if(f.disable)parts.push('auctions your best');
+  if(fi.bulwark)parts.push('Bulwark');
+  if(fi.flying)parts.push('Flying');
+  if(fi.crit)parts.push(Math.round(fi.crit*100)+'% crit');
+  if(fi.pocket)parts.push('pockets bounty');
+  if(fi.rattle)parts.push('deathrattle');
+  const cd=fi.cd>0?(' &middot; '+(fi.cd/1000)+'s'):'';
+  return (parts.join(', ')||'passive')+cd;
+}
+/* the scoutable combat read: real health and the exact board (fixed per monster,
+   scaled by gild/omen, so the preview matches the fight) plus keywords and bounty */
+function combatPreview(n){
+  const M=MONSTERS[n.monId];
+  let hp=M.hp,items=[];
+  try{
+    const php=fightHP(n.threat,(G.T&&G.T.hpFlat)||0,G.A);
+    const side=monsterSide(n.monId,{gold:G.gold,round:n.threat,A:G.A,gilded:!!n.gilded,playerBoard:G.board,playerHp:php});
+    hp=side.hp;items=side.items;
+  }catch(e){}
+  const regen=Math.round((M.regen||0)*(n.gilded?1.5:1));
+  const board=items.map(function(fi){return '<div class="rmpw"><b>'+esc(fi.nm)+'</b> '+fightItemBrief(fi)+'</div>';}).join('');
+  return '<div class="rmpi"><b>Health</b> '+hp+(M.special==='mirror'?' (mirrors your stall)':'')+(regen?' &middot; regen '+regen+'/s':'')+'</div>'
+    +'<div class="rmpi"><b>Bounty</b> '+esc(routeBountyText(n))+'</div>'
     +(n.gilded?'<div class="rmpi gild">Gilded: tougher board, double gold.</div>':'')
+    +(board?'<div class="rmpboard">'+board+'</div>':'')
     +(n.type==='boss'?'<div class="rmpi">The district boss. No way past but through.</div>':'');
+}
+/* Treasure is face-up (rolled at map gen), so scouting shows the exact spoils */
+function treasurePreview(n){
+  const opts=(n.reward&&n.reward.options)?n.reward.options:[{kind:'gold'}];
+  return '<div class="rmpi">Choose one of three, face up:</div>'
+    +'<div class="rmpboard">'+opts.map(function(op){const v=treasureView(op);return '<div class="rmpw"><b>'+esc(v.t)+'</b> '+esc(v.d)+'</div>';}).join('')+'</div>';
+}
+/* preview pane: header, scrollable body, pinned action footer. `state` is the
+   node's map state: only a reachable node offers commit actions; a future node is
+   scoutable (its info shows, but no action) and a cleared one just reads Cleared. */
+function routeNodePreviewHTML(n,state){
+  let acts;
+  if(state==='reach'){
+    if(n.type==='monster')acts='<button class="btn gold" data-a="challenge">Challenge</button>'
+      +'<button class="btn" data-a="slip">Slip Past &middot; '+DISTRICTS[n.district-1].slip+' Resolve</button>';
+    else if(n.type==='elite')acts='<button class="btn gold" data-a="challenge">Challenge the Elite</button>';
+    else if(n.type==='boss')acts='<button class="btn gold" data-a="challenge">Face the Boss</button>';
+    else if(n.type==='market')acts='<button class="btn gold" data-a="enter">Enter the Market</button>';
+    else acts='<button class="btn gold" data-a="enter">Enter</button>';
+  }else{
+    acts='<div class="rmpscout">'+(state==='done'?'Cleared.':'Scouting ahead. Reach it from a lit node to act.')+'</div>';
+  }
+  let info;
+  if(isCombat(n))info=combatPreview(n);
   else if(n.type==='market')info='<div class="rmpi">Buy, sell, reroll, freeze, tier, fuse, and vault.</div>';
+  else if(n.type==='treasure')info=treasurePreview(n);
   else info='<div class="rmpi">'+esc(routeEventDesc(n.type))+'</div>';
   const kind=n.type==='boss'?'District Boss':cap(n.type);
   return '<div class="rmphead"><span class="rmpg">'+ic(nodeGlyph(n),'rmpgi')+'</span>'
@@ -261,11 +308,14 @@ export function renderRouteMap(){
   const di=currentDistrict(st,map),D=map.districts[di];
   const fr=frontier(st,map),frS=new Set(fr),vis=visitedSet(st),sel=G.route.selectedId;
   const beaten=st.path.filter(function(id){return /boss$/.test(id);}).length;
+  const stateOf=function(id){return vis.has(id)?'done':(frS.has(id)?'reach':'future');};
   const nodeBtn=function(n){
-    const state=vis.has(n.id)?'done':(frS.has(n.id)?'reach':'future');
+    /* every node is tappable to scout its preview; only a reachable node's preview
+       offers commit actions. The state class still dims future/done nodes. */
+    const state=stateOf(n.id);
     const a=nodeAnchor(n);
     return '<button class="rmnode t-'+n.type+' '+state+(n.id===sel?' sel':'')+(n.gilded?' gild':'')+(n.type==='boss'?' boss':'')+'"'
-      +(state==='reach'?'':' disabled')+' data-n="'+n.id+'" style="left:'+a.x+'%;top:'+a.y+'%" aria-label="'+esc(nodeLabel(n))+', Threat '+n.threat+'">'
+      +' data-n="'+n.id+'" style="left:'+a.x+'%;top:'+a.y+'%" aria-label="'+esc(nodeLabel(n))+', Threat '+n.threat+'">'
       +'<span class="rmmed">'+ic(nodeGlyph(n),'rmg')+'</span>'
       +'<span class="rmn">'+esc(nodeLabel(n))+'</span>'
       +(n.gilded?'<span class="rmstar">'+ic('g-gem','','width:11px;height:11px')+'</span>':'')+'</button>';
@@ -274,7 +324,7 @@ export function renderRouteMap(){
   D.columns.forEach(function(col){col.forEach(function(n){nodes+=nodeBtn(n);});});
   nodes+=nodeBtn(D.boss);
   let pips='';for(let i=0;i<4;i++){pips+='<span class="rmpip'+(i<beaten?' on':'')+(i===di?' cur':'')+'"></span>';}
-  const prev=sel?routeNodePreviewHTML(map.nodes[sel]):'<div class="rmhint">Tap a lit node to scout it.</div>';
+  const prev=sel?routeNodePreviewHTML(map.nodes[sel],stateOf(sel)):'<div class="rmhint">Tap any node to scout it.</div>';
   $('main').className='routemap';
   $('main').innerHTML='<div class="rmwrap">'
     +'<div class="rmboard" style="background-image:linear-gradient(180deg,rgba(20,14,8,.28),rgba(14,9,5,.62)),url(art/bg/bg_route_'+DBG[D.id]+'.png)">'
@@ -283,10 +333,10 @@ export function renderRouteMap(){
     +'<div class="rmplot" id="rmplot"><svg class="rmedges" id="rmedges" preserveAspectRatio="none" aria-hidden="true"></svg>'+nodes+'</div>'
     +'</div>'
     +'<div class="rmprev" id="rmprev">'+prev+'</div></div>';
-  document.querySelectorAll('.rmnode:not([disabled])').forEach(function(bn){
+  document.querySelectorAll('.rmnode').forEach(function(bn){
     bn.onclick=function(){G.route.selectedId=bn.dataset.n;renderRouteMap();};});
   const p=$('rmprev');
-  if(p&&sel){const n=map.nodes[sel];
+  if(p&&sel&&frS.has(sel)){const n=map.nodes[sel];   /* only a reachable node commits */
     p.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){
       const act=b.dataset.a;G.route.selectedId=null;
       B.dispatchRoute({type:'commit',nodeId:n.id,choice:act==='slip'?'slip':'challenge'});
