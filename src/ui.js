@@ -171,13 +171,12 @@ function renderAno(){$('anobar').innerHTML='';}
 function renderTrow(){$('trow').innerHTML='';}
 function renderRibbon(){
   if(G&&G.mode==='route'){
-    const st=G.route.state;const H=heroOf();const D=DISTRICTS[currentDistrict(st,G.route.map)];
+    const st=G.route.state;const H=heroOf();
     $('ribbon').innerHTML=
       '<div class="heroP">'+ic(H?H.g:'p-0','hpv')+'</div>'
      +'<div class="chip hp"><span class="lab">Resolve</span><span class="val">'+ic('g-heart','ci')+Math.max(0,st.resolve)+'</span></div>'
      +'<div class="chip gold"><span class="lab">Gold</span><span class="val">'+ic('g-coin','ci')+G.gold+'</span></div>'
      +'<div class="chip"><span class="lab">Tier</span><span class="val">'+ic('g-gem','ci')+G.tier+'</span></div>'
-     +'<div class="chip grow"><span class="lab">District</span><span class="lab2">'+esc(D.name)+'</span></div>'
      +'<button class="chip act grow" id="chipAno"><span class="lab">Omen</span><span class="lab2">'+G.anom.n+'</span></button>'
      +(G.trinkets.length?'<button class="chip act" id="chipTrk"><span class="lab">Charms</span><span class="val">'+G.trinkets.map(function(t){return ic(t.g,'ci');}).join('')+'</span></button>':'');
     const ab=$('chipAno');if(ab)ab.onclick=openAnoInfo;
@@ -432,7 +431,10 @@ function renderDraft(){
 }
 function renderAll(){
   document.body.classList.add('run');document.body.classList.toggle('fight',G.phase==='fight');
-  if(G&&G.mode==='route'){
+  const isRoute=G&&G.mode==='route';
+  document.body.classList.toggle('route',isRoute);
+  document.body.classList.toggle('classic',!isRoute);
+  if(isRoute){
     renderRibbon();renderAno();renderTrow();
     if(G.phase==='routeMap')renderRouteMap();
     else if(G.phase==='draft')renderDraft();

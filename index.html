@@ -877,12 +877,14 @@
   /* iOS ignores the manifest's landscape lock, so portrait draws the
      curtain instead: the game is only ever played wide */
   #rotate{display:none;}
+  /* the rotate curtain only guards the classic lobby now; the route and the
+     title screen play in portrait (Codex: do not curtain the new default) */
   @media (orientation:portrait){
-    #rotate{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;gap:9px;align-items:center;justify-content:center;
+    body.classic #rotate{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;gap:9px;align-items:center;justify-content:center;
       background:radial-gradient(circle at 50% 40%, #241609, #120a04 78%);}
-    #rotate svg{width:46px;height:46px;color:var(--brass-hi);}
-    #rotate .rt{font-family:"Rakkas",serif;font-size:23px;color:var(--brass-hi);}
-    #rotate .rs{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--dim);}
+    body.classic #rotate svg{width:46px;height:46px;color:var(--brass-hi);}
+    body.classic #rotate .rt{font-family:"Rakkas",serif;font-size:23px;color:var(--brass-hi);}
+    body.classic #rotate .rs{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--dim);}
   }
   /* the hero pane tops the rail; hidden in the (curtained) portrait bar */
   #ribbon .heroP{display:none;}
@@ -1145,9 +1147,19 @@
   .rmpfoot .btn{width:100%;min-height:44px;}
   .rmhint{font-size:12px;color:#c9b58a;margin:auto;text-align:center;padding:12px;grid-row:1/-1;align-self:center;}
   .rmboard.gate{align-items:center;justify-content:center;text-align:center;}
+  /* portrait fallback: stack map over a capped preview, shrink nodes so the six
+     columns fit ~390px without overlap or horizontal scroll */
   @media (orientation:portrait){
-    .rmwrap{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;}
-    .rmprev{grid-template-rows:auto auto auto;max-height:44%;}
+    .rmwrap{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;gap:6px;}
+    .rmnode{width:44px;height:54px;}
+    .rmnode .rmmed{width:34px;height:34px;}
+    .rmnode .rmg{width:29px;height:29px;}
+    .rmnode .rmn{font-size:8px;max-width:50px;}
+    .rmnode.boss{width:58px;height:66px;}
+    .rmnode.boss .rmmed{width:46px;height:46px;}
+    .rmnode.boss .rmg{width:40px;height:40px;}
+    .rmprev{grid-template-rows:auto minmax(0,1fr) auto;max-height:42vh;}
+    .rmdest{display:none;}
   }
 </style>
 </head>
