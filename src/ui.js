@@ -359,7 +359,6 @@ function renderDraft(){
   G._wfresh=G.shopFresh!==false;G.shopFresh=false;
   h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
   h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
-  h+=shopDetailHTML();
   h+='<div class="controls">'
     +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'+1 slot &middot; Tier '+(G.tier+1)+' &middot; '+G.tierCost+'g')+'</button>'
     +'<button class="btn" id="btnRe"'+(G.gold<1?' disabled':'')+'>'+ic('g-coin','bi')+' Reroll 1</button>'
@@ -402,8 +401,6 @@ function renderDraft(){
     w.onclick=function(){selectWare(+w.dataset.w);};
     w.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();selectWare(+w.dataset.w);}};
   });
-  const sBuy=$('shopBuy');if(sBuy)sBuy.onclick=function(){const i=G.shopSel;G.shopSel=null;buyWare(i);};
-  const sCl=$('shopClose');if(sCl)sCl.onclick=function(){G.shopSel=null;renderDraft();};
   const bt=$('btnTier');if(bt)bt.onclick=tierUp;
   const br=$('btnRe');if(br)br.onclick=reroll;
   const bf=$('btnFrz');if(bf)bf.onclick=toggleFreeze;
@@ -496,27 +493,23 @@ function fuseWithVault(){
   }
   return forgedAny;
 }
-/* inspect then commit: a first tap selects the ware and opens a stable detail
-   panel with the full rule; a separate Buy button commits. No more buying on
-   an accidental tap, and the dense wares have somewhere to explain themselves. */
+/* inspect then commit: tapping a ware opens a floating detail card (the same
+   overlay pattern as the fight inspect) with the full rule and a prominent Buy
+   button. Floats above the market so nothing scrolls, no buying on a stray tap. */
 function selectWare(i){
-  const w=G.shop[i];if(!w||w.bought)return;
-  G.shopSel=(G.shopSel===i?null:i);
-  G.sel=null;G.vsel=null;
-  renderDraft();
-  if(G.shopSel!=null){const p=document.querySelector('.shopdet');if(p&&p.scrollIntoView)p.scrollIntoView({block:'nearest'});}
-}
-function shopDetailHTML(){
-  if(G.shopSel==null)return '';
-  const w=G.shop[G.shopSel];if(!w||w.bought)return '';
+  const w=G.shop[i];if(!w||w.bought||G.phase!=='draft')return;
   const d=ITEMS[w.id];const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
   const room=usedCells(G.board)+d.size<=4+G.tier;const afford=w.free||G.gold>=cost;const can=afford&&room;
   const why=!afford?'Not enough gold':(!room?'No room on your stall':'');
-  return '<div class="shopdet">'+wareDetailHTML({id:w.id,rarity:0,ench:w.ench})
-   +'<div class="bs"><button class="btn buy'+(can?'':' cant')+'" id="shopBuy"'+(can?'':' disabled')+'>'+ic('g-coin','bi')+' '+(w.free?'Take &middot; free':'Buy &middot; '+cost+'g')+'</button>'
+  const o=ovOpen('<div class="card inspectcard"><div class="kick gold">Market ware</div>'
+   +'<div class="sheet">'+wareDetailHTML({id:w.id,rarity:0,size:d.size,ench:w.ench})
+   +'<div class="bs"><button class="btn buy'+(can?'':' cant')+'" id="shopBuy"'+(can?'':' disabled')+'>'+ic('g-coin','bi')+' '+(w.free?'Take':'Buy &middot; '+cost+'g')+'</button>'
    +'<button class="btn" id="shopClose">Close</button></div>'
-   +(why?'<div class="whyno">'+why+'</div>':'')
-  +'</div>';
+   +(why?'<div class="whyno">'+why+'</div>':'')+'</div></div>');
+  const close=function(){ovClose(o);};
+  const b=o.querySelector('#shopBuy');if(b)b.onclick=function(){ovClose(o);buyWare(i);};
+  const c=o.querySelector('#shopClose');if(c)c.onclick=close;
+  o.onclick=function(ev){if(ev.target===o)close();};
 }
 function buyWare(i){
   if(G.phase!=='draft')return;
