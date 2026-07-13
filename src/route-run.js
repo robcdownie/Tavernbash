@@ -9,8 +9,38 @@
    controller state, and the id counter. The map and fights are regenerated
    from the seed; UI transients (selection, timers, DOM) never belong here. */
 import {initRoute, transition} from './route.js';
+import {TIERCOST} from './data.js';
 
 export const SCHEMA_VERSION = 2;
+
+/* the ten durable economy fields. run.economy is their single truth; G exposes
+   them through accessors (bindEconomy) so the old direct call sites and in-place
+   array mutation keep working during the migration. */
+export const ECON_FIELDS = ['gold','tier','tierCost','relicIncome','freeReroll','frozen','board','vault','shop','trinkets'];
+
+/* fresh economy for a new run. Defaults match the old inline newRoute literal
+   (starting gold 6, tier 1). Kept here so the aggregate owns economy setup. */
+export function newEconomy(){
+  return {gold:6, tier:1, tierCost:TIERCOST[2], relicIncome:0, freeReroll:false, frozen:false,
+          board:[], vault:[], shop:[], trinkets:[]};
+}
+
+/* install compatibility accessors for the economy fields on target (the live G).
+   Each resolves through this.run.economy at access time (never a closed-over
+   run), so replacing G.run cannot leave a stale binding. Getters return the
+   exact live value/array and setters store the exact assignment, so in-place
+   push/splice and wholesale reassignment both stay canonical. Setters do NOT
+   bump revision: accessors cannot observe array mutation, so revision stays a
+   navigation counter (advance()) rather than a misleading partial economy log. */
+export function bindEconomy(target){
+  ECON_FIELDS.forEach(function(k){
+    Object.defineProperty(target, k, {
+      configurable:true, enumerable:true,
+      get:function(){ return this.run.economy[k]; },
+      set:function(v){ this.run.economy[k] = v; }
+    });
+  });
+}
 
 /* a run id that is stable across reloads: the run seed is already unique per
    run (it is minted from the clock), so it doubles as the durable identity */
@@ -27,6 +57,7 @@ export function newRun(setup){
     revision: 0,
     seed: seed,
     route: initRoute(seed),
+    economy: newEconomy(),
     ids: {nextItem: 1}
   };
 }
@@ -50,6 +81,7 @@ export function serializeRun(run){
     revision: run.revision || 0,
     seed: run.seed >>> 0,
     route: run.route,
+    economy: run.economy,
     ids: {nextItem: (run.ids && run.ids.nextItem) || 1}
   };
 }
@@ -62,6 +94,10 @@ export function reviveRun(d){
     revision: d.revision || 0,
     seed: seed,
     route: d.route,
+    /* economy is opaque here; the item-wire reduction (board -> {id,rarity,size,
+       ench}) and v1->v2 migration land in 3c2 when the save switches to this
+       codec. Callers that revive from the legacy envelope set economy after. */
+    economy: d.economy || newEconomy(),
     ids: {nextItem: (d.ids && d.ids.nextItem) || 1}
   };
 }

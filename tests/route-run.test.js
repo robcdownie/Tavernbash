@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {SCHEMA_VERSION, newRun, advance, serializeRun, reviveRun} from '../src/route-run.js';
+import {SCHEMA_VERSION, newRun, advance, serializeRun, reviveRun, newEconomy, bindEconomy} from '../src/route-run.js';
 import {genMap} from '../src/map.js';
 import {initRoute, transition, validRoute} from '../src/route.js';
 
@@ -55,7 +55,63 @@ test('serialize then revive round-trips the durable fields', () => {
 test('serialize keeps only durable fields (no map, no transients)', () => {
   const run = newRun({seed: SEED});
   const wire = serializeRun(run);
-  assert.deepEqual(Object.keys(wire).sort(), ['ids', 'revision', 'route', 'runId', 'schemaVersion', 'seed']);
+  assert.deepEqual(Object.keys(wire).sort(), ['economy', 'ids', 'revision', 'route', 'runId', 'schemaVersion', 'seed']);
+});
+
+test('newEconomy carries the starting defaults', () => {
+  const e = newEconomy();
+  assert.equal(e.gold, 6);
+  assert.equal(e.tier, 1);
+  assert.equal(e.tierCost, 5);
+  assert.equal(e.relicIncome, 0);
+  assert.equal(e.freeReroll, false);
+  assert.equal(e.frozen, false);
+  assert.deepEqual([e.board, e.vault, e.shop, e.trinkets], [[], [], [], []]);
+});
+
+test('newRun seeds the economy', () => {
+  assert.deepEqual(newRun({seed: SEED}).economy, newEconomy());
+});
+
+test('bindEconomy exposes run.economy for read and write', () => {
+  const g = {run: newRun({seed: SEED})};
+  bindEconomy(g);
+  assert.equal(g.gold, 6, 'getter reads the aggregate');
+  g.gold -= 2;
+  assert.equal(g.run.economy.gold, 4, 'setter writes through');
+  g.run.economy.tier = 3;
+  assert.equal(g.tier, 3, 'a direct aggregate edit is visible through the getter');
+});
+
+test('economy arrays stay identical through the accessor, in place and after reassignment', () => {
+  const g = {run: newRun({seed: SEED})};
+  bindEconomy(g);
+  assert.equal(g.board, g.run.economy.board, 'same array object, not a copy');
+  g.board.push({id: 'x'});
+  assert.equal(g.run.economy.board.length, 1, 'in-place push is canonical');
+  const replacement = [{id: 'y'}];
+  g.shop = replacement;
+  assert.equal(g.run.economy.shop, replacement, 'wholesale reassignment writes the exact array');
+  assert.equal(g.shop, replacement, 'and reads back the same reference');
+});
+
+test('accessors resolve through the live run, so swapping run is never stale', () => {
+  const g = {run: newRun({seed: SEED})};
+  bindEconomy(g);
+  g.gold = 99;
+  g.run = newRun({seed: SEED + 1});
+  assert.equal(g.gold, 6, 'reads follow the new aggregate, not the old binding');
+});
+
+test('two targets bound to different runs stay independent', () => {
+  const a = {run: newRun({seed: 1})};
+  const b = {run: newRun({seed: 2})};
+  bindEconomy(a);
+  bindEconomy(b);
+  a.gold = 1;
+  b.gold = 2;
+  assert.equal(a.gold, 1);
+  assert.equal(b.gold, 2);
 });
 
 test('revive fills defaults for an older save that omits identity or the id counter', () => {

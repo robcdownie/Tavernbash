@@ -7,7 +7,7 @@ import {genMap,MAP_VERSION,isCombat} from './map.js';
 import {frontier,currentDistrict,visitedSet,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,classifyEdges} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
 import {planReward} from './route-rewards.js';
-import {newRun,advance as advanceRun,serializeRun,reviveRun} from './route-run.js';
+import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy} from './route-run.js';
 import {ic} from './art.js';
 import {effChips,wareDetailHTML} from './cards.js';
 import {ART} from './art-manifest.js';
@@ -802,11 +802,12 @@ function newRoute(){
   const anom=anomPool[Math.floor(rng()*anomPool.length)];
   const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
   G={mode:'route',seed:seed,rng:rng,round:0,anom:anom,A:Object.assign({},ANONE,anom.m),tags:[cats[0],cats[1]],
-     board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:6,tier:1,tierCost:TIERCOST[2],relicIncome:0,frozen:false,
-     stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,freeReroll:false,
+     T:null,hero:null,
+     stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
      run:newRun({seed:seed}),
      route:{map:genMap(seed),selectedId:null,market:null,combat:null,opening:false}};
+  bindEconomy(G);   /* gold/tier/board/shop/... now delegate to G.run.economy */
   computeT();
   renderAno();renderTrow();
   $('ribbon').innerHTML='';$('main').innerHTML='';
@@ -1147,13 +1148,18 @@ function restoreRoute(d){
   if(!validRoute(d.routeState,map)){clearRoute();openIntro();return;}
   G={mode:'route',seed:d.run.seed,rng:mulberry((d.run.seed+(d.run.fightN||0)*2654435761+7)>>>0),round:0,
      anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.run.tags,
-     board:d.run.board.map(reviveItem),vault:(d.run.vault||[]).map(reviveItem),
-     shop:d.run.shop.slice(),trinkets:d.run.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean),
-     T:null,hero:d.run.hero||null,gold:d.run.gold,tier:d.run.tier,tierCost:d.run.tierCost,relicIncome:d.run.relicIncome,frozen:!!d.run.frozen,freeReroll:!!d.run.freeReroll,
+     T:null,hero:d.run.hero||null,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:d.run.fightN||0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
      run:reviveRun({runId:d.run.runId,revision:d.run.revision,seed:d.run.seed,route:d.routeState,ids:d.run.ids}),
      route:{map:map,selectedId:null,market:d.market||null,combat:d.combat||null,opening:!!d.opening}};
+  /* revive the economy into the aggregate. Presence checks, not `||`: tierCost 0,
+     frozen false, and empty arrays are all valid saved values. */
+  G.run.economy={gold:d.run.gold,tier:d.run.tier,tierCost:d.run.tierCost,relicIncome:d.run.relicIncome,
+     freeReroll:!!d.run.freeReroll,frozen:!!d.run.frozen,
+     board:d.run.board.map(reviveItem),vault:(d.run.vault||[]).map(reviveItem),
+     shop:d.run.shop.slice(),trinkets:d.run.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean)};
+  bindEconomy(G);
   const H=heroOf();if(H)G.you.p=H.g;
   computeT();
   resumeRoutePhase();

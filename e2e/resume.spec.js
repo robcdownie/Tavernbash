@@ -30,6 +30,21 @@ async function startFirstFight(page) {
   });
 }
 
+test('the economy accessors stay canonical with the run aggregate', async ({page}) => {
+  await freshRoute(page);
+  const ok = await page.evaluate(() => {
+    const G = window.BBDEV.g();
+    const before = G.gold;
+    G.gold += 5;                                    /* setter writes through */
+    const wroteThrough = G.run.economy.gold === before + 5;
+    const sameBoard = G.board === G.run.economy.board;   /* getter returns the live array */
+    const sameShop = G.shop === G.run.economy.shop;
+    G.gold = before;                                /* restore */
+    return {wroteThrough, sameBoard, sameShop, restored: G.gold === before};
+  });
+  expect(ok).toEqual({wroteThrough: true, sameBoard: true, sameShop: true, restored: true});
+});
+
 test('resume at the map preserves gold, Resolve, and progress', async ({page}) => {
   await freshRoute(page);
   const snap = () => page.evaluate(() => { const G = window.BBDEV.g(); const s = window.BBDEV.routeState(); return {phase: s.phase, gold: G.gold, resolve: s.resolve, path: s.path.length}; });
