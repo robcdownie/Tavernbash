@@ -274,6 +274,23 @@
   .recaprow .rlab{font-size:13.5px;color:#e7d6bf;}
   .recaprow .rchips{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end;}
   .recaplost{font-size:11.5px;color:#e0a37a;margin-top:7px;line-height:1.35;}
+  /* hero picker: portrait rail + one large selected hero (scales to eight) */
+  .heropick{max-width:450px;}
+  .herorail{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:8px 0 11px;}
+  .herochip{width:52px;height:52px;border-radius:12px;padding:2px;cursor:pointer;transition:transform .1s var(--e-out);
+    border:2px solid rgba(216,162,74,.25);background:radial-gradient(closest-side, color-mix(in srgb, var(--cat,#d8a24a) 22%, #171009), #120b06);}
+  .herochip .hpr{width:100%;height:100%;border-radius:9px;}
+  .herochip.on{border-color:var(--brass-hi);box-shadow:0 0 13px rgba(244,207,124,.4);transform:translateY(-2px);}
+  .herochip:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px;}
+  .herodetail{display:flex;gap:13px;align-items:center;text-align:left;}
+  .hdportrait{width:96px;height:96px;flex:0 0 auto;border-radius:14px;overflow:hidden;
+    border:2px solid color-mix(in srgb, var(--cat,#d8a24a) 60%, #6f4413);box-shadow:0 4px 12px rgba(0,0,0,.5);}
+  .hdportrait .hpbig{width:100%;height:100%;}
+  .hdbody{flex:1;min-width:0;}
+  .hdname{font-family:"Rakkas",serif;font-size:21px;color:var(--brass-hi);line-height:1.1;}
+  .hdtag{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:3px 0 6px;}
+  .hddesc{font-size:13px;line-height:1.4;color:#e7d6bf;}
+  .hdstart{font-size:11.5px;color:var(--dim);margin-top:8px;display:flex;align-items:center;gap:5px;}
   .sheet .bs{display:flex;gap:6px;margin-top:10px;}
   .sheet .bs .btn{flex:1;padding:10px;font-size:12.5px;min-height:42px;}
   .sheet .bs .sell{background:linear-gradient(180deg,#7a3428,#4a1f18);border-color:rgba(193,68,52,.4);}

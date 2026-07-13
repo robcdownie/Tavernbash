@@ -1418,24 +1418,38 @@ function newLobby(){
   openHeroPick(openReveal);
 }
 function openHeroPick(cont){
-  const o=ovOpen('<div class="card"><div class="rays"></div>'
+  /* selected-hero layout: a portrait rail up top, one large hero with its
+     rule below, and a Confirm. Scales to eight heroes where the old grid
+     clipped at four on a short landscape screen. */
+  let sel=HEROES[0].id;
+  const o=ovOpen('<div class="card heropick"><div class="rays"></div>'
    +'<div class="kick gold">Choose Your Merchant</div>'
-   +'<h2 class="big" style="font-size:23px">Who tends the stall tonight?</h2>'
-   +'<div class="picks">'+HEROES.map(function(h){
-      return '<div class="pick hero" data-h="'+h.id+'"><div class="ph2">'+ic(h.g,'','width:58px;height:58px')+'</div><div class="pn">'+h.n+'</div><div class="pd">'+h.d+'</div>'
-       +'<div class="pt" style="color:'+CATC[h.tag]+'">Favors '+CATN[h.tag]+'</div></div>';
-    }).join('')+'</div></div>');
-  o.querySelectorAll('.pick').forEach(function(p){
-    p.onclick=function(){
-      const h=HEROES.filter(function(x){return x.id===p.dataset.h;})[0];
-      G.hero=h.id;G.players[0].p=h.g;
-      if(h.start){G.board.push(makeItem(h.start,0));}
-      computeT();
-      toast(h.n+' opens the stall');
-      if(G.tut==='hero'){G.tut='market';renderCoach();}
-      ovClose(o);cont();
-    };
-  });
+   +'<div class="herorail" id="herorail"></div>'
+   +'<div class="herodetail" id="herodetail"></div>'
+   +'<button class="btn gold" id="heroGo" style="width:100%;margin-top:11px">Take the Stall</button></div>');
+  function draw(){
+    const h=HEROES.filter(function(x){return x.id===sel;})[0];
+    o.querySelector('#herorail').innerHTML=HEROES.map(function(x){
+      return '<button class="herochip'+(x.id===sel?' on':'')+'" data-h="'+x.id+'" aria-label="'+esc(x.n)+'" style="--cat:'+CATC[x.tag]+'">'+ic(x.g,'hpr')+'</button>';
+    }).join('');
+    o.querySelector('#herodetail').innerHTML=
+      '<div class="hdportrait" style="--cat:'+CATC[h.tag]+'">'+ic(h.g,'hpbig')+'</div>'
+      +'<div class="hdbody"><div class="hdname">'+esc(h.n)+'</div>'
+      +'<div class="hdtag" style="color:'+CATC[h.tag]+'">Favors '+CATN[h.tag]+'</div>'
+      +'<div class="hddesc">'+h.d+'</div>'
+      +(h.start?'<div class="hdstart">'+ic('g-'+h.start,'mi')+' Starts with '+ITEMS[h.start].n+'</div>':'')+'</div>';
+    o.querySelectorAll('.herochip').forEach(function(c){c.onclick=function(){sel=c.dataset.h;draw();};});
+  }
+  draw();
+  o.querySelector('#heroGo').onclick=function(){
+    const h=HEROES.filter(function(x){return x.id===sel;})[0];
+    G.hero=h.id;G.players[0].p=h.g;
+    if(h.start){G.board.push(makeItem(h.start,0));}
+    computeT();
+    toast(h.n+' opens the stall');
+    if(G.tut==='hero'){G.tut='market';renderCoach();}
+    ovClose(o);cont();
+  };
 }
 /* ============ BOOT ============ */
 function initEmbers(){
