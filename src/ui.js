@@ -1,8 +1,10 @@
 "use strict";
 import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,BANDN,BANDC,ANONE,
-        ITEMS,TRINKETS,ANOMALIES,PERSONAS,MONSTERS,MONBAND,MONCHIP,ENCH,ENCH_CHANCE,ENCH_PREMIUM,HEROES} from './data.js';
+        ITEMS,TRINKETS,ANOMALIES,PERSONAS,MONSTERS,MONBAND,MONCHIP,ENCH,ENCH_CHANCE,ENCH_PREMIUM,HEROES,DISTRICTS} from './data.js';
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,usedCells,
         playerFightItems,monsterSide,genRival,createFight,runHeadless,boardRegen} from './engine.js';
+import {genMap,MAP_VERSION,isCombat} from './map.js';
+import {initRoute,transition as routeTransition,frontier,currentDistrict,visitedSet,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD} from './route.js';
 import {ic} from './art.js';
 import {effChips,wareDetailHTML} from './cards.js';
 import {ART} from './art-manifest.js';
@@ -17,6 +19,11 @@ if(FSPD!==2)FSPD=1;
 /* ============ SAVES ============ */
 const SAVE_VERSION=1;
 const SAVE_KEY='bb-run', BEST_KEY='bb-best';
+/* the Long Bazaar route saves independently of the lobby so both coexist while
+   the route is built out. The map regenerates from the seed; only the route
+   controller state and the economy are stored. */
+const ROUTE_SAVE_VERSION=1;
+const ROUTE_KEY='bb-route-run';
 function store(){try{return window.localStorage;}catch(e){return null;}}
 function persistBest(){const s=store();if(!s)return;try{s.setItem(BEST_KEY,JSON.stringify({v:SAVE_VERSION,place:BEST.place,round:BEST.round}));}catch(e){}}
 function loadBest(){const s=store();if(!s)return;try{const d=JSON.parse(s.getItem(BEST_KEY)||'null');if(d&&d.v===SAVE_VERSION){BEST.place=d.place;BEST.round=d.round;}}catch(e){}}
@@ -163,6 +170,20 @@ function renderRivals(){$('rivals').innerHTML='';}
 function renderAno(){$('anobar').innerHTML='';}
 function renderTrow(){$('trow').innerHTML='';}
 function renderRibbon(){
+  if(G&&G.mode==='route'){
+    const st=G.route.state;const H=heroOf();const D=DISTRICTS[currentDistrict(st,G.route.map)];
+    $('ribbon').innerHTML=
+      '<div class="heroP">'+ic(H?H.g:'p-0','hpv')+'</div>'
+     +'<div class="chip hp"><span class="lab">Resolve</span><span class="val">'+ic('g-heart','ci')+Math.max(0,st.resolve)+'</span></div>'
+     +'<div class="chip gold"><span class="lab">Gold</span><span class="val">'+ic('g-coin','ci')+G.gold+'</span></div>'
+     +'<div class="chip"><span class="lab">Tier</span><span class="val">'+ic('g-gem','ci')+G.tier+'</span></div>'
+     +'<div class="chip grow"><span class="lab">District</span><span class="lab2">'+esc(D.name)+'</span></div>'
+     +'<button class="chip act grow" id="chipAno"><span class="lab">Omen</span><span class="lab2">'+G.anom.n+'</span></button>'
+     +(G.trinkets.length?'<button class="chip act" id="chipTrk"><span class="lab">Charms</span><span class="val">'+G.trinkets.map(function(t){return ic(t.g,'ci');}).join('')+'</span></button>':'');
+    const ab=$('chipAno');if(ab)ab.onclick=openAnoInfo;
+    const cb=$('chipTrk');if(cb)cb.onclick=openTrkInfo;
+    return;
+  }
   const s=standingsInfo();
   const H=heroOf();
   $('ribbon').innerHTML=
@@ -368,8 +389,9 @@ function renderDraft(){
   h+='<div class="dock"><div class="docktop"><div class="label" style="margin:0">'+(G.dockV?'The Vault':'Your Stall')
    +'<span class="side">'+(G.dockV?'no fights, no forging':(G.swapV!=null?'tap a ware to trade with the vault':used+' / '+slots+' slots'))+'</span></div>'
    +'<button class="btn mini" id="dockFlip">'+(G.dockV?'Stall':'Vault'+(G.vault.length?' ('+G.vault.length+')':''))+'</button>'
-   +'<button class="btn gold tob" id="btnGo">'+ic(G.nextOpp?G.nextOpp.p:'m-qareen','bi vsp')
-    +'<span class="tbt"><span class="tbl">To Battle</span><span class="tbn">'+esc(G.nextOpp?shortName(G.nextOpp.n):'the Departed')+'</span></span></button></div>';
+   +(G.mode==='route'
+     ?'<button class="btn gold tob" id="btnGo">'+ic('g-lantern','bi vsp')+'<span class="tbt"><span class="tbl">Leave</span><span class="tbn">back to the road</span></span></button></div>'
+     :'<button class="btn gold tob" id="btnGo">'+ic(G.nextOpp?G.nextOpp.p:'m-qareen','bi vsp')+'<span class="tbt"><span class="tbl">To Battle</span><span class="tbn">'+esc(G.nextOpp?shortName(G.nextOpp.n):'the Departed')+'</span></span></button></div>');
   if(G.dockV){
     h+='<div class="vault" id="vlt">'+G.vault.map(function(it,i){
         const d=ITEMS[it.id];
@@ -404,10 +426,21 @@ function renderDraft(){
   const bt=$('btnTier');if(bt)bt.onclick=tierUp;
   const br=$('btnRe');if(br)br.onclick=reroll;
   const bf=$('btnFrz');if(bf)bf.onclick=toggleFreeze;
-  const bg=$('btnGo');if(bg)bg.onclick=toBattle;
+  const bg=$('btnGo');if(bg)bg.onclick=(G.mode==='route')?function(){dispatchRoute({type:'leaveMarket'});}:toBattle;
   renderSheet();
+  if(G.mode==='route')snapshotRoute();
 }
-function renderAll(){document.body.classList.add('run');document.body.classList.toggle('fight',G.phase==='fight');renderBest();renderRivals();renderRibbon();renderAno();renderTrow();if(G.phase==='draft'){renderDraft();}renderCoach();}
+function renderAll(){
+  document.body.classList.add('run');document.body.classList.toggle('fight',G.phase==='fight');
+  if(G&&G.mode==='route'){
+    renderRibbon();renderAno();renderTrow();
+    if(G.phase==='routeMap')renderRouteMap();
+    else if(G.phase==='draft')renderDraft();
+    else if(G.phase==='gateCamp')renderGateCamp();
+    return;
+  }
+  renderBest();renderRivals();renderRibbon();renderAno();renderTrow();if(G.phase==='draft'){renderDraft();}renderCoach();
+}
 /* ============ THE VOICE: your hero watches you play ============ */
 function bark(ev,always){
   const h=heroOf();if(!h||!h.barks||!h.barks[ev]||!h.barks[ev].length)return;
@@ -555,7 +588,11 @@ function tierUp(){
   if(dk&&!RM){dk.classList.add('flare');setTimeout(function(){dk.classList.remove('flare');},650);}
 }
 function reroll(){
-  if(G.gold<1)return;G.gold-=1;G.frozen=false;G.shopSel=null;rollShop();renderRibbon();renderDraft();
+  if(G.gold<1)return;G.gold-=1;G.frozen=false;G.shopSel=null;
+  /* route markets re-seed from a keyed, serializable stream so a reload replays
+     the same reroll sequence rather than the lobby rng's hidden position */
+  if(G.mode==='route'&&G.route.market){G.route.market.rollIndex++;G.rng=mulberry(fightSeed(G.seed,G.route.market.nodeId,G.route.market.rollIndex));}
+  rollShop();renderRibbon();renderDraft();
 }
 function toggleFreeze(){
   G.frozen=!G.frozen;
@@ -743,11 +780,12 @@ function startFight(me,foe,opts){
   document.body.classList.add('fight');
   if(!RM){
     const dk=document.createElement('div');dk.className='dusk';
-    dk.innerHTML='<div class="dt">Dusk Falls</div><div class="d2">Round '+G.round+' &middot; '+esc(foe.nm)+'</div>';
+    dk.innerHTML='<div class="dt">Dusk Falls</div><div class="d2">'+((opts&&opts.caption)||('Round '+G.round))+' &middot; '+esc(foe.nm)+'</div>';
     document.body.appendChild(dk);
     setTimeout(function(){dk.remove();},2250);
   }
-  const F=createFight({a:me,b:foe,stormAt:(opts&&opts.stormAt)||stormAt(runThreat()),seed:(G.seed+G.round*7919+(++G.fightN)*104729)>>>0,playerIs:'a'});
+  const fseed=(opts&&opts.seed!=null)?(opts.seed>>>0):((G.seed+G.round*7919+(++G.fightN)*104729)>>>0);
+  const F=createFight({a:me,b:foe,stormAt:(opts&&opts.stormAt)||stormAt((opts&&opts.threat!=null)?opts.threat:runThreat()),seed:fseed,playerIs:'a'});
   G.F=F;
   G.recap={a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
   function pad(items){const u=items.reduce(function(s,x){return s+x.size;},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
@@ -868,30 +906,7 @@ function resolveMonsterFight(F){
   if(F.lotPaid){G.gold+=F.lotPaid;toast('The Auctioneer paid you '+F.lotPaid+' gold for your wares.');}
   if(F.winner==='a'){
     D.result='SLAIN';if(G.stats)G.stats.slain++;
-    const b=M.bounty;
-    /* every kill pays: at least 1 gold rides home even from item bounties */
-    let coin=0;
-    if(b.gold){
-      const purse=b.gold*(D.gilded?2:1);
-      const drained=b.drain?Math.min(F.pocketed||0,purse):0;
-      coin=purse-drained;
-      if(drained>0){toast('The monkey kept '+drained+' gold of the bounty.');}
-    }
-    if(coin<1)coin=1;
-    G.gold+=coin;
-    if(b.items){b.items.forEach(function(id){G.shop.push({id:id,free:true,bought:false});});}
-    if(b.relic&&G.enteredGold>=8){G.relicIncome+=1;toast('Income relic: +1 gold every round');}
-    if(b.mote){
-      const counts={};G.board.forEach(function(it){if(it.rarity===0&&!ITEMS[it.id].unique)counts[it.id]=(counts[it.id]||0)+1;});
-      let best=null;Object.keys(counts).forEach(function(id){if(!best||counts[id]>counts[best])best=id;});
-      if(best){G.shop.push({id:best,free:true,bought:false});}
-      else{G.gold+=3;toast('The mote found nothing bronze to copy. 3 gold instead.');}
-    }
-    if(b.gild){renderAll();openGild('The mirror bows. Gild one ware.',returnToMarket);return;}
-    if(b.pickUnique){renderAll();openUniquePick('The vault opens. Take one.',returnToMarket);return;}
-    toast(M.n+' slain. '+coin+' gold'+(b.items?', bounty wares in the market':'')+'.');
-    bark('win');
-    returnToMarket();
+    settleMonsterReward({mid:D.mid,gilded:D.gilded,baseGold:0,minGold:1,enteredGold:G.enteredGold,pocketed:F.pocketed,cont:returnToMarket});
   }else{
     /* a loss wins nothing to spend, so no market break: straight to the
        duel (the winnings-shopping interlude is a reward for a win) */
@@ -902,6 +917,308 @@ function resolveMonsterFight(F){
     bark('loss');
     proceedToDuel();
   }
+}
+/* shared victory settlement: the win reward for both the lobby door and a route
+   node. Applies base + bounty gold, item/relic/mote bounties, then finishes
+   synchronously via cont() or opens an async gild/pickUnique overlay that calls
+   cont() once chosen. Auctioneer pay and Resolve are fight-scoped and handled by
+   the callers, not here. */
+function settleMonsterReward(o){
+  const M=MONSTERS[o.mid];const b=M.bounty||{};
+  let coin=o.baseGold||0;
+  if(b.gold){
+    const purse=b.gold*(o.gilded?2:1);
+    const drained=b.drain?Math.min(o.pocketed||0,purse):0;
+    coin+=purse-drained;
+    if(drained>0){toast('The monkey kept '+drained+' gold of the bounty.');}
+  }
+  if(coin<(o.minGold||0))coin=o.minGold||0;
+  G.gold+=coin;
+  if(b.items){b.items.forEach(function(id){G.shop.push({id:id,free:true,bought:false});});}
+  if(b.relic&&(o.enteredGold||0)>=8){G.relicIncome+=1;toast('Income relic: +1 gold each dawn');}
+  if(b.mote){
+    const counts={};G.board.forEach(function(it){if(it.rarity===0&&!ITEMS[it.id].unique)counts[it.id]=(counts[it.id]||0)+1;});
+    let best=null;Object.keys(counts).forEach(function(id){if(!best||counts[id]>counts[best])best=id;});
+    if(best){G.shop.push({id:best,free:true,bought:false});}
+    else{G.gold+=3;toast('The mote found nothing bronze to copy. 3 gold instead.');}
+  }
+  if(b.gild){renderAll();openGild('The mirror bows. Gild one ware.',o.cont);return;}
+  if(b.pickUnique){renderAll();openUniquePick('The vault opens. Take one.',o.cont);return;}
+  toast(M.n+' slain. '+coin+' gold'+(b.items?', bounty wares in the market':'')+'.');
+  bark('win');
+  o.cont();
+}
+
+/* ============ THE LONG BAZAAR ROUTE ============ */
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+const NODELABEL={market:'Market',rest:'Rest',treasure:'Treasure',shrine:'Quqnus Shrine',negotiation:'Merchant'};
+const NODEGLYPH={market:'g-coin',rest:'g-heart',treasure:'g-gem',shrine:'g-lantern',negotiation:'g-ledger'};
+function nodeGlyph(n){return isCombat(n)?MONSTERS[n.monId].glyph:(NODEGLYPH[n.type]||'g-gem');}
+function nodeLabel(n){return isCombat(n)?MONSTERS[n.monId].n:(NODELABEL[n.type]||n.type);}
+function routeMap(){return G.route.map;}
+function routeState(){return G.route.state;}
+
+/* ---- route saves (independent of the lobby save) ---- */
+function snapshotRoute(){
+  const s=store();if(!s||!G||G.mode!=='route'||!G.route)return;
+  const item=function(it){return {id:it.id,rarity:it.rarity,size:it.size,ench:it.ench||null};};
+  const R=G.route;
+  const d={saveVersion:ROUTE_SAVE_VERSION,mapVersion:MAP_VERSION,routeState:R.state,phase:G.phase,
+    run:{seed:G.seed,hero:G.hero||null,anom:G.anom.id,tags:G.tags.slice(),
+      gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,frozen:!!G.frozen,fightN:G.fightN,
+      board:G.board.map(item),vault:G.vault.map(item),
+      shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null};}),
+      trinkets:G.trinkets.map(function(t){return t.id;})},
+    market:R.market?{nodeId:R.market.nodeId,rollIndex:R.market.rollIndex}:null};
+  try{s.setItem(ROUTE_KEY,JSON.stringify(d));}catch(e){}
+}
+function loadRoute(){
+  const s=store();if(!s)return null;
+  try{const d=JSON.parse(s.getItem(ROUTE_KEY)||'null');
+    if(!d||d.saveVersion!==ROUTE_SAVE_VERSION||d.mapVersion!==MAP_VERSION){if(d)s.removeItem(ROUTE_KEY);return null;}
+    return d;
+  }catch(e){return null;}
+}
+function clearRoute(){const s=store();if(!s)return;try{s.removeItem(ROUTE_KEY);}catch(e){}}
+function checkpointActiveRun(){if(G&&G.mode==='route')snapshotRoute();else snapshotRun();}
+
+/* ---- run construction ---- */
+function newRoute(){
+  const seed=((Date.now()>>>0)^0x9e3779b9)>>>0;
+  const rng=mulberry(seed);
+  const anom=ANOMALIES[Math.floor(rng()*ANOMALIES.length)];
+  const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
+  G={mode:'route',seed:seed,rng:rng,round:0,anom:anom,A:Object.assign({},ANONE,anom.m),tags:[cats[0],cats[1]],
+     board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:6,tier:1,tierCost:TIERCOST[2],relicIncome:0,frozen:false,
+     stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
+     phase:'routeMap',fightN:0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
+     route:{map:genMap(seed),state:initRoute(seed),selectedId:null,market:null,combat:null}};
+  computeT();
+  renderAno();renderTrow();
+  $('ribbon').innerHTML='';$('main').innerHTML='';
+  openHeroPick(function(){openRouteReveal();});
+}
+function openRouteReveal(){
+  const o=ovOpen('<div class="card reveal"><div class="rays"></div>'
+   +'<div class="kick gold">The Road Ahead</div>'
+   +ic(G.anom.g,'bigic')
+   +'<h2 class="big">'+G.anom.n+'</h2><p>'+G.anom.d+'</p>'
+   +'<p>Featured wares: <b style="color:var(--brass)">'+CATN[G.tags[0]]+'</b> and <b style="color:var(--brass)">'+CATN[G.tags[1]]+'</b></p>'
+   +'<p style="font-size:11px">Four districts. Forty Resolve. Reach the Grand Vizier.</p>'
+   +'<button class="btn gold" id="rvGo">Enter the Bazaar</button></div>');
+  o.querySelector('#rvGo').onclick=function(){ovClose(o);G.phase='routeMap';checkpointActiveRun();renderAll();};
+}
+
+/* ---- the single dispatch: only place that calls the controller ---- */
+function dispatchRoute(action,ctx){
+  const r=routeTransition(G.route.state,G.route.map,action);
+  G.route.state=r.state;
+  runEffects(r.effects,0,ctx);
+}
+/* consume effects in order; combat, recap, reward overlays, gate camp, and the
+   end screen pause the queue and resume from their own callbacks */
+function runEffects(effects,i,ctx){
+  for(;i<effects.length;i++){
+    const e=effects[i];
+    if(e.type==='fight'){G.route.combat={nodeId:e.nodeId,enteredGold:G.gold,threat:e.threat,pocketed:0};checkpointActiveRun();startRouteFight(e);return;}
+    else if(e.type==='wonFight'){const node=nodeOf(routeMap(),e.nodeId);checkpointActiveRun();
+      showFightRecap(true,MONSTERS[node.monId].n,function(){dispatchRoute({type:'settleReward'},ctx);});return;}
+    else if(e.type==='lostFight'){const node=nodeOf(routeMap(),e.nodeId);const rest=effects,ni=i+1;checkpointActiveRun();
+      showFightRecap(false,MONSTERS[node.monId].n,function(){runEffects(rest,ni,ctx);});return;}
+    else if(e.type==='reward'){const rest=effects,ni=i+1;routeReward(e,function(){runEffects(rest,ni,ctx);});return;}
+    else if(e.type==='slip'){toast('You slip past. Lost '+e.cost+' Resolve.');checkpointActiveRun();}
+    else if(e.type==='market'){enterRouteMarket(e.nodeId);return;}
+    else if(e.type==='marketDone'){G.route.market=null;G.phase='routeMap';checkpointActiveRun();}
+    else if(e.type==='event'){routeEventCard(e);return;}
+    else if(e.type==='eventDone'){G.phase='routeMap';checkpointActiveRun();}
+    else if(e.type==='gateCamp'){G.phase='gateCamp';checkpointActiveRun();renderAll();return;}
+    else if(e.type==='end'){routeEnd(e.cause);return;}
+  }
+  /* every pausing effect returns above, so reaching here means the queue
+     resolved back to the road (a slip, a settled reward, a left market, or a
+     finished event); the prior screen may still be the fight, so force the map */
+  G.phase='routeMap';renderAll();
+}
+
+/* ---- combat adapter: reuse startFight, feed it a route-built foe ---- */
+function survTier(F){let s=0;for(const it of F.b.items){if(it.alive){const d=ITEMS[it.id];s+=(d?d.tier:1);}}return s;}
+function startRouteFight(e){
+  const M=MONSTERS[e.monId];
+  const php=fightHP(e.threat,G.T.hpFlat,G.A);
+  const foe=monsterSide(e.monId,{gold:G.gold,round:e.threat,A:G.A,gilded:!!e.gilded,playerBoard:G.board,playerHp:php});
+  const me={nm:'You',portrait:G.you.p,hp:php,items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
+  startFight(me,foe,{seed:e.fightSeed,threat:e.threat,caption:'Threat '+e.threat,boss:!!e.boss,
+    stormAt:M.stormAt?M.stormAt*1000:0,onEnd:function(F){endRouteFight(F,e);}});
+}
+function endRouteFight(F,e){
+  if(F.lotPaid){G.gold+=F.lotPaid;toast('The Auctioneer paid you '+F.lotPaid+' gold.');}
+  if(G.route.combat)G.route.combat.pocketed=F.pocketed||0;
+  dispatchRoute({type:'fightResult',winner:F.winner,survTier:survTier(F)});
+}
+function routeReward(e,cont){
+  const c=G.route.combat||{};
+  settleMonsterReward({mid:e.monId,gilded:e.gilded,baseGold:e.gold,minGold:0,
+    enteredGold:c.enteredGold||0,pocketed:c.pocketed||0,
+    cont:function(){G.route.combat=null;checkpointActiveRun();cont();}});
+}
+
+/* ---- market node: reuse the draft, deterministic keyed stock ---- */
+function enterRouteMarket(nodeId){
+  G.route.market={nodeId:nodeId,rollIndex:0};
+  G.rng=mulberry(fightSeed(G.seed,nodeId,0));
+  G.frozen=false;G.shopSel=null;G.sel=null;G.vsel=null;G.swapV=null;G.dockV=false;
+  rollShop();
+  G.phase='draft';checkpointActiveRun();renderAll();
+}
+
+/* ---- stubbed noncombat events: they still complete the node ---- */
+function routeEventDesc(t){
+  return t==='rest'?'Choose Mend, Temper, or Refit. Placeholder: mends 8 Resolve.'
+    :t==='treasure'?'Choose one of three rewards. Placeholder: 6 gold.'
+    :t==='shrine'?'A permanent tradeoff. Placeholder: mends 12 Resolve.'
+    :'A merchant offers trades. Placeholder: no deal yet.';
+}
+function routeEventCard(e){
+  const node=e.node;const t=node.type;let delta=0,gold=0,msg='';
+  if(t==='rest'){delta=8;msg='You rest by the road. +8 Resolve.';}
+  else if(t==='treasure'){gold=6;msg='You take the coin. +6 gold.';}
+  else if(t==='shrine'){delta=12;msg='The Quqnus mends you. +12 Resolve.';}
+  else{msg='The merchant shrugs. Negotiations arrive in a later version.';}
+  const o=ovOpen('<div class="card"><div class="kick gold">'+esc(NODELABEL[t]||cap(t))+'</div>'
+   +ic(nodeGlyph(node),'bigic')+'<h2 class="big">'+esc(nodeLabel(node))+'</h2>'
+   +'<p>'+msg+'</p><p style="font-size:11px;opacity:.7">Placeholder outcome; the full node arrives later.</p>'
+   +'<button class="btn gold" id="evGo" style="width:100%;margin-top:10px">Continue</button></div>');
+  o.querySelector('#evGo').onclick=function(){if(gold)G.gold+=gold;ovClose(o);dispatchRoute({type:'resolveEvent',resolveDelta:delta,outcome:t});};
+}
+
+/* ---- the plain map screen (production version and connectors land in 0.67) ---- */
+function routeBountyText(n){
+  const b=MONSTERS[n.monId].bounty||{};const parts=[];
+  if(b.gold)parts.push((b.gold*(n.gilded?2:1))+' gold');
+  if(b.items)parts.push(b.items.map(function(id){return ITEMS[id]?ITEMS[id].n:id;}).join(', '));
+  if(b.relic)parts.push('income relic');
+  if(b.mote)parts.push('a free copy of your commonest ware');
+  if(b.gild)parts.push('gild a ware');
+  if(b.pickUnique)parts.push('pick any unique');
+  return parts.length?parts.join(', '):'coin';
+}
+function routeNodePreviewHTML(n){
+  let acts;
+  if(n.type==='monster')acts='<button class="btn gold" data-a="challenge">Challenge</button>'
+    +'<button class="btn" data-a="slip">Slip Past ('+DISTRICTS[n.district-1].slip+' Resolve)</button>';
+  else if(n.type==='elite'||n.type==='boss')acts='<button class="btn gold" data-a="challenge">Challenge</button>';
+  else if(n.type==='market')acts='<button class="btn gold" data-a="enter">Enter Market</button>';
+  else acts='<button class="btn gold" data-a="enter">Enter</button>';
+  let info;
+  if(isCombat(n))info='<div class="rmpi">Fight health scales to Threat '+n.threat+'.</div>'
+    +'<div class="rmpi">Bounty: '+esc(routeBountyText(n))+'</div>'
+    +(n.gilded?'<div class="rmpi gild">Gilded: tougher, double gold.</div>':'');
+  else if(n.type==='market')info='<div class="rmpi">Buy, sell, reroll, freeze, tier, fuse, and vault.</div>';
+  else info='<div class="rmpi">'+esc(routeEventDesc(n.type))+'</div>';
+  return '<div class="rmpname">'+ic(nodeGlyph(n),'rmpg')+esc(nodeLabel(n))+'</div>'
+    +'<div class="rmptype">'+(n.type==='boss'?'District Boss':cap(n.type))+' &middot; Threat '+n.threat+'</div>'
+    +info+'<div class="rmpacts">'+acts+'</div>';
+}
+function renderRouteMap(){
+  const map=routeMap(),st=routeState();
+  const di=currentDistrict(st,map),D=map.districts[di];
+  const fr=frontier(st,map),frS=new Set(fr),vis=visitedSet(st),sel=G.route.selectedId;
+  const nodeBtn=function(n){
+    const state=vis.has(n.id)?'done':(frS.has(n.id)?'reach':'future');
+    return '<button class="rmnode t-'+n.type+' '+state+(n.id===sel?' sel':'')+(n.gilded?' gild':'')+'"'
+      +(state==='reach'?'':' disabled')+' data-n="'+n.id+'">'
+      +ic(nodeGlyph(n),'rmg')+'<span class="rmn">'+esc(nodeLabel(n))+'</span>'
+      +'<span class="rmt">T'+n.threat+(n.gilded?' *':'')+'</span></button>';
+  };
+  let cols='';
+  D.columns.forEach(function(col){cols+='<div class="rmcol">'+col.map(nodeBtn).join('')+'</div>';});
+  cols+='<div class="rmcol">'+nodeBtn(D.boss)+'</div>';
+  const prev=sel?routeNodePreviewHTML(map.nodes[sel]):'<div class="rmhint">Tap a lit node to preview it.</div>';
+  $('main').className='routemap';
+  $('main').innerHTML='<div class="rmwrap"><div class="rmboard">'
+    +'<div class="rmdname">'+esc(D.name)+'<span class="rmres">Resolve '+Math.max(0,st.resolve)+'</span></div>'
+    +'<div class="rmcols">'+cols+'</div></div>'
+    +'<div class="rmprev" id="rmprev">'+prev+'</div></div>';
+  document.querySelectorAll('.rmnode:not([disabled])').forEach(function(bn){
+    bn.onclick=function(){G.route.selectedId=bn.dataset.n;renderRouteMap();};});
+  const p=$('rmprev');
+  if(p&&sel){const n=map.nodes[sel];
+    p.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){
+      const a=b.dataset.a;G.route.selectedId=null;
+      dispatchRoute({type:'commit',nodeId:n.id,choice:a==='slip'?'slip':'challenge'});
+    };});}
+}
+function renderGateCamp(){
+  const st=routeState();const node=nodeOf(routeMap(),st.pendingId);
+  $('main').className='routemap';
+  $('main').innerHTML='<div class="rmwrap"><div class="rmboard gate">'
+    +ic(MONSTERS[node.monId].glyph,'bigic')
+    +'<div class="rmdname">Gate Camp</div>'
+    +'<p style="text-align:center;margin:6px 0">'+esc(MONSTERS[node.monId].n)+' holds the gate. Resolve '+Math.max(0,st.resolve)+'.</p>'
+    +'<div class="rmpacts"><button class="btn gold" id="gcRetry">Rally and Retry</button></div></div>'
+    +'<div class="rmprev"><div class="rmhint">Rearranging the stall and emergency options arrive with the full Gate Camp.</div></div></div>';
+  const r=$('gcRetry');if(r)r.onclick=function(){dispatchRoute({type:'startBossRetry'});};
+}
+function routeEnd(cause){
+  G.phase='routeEnd';clearRoute();music(null);
+  if(cause==='won'){
+    sting('fanfarewin');if(!RM)fxCoinRain();
+    const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">The Long Bazaar</div>'
+     +ic('g-crown','bigic')+'<h2 class="big">The Vizier Falls</h2>'
+     +'<p>You walked the whole road. The night market is yours.</p>'
+     +'<button class="btn gold" id="reGo" style="width:100%;margin-top:10px">New Run</button></div>');
+    o.querySelector('#reGo').onclick=function(){ovClose(o);newRoute();};
+  }else{
+    sting('lament');
+    const st=routeState();const D=DISTRICTS[currentDistrict(st,routeMap())];
+    const o=ovOpen('<div class="card"><div class="rays red"></div><div class="kick">The Road Ends</div>'
+     +ic('g-skull','bigic skullic')+'<h2 class="big bad">Resolve Spent</h2>'
+     +'<p>Your caravan broke in '+esc(D.name)+' after '+st.path.length+' encounters.</p>'
+     +'<button class="btn gold" id="reGo" style="width:100%;margin-top:10px">New Run</button></div>');
+    o.querySelector('#reGo').onclick=function(){ovClose(o);newRoute();};
+  }
+}
+/* resume a saved route at whatever phase it stopped */
+function restoreRoute(d){
+  const anom=ANOMALIES.filter(function(a){return a.id===d.run.anom;})[0]||ANOMALIES[0];
+  const map=genMap(d.run.seed);
+  if(!validRoute(d.routeState,map)){clearRoute();openIntro();return;}
+  G={mode:'route',seed:d.run.seed,rng:mulberry((d.run.seed+(d.run.fightN||0)*2654435761+7)>>>0),round:0,
+     anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.run.tags,
+     board:d.run.board.map(reviveItem),vault:(d.run.vault||[]).map(reviveItem),
+     shop:d.run.shop.slice(),trinkets:d.run.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean),
+     T:null,hero:d.run.hero||null,gold:d.run.gold,tier:d.run.tier,tierCost:d.run.tierCost,relicIncome:d.run.relicIncome,frozen:!!d.run.frozen,
+     stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
+     phase:'routeMap',fightN:d.run.fightN||0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
+     route:{map:map,state:d.routeState,selectedId:null,market:d.market||null,combat:null}};
+  const H=heroOf();if(H)G.you.p=H.g;
+  computeT();
+  resumeRoutePhase();
+  toast('Run resumed');
+}
+function resumeRoutePhase(){
+  const st=routeState();
+  if(st.phase==='encounter'&&st.pendingId){
+    const n=nodeOf(routeMap(),st.pendingId);
+    startRouteFight({nodeId:n.id,monId:n.monId,threat:n.threat,gilded:n.gilded,boss:n.type==='boss',fightSeed:st.fightSeed});
+  }else if(st.phase==='reward'){dispatchRoute({type:'settleReward'});}
+  else if(st.phase==='market'){G.phase='draft';renderAll();}
+  else if(st.phase==='event'){const n=nodeOf(routeMap(),st.pendingId);routeEventCard({node:n});}
+  else if(st.phase==='gateCamp'){G.phase='gateCamp';renderAll();}
+  else{G.phase='routeMap';renderAll();}
+}
+function openRouteContinue(d){
+  const map=genMap(d.run.seed);
+  const di=validRoute(d.routeState,map)?currentDistrict(d.routeState,map):0;
+  const o=ovOpen('<div class="card"><div class="rays"></div>'
+   +'<div class="kick gold">The Lantern Still Burns</div>'+ic('g-lantern','bigic')
+   +'<h2 class="big">The Road Waits</h2>'
+   +'<p>Your caravan rests in <b>'+esc(DISTRICTS[di].name)+'</b> with <b>'+Math.max(0,d.routeState.resolve)+'</b> Resolve.</p>'
+   +'<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
+   +'<button class="btn gold" id="ctGo">Continue Run</button>'
+   +'<button class="btn" id="ctNew">New Run</button></div></div>');
+  o.querySelector('#ctGo').onclick=function(){ovClose(o);restoreRoute(d);};
+  o.querySelector('#ctNew').onclick=function(){ovClose(o);clearRoute();newRoute();};
 }
 /* ============ GHOST DUELS ============ */
 function scaleFor(round){return 1+Math.max(0,round-5)*0.03;}
@@ -1065,7 +1382,10 @@ function computeT(){
 /* Threat is the combat difficulty dial. Today it tracks the round one to one;
    the route layer will map map-node depth to Threat so noncombat nodes do not
    inflate fight health or storm timing. Fed to fightHP and stormAt everywhere. */
-function runThreat(){return G.round;}
+function runThreat(){
+  if(G&&G.mode==='route'&&G.route){const st=G.route.state;if(st.pendingId)return nodeOf(G.route.map,st.pendingId).threat;}
+  return G.round;
+}
 function income(){
   let inc=Math.min(10,3+G.round);
   for(let i=0;i<G.board.length;i++){
@@ -1099,9 +1419,9 @@ function rollShop(){
     let r=G.rng()*tot,pick=ids[0];
     for(let i=0;i<ids.length;i++){r-=ws[i];if(r<=0){pick=ids[i];break;}}
     let ench=null;
-    /* no enchanted wares in the Back Alleys (rounds 1 to 3): early
-       gold is too tight to ever afford the premium */
-    if(G.round>=4&&G.rng()<ENCH_CHANCE){
+    /* no enchanted wares in the Back Alleys (early Threat): early gold is
+       too tight to ever afford the premium */
+    if(runThreat()>=4&&G.rng()<ENCH_CHANCE){
       const d2=ITEMS[pick];
       const opts=Object.keys(ENCH).filter(function(e){
         const req=ENCH[e].need;
@@ -1447,7 +1767,7 @@ function openHeroPick(cont){
   draw();
   o.querySelector('#heroGo').onclick=function(){
     const h=HEROES.filter(function(x){return x.id===sel;})[0];
-    G.hero=h.id;G.players[0].p=h.g;
+    G.hero=h.id;G.you.p=h.g;                        /* G.you is players[0] in lobby mode */
     if(h.start){G.board.push(makeItem(h.start,0));}
     computeT();
     toast(h.n+' opens the stall');
@@ -1517,10 +1837,12 @@ function openIntro(){
    +'<div class="ibtns">'
    +'<button class="stonebtn" id="inNew">New Game</button>'
    +'<button class="stonebtn" id="inTut">Tutorial</button>'
+   +'<button class="introroute" id="inRoute">The Long Bazaar (beta)</button>'
   +'</div>';
   document.body.appendChild(o);
   o.querySelector('#inNew').onclick=function(){o.remove();newLobby();};
   o.querySelector('#inTut').onclick=function(){o.remove();newLobby();G.tut='hero';renderCoach();};
+  o.querySelector('#inRoute').onclick=function(){o.remove();newRoute();};
 }
 /* the debug strip: ?debug in the URL (or bb-debug=1 in storage) pins a
    tiny readout to the corner: build tag, PWA vs browser tab, viewport,
@@ -1555,15 +1877,19 @@ export function boot(){
   initMusic(sfxMuted());
   initEmbers();
   loadBest();
+  const dr=loadRoute();
   const d=loadRun();
-  /* title theme over the intro; a resumed run drops straight to market */
-  if(d&&d.round>=1){music('market');openContinue(d);}
+  /* a saved route takes precedence; then a saved lobby; else the title */
+  if(dr){music('market');openRouteContinue(dr);}
+  else if(d&&d.round>=1){music('market');openContinue(d);}
   else{music('title');openIntro();}
   /* dev-only hooks for driving playtests from the console; the guard
      matches the service worker's, so the live site never carries them */
   if(typeof location!=='undefined'&&location.hostname.match(/^(localhost|127\.)/)){
     globalThis.BBDEV={g:function(){return G;},rollDoor:rollDoor,rollShop:rollShop,renderAll:renderAll,
       openUniquePick:openUniquePick,bandOf:bandOf,startMonsterFight:startMonsterFight,bark:bark,
-      runReport:runReport,endScreen:endScreen,music:music,musicNow:musicNow};
+      runReport:runReport,endScreen:endScreen,music:music,musicNow:musicNow,
+      newRoute:newRoute,dispatchRoute:dispatchRoute,frontier:function(){return frontier(G.route.state,G.route.map);},
+      routeState:function(){return G.route.state;}};
   }
 }
