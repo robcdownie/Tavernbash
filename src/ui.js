@@ -652,8 +652,8 @@ function paintFight(F){
   });
   const st=$('stormT');const sc=$('storm');
   if(st&&sc){
-    if(F.stormOn){sc.classList.add('live');st.textContent='Simoom';$('sand').classList.add('on');}
-    else{st.textContent='Simoom '+Math.max(0,Math.ceil((F.stormAt-F.t)/1000))+'s';}
+    if(F.stormOn){sc.classList.add('live');st.textContent='Storm';$('sand').classList.add('on');}
+    else{st.textContent='Storm approaching '+Math.max(0,Math.ceil((F.stormAt-F.t)/1000))+'s';}
   }
 }
 function handleEvents(F,evs){
@@ -691,7 +691,7 @@ function handleEvents(F,evs){
     else if(e.k==='lot'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('lot');logLine('<b class="y">SOLD: '+esc(e.nm)+'</b> leaves the fight','e-clock','#e8c27a');}
     else if(e.k==='lotpay'){fltFx(e.side,'+'+e.amt+'g','#e8c27a','e-bolt',false);}
     else if(e.k==='spawn'){const c=$('fc-'+e.side+'-'+e.i);const S=e.side==='a'?F.a:F.b;if(c&&S.items[e.i]){c.outerHTML=fightCellHTML(S.items[e.i],e.i,e.side);}logLine('<b class="t">'+esc(e.nm)+'</b> emerges','e-skull','#9dbb45');sDestroy();}
-    else if(e.k==='stormstart'){logLine('<b class="y">The simoom arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);sStorm(true);sting('windstorm');}
+    else if(e.k==='stormstart'){logLine('<b class="y">The storm arrives</b>','e-bolt','#e8c27a');if(!RM)fxStorm(true);sStorm(true);sting('windstorm');}
   }
 }
 /* tap any ware mid-fight to read what it is and its live state; the sim
@@ -830,7 +830,7 @@ function returnToMarket(){
 }
 /* post-fight recap: a plain readout of what happened, so a win or a loss is
    legible after the wares stop moving. Damage is tallied by type from the
-   event stream during the fight (weapon, poison, burn, simoom). */
+   event stream during the fight (weapon, poison, burn, storm). */
 function dmgBreakdown(t){
   const parts=[];
   if(t.wpn>0)parts.push(['dmg','e-blade',Math.round(t.wpn)]);
@@ -848,7 +848,7 @@ function fightRecapHTML(won,foeName){
    +'<h2 class="big'+(won?'':' bad')+'">'+(won?esc(foeName)+' slain':'Driven off')+'</h2>'
    +'<div class="recaprow"><div class="rlab">You dealt <b>'+Math.round(dealt)+'</b></div><div class="rchips">'+dmgBreakdown(R.b)+'</div></div>'
    +'<div class="recaprow"><div class="rlab">You took <b>'+Math.round(took)+'</b></div><div class="rchips">'+dmgBreakdown(R.a)+'</div></div>'
-   +(R.a.dead.length?'<div class="recaplost">Your wares lost: '+R.a.dead.map(esc).join(', ')+'</div>':'')
+   +(R.a.dead.length?'<div class="recaplost">Destroyed this fight: '+R.a.dead.map(esc).join(', ')+'</div>':'')
    +'<button class="btn gold" id="recapGo" style="width:100%;margin-top:12px">Continue</button></div>';
 }
 function showFightRecap(won,foeName,onDone){

@@ -152,14 +152,18 @@
   @keyframes foil{0%,55%{transform:translateX(-120%);}90%,100%{transform:translateX(120%);}}
   .cell.rar3{border-color:#cfe6ff;box-shadow:inset 0 0 0 1px rgba(210,235,255,.5), 0 0 14px rgba(160,210,255,.35);animation:diam 2.4s ease-in-out infinite;}
   @keyframes diam{0%,100%{filter:hue-rotate(0deg);}50%{filter:hue-rotate(24deg);}}
+  /* --p drives the cooldown ring; register it so the fill and the reset ease
+     smoothly instead of snapping (which read as a buggy on/off blink) */
+  @property --p{syntax:"<number>";inherits:false;initial-value:0;}
   .ring{position:absolute;inset:0;border-radius:9px;pointer-events:none;opacity:0;z-index:1;
     background:conic-gradient(from -90deg, var(--rc,var(--brass)) calc(var(--p,0)*360deg), rgba(255,255,255,0.05) 0);
+    transition:--p .22s linear;
     -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
     mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));}
-  .combat .ring{opacity:.95;}
+  .combat .ring{opacity:.62;}
   .cell.fire{animation:fire .32s var(--e-out);}
-  .cell.fire .gi{transform:scale(1.22);}
-  @keyframes fire{0%{box-shadow:0 0 0 0 var(--fc,var(--brass));}100%{box-shadow:0 0 20px 3px transparent;}}
+  .cell.fire .gi{transform:scale(1.14);}
+  @keyframes fire{0%{box-shadow:0 0 0 0 var(--fc,var(--brass));}100%{box-shadow:0 0 12px 1px transparent;}}
   .cell.chip{animation:chipfx .3s var(--e-out);}
   @keyframes chipfx{0%{transform:translateX(0);}30%{transform:translateX(-2.5px);}70%{transform:translateX(2.5px);}100%{transform:translateX(0);}}
   .cell.frz{border-color:#9ad8ef;box-shadow:inset 0 0 14px rgba(154,216,239,.45);}
@@ -1184,7 +1188,7 @@
       <li><b>Your stall.</b> Items are Small, Medium, or Large (1 to 3 slots). Tier up to unlock a slot and better wares. Gold does not carry over: spend it or it burns at dusk.</li>
       <li><b>Fusion.</b> Own three copies of the same ware and they forge into one of the next rarity, one size larger, roughly double the power. Two Gold copies forge Diamond. Copies waiting in the vault count. Rarity runs Bronze, Silver, Gold, Diamond.</li>
       <li><b>Fighting.</b> Weapons strike the enemy's leftmost intact item first (a Bulwark forces itself in front). Break the board, then hit the merchant. Excess damage is wasted, so wide boards blunt big weapons. Burn and poison skip the board and tick the merchant directly: poison ignores shields, shields halve burn.</li>
-      <li><b>The storm.</b> Late in every fight the simoom, a poison wind, drains both merchants harder each second. Shields and healing hold it back for a while.</li>
+      <li><b>The storm.</b> Late in every fight a poison wind rises and drains both merchants harder each second. Shields and healing hold it back for a while.</li>
       <li><b>The doors.</b> Each round you may fight one monster with its board and bounty shown in full, or take the safe door. Losing costs a chip of health but not the round.</li>
       <li><b>The shrine.</b> The first time you fall, the Quqnus revives you at 15 health with a boon. The second fall is final.</li>
       <li><b>Scout.</b> Before each duel you see the enemy stall and may rearrange yours.</li>
