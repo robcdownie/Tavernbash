@@ -5,6 +5,7 @@ import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,usedC
         playerFightItems,monsterSide,createFight,boardRegen} from './engine.js';
 import {genMap,MAP_VERSION,isCombat} from './map.js';
 import {initRoute,transition as routeTransition,frontier,currentDistrict,visitedSet,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,classifyEdges} from './route.js';
+import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
 import {ic} from './art.js';
 import {effChips,wareDetailHTML} from './cards.js';
 import {ART} from './art-manifest.js';
@@ -17,10 +18,8 @@ let G=null;let RM=false;
 let FSPD=(function(){try{return +window.localStorage.getItem('bb-speed')||1;}catch(e){return 1;}})();
 if(FSPD!==2)FSPD=1;
 /* ============ SAVES ============ */
-/* the route regenerates its map from the seed; only the controller state and the
-   economy are stored */
-const ROUTE_SAVE_VERSION=1;
-const ROUTE_KEY='bb-route-run';
+/* the envelope shape, version gate, and storage IO live in route-save.js;
+   snapshotRoute below still gathers the payload from the live G */
 function store(){try{return window.localStorage;}catch(e){return null;}}
 function reviveItem(b){const it=makeItem(b.id,b.rarity,b.ench||null);it.size=b.size;return it;}
 function $(id){return document.getElementById(id);}
@@ -793,16 +792,10 @@ function snapshotRoute(){
        recap still pays the right bounty (Debt Collector entered gold, Pilfer
        Monkey drain) rather than seeing zero */
     combat:R.combat?{nodeId:R.combat.nodeId,enteredGold:R.combat.enteredGold||0,threat:R.combat.threat||0,pocketed:R.combat.pocketed||0}:null};
-  try{s.setItem(ROUTE_KEY,JSON.stringify(d));}catch(e){}
+  writeRouteSave(s,d);
 }
-function loadRoute(){
-  const s=store();if(!s)return null;
-  try{const d=JSON.parse(s.getItem(ROUTE_KEY)||'null');
-    if(!d||d.saveVersion!==ROUTE_SAVE_VERSION||d.mapVersion!==MAP_VERSION){if(d)s.removeItem(ROUTE_KEY);return null;}
-    return d;
-  }catch(e){return null;}
-}
-function clearRoute(){const s=store();if(!s)return;try{s.removeItem(ROUTE_KEY);}catch(e){}}
+function loadRoute(){return readRouteSave(store());}
+function clearRoute(){clearRouteSave(store());}
 function checkpointActiveRun(){snapshotRoute();}
 
 /* ---- run construction ---- */
