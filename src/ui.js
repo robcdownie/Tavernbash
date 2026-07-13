@@ -652,8 +652,8 @@ function paintFight(F){
   });
   const st=$('stormT');const sc=$('storm');
   if(st&&sc){
-    if(F.stormOn){sc.classList.add('live');st.textContent='SIMOOM';$('sand').classList.add('on');}
-    else{st.textContent='Storm '+Math.max(0,Math.ceil((F.stormAt-F.t)/1000))+'s';}
+    if(F.stormOn){sc.classList.add('live');st.textContent='Simoom';$('sand').classList.add('on');}
+    else{st.textContent='Simoom '+Math.max(0,Math.ceil((F.stormAt-F.t)/1000))+'s';}
   }
 }
 function handleEvents(F,evs){
