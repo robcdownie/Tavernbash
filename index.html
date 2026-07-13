@@ -219,7 +219,28 @@
   .ware.trip::before{border-color:rgba(244,207,124,.35);}
   .eff.trip{color:#2a1c08;background:linear-gradient(180deg,var(--brass-hi),var(--brass));animation:pairglim 2.1s ease-in-out infinite;}
   @media (prefers-reduced-motion: reduce){.eff.trip{animation:none;}}
-  .eff{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:800;padding:1.5px 6px;border-radius:6px;margin:0 2px 3px;font-variant-numeric:tabular-nums;}
+  /* match glow: a cooler signal that you already hold one copy (a pair away from a forge) */
+  .ware.match{border-color:rgba(150,195,235,.5);box-shadow:0 0 11px rgba(150,195,235,.16), inset 0 1px 0 rgba(255,255,255,0.04);}
+  .ware.match::before{border-color:rgba(150,195,235,.3);}
+  .eff.mt{color:#bfe0ff;background:rgba(120,170,220,.18);}
+  .ware .wd{font-size:9px;line-height:1.25;color:var(--dim);margin-top:3px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  /* inspect then buy: the selected ware and its stable detail panel */
+  .ware.sel{border-color:var(--brass-hi);box-shadow:0 0 16px rgba(244,207,124,.4), inset 0 1px 0 rgba(255,255,255,.06);}
+  .ware:focus-visible,.cell.it:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px;}
+  .shopdet{margin-top:9px;background:linear-gradient(180deg,#3a2913,#241a10);border:1px solid rgba(216,162,74,.32);
+    border-radius:13px;padding:11px 11px 10px;animation:pop .18s var(--e-out);}
+  .shopdet .ds{font-size:12px;line-height:1.35;color:var(--ink,#e7d6bf);margin:3px 0 2px;}
+  .shopdet .nm{font-size:14px;}
+  .shopdet .bs{display:flex;gap:8px;margin-top:9px;}
+  .shopdet .bs .btn{flex:1;margin:0;}
+  .btn.buy{background:linear-gradient(180deg,var(--brass-hi),var(--brass));color:#2a1c08;}
+  .btn.buy.cant{opacity:.5;}
+  .whyno{margin-top:7px;font-size:11px;color:#e0a37a;text-align:center;}
+  /* the detail panel is the strategic-text surface: keep its chips legible
+     regardless of the later card-summary size overrides */
+  .shopdet .eff,.sheet .eff{font-size:12px;padding:2.5px 7px;}
+  .eff{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;padding:1.5px 6px;border-radius:6px;margin:0 2px 3px;font-variant-numeric:tabular-nums;}
   .eff.dmg{color:#ff8d76;background:rgba(200,64,46,.16);} .eff.shield{color:#6fe0cd;background:rgba(53,165,150,.16);}
   .eff.heal{color:#ffb3b8;background:rgba(224,138,143,.15);} .eff.poison{color:#c0e070;background:rgba(157,187,69,.16);}
   .eff.burn{color:#ffab61;background:rgba(224,134,58,.16);} .eff.util{color:var(--brass-hi);background:rgba(216,162,74,.15);}
@@ -467,6 +488,10 @@
   .stat.sl.c-poison{background:linear-gradient(180deg,#cfe882,#5f7d1a 80%);color:#fff;}
   .stat.sl.c-burn{background:linear-gradient(180deg,#ffbd7a,#b5561a 80%);color:#fff;}
   .stat.sl.c-util{background:linear-gradient(180deg,#f0d494,#9a6a24 80%);color:#fff;}
+  /* rarity reads on the stat gems: the g/s badge outline echoes the frame color */
+  .cell.rar1 .stat{border-color:#aebfd0;box-shadow:0 2px 4px rgba(0,0,0,.55), inset 0 1.5px 0 rgba(255,255,255,.4), inset 0 -2px 3px rgba(0,0,0,.3), 0 0 6px rgba(170,195,220,.4);}
+  .cell.rar2 .stat{border-color:#f0c268;box-shadow:0 2px 4px rgba(0,0,0,.55), inset 0 1.5px 0 rgba(255,255,255,.4), inset 0 -2px 3px rgba(0,0,0,.3), 0 0 7px rgba(216,162,74,.5);}
+  .cell.rar3 .stat{border-color:#d6ecff;box-shadow:0 2px 4px rgba(0,0,0,.55), inset 0 1.5px 0 rgba(255,255,255,.4), inset 0 -2px 3px rgba(0,0,0,.3), 0 0 8px rgba(160,210,255,.55);}
   .cell .fuse{top:3px;left:4px;font-size:9px;color:#fff;background:linear-gradient(180deg,#8fb4d8,#4a6d94);border:1px solid rgba(20,10,4,.6);
     border-radius:6px;padding:1px 4px;box-shadow:0 1.5px 3px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.4);}
   .cell.rar2 .fuse{background:linear-gradient(180deg,#ffd76a,#b07a1a);} .cell.rar3 .fuse{background:linear-gradient(180deg,#d6ecff,#6a92c4);}

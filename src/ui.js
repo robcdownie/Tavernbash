@@ -4,6 +4,7 @@ import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,BANDN,BAN
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,usedCells,
         playerFightItems,monsterSide,genRival,createFight,runHeadless,boardRegen} from './engine.js';
 import {ic} from './art.js';
+import {effChips,wareDetailHTML} from './cards.js';
 import {ART} from './art-manifest.js';
 import {fxHit,fxDestroy,fxForge,fxCoinRain,fxStorm} from './fx.js';
 import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxToggle,sfxMuted} from './sfx.js';
@@ -117,20 +118,6 @@ function primStat(fi){const f=fi.fx||{};
  if(f.poison)return['c-poison',f.poison];
  if(f.burn)return['c-burn',f.burn];
  return null;}
-function effChips(id,rarity){
-  const d=ITEMS[id];const rs=RSTAT[rarity||0];const c=[];const f=d.fx||{};
-  if(f.dmg)c.push(['dmg','e-blade',Math.round(f.dmg*rs)]);
-  if(f.poison)c.push(['poison','e-skull',Math.round(f.poison*rs)]);
-  if(f.burn)c.push(['burn','e-flame',Math.round(f.burn*rs)]);
-  if(f.shield)c.push(['shield','e-shield',Math.round(f.shield*rs)]);
-  if(f.heal)c.push(['heal','e-heart',Math.round(f.heal*rs)]);
-  if(f.haste)c.push(['util','e-bolt',(Math.round(f.haste*rs*10)/10)+'s haste']);
-  if(d.inc)c.push(['util','e-bolt','+'+Math.round(d.inc*rs)+'g/rd']);
-  if(d.adjDmg)c.push(['util','e-blade','adj +'+Math.round(d.adjDmg*rs)]);
-  if(d.cdMul)c.push(['util','e-clock','12% faster']);
-  if(d.bulwark)c.push(['shield','e-shield','Bulwark']);
-  return c.map(function(x){return '<span class="eff '+x[0]+'">'+ic(x[1],'mi')+' '+x[2]+'</span>';}).join('');
-}
 /* ============ CELLS + BOARD ============ */
 function cellHTML(it,i,sel){
   const d=ITEMS[it.id];const ps=primDraft(it);
@@ -284,30 +271,27 @@ function wareHTML(w,i){
   const own=G.board.filter(function(x){return x.id===w.id&&x.rarity===0;}).length
     +G.vault.filter(function(x){return x.id===w.id&&x.rarity===0;}).length;
   const trip=own>=2&&!w.bought;
+  const match=own===1&&!w.bought;
   let gems='';for(let g=0;g<d.tier;g++){gems+=ic('g-gem');}
   let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=d.size?'on':'')+'"></i>';}
   const en=w.ench?ENCH[w.ench]:null;
   const anim=G._wfresh?';animation-delay:'+(i*45)+'ms':';animation:none';
-  return '<div class="ware'+(w.bought?' gone':(can?'':' cant'))+(en?' enchw':'')+(trip?' trip':'')+(G.frozen&&!w.bought?' icew':'')+'" data-w="'+i+'" style="--cat:'+CATC[d.cat]+(en?';--ec:'+en.c:'')+anim+'">'
+  const alab=esc(d.n)+(w.bought?' (bought)':', '+(w.free?'free':cost+' gold'));
+  return '<div class="ware'+(w.bought?' gone':(can?'':' cant'))+(en?' enchw':'')+(trip?' trip':'')+(match?' match':'')+(G.shopSel===i?' sel':'')+(G.frozen&&!w.bought?' icew':'')+'" data-w="'+i+'" role="button" tabindex="0" aria-label="'+alab+'" style="--cat:'+CATC[d.cat]+(en?';--ec:'+en.c:'')+anim+'">'
    +'<div class="ph">'+ic('g-'+w.id,'gi')+'<span class="cost'+(w.free?' free':'')+'">'+ic('g-coin')+'<b>'+(w.free?'FREE':cost)+'</b></span></div>'
    +'<div class="tg">'+gems+'</div>'
    +'<div class="wn">'+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div>'
    +'<div class="sz">'+pips+'<span class="szl">'+(d.size===1?'1 slot':d.size+' slots')+'</span></div>'
-   +'<div class="chips">'+effChips(w.id,0)+(en?'<span class="eff util" style="color:'+en.c+'">'+ic('e-bolt','mi')+' '+en.d+'</span>':'')+(trip?'<span class="eff trip">'+ic('e-bolt','mi')+' Forges Silver</span>':'')+'</div>'
-   +'<div class="wr">'+(d.cd>0?ic('e-clock','mi')+' '+d.cd+'s':'<span>passive</span>')+'<span>'+ic('e-shield','mi')+' '+Math.round(BASEINTEG[d.size]*(d.integMul||1))+'</span></div>'
+   +'<div class="chips">'+effChips(w.id,0)+(en?'<span class="eff util" style="color:'+en.c+'">'+ic('e-bolt','mi')+' '+en.d+'</span>':'')+(trip?'<span class="eff trip">'+ic('e-bolt','mi')+' Forges Silver</span>':(match?'<span class="eff mt">'+ic('e-bolt','mi')+' You own 1</span>':''))+'</div>'
+   +'<div class="wd">'+esc(d.d)+'</div>'
+   +'<div class="wr">'+(d.cd>0?ic('e-clock','mi')+' every '+d.cd+'s':'<span>passive</span>')+'<span>'+ic('e-shield','mi')+' '+Math.round(BASEINTEG[d.size]*(d.integMul||1))+'</span></div>'
    +(own>0?'<div class="own">'+own+'/3</div>':'')
   +'</div>';
-}
-function sheetInfoHTML(it){
-  const d=ITEMS[it.id];const en=it.ench?ENCH[it.ench]:null;
-  return '<div class="st"><span class="ico" style="width:34px;height:34px">'+ic('g-'+it.id,'','width:100%;height:100%')+'</span>'
-   +'<div><div class="nm">'+RNAME[it.rarity]+' '+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div><div class="ds">'+(en?en.d+' ':'')+d.d+'</div>'
-   +'<div style="margin-top:5px">'+effChips(it.id,it.rarity)+'<span class="eff util">'+ic('e-shield','mi')+' '+integOf(it)+'</span>'+(d.cd>0?'<span class="eff util">'+ic('e-clock','mi')+' '+d.cd+'s</span>':'')+'</div></div></div>';
 }
 function renderVaultSheet(sh){
   const it=G.vault[G.vsel];
   const room=usedCells(G.board)+it.size<=4+G.tier;
-  sh.innerHTML='<div class="sheet">'+sheetInfoHTML(it)
+  sh.innerHTML='<div class="sheet">'+wareDetailHTML(it)
    +'<div class="bs"><button class="btn" id="vOut"'+(room?'':' disabled')+'>To the Stall</button>'
    +'<button class="btn" id="vSwp"'+(G.board.length?'':' disabled')+'>Swap</button>'
    +'<button class="btn sell" id="vSl">Sell +'+SELLV[it.size]+'</button></div></div>';
@@ -349,7 +333,7 @@ function renderSheet(){
   if(G.dockV&&G.vsel!=null&&G.vault[G.vsel]){renderVaultSheet(sh);return;}
   if(G.sel==null||!G.board[G.sel]){sh.innerHTML='';return;}
   const it=G.board[G.sel];
-  sh.innerHTML='<div class="sheet">'+sheetInfoHTML(it)
+  sh.innerHTML='<div class="sheet">'+wareDetailHTML(it)
    +'<div class="bs"><button class="btn" id="mvL"'+(G.sel===0?' disabled':'')+'>&#9664; Move</button>'
    +'<button class="btn" id="mvR"'+(G.sel>=G.board.length-1?' disabled':'')+'>Move &#9654;</button>'
    +'<button class="btn" id="vtI"'+(G.vault.length>=3?' disabled':'')+'>Vault</button>'
@@ -375,8 +359,9 @@ function renderDraft(){
   G._wfresh=G.shopFresh!==false;G.shopFresh=false;
   h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
   h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
+  h+=shopDetailHTML();
   h+='<div class="controls">'
-    +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'Tier '+(G.tier+1)+' &middot; '+G.tierCost+'g &rarr; '+(5+G.tier)+' slots')+'</button>'
+    +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'+1 slot &middot; Tier '+(G.tier+1)+' &middot; '+G.tierCost+'g')+'</button>'
     +'<button class="btn" id="btnRe"'+(G.gold<1?' disabled':'')+'>'+ic('g-coin','bi')+' Reroll 1</button>'
     +'<button class="btn frz'+(G.frozen?' iceon':'')+'" id="btnFrz">'+ic('e-frost','bi')+' '+(G.frozen?'Frozen':'Freeze')+'</button>'
   +'</div></div>';
@@ -407,13 +392,18 @@ function renderDraft(){
   document.querySelectorAll('#bd .cell.it').forEach(function(c){c.onclick=function(){
     const i=+c.dataset.i;
     if(G.swapV!=null){vaultSwap(i);return;}
-    G.sel=(G.sel===i?null:i);renderDraft();
+    G.sel=(G.sel===i?null:i);G.shopSel=null;renderDraft();
   };});
   document.querySelectorAll('#vlt .cell.it').forEach(function(c){c.onclick=function(){
     const i=+c.dataset.v;if(!G.vault[i])return;
-    G.vsel=(G.vsel===i?null:i);G.sel=null;renderDraft();
+    G.vsel=(G.vsel===i?null:i);G.sel=null;G.shopSel=null;renderDraft();
   };});
-  document.querySelectorAll('.ware').forEach(function(w){w.onclick=function(){buyWare(+w.dataset.w);};});
+  document.querySelectorAll('.ware').forEach(function(w){
+    w.onclick=function(){selectWare(+w.dataset.w);};
+    w.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();selectWare(+w.dataset.w);}};
+  });
+  const sBuy=$('shopBuy');if(sBuy)sBuy.onclick=function(){const i=G.shopSel;G.shopSel=null;buyWare(i);};
+  const sCl=$('shopClose');if(sCl)sCl.onclick=function(){G.shopSel=null;renderDraft();};
   const bt=$('btnTier');if(bt)bt.onclick=tierUp;
   const br=$('btnRe');if(br)br.onclick=reroll;
   const bf=$('btnFrz');if(bf)bf.onclick=toggleFreeze;
@@ -506,6 +496,28 @@ function fuseWithVault(){
   }
   return forgedAny;
 }
+/* inspect then commit: a first tap selects the ware and opens a stable detail
+   panel with the full rule; a separate Buy button commits. No more buying on
+   an accidental tap, and the dense wares have somewhere to explain themselves. */
+function selectWare(i){
+  const w=G.shop[i];if(!w||w.bought)return;
+  G.shopSel=(G.shopSel===i?null:i);
+  G.sel=null;G.vsel=null;
+  renderDraft();
+  if(G.shopSel!=null){const p=document.querySelector('.shopdet');if(p&&p.scrollIntoView)p.scrollIntoView({block:'nearest'});}
+}
+function shopDetailHTML(){
+  if(G.shopSel==null)return '';
+  const w=G.shop[G.shopSel];if(!w||w.bought)return '';
+  const d=ITEMS[w.id];const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
+  const room=usedCells(G.board)+d.size<=4+G.tier;const afford=w.free||G.gold>=cost;const can=afford&&room;
+  const why=!afford?'Not enough gold':(!room?'No room on your stall':'');
+  return '<div class="shopdet">'+wareDetailHTML({id:w.id,rarity:0,ench:w.ench})
+   +'<div class="bs"><button class="btn buy'+(can?'':' cant')+'" id="shopBuy"'+(can?'':' disabled')+'>'+ic('g-coin','bi')+' '+(w.free?'Take &middot; free':'Buy &middot; '+cost+'g')+'</button>'
+   +'<button class="btn" id="shopClose">Close</button></div>'
+   +(why?'<div class="whyno">'+why+'</div>':'')
+  +'</div>';
+}
 function buyWare(i){
   if(G.phase!=='draft')return;
   const w=G.shop[i];if(!w||w.bought)return;
@@ -550,7 +562,7 @@ function tierUp(){
   if(dk&&!RM){dk.classList.add('flare');setTimeout(function(){dk.classList.remove('flare');},650);}
 }
 function reroll(){
-  if(G.gold<1)return;G.gold-=1;G.frozen=false;rollShop();renderRibbon();renderDraft();
+  if(G.gold<1)return;G.gold-=1;G.frozen=false;G.shopSel=null;rollShop();renderRibbon();renderDraft();
 }
 function toggleFreeze(){
   G.frozen=!G.frozen;
@@ -697,7 +709,7 @@ function startFight(me,foe,opts){
     document.body.appendChild(dk);
     setTimeout(function(){dk.remove();},2250);
   }
-  const F=createFight({a:me,b:foe,stormAt:(opts&&opts.stormAt)||stormAt(G.round),seed:(G.seed+G.round*7919+(++G.fightN)*104729)>>>0,playerIs:'a'});
+  const F=createFight({a:me,b:foe,stormAt:(opts&&opts.stormAt)||stormAt(runThreat()),seed:(G.seed+G.round*7919+(++G.fightN)*104729)>>>0,playerIs:'a'});
   G.F=F;
   function pad(items){const u=items.reduce(function(s,x){return s+x.size;},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
   $('main').className='fight';
@@ -762,7 +774,7 @@ function startMonsterFight(){
   G.enteredGold=G.gold;sCreak();
   const M=MONSTERS[D.mid];
   const foe=monsterSide(D.mid,doorCtx());
-  const me={nm:'You',portrait:G.you.p,hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
+  const me={nm:'You',portrait:G.you.p,hp:fightHP(runThreat(),G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
   startFight(me,foe,{onEnd:endMonsterFight,stormAt:M.stormAt?M.stormAt*1000:0,boss:M.band===4});
 }
 /* the market reopens between the door and the duel so winnings can be
@@ -873,7 +885,6 @@ function openScout(opp){
    +'<div class="board combat" style="pointer-events:none">'+foe.items.map(function(fi,i){return fightCellHTML(fi,i,'s');}).join('')+'</div>'
    +'<div class="lab2">Your stall &middot; tap to reorder, left is struck first</div>'
    +'<div id="scb"></div><div id="scm"></div>'
-   +(G.gold>0?'<div class="burnnote">'+G.gold+' unspent gold burns at dusk</div>':'')
    +'<button class="btn gold" id="scGo" style="width:100%;margin-top:10px">'+ic('e-blade','bi')+' Fight</button>'
   +'</div>');
   let sel=null;let done=false;
@@ -894,8 +905,9 @@ function openScout(opp){
   o.querySelector('#scGo').onclick=go;
 }
 function launchGhost(){
-  G.burned=G.gold;G.gold=0;
-  const me={nm:'You',portrait:G.you.p,hp:fightHP(G.round,G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
+  /* persistent gold: nothing burns at dusk anymore. Gold carries the run */
+  G.burned=0;
+  const me={nm:'You',portrait:G.you.p,hp:fightHP(runThreat(),G.T.hpFlat,G.A),items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
   startFight(me,G.pendFoe,{onEnd:endGhostFight});
 }
 function chkDeath(p,feed){
@@ -946,7 +958,6 @@ function banner(iWon,dmg,opp){
    +'<div class="kick'+(iWon?' gold':'')+'">Round '+G.round+' &middot; Dusk</div>'
    +'<h2 class="big'+(iWon?'':' bad')+'">'+(iWon?'Victory':'Defeat')+'</h2>'
    +'<p>'+(iWon?('You beat '+who+'. They lose <b style="color:#ff8d76">'+dmg+'</b> health.'):('You lost to '+who+' and take <b style="color:#ff8d76">'+dmg+'</b> health.'))+'</p>'
-   +(G.burned>0?'<p style="font-size:11px;color:#e0a37a">'+G.burned+' gold burned at dusk</p>':'')
    +'<div class="feed">'+G.feed.map(function(f){return '<div>'+f+'</div>';}).join('')+'</div>'
    +'<button class="btn gold" id="bGo">Morning Comes</button></div>');
   o.querySelector('#bGo').onclick=function(){ovClose(o);nextRound();};
@@ -972,6 +983,10 @@ function computeT(){
     if(m.firstDouble)G.T.firstDouble=true;
   }
 }
+/* Threat is the combat difficulty dial. Today it tracks the round one to one;
+   the route layer will map map-node depth to Threat so noncombat nodes do not
+   inflate fight health or storm timing. Fed to fightHP and stormAt everywhere. */
+function runThreat(){return G.round;}
 function income(){
   let inc=Math.min(10,3+G.round);
   for(let i=0;i<G.board.length;i++){
@@ -1043,10 +1058,10 @@ function rollDoor(){
 function nextRound(){
   G.round++;
   if(G.round>1&&G.tier<6){G.tierCost=Math.max(1,G.tierCost-1);}
-  G.gold=income();
+  G.gold+=income();
   if(G.spoils){G.gold+=G.spoils;toast('Spoils at dawn: +'+G.spoils+' gold');G.spoils=0;}
   rollShop();rollDoor();
-  G.sel=null;G.vsel=null;G.swapV=null;G.phase='draft';G.dockV=false;
+  G.sel=null;G.vsel=null;G.swapV=null;G.shopSel=null;G.phase='draft';G.dockV=false;
   if(G.tut&&G.round===2){G.tut='last';}
   pairRound();
   music('market');sting('dawnsting');
