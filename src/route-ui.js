@@ -514,6 +514,9 @@ function routeRunReport(result){
   const st=routeState(),map=routeMap(),H=B.heroOf();
   const di=currentDistrict(st,map);
   const bosses=st.path.filter(function(id){return /boss$/.test(id);}).length;
+  /* retries = boss re-attempts spent at gate camps; the seed + path make a result
+     reproducible (seed regenerates the map, path is the exact route walked) */
+  const retries=Object.keys(st.attempts||{}).reduce(function(s,k){return s+(st.attempts[k]||0);},0);
   const item=function(it){return RNAME[it.rarity]+' '+(it.ench?ENCH[it.ench].n+' ':'')+ITEMS[it.id].n;};
   const yList=function(arr,fn){return arr.length?arr.map(function(x){return '\n  - '+fn(x);}).join(''):' []';};
   const L=[
@@ -522,6 +525,7 @@ function routeRunReport(result){
    'mode: The Long Bazaar',
    'version: '+pkg.version,
    'date: '+new Date().toISOString().slice(0,16).replace('T',' '),
+   'seed: '+(G.seed>>>0),
    'result: '+result,
    'hero: '+(H?H.n:'none'),
    'omen: '+G.anom.n,
@@ -529,10 +533,12 @@ function routeRunReport(result){
    'district_reached: '+DISTRICTS[di].name,
    'bosses_beaten: '+bosses,
    'nodes_visited: '+st.path.length,
+   'boss_retries: '+retries,
    'resolve: '+Math.max(0,st.resolve),
    'resolve_max: '+st.resolveMax,
    'gold: '+G.gold,
    'tier: '+G.tier,
+   'path: '+(st.path.length?'['+st.path.join(', ')+']':'[]'),
    'board:'+yList(G.board,item),
    'vault:'+yList(G.vault,item),
    'charms:'+yList(G.trinkets,function(t){return t.n;}),
