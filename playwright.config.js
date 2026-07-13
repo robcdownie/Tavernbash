@@ -13,7 +13,10 @@ export default defineConfig({
   reporter: 'list',
   use: {baseURL: 'http://localhost:5199'},
   webServer: {
-    command: 'npm run dev',
+    /* bare `npm run dev` is `vite`, which defaults to 5173; pin it to the port
+       the tests expect and fail fast (strictPort) instead of drifting if 5199
+       is momentarily held, so the suite never silently waits on the wrong port */
+    command: 'npm run dev -- --port 5199 --strictPort',
     url: 'http://localhost:5199',
     reuseExistingServer: true,
     timeout: 60000

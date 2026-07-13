@@ -81,12 +81,29 @@ export function initRoute(seed){
     phase:'map',resolve:40,resolveMax:40,attempts:{},fightSeed:null};
 }
 
-/* a saved route is trustworthy only if the generator version matches and every
-   remembered node id still exists in the regenerated map */
+const PHASES=new Set(['map','encounter','reward','market','event','gateCamp','won','lost']);
+/* phases that must hold a committed node, and their complement */
+const PENDING_PHASES=new Set(['encounter','reward','market','event','gateCamp']);
+
+/* a saved route is trustworthy only if the generator version matches, every
+   remembered node id still exists and appears once, the phase is known and
+   consistent with whether a node is committed, and attempts name only bosses.
+   restore rejects anything else and falls back to a fresh run. */
 export function validRoute(state,map){
-  if(!state||state.version!==MAP_VERSION||map.version!==MAP_VERSION)return false;
-  for(const id of state.path)if(!map.nodes[id])return false;
-  if(state.pendingId&&!map.nodes[state.pendingId])return false;
+  if(!state||state.version!==MAP_VERSION||!map||map.version!==MAP_VERSION)return false;
+  if(!Array.isArray(state.path))return false;
+  const seen=new Set();
+  for(const id of state.path){if(!map.nodes[id]||seen.has(id))return false;seen.add(id);}
+  if(state.pendingId&&(!map.nodes[state.pendingId]||seen.has(state.pendingId)))return false;
+  if(!PHASES.has(state.phase))return false;
+  if(PENDING_PHASES.has(state.phase)&&!state.pendingId)return false;
+  if(!PENDING_PHASES.has(state.phase)&&state.pendingId)return false;
+  if(state.attempts){
+    for(const id in state.attempts){
+      const n=map.nodes[id];
+      if(!n||n.type!=='boss'||!(state.attempts[id]>=0))return false;
+    }
+  }
   return true;
 }
 

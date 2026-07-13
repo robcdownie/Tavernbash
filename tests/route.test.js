@@ -146,6 +146,50 @@ test('committing a node that is not on the frontier is refused',()=>{
   assert.throws(()=>transition(st,map,{type:'commit',nodeId:notReachable,choice:'challenge'}));
 });
 
+test('validRoute rejects corrupt or contradictory saves',()=>{
+  const map=genMap(SEEDS[0]);
+  const a=map.districts[0].columns[0][0].id;   /* an entrance node */
+  const b=map.districts[0].columns[0][1].id;
+  const boss=map.districts[0].boss.id;
+  const base=initRoute(SEEDS[0]);
+  const ok=(s)=>validRoute(Object.assign({},base,s),map);
+  /* accepted: a clean map-phase state, and a legitimate gate-camp state */
+  assert.ok(ok({path:[a]}),'clean map state');
+  assert.ok(ok({path:[a],pendingId:boss,phase:'gateCamp',attempts:{[boss]:1}}),'gate camp');
+  /* rejected */
+  assert.ok(!validRoute(Object.assign({},base,{path:[a]}),{version:map.version+1,nodes:map.nodes,districts:map.districts}),'map version mismatch');
+  assert.ok(!ok({version:base.version+1}),'state version mismatch');
+  assert.ok(!ok({path:['nope']}),'path id not in map');
+  assert.ok(!ok({path:[a,a]}),'duplicate path node');
+  assert.ok(!ok({pendingId:'nope',phase:'encounter'}),'pending id not in map');
+  assert.ok(!ok({path:[a],pendingId:a,phase:'encounter'}),'pending equals a completed node');
+  assert.ok(!ok({phase:'bogus'}),'unknown phase');
+  assert.ok(!ok({phase:'encounter',pendingId:null}),'encounter without a pending node');
+  assert.ok(!ok({phase:'map',pendingId:b}),'map phase must not hold a pending node');
+  assert.ok(!ok({attempts:{[a]:1}}),'attempts on a non-boss node');
+});
+
+test('a driven save survives a full serialize -> restore -> revalidate at each phase',()=>{
+  const map=genMap(SEEDS[4]);
+  let st=initRoute(SEEDS[4]);
+  const seenPhases=new Set();
+  let guard=0;
+  while(st.phase!=='won'&&st.phase!=='lost'&&guard++<400){
+    /* at every phase, a JSON round-trip must revalidate and preserve the state */
+    const saved=JSON.parse(JSON.stringify(st));
+    assert.ok(validRoute(saved,map),'phase '+st.phase+' revalidates after a round trip');
+    assert.deepEqual(saved,st,'phase '+st.phase+' survives the round trip byte for byte');
+    seenPhases.add(st.phase);
+    if(st.phase==='map'){const fr=frontier(st,map);({state:st}=transition(st,map,{type:'commit',nodeId:fr[0],choice:'challenge'}));}
+    else if(st.phase==='encounter'){({state:st}=transition(st,map,{type:'fightResult',winner:'a',survTier:0}));}
+    else if(st.phase==='reward'){({state:st}=transition(st,map,{type:'settleReward'}));}
+    else if(st.phase==='market'){({state:st}=transition(st,map,{type:'leaveMarket'}));}
+    else if(st.phase==='event'){({state:st}=transition(st,map,{type:'resolveEvent'}));}
+  }
+  assert.equal(st.phase,'won');
+  for(const p of ['map','encounter','reward'])assert.ok(seenPhases.has(p),'exercised '+p);
+});
+
 test('edge classifier marks walked pairs done, current exits avail, rest future',()=>{
   const map=genMap(SEEDS[0]);
   const D=map.districts[0];
