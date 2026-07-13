@@ -11,11 +11,14 @@
      node scripts/route-sim.js 1200       set the seed count
 
    The player is modelled, not hand-played: a board is rebuilt at each market/camp
-   from the gold invested so far (genRival scaled to that budget), tiering up when
-   affordable. The policy is a competent-baseline "challenge everything, invest,
-   retry a lost boss until Resolve runs out". It is deliberately simple; slip play,
-   gild/vault micro, and enchants are not modelled, so read the numbers as a
-   pacing/economy proxy, not a skill ceiling.
+   from the gold invested so far (genRival scaled to that budget). FRESH fight
+   items are built every battle (playerFightItems), exactly as the game does, so
+   combat never carries damage/ammo/timers between fights. The policy walks a
+   seeded-random frontier node each step (so it samples both Dragon Gate elites
+   and varied lanes), challenges everything, invests, and at a lost boss gate uses
+   Mend / Last Reserve then retries until Resolve runs out. It is a competent
+   baseline, not a skill ceiling: slip play, gild/vault micro, enchants, and
+   matchup-aware routing are not modelled, so read it as a pacing/economy proxy.
 
    Tuning knobs (cfg) let the harness A/B a candidate change WITHOUT touching the
    game: startResolve, bossLossAdj (Resolve added back per boss loss, so +2 models
@@ -24,7 +27,7 @@
    genRival board already always has damage, so the sim cannot see that change. */
 import {genMap} from '../src/map.js';
 import {initRoute, transition, frontier, nodeOf, currentDistrict, BASE_GOLD} from '../src/route.js';
-import {createFight, runHeadless, monsterSide, genRival, fightHP, stormAt, mulberry} from '../src/engine.js';
+import {createFight, runHeadless, monsterSide, genRival, playerFightItems, fightHP, stormAt, mulberry} from '../src/engine.js';
 import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, ANONE, COST, TIERCOST} from '../src/data.js';
 import {planReward} from '../src/route-rewards.js';
 
@@ -34,6 +37,9 @@ const RUNS = +(args.find(a => /^\d+$/.test(a)) || (AB ? 1200 : 600));
 const A = ANONE;                       /* baseline: no anomaly, to isolate the route economy */
 
 const DEFAULT_CFG = { startResolve: 40, bossLossAdj: 0, treasureCash: 6, negoCash: 6 };
+/* the district bosses and the two Dragon Gate elites, reported by name */
+const KEYMONS = [['matron', 'Matron (D1)'], ['collector', 'Collector (D2)'], ['ifrit', 'Ifrit (D3)'],
+                 ['azhdaha', 'Azhdaha (D4 elite)'], ['auctioneer', 'Auctioneer (D4 elite)'], ['vizier', 'Vizier (D4)']];
 
 /* ---- readout helpers ---- */
 const sortNum = a => a.slice().sort((x, y) => x - y);
@@ -48,12 +54,12 @@ const pad = (s, n) => (String(s) + ' '.repeat(n)).slice(0, n);
 function synthRound(invested) { return Math.max(1, Math.min(12, Math.round((invested - 2) / 6))); }
 function buildBoard(invested, rng, persona) { return genRival(synthRound(invested), persona, rng, A); }
 
-/* ---- one fight, headless ---- */
+/* ---- one fight, headless, with FRESH fight items (as the game rebuilds them) ---- */
 function simFight(board, node, gold, seed) {
   const M = MONSTERS[node.monId];
   const php = fightHP(node.threat, 0, A);
   const foe = monsterSide(node.monId, { gold: gold, round: node.threat, A: A, gilded: !!node.gilded, playerBoard: board.board, playerHp: php });
-  const me = { nm: 'You', portrait: 'p-0', hp: php, items: board.items, lifesteal: 0, regen: 0 };
+  const me = { nm: 'You', portrait: 'p-0', hp: php, items: playerFightItems(board.board, {}, A, 1), lifesteal: 0, regen: 0 };
   const F = createFight({ a: me, b: foe, stormAt: M.stormAt ? M.stormAt * 1000 : stormAt(node.threat), seed: seed >>> 0, playerIs: 'a' });
   runHeadless(F);
   return { winner: F.winner, survTier: F.survTiers('b'), t: F.t / 1000, meHp: Math.max(0, F.a.hp), foeHp: Math.max(0, F.b.hp) };
@@ -66,7 +72,7 @@ function simRun(seed, cfg) {
   const persona = PERSONAS[seed % PERSONAS.length];
   let st = initRoute(seed);
   if (cfg.startResolve !== 40) { st.resolve = cfg.startResolve; st.resolveMax = cfg.startResolve; }
-  let gold = 6, invested = 0, tier = 1;
+  let gold = 6, invested = 0, tier = 1, lastReserveUsed = false, mendGate = null, mendUsed = false;
   invested += 6; gold = 0;             /* opening stall: the six starting gold */
   let board = buildBoard(invested, rng, persona);
   const m = { fights: [], retries: 0, goldEarned: 0, goldSpent: 6, minResolve: st.resolveMax, tierMax: 1 };
@@ -76,13 +82,13 @@ function simRun(seed, cfg) {
     if (st.resolve < m.minResolve) m.minResolve = st.resolve;
     if (st.phase === 'map') {
       const fr = frontier(st, map); if (!fr.length) break;
-      const node = nodeOf(map, fr[0]);
+      const node = nodeOf(map, fr[Math.floor(rng() * fr.length)]);   /* seeded-random path: samples both D4 elites and varied lanes */
       st = transition(st, map, { type: 'commit', nodeId: node.id, choice: 'challenge' }).state;
     } else if (st.phase === 'encounter') {
       const node = nodeOf(map, st.pendingId);
       const first = !st.attempts[node.id];
       const r = simFight(board, node, gold, st.fightSeed);
-      m.fights.push({ threat: node.threat, band: node.district, type: node.type, won: r.winner === 'a', t: r.t, margin: r.winner === 'a' ? r.meHp : r.foeHp, first: first });
+      m.fights.push({ threat: node.threat, band: node.district, type: node.type, mon: node.monId, won: r.winner === 'a', t: r.t, margin: r.winner === 'a' ? r.meHp : r.foeHp, first: first });
       const bossLoss = node.type === 'boss' && r.winner === 'b';
       st = transition(st, map, { type: 'fightResult', winner: r.winner, survTier: r.survTier }).state;
       if (cfg.bossLossAdj && bossLoss) {
@@ -110,6 +116,10 @@ function simRun(seed, cfg) {
       st = transition(st, map, { type: 'resolveEvent', resolveDelta: delta, outcome: node.type }).state;
     } else if (st.phase === 'gateCamp') {
       m.retries++;
+      if (mendGate !== st.pendingId) { mendGate = st.pendingId; mendUsed = false; }
+      /* Last Reserve when a loss could be fatal (once per run); Mend when it helps */
+      if (!lastReserveUsed && st.resolve > 6 && st.resolve <= 16) { st.resolve -= 6; st.resolveMax -= 6; invested += 6; lastReserveUsed = true; }
+      if (!mendUsed && gold >= 3 && st.resolve < st.resolveMax) { gold -= 3; m.goldSpent += 3; st.resolve = Math.min(st.resolveMax, st.resolve + 4); mendUsed = true; }
       const spend = Math.max(0, gold - 1); gold -= spend; invested += spend; m.goldSpent += spend;
       board = buildBoard(invested, rng, persona);
       st = transition(st, map, { type: 'startBossRetry' }).state;
@@ -131,10 +141,14 @@ function runBatch(cfg) {
   return runs;
 }
 
-/* first-attempt win rate for a band (optionally boss-only) */
-function bandWin(runs, band, bossOnly) {
-  const fs = runs.flatMap(r => r.fights).filter(f => f.band === band && f.first && (!bossOnly || f.type === 'boss'));
+/* first-attempt win rate for a band, or for a named monster */
+function bandWin(runs, band) {
+  const fs = runs.flatMap(r => r.fights).filter(f => f.band === band && f.first);
   return fs.length ? fs.filter(f => f.won).length / fs.length : 0;
+}
+function keyWin(runs, mon) {
+  const fs = runs.flatMap(r => r.fights).filter(f => f.mon === mon && f.first);
+  return { rate: fs.length ? fs.filter(f => f.won).length / fs.length : 0, n: fs.length };
 }
 
 /* ---- detailed single-config readout ---- */
@@ -146,25 +160,20 @@ function detailed(runs) {
   const byDist = [0, 0, 0, 0];
   runs.forEach(r => { if (r.result === 'lost') byDist[r.district]++; });
   console.log('  died in district      ' + DISTRICTS.map((d, i) => 'D' + d.id + ' ' + pct(byDist[i] / RUNS)).join('   '));
-  console.log('  nodes visited         median ' + med(runs.map(r => r.path)) + '   (p10 ' + qtile(runs.map(r => r.path), 0.1) + ', p90 ' + qtile(runs.map(r => r.path), 0.9) + ')');
-  console.log('  fights per run        median ' + med(runs.map(r => r.fights.length)));
-  console.log('\nRESOLVE (40 start)');
+  console.log('  nodes visited         median ' + med(runs.map(r => r.path)) + '   fights/run median ' + med(runs.map(r => r.fights.length)));
+  console.log('\nRESOLVE (' + med(runs.map(r => r.resolveEnd + 0)) + ' end on clears; 40 start)');
   console.log('  final on a clear      median ' + med(wins.map(r => r.resolveEnd)) + '   min-ever median ' + med(wins.map(r => r.minResolve)));
   console.log('  at death              median ' + med(runs.filter(r => r.result === 'lost').map(r => r.minResolve)));
-  console.log('\nGOLD');
-  console.log('  earned  median ' + med(runs.map(r => r.goldEarned)) + '   spent median ' + med(runs.map(r => r.goldSpent)) + '   held-at-end median ' + med(runs.map(r => r.goldHeld)));
-  console.log('  tier reached          median ' + med(runs.map(r => r.tierMax)));
-  console.log('\nFIRST-ATTEMPT WIN RATE by Threat (district band)');
-  for (const d of DISTRICTS) {
-    const fs = runs.flatMap(r => r.fights).filter(f => f.band === d.id && f.first);
-    const bosses = fs.filter(f => f.type === 'boss');
-    console.log('  ' + pad(d.name, 16) + ' all ' + pad(pct(bandWin(runs, d.id)), 8) + ' boss ' + pad(bosses.length ? pct(bandWin(runs, d.id, true)) : '-', 8) + ' n=' + fs.length);
-  }
-  console.log('\nBOSS RETRIES + FIGHT LENGTH');
-  console.log('  retries per run       median ' + med(runs.map(r => r.retries)) + '   mean ' + f1(mean(runs.map(r => r.retries))));
+  console.log('\nGOLD + TIER');
+  console.log('  earned median ' + med(runs.map(r => r.goldEarned)) + '   spent median ' + med(runs.map(r => r.goldSpent)) + '   held median ' + med(runs.map(r => r.goldHeld)) + '   tier median ' + med(runs.map(r => r.tierMax)));
+  console.log('\nFIRST-ATTEMPT WIN RATE by band');
+  for (const d of DISTRICTS) console.log('  ' + pad(d.name, 16) + pct(bandWin(runs, d.id)));
+  console.log('\nFIRST-ATTEMPT WIN RATE by key encounter');
+  for (const [mon, label] of KEYMONS) { const k = keyWin(runs, mon); console.log('  ' + pad(label, 22) + pad(pct(k.rate), 9) + 'n=' + k.n); }
+  console.log('\nRETRIES + FIGHTS');
+  console.log('  boss retries/run      median ' + med(runs.map(r => r.retries)) + '   mean ' + f1(mean(runs.map(r => r.retries))));
   const allF = runs.flatMap(r => r.fights);
-  console.log('  fight seconds         median ' + med(allF.map(f => f.t)) + '   p90 ' + qtile(allF.map(f => f.t), 0.9));
-  console.log('  win margin (your HP)  median ' + med(allF.filter(f => f.won).map(f => f.margin)));
+  console.log('  fight seconds         median ' + med(allF.map(f => f.t)) + '   p90 ' + qtile(allF.map(f => f.t), 0.9) + '   win margin (HP) median ' + med(allF.filter(f => f.won).map(f => f.margin)));
 }
 
 /* ---- A/B tuning comparison ---- */
@@ -174,29 +183,24 @@ function abTable() {
     { name: 'B boss-loss 4->2', cfg: { bossLossAdj: 2 } },
     { name: 'C start 36 Resolve', cfg: { startResolve: 36 } },
     { name: 'D event cash 6->4', cfg: { treasureCash: 4, negoCash: 4 } },
-    { name: 'E = B+D (hold 40)', cfg: { bossLossAdj: 2, treasureCash: 4, negoCash: 4 } },
-    { name: 'F = B+C+D', cfg: { bossLossAdj: 2, startResolve: 36, treasureCash: 4, negoCash: 4 } }
+    { name: 'E = B+D (hold 40)', cfg: { bossLossAdj: 2, treasureCash: 4, negoCash: 4 } }
   ];
-  console.log('== ROUTE SIM A/B (' + RUNS + ' seeds each, no anomaly) ==');
-  console.log('a guaranteed offensive opening offer is not modelled (see header)\n');
-  console.log(pad('variant', 20) + pad('clear', 8) + pad('D4-death', 10) + pad('D1boss', 9) + pad('D4all', 8) + pad('tier', 6) + pad('earned', 8) + pad('held', 6) + pad('retries', 8));
+  console.log('== ROUTE SIM A/B (' + RUNS + ' seeds each, no anomaly, fresh items, sampled paths) ==\n');
+  console.log(pad('variant', 20) + pad('clear', 8) + pad('D4-death', 10) + pad('Matron', 8) + pad('Azhdaha', 9) + pad('Vizier', 8) + pad('tier', 6) + pad('retries', 8));
   for (const v of variants) {
     const runs = runBatch(v.cfg);
     const clr = runs.filter(r => r.result === 'won').length / RUNS;
     const d4death = runs.filter(r => r.result === 'lost' && r.district === 3).length / RUNS;
     console.log(pad(v.name, 20)
-      + pad(pct(clr), 8)
-      + pad(pct(d4death), 10)
-      + pad(pct(bandWin(runs, 4, true)), 9)
-      + pad(pct(bandWin(runs, 4)), 8)
+      + pad(pct(clr), 8) + pad(pct(d4death), 10)
+      + pad(pct(keyWin(runs, 'matron').rate), 8)
+      + pad(pct(keyWin(runs, 'azhdaha').rate), 9)
+      + pad(pct(keyWin(runs, 'vizier').rate), 8)
       + pad(med(runs.map(r => r.tierMax)), 6)
-      + pad(med(runs.map(r => r.goldEarned)), 8)
-      + pad(med(runs.map(r => r.goldHeld)), 6)
       + pad(f1(mean(runs.map(r => r.retries))), 8));
   }
-  console.log('\nD4-death = share of runs that end in the Dragon Gate. D1boss/D4all = first-attempt');
-  console.log('win rate. tier/earned/held = medians. retries = mean per run. Lower D4-death and a');
-  console.log('higher, flatter boss win curve is the goal without letting clear rate run away.');
+  console.log('\nD4-death = share of runs ending in the Dragon Gate. Matron/Azhdaha/Vizier = first-attempt');
+  console.log('win rate. Both D4 elites are now sampled, so Azhdaha and Vizier are reported apart.');
 }
 
 if (AB) abTable(); else detailed(runBatch({}));
