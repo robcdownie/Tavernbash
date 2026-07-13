@@ -6,6 +6,7 @@ import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,usedC
 import {genMap,MAP_VERSION,isCombat} from './map.js';
 import {initRoute,transition as routeTransition,frontier,currentDistrict,visitedSet,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,classifyEdges} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
+import {planReward} from './route-rewards.js';
 import {ic} from './art.js';
 import {effChips,wareDetailHTML} from './cards.js';
 import {ART} from './art-manifest.js';
@@ -733,26 +734,18 @@ function showFightRecap(won,foeName,onDone){
    the callers, not here. */
 function settleMonsterReward(o){
   const M=MONSTERS[o.mid];const b=M.bounty||{};
-  let coin=o.baseGold||0;
-  if(b.gold){
-    const purse=b.gold*(o.gilded?2:1);
-    const drained=b.drain?Math.min(o.pocketed||0,purse):0;
-    coin+=purse-drained;
-    if(drained>0){toast('The monkey kept '+drained+' gold of the bounty.');}
+  const plan=planReward(b,{baseGold:o.baseGold,gilded:o.gilded,enteredGold:o.enteredGold,pocketed:o.pocketed,minGold:o.minGold,board:G.board});
+  G.gold+=plan.gold;
+  if(plan.drained>0){toast('The monkey kept '+plan.drained+' gold of the bounty.');}
+  plan.items.forEach(function(id){G.shop.push({id:id,free:true,bought:false});});
+  if(plan.relic){G.relicIncome+=1;toast('Income relic: +1 gold each dawn');}
+  if(plan.mote){
+    if(plan.mote.item){G.shop.push({id:plan.mote.item,free:true,bought:false});}
+    else{G.gold+=plan.mote.gold;toast('The mote found nothing bronze to copy. '+plan.mote.gold+' gold instead.');}
   }
-  if(coin<(o.minGold||0))coin=o.minGold||0;
-  G.gold+=coin;
-  if(b.items){b.items.forEach(function(id){G.shop.push({id:id,free:true,bought:false});});}
-  if(b.relic&&(o.enteredGold||0)>=8){G.relicIncome+=1;toast('Income relic: +1 gold each dawn');}
-  if(b.mote){
-    const counts={};G.board.forEach(function(it){if(it.rarity===0&&!ITEMS[it.id].unique)counts[it.id]=(counts[it.id]||0)+1;});
-    let best=null;Object.keys(counts).forEach(function(id){if(!best||counts[id]>counts[best])best=id;});
-    if(best){G.shop.push({id:best,free:true,bought:false});}
-    else{G.gold+=3;toast('The mote found nothing bronze to copy. 3 gold instead.');}
-  }
-  if(b.gild){renderAll();openGild('The mirror bows. Gild one ware.',o.cont);return;}
-  if(b.pickUnique){renderAll();openUniquePick('The vault opens. Take one.',o.cont);return;}
-  toast(M.n+' slain. '+coin+' gold'+(b.items?', bounty wares in the market':'')+'.');
+  if(plan.choice==='gild'){renderAll();openGild('The mirror bows. Gild one ware.',o.cont);return;}
+  if(plan.choice==='pickUnique'){renderAll();openUniquePick('The vault opens. Take one.',o.cont);return;}
+  toast(M.n+' slain. '+plan.gold+' gold'+(plan.items.length?', bounty wares in the market':'')+'.');
   bark('win');
   o.cont();
 }
