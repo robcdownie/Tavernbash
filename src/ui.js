@@ -390,7 +390,7 @@ function renderDraft(){
    +'<span class="side">'+(G.dockV?'no fights, no forging':(G.swapV!=null?'tap a ware to trade with the vault':used+' / '+slots+' slots'))+'</span></div>'
    +'<button class="btn mini" id="dockFlip">'+(G.dockV?'Stall':'Vault'+(G.vault.length?' ('+G.vault.length+')':''))+'</button>'
    +(G.mode==='route'
-     ?'<button class="btn gold tob" id="btnGo">'+ic('g-lantern','bi vsp')+'<span class="tbt"><span class="tbl">Leave</span><span class="tbn">back to the road</span></span></button></div>'
+     ?'<button class="btn gold tob" id="btnGo">'+ic('g-lantern','bi vsp')+'<span class="tbt"><span class="tbl">'+(G.route.opening?'Set out':'Leave')+'</span><span class="tbn">'+(G.route.opening?'onto the road':'back to the road')+'</span></span></button></div>'
      :'<button class="btn gold tob" id="btnGo">'+ic(G.nextOpp?G.nextOpp.p:'m-qareen','bi vsp')+'<span class="tbt"><span class="tbl">To Battle</span><span class="tbn">'+esc(G.nextOpp?shortName(G.nextOpp.n):'the Departed')+'</span></span></button></div>');
   if(G.dockV){
     h+='<div class="vault" id="vlt">'+G.vault.map(function(it,i){
@@ -426,7 +426,7 @@ function renderDraft(){
   const bt=$('btnTier');if(bt)bt.onclick=tierUp;
   const br=$('btnRe');if(br)br.onclick=reroll;
   const bf=$('btnFrz');if(bf)bf.onclick=toggleFreeze;
-  const bg=$('btnGo');if(bg)bg.onclick=(G.mode==='route')?function(){dispatchRoute({type:'leaveMarket'});}:toBattle;
+  const bg=$('btnGo');if(bg)bg.onclick=(G.mode==='route')?(G.route.opening?leaveOpeningMarket:function(){dispatchRoute({type:'leaveMarket'});}):toBattle;
   renderSheet();
   if(G.mode==='route')snapshotRoute();
 }
@@ -969,7 +969,7 @@ function snapshotRoute(){
       board:G.board.map(item),vault:G.vault.map(item),
       shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null};}),
       trinkets:G.trinkets.map(function(t){return t.id;})},
-    market:R.market?{nodeId:R.market.nodeId,rollIndex:R.market.rollIndex}:null};
+    market:R.market?{nodeId:R.market.nodeId,rollIndex:R.market.rollIndex}:null,opening:!!R.opening};
   try{s.setItem(ROUTE_KEY,JSON.stringify(d));}catch(e){}
 }
 function loadRoute(){
@@ -1006,7 +1006,7 @@ function openRouteReveal(){
    +'<p>Featured wares: <b style="color:var(--brass)">'+CATN[G.tags[0]]+'</b> and <b style="color:var(--brass)">'+CATN[G.tags[1]]+'</b></p>'
    +'<p style="font-size:11px">Four districts. Forty Resolve. Reach the Grand Vizier.</p>'
    +'<button class="btn gold" id="rvGo">Enter the Bazaar</button></div>');
-  o.querySelector('#rvGo').onclick=function(){ovClose(o);G.phase='routeMap';checkpointActiveRun();renderAll();};
+  o.querySelector('#rvGo').onclick=function(){ovClose(o);enterOpeningMarket();};
 }
 
 /* ---- the single dispatch: only place that calls the controller ---- */
@@ -1062,6 +1062,20 @@ function routeReward(e,cont){
     cont:function(){G.route.combat=null;checkpointActiveRun();cont();}});
 }
 
+/* ---- the opening stall: spend the six starting gold before the first forced
+   Monster Door, so every hero sets out with a board. Not a route node; leaving
+   it just enters District I. ---- */
+function enterOpeningMarket(){
+  G.route.opening=true;G.route.market={nodeId:'__opening__',rollIndex:0};
+  G.rng=mulberry(fightSeed(G.seed,'__opening__',0));
+  G.frozen=false;G.shopSel=null;G.sel=null;G.vsel=null;G.swapV=null;G.dockV=false;
+  rollShop();
+  G.phase='draft';checkpointActiveRun();renderAll();
+}
+function leaveOpeningMarket(){
+  G.route.opening=false;G.route.market=null;
+  G.phase='routeMap';checkpointActiveRun();renderAll();
+}
 /* ---- market node: reuse the draft, deterministic keyed stock ---- */
 function enterRouteMarket(nodeId){
   G.route.market={nodeId:nodeId,rollIndex:0};
@@ -1190,7 +1204,7 @@ function restoreRoute(d){
      T:null,hero:d.run.hero||null,gold:d.run.gold,tier:d.run.tier,tierCost:d.run.tierCost,relicIncome:d.run.relicIncome,frozen:!!d.run.frozen,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:d.run.fightN||0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
-     route:{map:map,state:d.routeState,selectedId:null,market:d.market||null,combat:null}};
+     route:{map:map,state:d.routeState,selectedId:null,market:d.market||null,combat:null,opening:!!d.opening}};
   const H=heroOf();if(H)G.you.p=H.g;
   computeT();
   resumeRoutePhase();
@@ -1198,6 +1212,7 @@ function restoreRoute(d){
 }
 function resumeRoutePhase(){
   const st=routeState();
+  if(G.route.opening){G.phase='draft';renderAll();return;}   /* the opening stall */
   if(st.phase==='encounter'&&st.pendingId){
     const n=nodeOf(routeMap(),st.pendingId);
     startRouteFight({nodeId:n.id,monId:n.monId,threat:n.threat,gilded:n.gilded,boss:n.type==='boss',fightSeed:st.fightSeed});
