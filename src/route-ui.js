@@ -56,7 +56,7 @@ function chooseRewardGild(o,iid){
   if(!res.ok){return;}   /* a stale click on a vanished target is rejected, not misapplied */
   toast('Gilded: '+RNAME[res.ware.rarity]+' '+ITEMS[res.ware.id].n);
   B.fuseStamp(G.board);B.fuseWithVault();
-  ovClose(o);B.checkpointActiveRun();B.presentAfterReward();
+  ovClose(o);B.criticalSave(B.presentAfterReward);
 }
 /* unique presenter: renders the serialized uniqueId options */
 function openRewardUnique(pc){
@@ -73,7 +73,7 @@ function chooseRewardUnique(o,id){
   const res=runtimeChooseUnique(G.run,id);
   if(!res.ok){return;}
   toast(ITEMS[id].n+' waits in the market, free.');
-  ovClose(o);B.checkpointActiveRun();B.presentAfterReward();
+  ovClose(o);B.criticalSave(B.presentAfterReward);
 }
 
 /* ============ THE LONG BAZAAR ROUTE ============ */

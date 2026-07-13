@@ -734,10 +734,28 @@ function settleRouteReward(e){
   G.route.combat=null;
   /* write-ahead: economy + receipt + pendingChoice saved before any overlay. If
      the save fails the reward stays correct (a later crash re-settles from the
-     clean pre-reward snapshot, and the receipt keeps it exactly once), so we warn
-     rather than strand the player. A blocking retry UI is owed as R5 polish. */
-  if(!checkpointActiveRun()){toast('Heads up: progress could not be saved.');}
-  presentAfterReward();
+     clean pre-reward snapshot, and the receipt keeps it exactly once), so we block
+     on an explicit retry rather than a missable toast, then present. */
+  criticalSave(presentAfterReward);
+}
+/* a checkpoint that must land because the reward economy just changed. On success
+   proceed at once. On failure (storage full or blocked) the receipt still keeps
+   the reward exactly once, so continuing is safe, but a crash now would rewind to
+   the last good save, so hold a blocking overlay: retry the write or accept it. */
+function criticalSave(onProceed){
+  if(checkpointActiveRun()){onProceed();return;}
+  const o=ovOpen('<div class="card"><div class="rays red"></div>'
+   +'<div class="kick">Progress Not Saved</div>'+ic('g-lantern','bigic')
+   +'<h2 class="big" style="font-size:22px">The Lantern Gutters</h2>'
+   +'<p>Your run could not be saved. Storage may be full or blocked. Free some space, then retry. Your rewards are safe either way.</p>'
+   +'<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
+   +'<button class="btn gold" id="csRetry">Retry Save</button>'
+   +'<button class="btn" id="csGo">Continue Anyway</button></div></div>');
+  o.querySelector('#csRetry').onclick=function(){
+    if(checkpointActiveRun()){ovClose(o);onProceed();}
+    else{toast('Still could not save. Free space and retry.');}
+  };
+  o.querySelector('#csGo').onclick=function(){ovClose(o);onProceed();};
 }
 /* present the screen a reward transaction leaves us on: an owed choice reopens,
    a finished run ends (so a final-boss choice resolves before the win screen),
@@ -1074,7 +1092,7 @@ export function boot(){
      render, persistence, economy, run lifecycle). route-ui never imports ui.js;
      this is the one-way bridge. All targets are hoisted function declarations. */
   wireRouteUI({dispatchRoute:dispatchRoute,renderAll:renderAll,checkpointActiveRun:checkpointActiveRun,
-    presentAfterReward:presentAfterReward,fuseStamp:fuseStamp,fuseWithVault:fuseWithVault,
+    criticalSave:criticalSave,presentAfterReward:presentAfterReward,fuseStamp:fuseStamp,fuseWithVault:fuseWithVault,
     mkOffer:mkOffer,heroOf:heroOf,newRoute:newRoute,restoreRoute:restoreRoute,clearRoute:clearRoute});
   initDebug();
   const mb=$('muteBtn');
