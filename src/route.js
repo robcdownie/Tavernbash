@@ -45,6 +45,29 @@ export function frontier(state,map){
   }
   return last.next.slice();
 }
+/* classify the edges of one district for the map's connector layer: a done edge
+   is a consecutive pair already walked in the path, an avail edge leaves the node
+   the player currently stands on, everything else is future */
+export function classifyEdges(state,district){
+  const path=state.path;
+  const done=new Set();
+  for(let i=0;i+1<path.length;i++)done.add(path[i]+'>'+path[i+1]);
+  const last=path.length?path[path.length-1]:null;
+  const inDist=new Set();
+  for(const col of district.columns)for(const n of col)inDist.add(n.id);
+  inDist.add(district.boss.id);
+  const edges=[];
+  const nodes=[];
+  for(const col of district.columns)for(const n of col)nodes.push(n);
+  for(const a of nodes){
+    for(const to of (a.next||[])){
+      if(!inDist.has(to))continue;
+      const key=a.id+'>'+to;
+      edges.push({from:a.id,to:to,state:done.has(key)?'done':(a.id===last?'avail':'future')});
+    }
+  }
+  return edges;
+}
 export function currentDistrict(state,map){
   if(state.pendingId)return nodeOf(map,state.pendingId).district-1;
   if(state.path.length===0)return 0;

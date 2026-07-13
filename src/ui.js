@@ -4,7 +4,7 @@ import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,BANDN,BAN
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,usedCells,
         playerFightItems,monsterSide,genRival,createFight,runHeadless,boardRegen} from './engine.js';
 import {genMap,MAP_VERSION,isCombat} from './map.js';
-import {initRoute,transition as routeTransition,frontier,currentDistrict,visitedSet,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD} from './route.js';
+import {initRoute,transition as routeTransition,frontier,currentDistrict,visitedSet,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,classifyEdges} from './route.js';
 import {ic} from './art.js';
 import {effChips,wareDetailHTML} from './cards.js';
 import {ART} from './art-manifest.js';
@@ -955,8 +955,18 @@ function settleMonsterReward(o){
 /* ============ THE LONG BAZAAR ROUTE ============ */
 function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
 const NODELABEL={market:'Market',rest:'Rest',treasure:'Treasure',shrine:'Quqnus Shrine',negotiation:'Merchant'};
-const NODEGLYPH={market:'g-coin',rest:'g-heart',treasure:'g-gem',shrine:'g-lantern',negotiation:'g-ledger'};
-function nodeGlyph(n){return isCombat(n)?MONSTERS[n.monId].glyph:(NODEGLYPH[n.type]||'g-gem');}
+const NODEGLYPH={market:'g-route_market',rest:'g-route_rest',treasure:'g-route_treasure',shrine:'g-route_shrine',negotiation:'g-route_negotiation'};
+function nodeGlyph(n){return isCombat(n)?MONSTERS[n.monId].glyph:(NODEGLYPH[n.type]||'g-route_treasure');}
+const DBG={1:'back_alleys',2:'souk',3:'palace',4:'dragon_gate'};
+/* the % anchors for the positioned route plot (Codex geometry) */
+function nodeAnchor(n){
+  const d4=n.district===4;
+  let x;
+  if(n.type==='boss')x=d4?88:91;
+  else if(d4)x=n.col===0?14:50;
+  else x=[7,23,39,55,71][n.col];
+  return {x:x,y:[17,50,83][n.lane]};
+}
 function nodeLabel(n){return isCombat(n)?MONSTERS[n.monId].n:(NODELABEL[n.type]||n.type);}
 function routeMap(){return G.route.map;}
 function routeState(){return G.route.state;}
@@ -1194,7 +1204,7 @@ function routeEventCard(e){
   completeEvent(t);
 }
 
-/* ---- the plain map screen (production version and connectors land in 0.67) ---- */
+/* ---- the production map screen: a positioned braid over a painted district ---- */
 function routeBountyText(n){
   const b=MONSTERS[n.monId].bounty||{};const parts=[];
   if(b.gold)parts.push((b.gold*(n.gilded?2:1))+' gold');
@@ -1205,51 +1215,91 @@ function routeBountyText(n){
   if(b.pickUnique)parts.push('pick any unique');
   return parts.length?parts.join(', '):'coin';
 }
+/* preview pane: header, scrollable body, pinned action footer */
 function routeNodePreviewHTML(n){
   let acts;
   if(n.type==='monster')acts='<button class="btn gold" data-a="challenge">Challenge</button>'
-    +'<button class="btn" data-a="slip">Slip Past ('+DISTRICTS[n.district-1].slip+' Resolve)</button>';
-  else if(n.type==='elite'||n.type==='boss')acts='<button class="btn gold" data-a="challenge">Challenge</button>';
-  else if(n.type==='market')acts='<button class="btn gold" data-a="enter">Enter Market</button>';
+    +'<button class="btn" data-a="slip">Slip Past &middot; '+DISTRICTS[n.district-1].slip+' Resolve</button>';
+  else if(n.type==='elite')acts='<button class="btn gold" data-a="challenge">Challenge the Elite</button>';
+  else if(n.type==='boss')acts='<button class="btn gold" data-a="challenge">Face the Boss</button>';
+  else if(n.type==='market')acts='<button class="btn gold" data-a="enter">Enter the Market</button>';
   else acts='<button class="btn gold" data-a="enter">Enter</button>';
   let info;
-  if(isCombat(n))info='<div class="rmpi">Fight health scales to Threat '+n.threat+'.</div>'
-    +'<div class="rmpi">Bounty: '+esc(routeBountyText(n))+'</div>'
-    +(n.gilded?'<div class="rmpi gild">Gilded: tougher, double gold.</div>':'');
+  if(isCombat(n))info='<div class="rmpi">Fresh fight health, scaled to Threat '+n.threat+'.</div>'
+    +'<div class="rmpi"><b>Bounty:</b> '+esc(routeBountyText(n))+'</div>'
+    +(n.gilded?'<div class="rmpi gild">Gilded: tougher board, double gold.</div>':'')
+    +(n.type==='boss'?'<div class="rmpi">The district boss. No way past but through.</div>':'');
   else if(n.type==='market')info='<div class="rmpi">Buy, sell, reroll, freeze, tier, fuse, and vault.</div>';
   else info='<div class="rmpi">'+esc(routeEventDesc(n.type))+'</div>';
-  return '<div class="rmpname">'+ic(nodeGlyph(n),'rmpg')+esc(nodeLabel(n))+'</div>'
-    +'<div class="rmptype">'+(n.type==='boss'?'District Boss':cap(n.type))+' &middot; Threat '+n.threat+'</div>'
-    +info+'<div class="rmpacts">'+acts+'</div>';
+  const kind=n.type==='boss'?'District Boss':cap(n.type);
+  return '<div class="rmphead"><span class="rmpg">'+ic(nodeGlyph(n),'rmpgi')+'</span>'
+    +'<div><div class="rmpname">'+esc(nodeLabel(n))+'</div><div class="rmptype">'+kind+' &middot; Threat '+n.threat+'</div></div></div>'
+    +'<div class="rmpbody">'+info+'</div>'
+    +'<div class="rmpfoot">'+acts+'</div>';
 }
 function renderRouteMap(){
   const map=routeMap(),st=routeState();
   const di=currentDistrict(st,map),D=map.districts[di];
   const fr=frontier(st,map),frS=new Set(fr),vis=visitedSet(st),sel=G.route.selectedId;
+  const beaten=st.path.filter(function(id){return /boss$/.test(id);}).length;
   const nodeBtn=function(n){
     const state=vis.has(n.id)?'done':(frS.has(n.id)?'reach':'future');
-    return '<button class="rmnode t-'+n.type+' '+state+(n.id===sel?' sel':'')+(n.gilded?' gild':'')+'"'
-      +(state==='reach'?'':' disabled')+' data-n="'+n.id+'">'
-      +ic(nodeGlyph(n),'rmg')+'<span class="rmn">'+esc(nodeLabel(n))+'</span>'
-      +'<span class="rmt">T'+n.threat+(n.gilded?' *':'')+'</span></button>';
+    const a=nodeAnchor(n);
+    return '<button class="rmnode t-'+n.type+' '+state+(n.id===sel?' sel':'')+(n.gilded?' gild':'')+(n.type==='boss'?' boss':'')+'"'
+      +(state==='reach'?'':' disabled')+' data-n="'+n.id+'" style="left:'+a.x+'%;top:'+a.y+'%" aria-label="'+esc(nodeLabel(n))+', Threat '+n.threat+'">'
+      +'<span class="rmmed">'+ic(nodeGlyph(n),'rmg')+'</span>'
+      +'<span class="rmn">'+esc(nodeLabel(n))+'</span>'
+      +(n.gilded?'<span class="rmstar">'+ic('g-gem','','width:11px;height:11px')+'</span>':'')+'</button>';
   };
-  let cols='';
-  D.columns.forEach(function(col){cols+='<div class="rmcol">'+col.map(nodeBtn).join('')+'</div>';});
-  cols+='<div class="rmcol">'+nodeBtn(D.boss)+'</div>';
-  const prev=sel?routeNodePreviewHTML(map.nodes[sel]):'<div class="rmhint">Tap a lit node to preview it.</div>';
+  let nodes='';
+  D.columns.forEach(function(col){col.forEach(function(n){nodes+=nodeBtn(n);});});
+  nodes+=nodeBtn(D.boss);
+  let pips='';for(let i=0;i<4;i++){pips+='<span class="rmpip'+(i<beaten?' on':'')+(i===di?' cur':'')+'"></span>';}
+  const prev=sel?routeNodePreviewHTML(map.nodes[sel]):'<div class="rmhint">Tap a lit node to scout it.</div>';
   $('main').className='routemap';
-  $('main').innerHTML='<div class="rmwrap"><div class="rmboard">'
-    +'<div class="rmdname">'+esc(D.name)+'<span class="rmres">Resolve '+Math.max(0,st.resolve)+'</span></div>'
-    +'<div class="rmcols">'+cols+'</div></div>'
+  $('main').innerHTML='<div class="rmwrap">'
+    +'<div class="rmboard" style="background-image:linear-gradient(180deg,rgba(20,14,8,.28),rgba(14,9,5,.62)),url(art/bg/bg_route_'+DBG[D.id]+'.png)">'
+    +'<div class="rmhdr"><span class="rmdn">'+esc(D.name)+'</span><span class="rmpips">'+pips+'</span>'
+    +'<span class="rmdest">'+esc(MONSTERS[D.boss.monId].n)+' waits at the gate</span></div>'
+    +'<div class="rmplot" id="rmplot"><svg class="rmedges" id="rmedges" preserveAspectRatio="none" aria-hidden="true"></svg>'+nodes+'</div>'
+    +'</div>'
     +'<div class="rmprev" id="rmprev">'+prev+'</div></div>';
   document.querySelectorAll('.rmnode:not([disabled])').forEach(function(bn){
     bn.onclick=function(){G.route.selectedId=bn.dataset.n;renderRouteMap();};});
   const p=$('rmprev');
   if(p&&sel){const n=map.nodes[sel];
     p.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){
-      const a=b.dataset.a;G.route.selectedId=null;
-      dispatchRoute({type:'commit',nodeId:n.id,choice:a==='slip'?'slip':'challenge'});
+      const act=b.dataset.a;G.route.selectedId=null;
+      dispatchRoute({type:'commit',nodeId:n.id,choice:act==='slip'?'slip':'challenge'});
     };});}
+  drawConnectors();
+  ensureRouteObserver();
+}
+/* draw the braid connectors from the real node centers, so the curves track the
+   positioned plot across safe areas and resizes; the layer never takes input */
+function drawConnectors(){
+  if(G.mode!=='route'||G.phase!=='routeMap')return;
+  const plot=$('rmplot'),svg=$('rmedges');if(!plot||!svg)return;
+  const map=routeMap(),st=routeState();
+  const D=map.districts[currentDistrict(st,map)];
+  const pr=plot.getBoundingClientRect();if(!pr.width)return;
+  svg.setAttribute('viewBox','0 0 '+pr.width+' '+pr.height);
+  const center=function(id){const el=plot.querySelector('[data-n="'+id+'"]');if(!el)return null;const r=el.getBoundingClientRect();return {x:r.left-pr.left+r.width/2,y:r.top-pr.top+r.height/2};};
+  let out='';
+  classifyEdges(st,D).forEach(function(e){
+    const a=center(e.from),b=center(e.to);if(!a||!b)return;
+    const mx=(a.x+b.x)/2;
+    const d='M'+a.x+' '+a.y+' C'+mx+' '+a.y+' '+mx+' '+b.y+' '+b.x+' '+b.y;
+    out+='<path d="'+d+'" class="edge under"/><path d="'+d+'" class="edge '+e.state+'"/>';
+  });
+  svg.innerHTML=out;
+}
+let _rmObs=null;
+function ensureRouteObserver(){
+  if(_rmObs||typeof ResizeObserver==='undefined')return;
+  const plot=$('rmplot');if(!plot)return;
+  _rmObs=new ResizeObserver(function(){drawConnectors();});
+  _rmObs.observe(plot);
 }
 function renderGateCamp(){
   const st=routeState();const node=nodeOf(routeMap(),st.pendingId);
@@ -1935,18 +1985,21 @@ function renderCoach(){
    and Tutorial. Falls straight through to the lobby when the painted
    art has not landed (tests, art-less checkouts). */
 function openIntro(){
-  if(!ART['bg-intro']){newLobby();return;}
+  /* The Long Bazaar is now the default game; New Game walks the route. The
+     classic 8-merchant lobby stays reachable as a secondary link until 0.68
+     retires it. Tutorial still teaches the shared market and combat basics. */
+  if(!ART['bg-intro']){newRoute();return;}
   const o=document.createElement('div');o.id='intro';
   o.innerHTML='<div class="ititle">Tavern Bash</div>'
    +'<div class="ibtns">'
    +'<button class="stonebtn" id="inNew">New Game</button>'
    +'<button class="stonebtn" id="inTut">Tutorial</button>'
-   +'<button class="introroute" id="inRoute">The Long Bazaar (beta)</button>'
+   +'<button class="introroute" id="inClassic">Classic Lobby</button>'
   +'</div>';
   document.body.appendChild(o);
-  o.querySelector('#inNew').onclick=function(){o.remove();newLobby();};
+  o.querySelector('#inNew').onclick=function(){o.remove();newRoute();};
   o.querySelector('#inTut').onclick=function(){o.remove();newLobby();G.tut='hero';renderCoach();};
-  o.querySelector('#inRoute').onclick=function(){o.remove();newRoute();};
+  o.querySelector('#inClassic').onclick=function(){o.remove();newLobby();};
 }
 /* the debug strip: ?debug in the URL (or bb-debug=1 in storage) pins a
    tiny readout to the corner: build tag, PWA vs browser tab, viewport,

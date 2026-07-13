@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {genMap} from '../src/map.js';
-import {initRoute,transition,frontier,fightSeed,lossDamage,validRoute,BASE_GOLD,currentDistrict} from '../src/route.js';
+import {initRoute,transition,frontier,fightSeed,lossDamage,validRoute,BASE_GOLD,currentDistrict,classifyEdges} from '../src/route.js';
 import {MONCHIP,DISTRICTS} from '../src/data.js';
 
 const SEEDS=[];
@@ -144,6 +144,20 @@ test('committing a node that is not on the frontier is refused',()=>{
   const st=initRoute(s);
   const notReachable=map.districts[0].boss.id;      /* boss is not a column-1 choice */
   assert.throws(()=>transition(st,map,{type:'commit',nodeId:notReachable,choice:'challenge'}));
+});
+
+test('edge classifier marks walked pairs done, current exits avail, rest future',()=>{
+  const map=genMap(SEEDS[0]);
+  const D=map.districts[0];
+  const a=D.columns[0][0];        /* an entrance node */
+  const b=a.next[0];              /* one of its successors */
+  /* classifyEdges reads only state.path, so drive it with synthetic paths */
+  assert.ok(classifyEdges({path:[]},D).every(e=>e.state==='future'),'fresh district is all future');
+  const atA=classifyEdges({path:[a.id]},D).filter(e=>e.from===a.id);
+  assert.ok(atA.length>0&&atA.every(e=>e.state==='avail'),'exits of the current node are avail');
+  const walked=classifyEdges({path:[a.id,b]},D);
+  const pair=walked.find(e=>e.from===a.id&&e.to===b);
+  assert.ok(pair&&pair.state==='done','the walked pair is done');
 });
 
 test('the current district advances only after each boss falls',()=>{
