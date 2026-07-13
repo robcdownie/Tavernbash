@@ -26,7 +26,9 @@ test('every painted art file maps to a glyph id the game actually uses', () => {
   for (const id of ['frame-bronze','frame-silver','frame-gold','frame-diamond','board-wood','bg-market','bg-intro','bg-intro-wide','bg-battle','g-skull',
                     'music-market','music-battle','music-title','music-boss',
                     'music-dawnsting','music-fanfarewin','music-forgesting','music-lament','music-windstorm',
-                    'g-coin','g-heart','g-gem','g-crown','g-door','g-lantern','g-phoenix','g-medallion','g-btn_stone','g-door_monster','g-door_safe']) known.add(id);
+                    'g-coin','g-heart','g-gem','g-crown','g-door','g-lantern','g-phoenix','g-medallion','g-btn_stone','g-door_monster','g-door_safe',
+                    'g-route_market','g-route_rest','g-route_treasure','g-route_shrine','g-route_negotiation',
+                    'bg-route-back-alleys','bg-route-souk','bg-route-palace','bg-route-dragon-gate']) known.add(id);
   const orphans = Object.keys(scanArt(root)).filter(id => !known.has(id));
   assert.deepEqual(orphans, [], 'art files whose names match no item id, monster glyph, or portrait');
 });
