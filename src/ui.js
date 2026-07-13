@@ -984,7 +984,11 @@ function snapshotRoute(){
       board:G.board.map(item),vault:G.vault.map(item),
       shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null};}),
       trinkets:G.trinkets.map(function(t){return t.id;})},
-    market:R.market?{nodeId:R.market.nodeId,rollIndex:R.market.rollIndex}:null,opening:!!R.opening};
+    market:R.market?{nodeId:R.market.nodeId,rollIndex:R.market.rollIndex}:null,opening:!!R.opening,
+    /* the fight's settlement context, so a reload during a fight or victory
+       recap still pays the right bounty (Debt Collector entered gold, Pilfer
+       Monkey drain) rather than seeing zero */
+    combat:R.combat?{nodeId:R.combat.nodeId,enteredGold:R.combat.enteredGold||0,threat:R.combat.threat||0,pocketed:R.combat.pocketed||0}:null};
   try{s.setItem(ROUTE_KEY,JSON.stringify(d));}catch(e){}
 }
 function loadRoute(){
@@ -1001,7 +1005,10 @@ function checkpointActiveRun(){if(G&&G.mode==='route')snapshotRoute();else snaps
 function newRoute(){
   const seed=((Date.now()>>>0)^0x9e3779b9)>>>0;
   const rng=mulberry(seed);
-  const anom=ANOMALIES[Math.floor(rng()*ANOMALIES.length)];
+  /* Bull Market only scales income, which never pays in route; skip it until
+     the omen rework gives it a route-live benefit */
+  const anomPool=ANOMALIES.filter(function(a){return a.id!=='bull';});
+  const anom=anomPool[Math.floor(rng()*anomPool.length)];
   const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
   G={mode:'route',seed:seed,rng:rng,round:0,anom:anom,A:Object.assign({},ANONE,anom.m),tags:[cats[0],cats[1]],
      board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:6,tier:1,tierCost:TIERCOST[2],relicIncome:0,frozen:false,
@@ -1044,7 +1051,7 @@ function runEffects(effects,i,ctx){
     else if(e.type==='slip'){toast('You slip past. Lost '+e.cost+' Resolve.');checkpointActiveRun();}
     else if(e.type==='market'){enterRouteMarket(e.nodeId);return;}
     else if(e.type==='marketDone'){G.route.market=null;G.phase='routeMap';checkpointActiveRun();}
-    else if(e.type==='event'){routeEventCard(e);return;}
+    else if(e.type==='event'){checkpointActiveRun();routeEventCard(e);return;}
     else if(e.type==='eventDone'){G.phase='routeMap';checkpointActiveRun();}
     else if(e.type==='gateCamp'){G.phase='gateCamp';checkpointActiveRun();renderAll();return;}
     else if(e.type==='end'){routeEnd(e.cause);return;}
@@ -1056,7 +1063,6 @@ function runEffects(effects,i,ctx){
 }
 
 /* ---- combat adapter: reuse startFight, feed it a route-built foe ---- */
-function survTier(F){let s=0;for(const it of F.b.items){if(it.alive){const d=ITEMS[it.id];s+=(d?d.tier:1);}}return s;}
 function startRouteFight(e){
   const M=MONSTERS[e.monId];
   const php=fightHP(e.threat,G.T.hpFlat,G.A);
@@ -1068,7 +1074,9 @@ function startRouteFight(e){
 function endRouteFight(F,e){
   if(F.lotPaid){G.gold+=F.lotPaid;toast('The Auctioneer paid you '+F.lotPaid+' gold.');}
   if(G.route.combat)G.route.combat.pocketed=F.pocketed||0;
-  dispatchRoute({type:'fightResult',winner:F.winner,survTier:survTier(F)});
+  /* the enemy's surviving item tiers, from the engine (fight items carry .tier,
+     not .id, so the old ITEMS[it.id] lookup counted every survivor as tier 1) */
+  dispatchRoute({type:'fightResult',winner:F.winner,survTier:F.survTiers('b')});
 }
 function routeReward(e,cont){
   const c=G.route.combat||{};
@@ -1115,24 +1123,29 @@ function treasureDesc(k){
   return k==='gold'?'Six gold, no strings.':k==='ware'?'A free ware waits at the next market.'
     :k==='enchant'?'Etch a legal enchant onto a ware.':'Raise one ware to the next rarity.';
 }
-function grantFreeWare(){
-  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique;});
+/* event rolls draw from a stream keyed to the node and choice, not the mutable
+   G.rng, so a reload reproduces the same reward instead of inventing a new one */
+function eventRng(nodeId,tag){return mulberry(fightSeed(G.seed,nodeId,tag));}
+function grantFreeWare(rng){
+  rng=rng||G.rng;
+  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique&&!ITEMS[id].inc;});
   if(!ids.length){G.gold+=4;toast('No ware fits. 4 gold instead.');return;}
-  const id=ids[Math.floor(G.rng()*ids.length)];
+  const id=ids[Math.floor(rng()*ids.length)];
   G.shop.push({id:id,free:true,bought:false});
   toast('A free '+ITEMS[id].n+' waits at the next market.');
 }
-function grantEnchantKit(){
+function grantEnchantKit(rng){
+  rng=rng||G.rng;
   for(let i=0;i<G.board.length;i++){
     const it=G.board[i];if(it.ench)continue;const d=ITEMS[it.id];
     const opts=Object.keys(ENCH).filter(function(e){const req=ENCH[e].need;return !req||(req==='dmg'?!!(d.fx&&d.fx.dmg):d.cd>0);});
-    if(opts.length){const e=opts[Math.floor(G.rng()*opts.length)];it.ench=e;toast(ENCH[e].n+' etched onto '+d.n);return;}
+    if(opts.length){const e=opts[Math.floor(rng()*opts.length)];it.ench=e;toast(ENCH[e].n+' etched onto '+d.n);return;}
   }
   G.gold+=4;toast('No ware to enchant. 4 gold instead.');
 }
-function applyTreasure(kind,cont){
-  if(kind==='ware'){grantFreeWare();cont();}
-  else if(kind==='enchant'){grantEnchantKit();cont();}
+function applyTreasure(kind,cont,nodeId){
+  if(kind==='ware'){grantFreeWare(eventRng(nodeId,'tware'));cont();}
+  else if(kind==='enchant'){grantEnchantKit(eventRng(nodeId,'tench'));cont();}
   else if(kind==='silver'){openGild('Raise one ware a rarity step.',cont);}
   else{G.gold+=6;toast('Six gold.');cont();}
 }
@@ -1145,7 +1158,7 @@ function routeTreasureCard(node){
     }).join('')+'</div></div>');
   o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){
     const kind=opts[+p.dataset.t].kind;ovClose(o);
-    applyTreasure(kind,function(){dispatchRoute({type:'resolveEvent',outcome:'treasure'});});
+    applyTreasure(kind,function(){dispatchRoute({type:'resolveEvent',outcome:'treasure'});},node.id);
   };});
 }
 /* a generic pick-one card for route events; each choice runs its own effect and
@@ -1173,7 +1186,7 @@ function completeEvent(t,delta){dispatchRoute({type:'resolveEvent',resolveDelta:
 function routeRestCard(node){
   choiceCard('Rest',nodeLabel(node),'Choose one.',[
     {label:'Mend',desc:'Restore 8 Resolve.',onPick:function(){toast('You make camp. +8 Resolve.');completeEvent('mend',8);}},
-    {label:'Temper',desc:'Etch a legal enchant onto a ware.',onPick:function(){grantEnchantKit();completeEvent('temper');}},
+    {label:'Temper',desc:'Etch a legal enchant onto a ware.',onPick:function(){grantEnchantKit(eventRng(node.id,'temper'));completeEvent('temper');}},
     {label:'Refit',desc:'Next tier costs 4 less, plus a free reroll next market.',onPick:function(){G.tierCost=Math.max(1,G.tierCost-4);G.freeReroll=true;toast('Refit: a cheaper tier and a free reroll.');completeEvent('refit');}}
   ]);
 }
@@ -1193,7 +1206,7 @@ function routeNegotiationCard(node){
   const per=PERSONAS[node.persona]||PERSONAS[0];
   choiceCard(per.n,'A Merchant Bargains','Accept one offer, or walk away.',[
     {label:'Quick Sale',desc:'Take 6 gold on the spot.',onPick:function(){G.gold+=6;toast('+6 gold.');completeEvent('nego');}},
-    {label:'Fresh Stock',desc:'Pay 3 gold for a free ware at the next market.',onPick:function(){if(G.gold>=3){G.gold-=3;grantFreeWare();}else{toast('Not enough gold for that.');}completeEvent('nego');}},
+    {label:'Fresh Stock',desc:'Pay 3 gold for a free ware at the next market.',onPick:function(){if(G.gold>=3){G.gold-=3;grantFreeWare(eventRng(node.id,'fresh'));}else{toast('Not enough gold for that.');}completeEvent('nego');}},
     {label:'Walk Away',desc:'Keep your coin and your wares.',onPick:function(){completeEvent('nego');}}
   ]);
 }
@@ -1348,7 +1361,7 @@ function restoreRoute(d){
      T:null,hero:d.run.hero||null,gold:d.run.gold,tier:d.run.tier,tierCost:d.run.tierCost,relicIncome:d.run.relicIncome,frozen:!!d.run.frozen,freeReroll:!!d.run.freeReroll,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:d.run.fightN||0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
-     route:{map:map,state:d.routeState,selectedId:null,market:d.market||null,combat:null,opening:!!d.opening}};
+     route:{map:map,state:d.routeState,selectedId:null,market:d.market||null,combat:d.combat||null,opening:!!d.opening}};
   const H=heroOf();if(H)G.you.p=H.g;
   computeT();
   resumeRoutePhase();
@@ -1561,7 +1574,9 @@ function rollShop(){
   const frozenKeep=(G.frozen&&G.shop)?G.shop.filter(function(w){return !w.free&&!w.bought;}):[];
   G.frozen=false;
   const n=Math.max(0,G.A.shopN-frozenKeep.length);
-  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique;});
+  /* income wares are dead in route mode (income() never runs), so keep them out
+     of route shops until the approved rework gives them route semantics */
+  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique&&(G.mode!=='route'||!ITEMS[id].inc);});
   const hTag=heroOf()?heroOf().tag:null;
   const out=[];
   for(let k=0;k<n;k++){
@@ -1939,15 +1954,18 @@ function openHeroPick(cont){
   /* selected-hero layout: a portrait rail up top, one large hero with its
      rule below, and a Confirm. Scales to eight heroes where the old grid
      clipped at four on a short landscape screen. */
-  let sel=HEROES[0].id;
+  /* the Moneylender's whole identity is income, which is dead in route; hold it
+     out of the route picker until the hero rework */
+  const pool=(G&&G.mode==='route')?HEROES.filter(function(h){return h.id!=='lender';}):HEROES;
+  let sel=pool[0].id;
   const o=ovOpen('<div class="card heropick"><div class="rays"></div>'
    +'<div class="kick gold">Choose Your Merchant</div>'
    +'<div class="herorail" id="herorail"></div>'
    +'<div class="herodetail" id="herodetail"></div>'
    +'<button class="btn gold" id="heroGo" style="width:100%;margin-top:11px">Take the Stall</button></div>');
   function draw(){
-    const h=HEROES.filter(function(x){return x.id===sel;})[0];
-    o.querySelector('#herorail').innerHTML=HEROES.map(function(x){
+    const h=pool.filter(function(x){return x.id===sel;})[0];
+    o.querySelector('#herorail').innerHTML=pool.map(function(x){
       return '<button class="herochip'+(x.id===sel?' on':'')+'" data-h="'+x.id+'" aria-label="'+esc(x.n)+'" style="--cat:'+CATC[x.tag]+'">'+ic(x.g,'hpr')+'</button>';
     }).join('');
     o.querySelector('#herodetail').innerHTML=

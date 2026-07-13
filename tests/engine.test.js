@@ -59,6 +59,18 @@ test('Karkadann kills an undercooked one-dagger board',()=>{
   assert.equal(F.winner,'b','one dagger should not survive the Gore Horn');
 });
 
+test('survTiers sums surviving enemy item tiers, not a flat count',()=>{
+  /* the route loss-damage formula reads F.survTiers; fight items carry .tier and
+     no .id, so an ITEMS[it.id] lookup would count every survivor as tier 1 */
+  const board=['dagger','mace'].map(id=>makeItem(id,0));      /* tiers 1 and 2 */
+  const items=playerFightItems(board,{},ANONE,1);
+  const F=createFight({a:{nm:'x',hp:300,items:[],lifesteal:0},
+                       b:{nm:'y',hp:300,items:items,lifesteal:0},stormAt:999999,seed:1,playerIs:null});
+  const expected=ITEMS.dagger.tier+ITEMS.mace.tier;           /* 1 + 2 = 3 */
+  assert.equal(F.survTiers('b'),expected,'tier-weighted sum');
+  assert.notEqual(F.survTiers('b'),items.length,'not a flat item count');
+});
+
 test('regen: knits fight health each second, never past the cap, never from the grave',()=>{
   const F=createFight({a:{nm:'x',hp:60,items:[],lifesteal:0},
                        b:{nm:'r',hp:60,items:[],lifesteal:0,regen:4},
