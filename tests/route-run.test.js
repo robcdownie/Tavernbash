@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {SCHEMA_VERSION, newRun, advance, serializeRun, reviveRun, newEconomy, bindEconomy} from '../src/route-run.js';
+import {SCHEMA_VERSION, newRun, advance, serializeRun, reviveRun, newEconomy, bindEconomy, allocId} from '../src/route-run.js';
 import {genMap} from '../src/map.js';
 import {initRoute, transition, validRoute} from '../src/route.js';
 
@@ -112,6 +112,17 @@ test('two targets bound to different runs stay independent', () => {
   b.gold = 2;
   assert.equal(a.gold, 1);
   assert.equal(b.gold, 2);
+});
+
+test('allocId hands out a fresh id every call and advances the counter', () => {
+  const run = newRun({seed: SEED});
+  assert.equal(run.ids.nextItem, 1);
+  const a = allocId(run), b = allocId(run), c = allocId(run);
+  assert.deepEqual([a, b, c], [1, 2, 3], 'strictly increasing, no repeats');
+  assert.equal(run.ids.nextItem, 4, 'counter points past the last handed out');
+  /* wares and offers both draw here, so an owned ware and the offer that spawned
+     it can never share a value */
+  assert.notEqual(a, b);
 });
 
 test('revive fills defaults for an older save that omits identity or the id counter', () => {

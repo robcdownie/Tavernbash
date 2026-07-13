@@ -62,6 +62,16 @@ export function newRun(setup){
   };
 }
 
+/* the single durable-id allocator. Owned wares (iid) and shop offers (offerId)
+   both draw from run.ids.nextItem, so a board ware and the bought offer that
+   spawned it can never share a value. Separate from the engine's session uid,
+   which keeps the pure engine and its parity boundary untouched. */
+export function allocId(run){
+  const id = run.ids.nextItem;
+  run.ids.nextItem = id + 1;
+  return id;
+}
+
 /* the ONLY place the navigation controller advances. Mutates run.route in
    place, bumps the revision, and hands the caller the effects to run. */
 export function advance(run, map, action){

@@ -7,7 +7,7 @@ import {genMap,MAP_VERSION,isCombat} from './map.js';
 import {frontier,currentDistrict,visitedSet,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,classifyEdges} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
 import {planReward} from './route-rewards.js';
-import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy} from './route-run.js';
+import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy,allocId} from './route-run.js';
 import {ic} from './art.js';
 import {effChips,wareDetailHTML} from './cards.js';
 import {ART} from './art-manifest.js';
@@ -23,7 +23,18 @@ if(FSPD!==2)FSPD=1;
 /* the envelope shape, version gate, and storage IO live in route-save.js;
    snapshotRoute below still gathers the payload from the live G */
 function store(){try{return window.localStorage;}catch(e){return null;}}
-function reviveItem(b){const it=makeItem(b.id,b.rarity,b.ench||null);it.size=b.size;return it;}
+function reviveItem(b){const it=makeItem(b.id,b.rarity,b.ench||null);it.size=b.size;it.iid=(b.iid!=null?b.iid:allocId(G.run));return it;}
+/* durable-identity factories: every owned ware gets an iid, every shop offer an
+   offerId, both from the run's single counter (allocId). A bought offer keeps
+   its offerId as a tombstone while its board ware carries a different iid, so
+   the two never collide. Fusion outputs are freshly stamped; consumed ids are
+   never reused. All wrap the engine's makeItem/fuseScan without touching them. */
+function mkWare(id,rarity,ench){const it=makeItem(id,rarity,ench||null);it.iid=allocId(G.run);return it;}
+function mkOffer(o){o.offerId=allocId(G.run);return o;}
+/* revive a saved shop offer: copy an existing offerId (a future v2 save) or
+   stamp a fresh one (a pre-id save), keeping the offer's other fields */
+function reviveOffer(o){const c=Object.assign({},o);if(c.offerId==null)c.offerId=allocId(G.run);return c;}
+function fuseStamp(board){const forged=fuseScan(board);forged.forEach(function(f){f.iid=allocId(G.run);});return forged;}
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function shuffle(a,rng){for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;}
@@ -155,7 +166,7 @@ function renderVaultSheet(sh){
   const O=$('vOut');if(O)O.onclick=function(){
     if(usedCells(G.board)+it.size>4+G.tier)return;
     G.vault.splice(G.vsel,1);G.vsel=null;G.board.push(it);
-    const forged=fuseScan(G.board);
+    const forged=fuseStamp(G.board);
     if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();sting('forgesting');}
     else{toast(ITEMS[it.id].n+' returns to the stall');}
     fuseWithVault();
@@ -179,7 +190,7 @@ function vaultSwap(i){
   if(!inIt||!outIt){G.swapV=null;renderDraft();return;}
   if(usedCells(G.board)-outIt.size+inIt.size>4+G.tier){toast('No room for that trade');return;}
   G.vault[vi]=outIt;G.board[i]=inIt;G.swapV=null;G.sel=null;
-  const forged=fuseScan(G.board);
+  const forged=fuseStamp(G.board);
   if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();sting('forgesting');}
   else{toast(ITEMS[outIt.id].n+' rests in the vault. '+ITEMS[inIt.id].n+' takes the stall.');}
   fuseWithVault();
@@ -343,7 +354,7 @@ function fuseWithVault(){
       }
       pulled=true;
     }
-    const forged=fuseScan(G.board);
+    const forged=fuseStamp(G.board);
     if(forged.length){
       forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});
       sForge();sting('forgesting');forgedAny=true;
@@ -383,8 +394,8 @@ function buyWare(i){
   const wEl=document.querySelector('.ware[data-w="'+i+'"]');
   const fromRect=wEl?wEl.getBoundingClientRect():null;
   G.gold-=cost;w.bought=true;sCoin();
-  G.board.push(makeItem(w.id,0,w.ench||null));
-  const forged=fuseScan(G.board);
+  G.board.push(mkWare(w.id,0,w.ench));
+  const forged=fuseStamp(G.board);
   fuseWithVault();
   renderAll();
   const cells=document.querySelectorAll('#bd .cell.it');
@@ -462,7 +473,7 @@ function rollShop(){
       });
       if(opts.length){ench=opts[Math.floor(G.rng()*opts.length)];}
     }
-    out.push({id:pick,free:false,bought:false,ench:ench});
+    out.push(mkOffer({id:pick,free:false,bought:false,ench:ench}));
   }
   G.shop=frozenKeep.concat(out).concat(freeKeep);
   G.shopFresh=true;
@@ -738,10 +749,10 @@ function settleMonsterReward(o){
   const plan=planReward(b,{baseGold:o.baseGold,gilded:o.gilded,enteredGold:o.enteredGold,pocketed:o.pocketed,minGold:o.minGold,board:G.board});
   G.gold+=plan.gold;
   if(plan.drained>0){toast('The monkey kept '+plan.drained+' gold of the bounty.');}
-  plan.items.forEach(function(id){G.shop.push({id:id,free:true,bought:false});});
+  plan.items.forEach(function(id){G.shop.push(mkOffer({id:id,free:true,bought:false}));});
   if(plan.relic){G.relicIncome+=1;toast('Income relic: +1 gold each dawn');}
   if(plan.mote){
-    if(plan.mote.item){G.shop.push({id:plan.mote.item,free:true,bought:false});}
+    if(plan.mote.item){G.shop.push(mkOffer({id:plan.mote.item,free:true,bought:false}));}
     else{G.gold+=plan.mote.gold;toast('The mote found nothing bronze to copy. '+plan.mote.gold+' gold instead.');}
   }
   if(plan.choice==='gild'){renderAll();openGild('The mirror bows. Gild one ware.',o.cont);return;}
@@ -923,7 +934,7 @@ function grantFreeWare(rng){
   const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique&&!ITEMS[id].inc;});
   if(!ids.length){G.gold+=4;toast('No ware fits. 4 gold instead.');return;}
   const id=ids[Math.floor(rng()*ids.length)];
-  G.shop.push({id:id,free:true,bought:false});
+  G.shop.push(mkOffer({id:id,free:true,bought:false}));
   toast('A free '+ITEMS[id].n+' waits at the next market.');
 }
 function grantEnchantKit(rng){
@@ -1158,7 +1169,7 @@ function restoreRoute(d){
   G.run.economy={gold:d.run.gold,tier:d.run.tier,tierCost:d.run.tierCost,relicIncome:d.run.relicIncome,
      freeReroll:!!d.run.freeReroll,frozen:!!d.run.frozen,
      board:d.run.board.map(reviveItem),vault:(d.run.vault||[]).map(reviveItem),
-     shop:d.run.shop.slice(),trinkets:d.run.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean)};
+     shop:d.run.shop.map(reviveOffer),trinkets:d.run.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean)};
   bindEconomy(G);
   const H=heroOf();if(H)G.you.p=H.g;
   computeT();
@@ -1232,7 +1243,7 @@ function openGild(msg,cont){
       if(it.rarity>=3)return;
       it.rarity++;
       toast('Gilded: '+RNAME[it.rarity]+' '+ITEMS[it.id].n);
-      fuseScan(G.board);fuseWithVault();
+      fuseStamp(G.board);fuseWithVault();
       ovClose(o);if(cont)cont();renderAll();
     };
   });
@@ -1255,7 +1266,7 @@ function openUniquePick(msg,cont){
     }).join('')+'</div></div>');
   o.querySelectorAll('.pick').forEach(function(p){
     p.onclick=function(){
-      G.shop.push({id:p.dataset.u,free:true,bought:false});
+      G.shop.push(mkOffer({id:p.dataset.u,free:true,bought:false}));
       toast(ITEMS[p.dataset.u].n+' waits in the market, free.');
       ovClose(o);renderAll();if(cont)cont();
     };
@@ -1364,7 +1375,7 @@ function openHeroPick(cont){
   o.querySelector('#heroGo').onclick=function(){
     const h=HEROES.filter(function(x){return x.id===sel;})[0];
     G.hero=h.id;G.you.p=h.g;
-    if(h.start){G.board.push(makeItem(h.start,0));}
+    if(h.start){G.board.push(mkWare(h.start,0));}
     computeT();
     toast(h.n+' opens the stall');
     ovClose(o);cont();

@@ -45,6 +45,27 @@ test('the economy accessors stay canonical with the run aggregate', async ({page
   expect(ok).toEqual({wroteThrough: true, sameBoard: true, sameShop: true, restored: true});
 });
 
+test('every ware and offer carries a unique durable id, disjoint across the pools', async ({page}) => {
+  await freshRoute(page);
+  const r = await page.evaluate(() => {
+    const G = window.BBDEV.g();
+    window.BBDEV.rollShop();                          /* stamp a fresh set of offers */
+    const wareIds = G.board.map(w => w.iid).concat(G.vault.map(w => w.iid));
+    const offerIds = G.shop.map(o => o.offerId);
+    const all = wareIds.concat(offerIds);
+    return {
+      allInts: all.every(Number.isInteger),           /* nothing left unstamped */
+      unique: new Set(all).size === all.length,        /* wares and offers never collide */
+      nextAboveMax: G.run.ids.nextItem > Math.max(...all),
+      shopN: offerIds.length
+    };
+  });
+  expect(r.shopN).toBeGreaterThan(0);
+  expect(r.allInts).toBe(true);
+  expect(r.unique).toBe(true);
+  expect(r.nextAboveMax).toBe(true);
+});
+
 test('resume at the map preserves gold, Resolve, and progress', async ({page}) => {
   await freshRoute(page);
   const snap = () => page.evaluate(() => { const G = window.BBDEV.g(); const s = window.BBDEV.routeState(); return {phase: s.phase, gold: G.gold, resolve: s.resolve, path: s.path.length}; });
