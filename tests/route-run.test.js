@@ -55,7 +55,7 @@ test('serialize then revive round-trips the durable fields', () => {
 test('serialize keeps only durable fields (no map, no transients)', () => {
   const run = newRun({seed: SEED});
   const wire = serializeRun(run);
-  assert.deepEqual(Object.keys(wire).sort(), ['economy', 'ids', 'revision', 'route', 'runId', 'schemaVersion', 'seed']);
+  assert.deepEqual(Object.keys(wire).sort(), ['economy', 'ids', 'pendingChoice', 'receipts', 'revision', 'route', 'runId', 'schemaVersion', 'seed']);
 });
 
 test('newEconomy carries the starting defaults', () => {

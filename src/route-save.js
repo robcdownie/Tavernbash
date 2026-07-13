@@ -40,6 +40,7 @@ export function migrateV1toV2(d){
       economy:{gold:r.gold,tier:r.tier,tierCost:r.tierCost,relicIncome:r.relicIncome,
         freeReroll:!!r.freeReroll,frozen:!!r.frozen,
         board:board,vault:vault,shop:shop,trinkets:r.trinkets||[]},
+      receipts:{},pendingChoice:null,
       ids:{nextItem:next}},
     setup:{hero:r.hero||null,anom:r.anom,tags:r.tags||[]},
     fightN:r.fightN||0,
@@ -62,9 +63,12 @@ export function readRouteSave(storage){
     return d;
   }catch(e){return null;}
 }
+/* returns true when the write is durable, false on any failure (no storage, a
+   quota/serialization throw). A critical checkpoint (reward settlement) checks
+   this and blocks the overlay rather than presenting an unsaved reward. */
 export function writeRouteSave(storage,envelope){
-  if(!storage)return;
-  try{storage.setItem(ROUTE_KEY,JSON.stringify(envelope));}catch(e){}
+  if(!storage)return false;
+  try{storage.setItem(ROUTE_KEY,JSON.stringify(envelope));return true;}catch(e){return false;}
 }
 export function clearRouteSave(storage){
   if(!storage)return;

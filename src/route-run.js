@@ -58,6 +58,11 @@ export function newRun(setup){
     seed: seed,
     route: initRoute(seed),
     economy: newEconomy(),
+    /* reward settlement bookkeeping (R4 commit 4): receipts make a node's fixed
+       reward and its gild/unique choice each apply exactly once across a reload;
+       pendingChoice holds an owed, interrupted choice so resume reopens it. */
+    receipts: {},
+    pendingChoice: null,
     ids: {nextItem: 1}
   };
 }
@@ -106,6 +111,8 @@ export function serializeRun(run){
     seed: run.seed >>> 0,
     route: run.route,
     economy: run.economy,
+    receipts: run.receipts || {},
+    pendingChoice: run.pendingChoice || null,
     ids: {nextItem: (run.ids && run.ids.nextItem) || 1}
   };
 }
@@ -122,6 +129,8 @@ export function reviveRun(d){
        ench}) and v1->v2 migration land in 3c2 when the save switches to this
        codec. Callers that revive from the legacy envelope set economy after. */
     economy: d.economy || newEconomy(),
+    receipts: d.receipts || {},
+    pendingChoice: d.pendingChoice || null,
     ids: {nextItem: (d.ids && d.ids.nextItem) || 1}
   };
 }

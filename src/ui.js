@@ -799,6 +799,7 @@ function snapshotRoute(){
         board:E.board.map(item),vault:E.vault.map(item),
         shop:E.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null,offerId:w.offerId};}),
         trinkets:E.trinkets.map(function(t){return t.id;})},
+      receipts:G.run.receipts||{},pendingChoice:G.run.pendingChoice||null,
       ids:{nextItem:G.run.ids.nextItem}},
     setup:{hero:G.hero||null,anom:G.anom.id,tags:G.tags.slice()},
     fightN:G.fightN,
