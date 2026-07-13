@@ -664,8 +664,9 @@ function handleEvents(F,evs){
     else if(e.k==='chip'){const ig=$('fi-'+e.side+'-'+e.i);if(ig)ig.textContent=e.integ;cellFx(e.side,e.i,'chip');
       if(lastFire&&lastFire.side!==e.side){streakFx($('fc-'+lastFire.side+'-'+lastFire.i),$('fc-'+e.side+'-'+e.i));}
       const p=ctrOf($('fc-'+e.side+'-'+e.i));if(p&&!RM)fxHit(p.x,p.y,e.amt);sHit(e.amt);}
-    else if(e.k==='destroy'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('dead');logLine('<b class="r">'+esc(e.nm)+'</b> destroyed','e-skull','#ff8d76');const p=ctrOf(c);if(p&&!RM)fxDestroy(p.x,p.y);sDestroy();}
+    else if(e.k==='destroy'){if(G.recap)G.recap[e.side].dead.push(e.nm);const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('dead');logLine('<b class="r">'+esc(e.nm)+'</b> destroyed','e-skull','#ff8d76');const p=ctrOf(c);if(p&&!RM)fxDestroy(p.x,p.y);sDestroy();}
     else if(e.k==='hhit'){
+      if(G.recap)G.recap[e.side].wpn+=e.amt;
       fltFx(e.side,'-'+e.amt,'#ff8d76','e-blade',e.amt);
       const fg=$('fg-'+e.side);if(fg){fg.classList.remove('hit');void fg.offsetWidth;fg.classList.add('hit');}
       if(lastFire&&lastFire.side!==e.side){streakFx($('fc-'+lastFire.side+'-'+lastFire.i),fg);}
@@ -673,13 +674,13 @@ function handleEvents(F,evs){
       if(e.amt>=30)shake();if(e.amt>=46)flashScr();
       if(e.amt>=18)logLine((e.side==='a'?'You take ':'They take ')+'<b class="r">'+e.amt+'</b>','e-blade','#ff8d76');
     }
-    else if(e.k==='storm'){fltFx(e.side,'-'+e.amt,'#e8c27a','e-bolt',e.amt);}
+    else if(e.k==='storm'){if(G.recap)G.recap[e.side].storm+=e.amt;fltFx(e.side,'-'+e.amt,'#e8c27a','e-bolt',e.amt);}
     else if(e.k==='shield'){fltFx(e.side,'+'+e.amt,'#6fe0cd','e-shield',false);}
     else if(e.k==='heal'){fltFx(e.side,'+'+e.amt,'#ffb3b8','e-heart',false);if(e.amt>=22)logLine((e.side==='a'?'You mend ':'They mend ')+'<b class="t">'+e.amt+'</b>','e-heart','#ffb3b8');}
     else if(e.k==='pois'){fltFx(e.side,'+'+e.amt,'#c0e070','e-skull',false);}
     else if(e.k==='burn'){fltFx(e.side,'+'+e.amt,'#ffb066','e-flame',false);}
-    else if(e.k==='tickp'){fltFx(e.side,'-'+e.amt,'#c0e070','e-skull',false);sTick();}
-    else if(e.k==='tickb'){fltFx(e.side,'-'+e.amt,'#ffb066','e-flame',false);sTick();}
+    else if(e.k==='tickp'){if(G.recap)G.recap[e.side].pois+=e.amt;fltFx(e.side,'-'+e.amt,'#c0e070','e-skull',false);sTick();}
+    else if(e.k==='tickb'){if(G.recap)G.recap[e.side].burn+=e.amt;fltFx(e.side,'-'+e.amt,'#ffb066','e-flame',false);sTick();}
     else if(e.k==='pocket'){fltFx(e.side,'-'+e.amt,'#e8c27a','e-bolt',false);logLine('<b class="y">Sticky Paws pockets '+e.amt+' bounty gold</b>','e-bolt','#e8c27a');}
     else if(e.k==='freeze'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('frz');fltFx(e.side,e.amt+'s','#9ad8ef','e-clock',false);sTick();}
     else if(e.k==='thaw'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.remove('frz');}
@@ -744,6 +745,7 @@ function startFight(me,foe,opts){
   }
   const F=createFight({a:me,b:foe,stormAt:(opts&&opts.stormAt)||stormAt(runThreat()),seed:(G.seed+G.round*7919+(++G.fightN)*104729)>>>0,playerIs:'a'});
   G.F=F;
+  G.recap={a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
   function pad(items){const u=items.reduce(function(s,x){return s+x.size;},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
   $('main').className='fight';
   $('main').innerHTML=
@@ -826,7 +828,37 @@ function returnToMarket(){
   snapshotRun();renderAll();
   toast('The market reopens. Spend your winnings, then face '+(G.nextOpp?shortName(G.nextOpp.n):'the Departed')+'.');
 }
+/* post-fight recap: a plain readout of what happened, so a win or a loss is
+   legible after the wares stop moving. Damage is tallied by type from the
+   event stream during the fight (weapon, poison, burn, simoom). */
+function dmgBreakdown(t){
+  const parts=[];
+  if(t.wpn>0)parts.push(['dmg','e-blade',Math.round(t.wpn)]);
+  if(t.pois>0)parts.push(['poison','e-skull',Math.round(t.pois)]);
+  if(t.burn>0)parts.push(['burn','e-flame',Math.round(t.burn)]);
+  if(t.storm>0)parts.push(['util','e-bolt',Math.round(t.storm)]);
+  return parts.map(function(p){return '<span class="eff '+p[0]+'">'+ic(p[1],'mi')+' '+p[2]+'</span>';}).join('')||'<span class="eff util">nothing</span>';
+}
+function fightRecapHTML(won,foeName){
+  const R=G.recap||{a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
+  const dealt=R.b.wpn+R.b.pois+R.b.burn+R.b.storm;
+  const took=R.a.wpn+R.a.pois+R.a.burn+R.a.storm;
+  return '<div class="card recapcard"><div class="rays'+(won?'':' red')+'"></div>'
+   +'<div class="kick'+(won?' gold':'')+'">'+(won?'Victory':'Defeat')+'</div>'
+   +'<h2 class="big'+(won?'':' bad')+'">'+(won?esc(foeName)+' slain':'Driven off')+'</h2>'
+   +'<div class="recaprow"><div class="rlab">You dealt <b>'+Math.round(dealt)+'</b></div><div class="rchips">'+dmgBreakdown(R.b)+'</div></div>'
+   +'<div class="recaprow"><div class="rlab">You took <b>'+Math.round(took)+'</b></div><div class="rchips">'+dmgBreakdown(R.a)+'</div></div>'
+   +(R.a.dead.length?'<div class="recaplost">Your wares lost: '+R.a.dead.map(esc).join(', ')+'</div>':'')
+   +'<button class="btn gold" id="recapGo" style="width:100%;margin-top:12px">Continue</button></div>';
+}
+function showFightRecap(won,foeName,onDone){
+  const o=ovOpen(fightRecapHTML(won,foeName));
+  const b=o.querySelector('#recapGo');if(b)b.onclick=function(){ovClose(o);onDone();};
+}
 function endMonsterFight(F){
+  showFightRecap(F.winner==='a',MONSTERS[G.door.mid].n,function(){resolveMonsterFight(F);});
+}
+function resolveMonsterFight(F){
   const D=G.door;const M=MONSTERS[D.mid];D.done=true;G.phase='draft';
   if(F.lotPaid){G.gold+=F.lotPaid;toast('The Auctioneer paid you '+F.lotPaid+' gold for your wares.');}
   if(F.winner==='a'){
