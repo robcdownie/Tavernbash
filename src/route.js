@@ -12,8 +12,11 @@ import {MAP_VERSION} from './map.js';
 
 /* victory gold by encounter; a monster bounty is added by the caller */
 export const BASE_GOLD={monster:3,elite:5,boss:7};
-/* extra Resolve lost on a loss, by encounter kind */
-const LOSS_BONUS={monster:0,elite:2,boss:4};
+/* extra Resolve lost on a loss, by encounter kind. Boss bonus 4 -> 2 (R6, first
+   balance trial, Codex-approved 2026-07-13): a softer boss-loss consequence lets
+   the Gate Camp do its intended recovery job. The survivor-tier term is kept as
+   is; boss-loss ranges become D1 4-8 and D4 10-14 Resolve, still consequential. */
+const LOSS_BONUS={monster:0,elite:2,boss:2};
 
 /* deterministic per-fight seed, independent of shop or animation rng so a boss
    retry replays the same on restart but differs on the next authorized attempt */

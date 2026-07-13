@@ -178,12 +178,13 @@ function detailed(runs) {
 
 /* ---- A/B tuning comparison ---- */
 function abTable() {
+  /* baseline is the current game, which already ships the boss-loss 4->2 change
+     (0.68.20). bossLossAdj:2 here therefore models a FURTHER softening to 0. */
   const variants = [
-    { name: 'A baseline', cfg: {} },
-    { name: 'B boss-loss 4->2', cfg: { bossLossAdj: 2 } },
+    { name: 'A current (incl B)', cfg: {} },
+    { name: 'boss loss 2->0 more', cfg: { bossLossAdj: 2 } },
     { name: 'C start 36 Resolve', cfg: { startResolve: 36 } },
-    { name: 'D event cash 6->4', cfg: { treasureCash: 4, negoCash: 4 } },
-    { name: 'E = B+D (hold 40)', cfg: { bossLossAdj: 2, treasureCash: 4, negoCash: 4 } }
+    { name: 'D event cash 6->4', cfg: { treasureCash: 4, negoCash: 4 } }
   ];
   console.log('== ROUTE SIM A/B (' + RUNS + ' seeds each, no anomaly, fresh items, sampled paths) ==\n');
   console.log(pad('variant', 20) + pad('clear', 8) + pad('D4-death', 10) + pad('Matron', 8) + pad('Azhdaha', 9) + pad('Vizier', 8) + pad('tier', 6) + pad('retries', 8));
