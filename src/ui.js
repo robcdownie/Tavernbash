@@ -588,7 +588,10 @@ function tierUp(){
   if(dk&&!RM){dk.classList.add('flare');setTimeout(function(){dk.classList.remove('flare');},650);}
 }
 function reroll(){
-  if(G.gold<1)return;G.gold-=1;G.frozen=false;G.shopSel=null;
+  const free=G.mode==='route'&&G.freeReroll;
+  if(free){G.freeReroll=false;toast('A free reroll, courtesy of Refit.');}
+  else{if(G.gold<1)return;G.gold-=1;}
+  G.frozen=false;G.shopSel=null;
   /* route markets re-seed from a keyed, serializable stream so a reload replays
      the same reroll sequence rather than the lobby rng's hidden position */
   if(G.mode==='route'&&G.route.market){G.route.market.rollIndex++;G.rng=mulberry(fightSeed(G.seed,G.route.market.nodeId,G.route.market.rollIndex));}
@@ -965,7 +968,7 @@ function snapshotRoute(){
   const R=G.route;
   const d={saveVersion:ROUTE_SAVE_VERSION,mapVersion:MAP_VERSION,routeState:R.state,phase:G.phase,
     run:{seed:G.seed,hero:G.hero||null,anom:G.anom.id,tags:G.tags.slice(),
-      gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,frozen:!!G.frozen,fightN:G.fightN,
+      gold:G.gold,tier:G.tier,tierCost:G.tierCost,relicIncome:G.relicIncome,frozen:!!G.frozen,freeReroll:!!G.freeReroll,fightN:G.fightN,
       board:G.board.map(item),vault:G.vault.map(item),
       shop:G.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null};}),
       trinkets:G.trinkets.map(function(t){return t.id;})},
@@ -990,9 +993,9 @@ function newRoute(){
   const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
   G={mode:'route',seed:seed,rng:rng,round:0,anom:anom,A:Object.assign({},ANONE,anom.m),tags:[cats[0],cats[1]],
      board:[],vault:[],shop:[],trinkets:[],T:null,hero:null,gold:6,tier:1,tierCost:TIERCOST[2],relicIncome:0,frozen:false,
-     stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
+     stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,freeReroll:false,
      phase:'routeMap',fightN:0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
-     route:{map:genMap(seed),state:initRoute(seed),selectedId:null,market:null,combat:null}};
+     route:{map:genMap(seed),state:initRoute(seed),selectedId:null,market:null,combat:null,opening:false}};
   computeT();
   renderAno();renderTrow();
   $('ribbon').innerHTML='';$('main').innerHTML='';
@@ -1090,10 +1093,10 @@ function enterRouteMarket(nodeId){
    land (Rest -> Mend/Temper/Refit, Shrine -> three choices, Negotiation ->
    persona offers). ---- */
 function routeEventDesc(t){
-  return t==='rest'?'Make camp: restore 8 Resolve.'
+  return t==='rest'?'Mend, Temper, or Refit.'
     :t==='treasure'?'Choose one of three face-up rewards.'
-    :t==='shrine'?'The Quqnus renews you: restore 12 Resolve.'
-    :'A merchant clears some odds and ends for gold.';
+    :t==='shrine'?'From the Ashes, Trial by Flame, or Cast Off the Old.'
+    :'A merchant offers three bargains, or walk away.';
 }
 const TKIND={gold:{t:'Six Gold',g:'g-coin'},ware:{t:'Free Ware',g:'g-gem'},enchant:{t:'Enchant Kit',g:'g-magma'},silver:{t:'Gild a Ware',g:'g-whetstone'}};
 function treasureDesc(k){
@@ -1133,18 +1136,62 @@ function routeTreasureCard(node){
     applyTreasure(kind,function(){dispatchRoute({type:'resolveEvent',outcome:'treasure'});});
   };});
 }
+/* a generic pick-one card for route events; each choice runs its own effect and
+   completes the node through the controller */
+function choiceCard(kick,title,sub,choices){
+  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">'+esc(kick)+'</div>'
+   +'<h2 class="big">'+esc(title)+'</h2>'+(sub?'<p>'+esc(sub)+'</p>':'')
+   +'<div class="picks">'+choices.map(function(c,i){
+      return '<div class="pick" data-c="'+i+'"><div class="pn">'+esc(c.label)+'</div><div class="pd">'+esc(c.desc)+'</div></div>';
+    }).join('')+'</div></div>');
+  o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){const c=choices[+p.dataset.c];ovClose(o);c.onPick();};});
+}
+/* pick one board ware (destroy, sell, etc.) */
+function pickWare(msg,onPick){
+  if(!G.board.length){toast('No wares to choose.');return false;}
+  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">Choose a Ware</div>'
+   +'<h2 class="big" style="font-size:21px">'+esc(msg)+'</h2>'
+   +'<div class="picks">'+G.board.map(function(it,i){const d=ITEMS[it.id];
+      return '<div class="pick" data-i="'+i+'"><div class="ph2">'+ic('g-'+it.id,'','width:28px;height:28px')+'</div><div class="pn">'+RNAME[it.rarity]+' '+d.n+'</div></div>';
+    }).join('')+'</div></div>');
+  o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){const i=+p.dataset.i;ovClose(o);onPick(i);};});
+  return true;
+}
+function completeEvent(t,delta){dispatchRoute({type:'resolveEvent',resolveDelta:delta||0,outcome:t});}
+function routeRestCard(node){
+  choiceCard('Rest',nodeLabel(node),'Choose one.',[
+    {label:'Mend',desc:'Restore 8 Resolve.',onPick:function(){toast('You make camp. +8 Resolve.');completeEvent('mend',8);}},
+    {label:'Temper',desc:'Etch a legal enchant onto a ware.',onPick:function(){grantEnchantKit();completeEvent('temper');}},
+    {label:'Refit',desc:'Next tier costs 4 less, plus a free reroll next market.',onPick:function(){G.tierCost=Math.max(1,G.tierCost-4);G.freeReroll=true;toast('Refit: a cheaper tier and a free reroll.');completeEvent('refit');}}
+  ]);
+}
+function routeShrineCard(node){
+  choiceCard('Quqnus Shrine',nodeLabel(node),'The shrine asks a price.',[
+    {label:'From the Ashes',desc:'Restore 12 Resolve.',onPick:function(){toast('The Quqnus renews you. +12 Resolve.');completeEvent('ashes',12);}},
+    {label:'Trial by Flame',desc:'Lose 6 Resolve, gild one ware a rarity step.',onPick:function(){
+      openGild('Trial by Flame: gild one ware.',function(){completeEvent('trial',-6);});
+    }},
+    {label:'Cast Off the Old',desc:'Destroy a ware: gain 8 gold and drop the next tier to 1.',onPick:function(){
+      const did=pickWare('Cast off which ware?',function(i){G.board.splice(i,1);G.gold+=8;G.tierCost=1;toast('Cast off. +8 gold, next tier costs 1.');completeEvent('castoff');});
+      if(!did){G.gold+=8;G.tierCost=1;toast('Nothing to cast off. +8 gold, next tier costs 1.');completeEvent('castoff');}
+    }}
+  ]);
+}
+function routeNegotiationCard(node){
+  const per=PERSONAS[node.persona]||PERSONAS[0];
+  choiceCard(per.n,'A Merchant Bargains','Accept one offer, or walk away.',[
+    {label:'Quick Sale',desc:'Take 6 gold on the spot.',onPick:function(){G.gold+=6;toast('+6 gold.');completeEvent('nego');}},
+    {label:'Fresh Stock',desc:'Pay 3 gold for a free ware at the next market.',onPick:function(){if(G.gold>=3){G.gold-=3;grantFreeWare();}else{toast('Not enough gold for that.');}completeEvent('nego');}},
+    {label:'Walk Away',desc:'Keep your coin and your wares.',onPick:function(){completeEvent('nego');}}
+  ]);
+}
 function routeEventCard(e){
   const node=e.node;const t=node.type;
-  if(t==='treasure'){routeTreasureCard(node);return;}
-  let delta=0,gold=0,msg='';
-  if(t==='rest'){delta=8;msg='You make camp on the road and restore 8 Resolve.';}
-  else if(t==='shrine'){delta=12;msg='The Quqnus stirs and renews you. Restore 12 Resolve.';}
-  else{gold=4;msg='The merchant clears some odds and ends. Take 4 gold.';}
-  const o=ovOpen('<div class="card"><div class="kick gold">'+esc(NODELABEL[t]||cap(t))+'</div>'
-   +ic(nodeGlyph(node),'bigic')+'<h2 class="big">'+esc(nodeLabel(node))+'</h2>'
-   +'<p>'+msg+'</p>'
-   +'<button class="btn gold" id="evGo" style="width:100%;margin-top:10px">Continue</button></div>');
-  o.querySelector('#evGo').onclick=function(){if(gold)G.gold+=gold;ovClose(o);dispatchRoute({type:'resolveEvent',resolveDelta:delta,outcome:t});};
+  if(t==='treasure')return routeTreasureCard(node);
+  if(t==='rest')return routeRestCard(node);
+  if(t==='shrine')return routeShrineCard(node);
+  if(t==='negotiation')return routeNegotiationCard(node);
+  completeEvent(t);
 }
 
 /* ---- the plain map screen (production version and connectors land in 0.67) ---- */
@@ -1243,7 +1290,7 @@ function restoreRoute(d){
      anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.run.tags,
      board:d.run.board.map(reviveItem),vault:(d.run.vault||[]).map(reviveItem),
      shop:d.run.shop.slice(),trinkets:d.run.trinkets.map(function(id){return TRINKETS.filter(function(t){return t.id===id;})[0];}).filter(Boolean),
-     T:null,hero:d.run.hero||null,gold:d.run.gold,tier:d.run.tier,tierCost:d.run.tierCost,relicIncome:d.run.relicIncome,frozen:!!d.run.frozen,
+     T:null,hero:d.run.hero||null,gold:d.run.gold,tier:d.run.tier,tierCost:d.run.tierCost,relicIncome:d.run.relicIncome,frozen:!!d.run.frozen,freeReroll:!!d.run.freeReroll,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:d.run.fightN||0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
      route:{map:map,state:d.routeState,selectedId:null,market:d.market||null,combat:null,opening:!!d.opening}};
