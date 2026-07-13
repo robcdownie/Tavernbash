@@ -18,7 +18,10 @@ export default defineConfig({
        is momentarily held, so the suite never silently waits on the wrong port */
     command: 'npm run dev -- --port 5199 --strictPort',
     url: 'http://localhost:5199',
-    reuseExistingServer: true,
+    /* do NOT reuse an existing server: a stale dev server (HMR-retained old
+       modules) once silently passed the suite against deleted code. Start fresh
+       every run and fail loudly (strictPort) if 5199 is held. */
+    reuseExistingServer: false,
     timeout: 60000
   },
   projects: [

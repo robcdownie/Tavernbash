@@ -425,6 +425,47 @@ function reroll(){
   if(G.mode==='route'&&G.route.market){G.route.market.rollIndex++;G.rng=mulberry(fightSeed(G.seed,G.route.market.nodeId,G.route.market.rollIndex));}
   rollShop();renderRibbon();renderDraft();
 }
+function rollShop(){
+  /* free bounty cards always carry over; a frozen shop keeps its paid
+     cards too, counted against the roll, then the freeze is spent */
+  const freeKeep=G.shop?G.shop.filter(function(w){return w.free&&!w.bought;}):[];
+  const frozenKeep=(G.frozen&&G.shop)?G.shop.filter(function(w){return !w.free&&!w.bought;}):[];
+  G.frozen=false;
+  const n=Math.max(0,G.A.shopN-frozenKeep.length);
+  /* income wares are dead in route mode (income() never runs), so keep them out
+     of route shops until the approved rework gives them route semantics */
+  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique&&(G.mode!=='route'||!ITEMS[id].inc);});
+  const hTag=heroOf()?heroOf().tag:null;
+  const out=[];
+  for(let k=0;k<n;k++){
+    let tot=0;
+    const ws=ids.map(function(id){
+      const d=ITEMS[id];
+      let w=d.tier===1?8:(d.tier===2?7:6);
+      if(G.tags.indexOf(d.cat)>=0)w*=2.2;
+      if(hTag===d.cat)w*=2.2;
+      const own=G.board.filter(function(x){return x.id===id&&x.rarity===0;}).length;
+      if(own===1||own===2)w*=1.6;
+      tot+=w;return w;
+    });
+    let r=G.rng()*tot,pick=ids[0];
+    for(let i=0;i<ids.length;i++){r-=ws[i];if(r<=0){pick=ids[i];break;}}
+    let ench=null;
+    /* no enchanted wares in the Back Alleys (early Threat): early gold is
+       too tight to ever afford the premium */
+    if(runThreat()>=4&&G.rng()<ENCH_CHANCE){
+      const d2=ITEMS[pick];
+      const opts=Object.keys(ENCH).filter(function(e){
+        const req=ENCH[e].need;
+        return !req||(req==='dmg'?!!(d2.fx&&d2.fx.dmg):d2.cd>0);
+      });
+      if(opts.length){ench=opts[Math.floor(G.rng()*opts.length)];}
+    }
+    out.push({id:pick,free:false,bought:false,ench:ench});
+  }
+  G.shop=frozenKeep.concat(out).concat(freeKeep);
+  G.shopFresh=true;
+}
 function toggleFreeze(){
   G.frozen=!G.frozen;
   toast(G.frozen?'The shop holds until dawn.':'The shop thaws.');
@@ -660,8 +701,34 @@ function startFight(me,foe,opts){
   },40);
   },duskHold);
 }
-/* shared victory settlement: the win reward for both the lobby door and a route
-   node. Applies base + bounty gold, item/relic/mote bounties, then finishes
+/* post-fight recap: a plain readout of what happened after the wares stop
+   moving. Damage is tallied by type from the fight's event stream. Shared by
+   every route fight (runEffects wonFight/lostFight). */
+function dmgBreakdown(t){
+  const parts=[];
+  if(t.wpn>0)parts.push(['dmg','e-blade',Math.round(t.wpn)]);
+  if(t.pois>0)parts.push(['poison','e-skull',Math.round(t.pois)]);
+  if(t.burn>0)parts.push(['burn','e-flame',Math.round(t.burn)]);
+  if(t.storm>0)parts.push(['util','e-bolt',Math.round(t.storm)]);
+  return parts.map(function(p){return '<span class="eff '+p[0]+'">'+ic(p[1],'mi')+' '+p[2]+'</span>';}).join('')||'<span class="eff util">nothing</span>';
+}
+function fightRecapHTML(won,foeName){
+  const R=G.recap||{a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
+  const dealt=R.b.wpn+R.b.pois+R.b.burn+R.b.storm;
+  const took=R.a.wpn+R.a.pois+R.a.burn+R.a.storm;
+  return '<div class="card recapcard"><div class="rays'+(won?'':' red')+'"></div>'
+   +'<div class="kick'+(won?' gold':'')+'">'+(won?'Victory':'Defeat')+'</div>'
+   +'<h2 class="big'+(won?'':' bad')+'">'+(won?esc(foeName)+' slain':'Driven off')+'</h2>'
+   +'<div class="recaprow"><div class="rlab">You dealt <b>'+Math.round(dealt)+'</b></div><div class="rchips">'+dmgBreakdown(R.b)+'</div></div>'
+   +'<div class="recaprow"><div class="rlab">You took <b>'+Math.round(took)+'</b></div><div class="rchips">'+dmgBreakdown(R.a)+'</div></div>'
+   +(R.a.dead.length?'<div class="recaplost">Destroyed this fight: '+R.a.dead.map(esc).join(', ')+'</div>':'')
+   +'<button class="btn gold" id="recapGo" style="width:100%;margin-top:12px">Continue</button></div>';
+}
+function showFightRecap(won,foeName,onDone){
+  const o=ovOpen(fightRecapHTML(won,foeName));
+  const b=o.querySelector('#recapGo');if(b)b.onclick=function(){ovClose(o);onDone();};
+}
+/* shared victory settlement: the win reward for a route node. Applies base + bounty gold, item/relic/mote bounties, then finishes
    synchronously via cont() or opens an async gild/pickUnique overlay that calls
    cont() once chosen. Auctioneer pay and Resolve are fight-scoped and handled by
    the callers, not here. */
