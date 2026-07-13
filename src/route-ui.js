@@ -182,8 +182,11 @@ function routeShrineCard(node){
       openGild('Trial by Flame: gild one ware.',function(){completeEvent('trial',-6);});
     }},
     {label:'Cast Off the Old',desc:'Destroy a ware: gain 8 gold and drop the next tier to 1.',onPick:function(){
-      const did=pickWare('Cast off which ware?',function(i){G.board.splice(i,1);G.gold+=8;G.tierCost=1;toast('Cast off. +8 gold, next tier costs 1.');completeEvent('castoff');});
-      if(!did){G.gold+=8;G.tierCost=1;toast('Nothing to cast off. +8 gold, next tier costs 1.');completeEvent('castoff');}
+      /* no ware means nothing to cast off: pay nothing, do not consume the shrine
+         (a committed event node cannot be re-entered), re-show so a real option can
+         be taken instead of banking free gold for an empty board */
+      if(!G.board.length){toast('You have no ware to cast off.');routeShrineCard(node);return;}
+      pickWare('Cast off which ware?',function(i){G.board.splice(i,1);G.gold+=8;G.tierCost=1;toast('Cast off. +8 gold, next tier costs 1.');completeEvent('castoff');});
     }}
   ]);
 }
@@ -191,7 +194,11 @@ function routeNegotiationCard(node){
   const per=PERSONAS[node.persona]||PERSONAS[0];
   choiceCard(per.n,'A Merchant Bargains','Accept one offer, or walk away.',[
     {label:'Quick Sale',desc:'Take 6 gold on the spot.',onPick:function(){G.gold+=6;toast('+6 gold.');completeEvent('nego');}},
-    {label:'Fresh Stock',desc:'Pay 3 gold for a free ware at the next market.',onPick:function(){if(G.gold>=3){G.gold-=3;grantFreeWare(eventRng(node.id,'fresh'));}else{toast('Not enough gold for that.');}completeEvent('nego');}},
+    {label:'Fresh Stock',desc:'Pay 3 gold for a free ware at the next market.',onPick:function(){
+      /* cannot afford: do not consume the merchant node, re-show so Quick Sale or
+         Walk Away stay reachable instead of burning the node for nothing */
+      if(G.gold<3){toast('Not enough gold for that.');routeNegotiationCard(node);return;}
+      G.gold-=3;grantFreeWare(eventRng(node.id,'fresh'));completeEvent('nego');}},
     {label:'Walk Away',desc:'Keep your coin and your wares.',onPick:function(){completeEvent('nego');}}
   ]);
 }
