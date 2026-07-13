@@ -30,11 +30,11 @@ function run(seed,policy){
   return {state:st,map,effects};
 }
 
-test('a flawless run visits 21 nodes, beats all four bosses, keeps full Resolve',()=>{
+test('a flawless run visits 22 nodes, beats all four bosses, keeps full Resolve',()=>{
   for(const s of SEEDS){
     const {state,map}=run(s,{fight:()=>'a'});
     assert.equal(state.phase,'won','seed '+s+' did not win');
-    assert.equal(state.path.length,21,'seed '+s+' visited '+state.path.length);
+    assert.equal(state.path.length,22,'seed '+s+' visited '+state.path.length);
     for(const b of ['d1boss','d2boss','d3boss','d4boss'])assert.ok(state.path.includes(b),'seed '+s+' missed '+b);
     assert.equal(state.resolve,40,'seed '+s+' lost Resolve on a flawless run');
     assert.equal(state.path[state.path.length-1],'d4boss');

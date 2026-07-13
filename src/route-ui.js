@@ -87,7 +87,7 @@ function nodeAnchor(n){
   const d4=n.district===4;
   let x;
   if(n.type==='boss')x=d4?88:91;
-  else if(d4)x=n.col===0?14:50;
+  else if(d4)x=[14,42,70][n.col];   /* elite, prep, market columns before the Vizier */
   else x=[7,23,39,55,71][n.col];
   return {x:x,y:[17,50,83][n.lane]};
 }

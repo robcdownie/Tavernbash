@@ -28,13 +28,13 @@ test('every seed generates without throwing and has four districts',()=>{
   }
 });
 
-test('a full run visits exactly 21 selected nodes',()=>{
+test('a full run visits exactly 22 selected nodes',()=>{
   for(const s of SEEDS){
     const map=genMap(s);
-    /* one node per grid column plus each boss: 5+1 for D1-3, 2+1 for D4 */
+    /* one node per grid column plus each boss: 5+1 for D1-3, 3+1 for D4 */
     let visited=0;
     for(const d of map.districts){visited+=d.columns.length+1;}
-    assert.equal(visited,21,'seed '+s+' visited '+visited);
+    assert.equal(visited,22,'seed '+s+' visited '+visited);
   }
 });
 
@@ -46,9 +46,11 @@ test('District I to III: five columns of three lanes; Dragon Gate is a short gau
       for(const col of d.columns)assert.equal(col.length,3,'district '+d.id+' lane count');
     }
     const d4=map.districts[3];
-    assert.equal(d4.columns.length,2);          /* elite choice, then prep */
+    assert.equal(d4.columns.length,3);          /* elite choice, prep, then a guaranteed market */
     assert.equal(d4.columns[0].length,2);        /* two elites offered */
     assert.ok(d4.columns[0].every(n=>n.type==='elite'));
+    assert.equal(d4.columns[2].length,1);        /* one guaranteed market before the Vizier */
+    assert.equal(d4.columns[2][0].type,'market');
   }
 });
 

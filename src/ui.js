@@ -717,6 +717,12 @@ function settleRouteReward(e){
   const key=rewardKey(G.run.runId,e.nodeId,c.attempt||0);
   const already=!!(G.run.receipts[key]&&G.run.receipts[key].fixedApplied);
   const plan=planReward(M.bounty||{},{baseGold:e.gold,gilded:e.gilded,enteredGold:c.enteredGold||0,pocketed:c.pocketed||0,minGold:0,board:G.board});
+  /* the final boss dies as the run is won (settleReward sets phase 'won' before this
+     reward), so its choice reward (the Vizier's pick-any-unique) would drop a ware
+     into a market that never opens and stall the victory behind a moot overlay. Drop
+     the choice so the win screen follows the recap directly; the fixed gold is
+     harmless and the pickUnique stays in the data for a future post-win use. */
+  if(routeState().phase==='won')plan.choice=null;
   settleFixed(G.run,plan,key);
   if(!already){
     if(plan.drained>0){toast('The monkey kept '+plan.drained+' gold of the bounty.');}

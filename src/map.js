@@ -8,14 +8,15 @@
 
    Node types: monster, elite, boss (combats) and market, rest, treasure, shrine,
    negotiation (noncombat). A run visits one node per column plus each boss, which
-   totals 21 selected nodes (5+boss thrice, then 2+boss). The full map holds three
-   nodes per grid column so the player picks a lane as they move right. */
+   totals 22 selected nodes (5+boss thrice, then the Dragon Gate's elite + prep +
+   market + Vizier). The full map holds three nodes per grid column so the player
+   picks a lane as they move right. */
 import {mulberry} from './engine.js';
 import {DISTRICTS, PERSONAS} from './data.js';
 
 /* bump when the generator's output shape or rules change, so a saved run that
    regenerates its map from the seed can reject a stale layout */
-export const MAP_VERSION=1;
+export const MAP_VERSION=2;
 
 export const COMBAT=new Set(['monster','elite','boss']);
 export function isCombat(n){return COMBAT.has(n.type);}
@@ -171,22 +172,27 @@ function genDistrict(rng,D,allowShrine){
   throw new Error('map: district '+D.id+' failed to generate');
 }
 
-/* the Dragon Gate: choose one of two elites, then one preparation node, then the
-   Grand Vizier. No monster doors, no shrine, no slipping past. */
+/* the Dragon Gate: choose one of two elites, then one preparation node (Rest or
+   Treasure), then a guaranteed Market, then the Grand Vizier. The market is
+   always on the road so the elite bounty wares, the Treasure reward, and a Rest
+   Refit all have somewhere to land before the boss (without it, taking Rest or
+   Treasure stranded every late reward with no shop before the Vizier). No monster
+   doors, no shrine, no slipping past. */
 function genDragonGate(rng,D){
   const elites=[
     {id:'d4c1l0',type:'elite',district:4,col:0,lane:0,threat:D.threatEarly,monId:D.elites[0],gilded:chance(rng,0.12),next:[]},
     {id:'d4c1l2',type:'elite',district:4,col:0,lane:2,threat:D.threatLate,monId:D.elites[1],gilded:chance(rng,0.12),next:[]}
   ];
   const prep=[
-    {id:'d4c2l0',type:'market',district:4,col:1,lane:0,threat:D.threatLate,next:[]},
-    {id:'d4c2l1',type:'rest',district:4,col:1,lane:1,threat:D.threatLate,next:[]},
+    {id:'d4c2l0',type:'rest',district:4,col:1,lane:0,threat:D.threatLate,next:[]},
     {id:'d4c2l2',type:'treasure',district:4,col:1,lane:2,threat:D.threatLate,reward:rollTreasure(rng),next:[]}
   ];
-  const boss={id:'d4boss',type:'boss',district:4,col:2,lane:1,threat:D.threatBoss,monId:D.boss,gilded:false,next:[]};
+  const market={id:'d4c3l1',type:'market',district:4,col:2,lane:1,threat:D.threatLate,next:[]};
+  const boss={id:'d4boss',type:'boss',district:4,col:3,lane:1,threat:D.threatBoss,monId:D.boss,gilded:false,next:[]};
   for(const e of elites)for(const p of prep)e.next.push(p.id);
-  for(const p of prep)p.next.push(boss.id);
-  return {id:4,name:D.name,slip:D.slip,threatBoss:D.threatBoss,columns:[elites,prep],boss:boss};
+  for(const p of prep)p.next.push(market.id);
+  market.next.push(boss.id);
+  return {id:4,name:D.name,slip:D.slip,threatBoss:D.threatBoss,columns:[elites,prep,[market]],boss:boss};
 }
 
 /* the rare bronze to silver treasure upgrade: at most once per run. Fold it into
