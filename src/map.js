@@ -13,6 +13,10 @@
 import {mulberry} from './engine.js';
 import {DISTRICTS, PERSONAS} from './data.js';
 
+/* bump when the generator's output shape or rules change, so a saved run that
+   regenerates its map from the seed can reject a stale layout */
+export const MAP_VERSION=1;
+
 export const COMBAT=new Set(['monster','elite','boss']);
 export function isCombat(n){return COMBAT.has(n.type);}
 
@@ -207,5 +211,5 @@ export function genMap(runSeed){
   injectSilver(rng,districts);
   const nodes={};
   for(const d of districts){for(const col of d.columns)for(const n of col)nodes[n.id]=n;nodes[d.boss.id]=d.boss;}
-  return {seed:runSeed>>>0,shrineDistrict:shrineDistrict,districts:districts,nodes:nodes,start:districts[0].columns[0].map(n=>n.id)};
+  return {version:MAP_VERSION,seed:runSeed>>>0,shrineDistrict:shrineDistrict,districts:districts,nodes:nodes,start:districts[0].columns[0].map(n=>n.id)};
 }
