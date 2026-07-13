@@ -641,6 +641,8 @@
 
   /* ===== V14 PULSE PASS: cooldowns you can watch fill ===== */
   .cdf{position:absolute;inset:0;z-index:1;border-radius:inherit;opacity:0;pointer-events:none;
+    background:conic-gradient(var(--cc,rgba(244,207,124,.42)) calc(var(--p,0)*100%), rgba(0,0,0,.14) 0);
+    transition:--p .2s linear;
     -webkit-mask:radial-gradient(closest-side, transparent 74%, #000 75%);
     mask:radial-gradient(closest-side, transparent 74%, #000 75%);}
   .cell.f .ring{display:none;}

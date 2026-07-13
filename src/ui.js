@@ -773,10 +773,11 @@ function startFight(me,foe,opts){
         const el=$('cdf-'+S.key+'-'+i);if(!el)continue;
         const it=S.items[i];
         if(!it.alive||it.cd<=0){el.style.opacity='0';continue;}
-        const pct=Math.min(100,it.timer/it.cd*100).toFixed(1);
-        const col=it.frozen>0?'rgba(154,216,239,.65)':(it.maxAmmo>0&&it.ammo<=0?'rgba(140,127,108,.45)':(it.lot?'rgba(120,110,95,.3)':'rgba(244,207,124,.55)'));
-        el.style.opacity='1';
-        el.style.background='conic-gradient('+col+' '+pct+'%, rgba(0,0,0,.18) 0)';
+        const pct=Math.min(1,it.timer/it.cd);
+        const col=it.frozen>0?'rgba(154,216,239,.6)':(it.maxAmmo>0&&it.ammo<=0?'rgba(140,127,108,.4)':(it.lot?'rgba(120,110,95,.3)':'rgba(244,207,124,.42)'));
+        el.style.opacity='0.7';
+        el.style.setProperty('--cc',col);
+        el.style.setProperty('--p',pct);
       }
     }
   }
