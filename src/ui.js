@@ -625,12 +625,13 @@ function cellFx(side,i,cls){
   c.classList.remove(cls);void c.offsetWidth;c.classList.add(cls);
 }
 function ctrOf(el){if(!el)return null;const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};}
+function hasteName(F,side,i){const S=side==='a'?F.a:F.b;const it=S&&S.items&&S.items[i];return it?it.nm:'';}
 function logLine(html,mini,color){
   const l=$('log');if(!l)return;
   const d=document.createElement('div');d.className='li';
   d.innerHTML=(mini?'<svg class="lmi" style="color:'+color+'"><use href="#'+mini+'"/></svg>':'')+'<span>'+html+'</span>';
   l.prepend(d);
-  while(l.children.length>26){l.lastChild.remove();}
+  while(l.children.length>5){l.lastChild.remove();}
 }
 function paintFight(F){
   ['a','b'].forEach(function(key){
@@ -675,18 +676,21 @@ function handleEvents(F,evs){
       if(e.amt>=18)logLine((e.side==='a'?'You take ':'They take ')+'<b class="r">'+e.amt+'</b>','e-blade','#ff8d76');
     }
     else if(e.k==='storm'){if(G.recap)G.recap[e.side].storm+=e.amt;fltFx(e.side,'-'+e.amt,'#e8c27a','e-bolt',e.amt);}
-    else if(e.k==='shield'){fltFx(e.side,'+'+e.amt,'#6fe0cd','e-shield',false);}
-    else if(e.k==='heal'){fltFx(e.side,'+'+e.amt,'#ffb3b8','e-heart',false);if(e.amt>=22)logLine((e.side==='a'?'You mend ':'They mend ')+'<b class="t">'+e.amt+'</b>','e-heart','#ffb3b8');}
-    else if(e.k==='pois'){fltFx(e.side,'+'+e.amt,'#c0e070','e-skull',false);}
-    else if(e.k==='burn'){fltFx(e.side,'+'+e.amt,'#ffb066','e-flame',false);}
+    else if(e.k==='shield'){fltFx(e.side,'Shielded '+e.amt,'#6fe0cd','e-shield',false);}
+    else if(e.k==='heal'){fltFx(e.side,'Mended '+e.amt,'#ffb3b8','e-heart',false);if(e.amt>=22)logLine((e.side==='a'?'You mend ':'They mend ')+'<b class="t">'+e.amt+'</b>','e-heart','#ffb3b8');}
+    else if(e.k==='pois'){fltFx(e.side,'Spilled '+e.amt+' poison','#c0e070','e-skull',false);}
+    else if(e.k==='burn'){fltFx(e.side,'Lit '+e.amt+' burn','#ffb066','e-flame',false);}
+    else if(e.k==='haste'){const nm=hasteName(F,e.side,e.i);cellFx(e.side,e.i,'fire');
+      if(lastFire&&lastFire.side===e.side&&lastFire.i!==e.i)streakFx($('fc-'+lastFire.side+'-'+lastFire.i),$('fc-'+e.side+'-'+e.i));
+      fltFx(e.side,'Charged'+(nm?' '+nm:''),'#e8c27a','e-bolt',false);}
     else if(e.k==='tickp'){if(G.recap)G.recap[e.side].pois+=e.amt;fltFx(e.side,'-'+e.amt,'#c0e070','e-skull',false);sTick();}
     else if(e.k==='tickb'){if(G.recap)G.recap[e.side].burn+=e.amt;fltFx(e.side,'-'+e.amt,'#ffb066','e-flame',false);sTick();}
     else if(e.k==='pocket'){fltFx(e.side,'-'+e.amt,'#e8c27a','e-bolt',false);logLine('<b class="y">Sticky Paws pockets '+e.amt+' bounty gold</b>','e-bolt','#e8c27a');}
-    else if(e.k==='freeze'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('frz');fltFx(e.side,e.amt+'s','#9ad8ef','e-clock',false);sTick();}
+    else if(e.k==='freeze'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('frz');fltFx(e.side,'Froze '+e.amt+'s','#9ad8ef','e-clock',false);sTick();}
     else if(e.k==='thaw'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.remove('frz');}
     else if(e.k==='crit'){cellFx(e.side,e.i,'fire');logLine('<b class="y">Critical strike</b>','e-blade','#f4cf7c');}
     else if(e.k==='ammo'){if(e.left===0){fltFx(e.side,'empty','#8d7f6c','e-clock',false);logLine('<b class="r">The cannon clicks empty</b>','e-clock','#8d7f6c');}}
-    else if(e.k==='reload'){fltFx(e.side,'reload','#e8c27a','e-bolt',false);}
+    else if(e.k==='reload'){fltFx(e.side,'Reloaded','#e8c27a','e-bolt',false);}
     else if(e.k==='enrage'){cellFx(e.side,e.i,'fire');logLine('<b class="r">The survivors rage: cooldowns cut</b>','e-flame','#ff8d76');}
     else if(e.k==='lot'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('lot');logLine('<b class="y">SOLD: '+esc(e.nm)+'</b> leaves the fight','e-clock','#e8c27a');}
     else if(e.k==='lotpay'){fltFx(e.side,'+'+e.amt+'g','#e8c27a','e-bolt',false);}
