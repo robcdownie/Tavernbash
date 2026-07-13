@@ -15,7 +15,7 @@ import {G,RM,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
 import {ITEMS,RNAME,ENCH,MONSTERS,DISTRICTS,PERSONAS,CATN} from './data.js';
 import {mulberry,gateOK,monsterSide,fightHP} from './engine.js';
 import {genMap,isCombat} from './map.js';
-import {frontier,currentDistrict,visitedSet,nodeOf,validRoute,classifyEdges,fightSeed} from './route.js';
+import {frontier,currentDistrict,visitedSet,validRoute,classifyEdges,fightSeed} from './route.js';
 import {ic} from './art.js';
 import {chooseGild as runtimeChooseGild,chooseUnique as runtimeChooseUnique} from './route-runtime.js';
 import {fxCoinRain} from './fx.js';
@@ -255,7 +255,7 @@ function fightItemBrief(fi){
 }
 /* the scoutable combat read: real health and the exact board (fixed per monster,
    scaled by gild/omen, so the preview matches the fight) plus keywords and bounty */
-function combatPreview(n){
+export function combatPreview(n){
   const M=MONSTERS[n.monId];
   let hp=M.hp,items=[];
   try{
@@ -369,17 +369,6 @@ function ensureRouteObserver(){
   const plot=$('rmplot');if(!plot)return;
   _rmObs=new ResizeObserver(function(){drawConnectors();});
   _rmObs.observe(plot);
-}
-export function renderGateCamp(){
-  const st=routeState();const node=nodeOf(routeMap(),st.pendingId);
-  $('main').className='routemap';
-  $('main').innerHTML='<div class="rmwrap"><div class="rmboard gate">'
-    +ic(MONSTERS[node.monId].glyph,'bigic')
-    +'<div class="rmdname">Gate Camp</div>'
-    +'<p style="text-align:center;margin:6px 0">'+esc(MONSTERS[node.monId].n)+' holds the gate. Resolve '+Math.max(0,st.resolve)+'.</p>'
-    +'<div class="rmpacts"><button class="btn gold" id="gcRetry">Rally and Retry</button></div></div>'
-    +'<div class="rmprev"><div class="rmhint">Rearranging the stall and emergency options arrive with the full Gate Camp.</div></div></div>';
-  const r=$('gcRetry');if(r)r.onclick=function(){B.dispatchRoute({type:'startBossRetry'});};
 }
 export function routeEnd(cause){
   G.phase='routeEnd';B.clearRoute();music(null);

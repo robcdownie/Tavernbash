@@ -8,8 +8,9 @@
    What lives here is only what must survive a reload: identity, the pure
    controller state, and the id counter. The map and fights are regenerated
    from the seed; UI transients (selection, timers, DOM) never belong here. */
-import {initRoute, transition} from './route.js';
-import {TIERCOST} from './data.js';
+import {initRoute, transition, fightSeed} from './route.js';
+import {TIERCOST, ITEMS} from './data.js';
+import {mulberry, gateOK} from './engine.js';
 
 export const SCHEMA_VERSION = 2;
 
@@ -63,8 +64,74 @@ export function newRun(setup){
        pendingChoice holds an owed, interrupted choice so resume reopens it. */
     receipts: {},
     pendingChoice: null,
+    /* Gate Camp (R5): camp holds the current boss gate's Quartermaster stock and
+       per-gate flags; lastReserveUsed is the run-wide once-only emergency. camp is
+       null except while stalled at a boss gate. */
+    camp: null,
+    lastReserveUsed: false,
     ids: {nextItem: 1}
   };
+}
+
+/* ============ GATE CAMP ============ */
+/* tuning (Codex-designed 2026-07-13): Mend trades a little gold for a small
+   Resolve top-up once per gate; Last Reserve trades permanent survival buffer for
+   one-time Quartermaster credit, once per run. Numbers are a starting point. */
+export const CAMP_MEND = {cost:3, gain:4};
+export const CAMP_LAST_RESERVE = {resolve:6, maxCut:6, credit:6};
+
+/* the Quartermaster stock for a boss gate: three tier-gated Bronze offers (one
+   offensive, one defensive/sustain, one synergy or forge-completer), rolled once
+   and keyed by the run seed and the boss node so retries and reloads see the same
+   three. Regenerated only when the gate changes. */
+export function campEnsure(run, node, tier){
+  if(run.camp && run.camp.nodeId === node.id) return run.camp;
+  const rng = mulberry(fightSeed(run.seed, node.id, 'camp'));
+  const board = run.economy.board || [];
+  const pool = Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,tier)&&!ITEMS[id].unique&&!ITEMS[id].inc;});
+  const inCats = function(cats){return pool.filter(function(id){return cats.indexOf(ITEMS[id].cat)>=0;});};
+  const off = inCats(['dmg','poison','burn']);
+  const def = inCats(['shield','heal']);
+  /* synergy: a Bronze the player owns exactly two of (a forge-completer), else the
+     player's commonest category, else anything in the pool */
+  let syn = pool.filter(function(id){return board.filter(function(w){return w.id===id&&w.rarity===0;}).length===2;});
+  if(!syn.length){
+    const cc={}; board.forEach(function(w){const c=ITEMS[w.id]&&ITEMS[w.id].cat; if(c)cc[c]=(cc[c]||0)+1;});
+    const top=Object.keys(cc).sort(function(a,b){return cc[b]-cc[a];})[0];
+    syn = top?inCats([top]):pool;
+  }
+  const used={};
+  const take = function(p){const c=p.filter(function(id){return !used[id];});const src=c.length?c:(p.length?p:pool);if(!src.length)return null;const id=src[Math.floor(rng()*src.length)];used[id]=true;return id;};
+  const offers=[];
+  [take(off), take(def), take(syn)].forEach(function(id,i){ if(id) offers.push({id:id, slot:i, bought:false}); });
+  run.camp = {nodeId:node.id, offers:offers, mendUsed:false, credit:0};
+  return run.camp;
+}
+/* leave the gate (boss beaten or run over): drop the stock */
+export function campClear(run){ run.camp = null; }
+/* unspent Quartermaster credit expires the moment a retry begins */
+export function campExpireCredit(run){ if(run.camp) run.camp.credit = 0; }
+
+/* pay a little gold for a small Resolve top-up, once per gate */
+export function campMend(run){
+  const c=run.camp; if(!c||c.mendUsed) return {ok:false, reason:'used'};
+  if(run.economy.gold < CAMP_MEND.cost) return {ok:false, reason:'gold'};
+  run.economy.gold -= CAMP_MEND.cost;
+  run.route.resolve = Math.min(run.route.resolveMax, run.route.resolve + CAMP_MEND.gain);
+  c.mendUsed = true;
+  return {ok:true};
+}
+/* spend permanent survival buffer for one-time camp credit, once per run. Refused
+   if it would not leave the player alive, so it can never be a self-KO. */
+export function campLastReserve(run){
+  if(run.lastReserveUsed) return {ok:false, reason:'used'};
+  if(!run.camp) return {ok:false, reason:'no camp'};
+  if(run.route.resolve <= CAMP_LAST_RESERVE.resolve) return {ok:false, reason:'resolve'};
+  run.route.resolve -= CAMP_LAST_RESERVE.resolve;
+  run.route.resolveMax -= CAMP_LAST_RESERVE.maxCut;
+  run.camp.credit += CAMP_LAST_RESERVE.credit;
+  run.lastReserveUsed = true;
+  return {ok:true};
 }
 
 /* the single durable-id allocator. Owned wares (iid) and shop offers (offerId)
@@ -113,6 +180,8 @@ export function serializeRun(run){
     economy: run.economy,
     receipts: run.receipts || {},
     pendingChoice: run.pendingChoice || null,
+    camp: run.camp || null,
+    lastReserveUsed: !!run.lastReserveUsed,
     ids: {nextItem: (run.ids && run.ids.nextItem) || 1}
   };
 }
@@ -131,6 +200,8 @@ export function reviveRun(d){
     economy: d.economy || newEconomy(),
     receipts: d.receipts || {},
     pendingChoice: d.pendingChoice || null,
+    camp: d.camp || null,
+    lastReserveUsed: !!d.lastReserveUsed,
     ids: {nextItem: (d.ids && d.ids.nextItem) || 1}
   };
 }

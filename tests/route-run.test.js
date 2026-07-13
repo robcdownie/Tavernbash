@@ -1,8 +1,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {SCHEMA_VERSION, newRun, advance, serializeRun, reviveRun, newEconomy, bindEconomy, allocId, ensureIdFloor} from '../src/route-run.js';
+import {SCHEMA_VERSION, newRun, advance, serializeRun, reviveRun, newEconomy, bindEconomy, allocId, ensureIdFloor,
+        campEnsure, campMend, campLastReserve, campClear, campExpireCredit, CAMP_MEND, CAMP_LAST_RESERVE} from '../src/route-run.js';
 import {genMap} from '../src/map.js';
 import {initRoute, transition, validRoute} from '../src/route.js';
+import {ITEMS} from '../src/data.js';
 
 const SEED = 1234567;
 
@@ -55,7 +57,7 @@ test('serialize then revive round-trips the durable fields', () => {
 test('serialize keeps only durable fields (no map, no transients)', () => {
   const run = newRun({seed: SEED});
   const wire = serializeRun(run);
-  assert.deepEqual(Object.keys(wire).sort(), ['economy', 'ids', 'pendingChoice', 'receipts', 'revision', 'route', 'runId', 'schemaVersion', 'seed']);
+  assert.deepEqual(Object.keys(wire).sort(), ['camp', 'economy', 'ids', 'lastReserveUsed', 'pendingChoice', 'receipts', 'revision', 'route', 'runId', 'schemaVersion', 'seed']);
 });
 
 test('newEconomy carries the starting defaults', () => {
@@ -150,4 +152,104 @@ test('revive fills defaults for an older save that omits identity or the id coun
   assert.equal(revived.ids.nextItem, 1);
   assert.equal(typeof revived.runId, 'string');
   assert.ok(revived.runId.length > 0, 'a runId is synthesized from the seed');
+});
+
+/* ============ GATE CAMP ============ */
+const bossNode = (seed) => genMap(seed).districts[0].boss;
+
+test('campEnsure rolls three tier-gated Bronze offers, keyed by seed and node', () => {
+  const run = newRun({seed: SEED});
+  const node = bossNode(SEED);
+  const camp = campEnsure(run, node, 1);
+  assert.equal(camp.nodeId, node.id);
+  assert.equal(camp.offers.length, 3);
+  for (const o of camp.offers) {
+    assert.ok(ITEMS[o.id], 'offer is a real ware');
+    assert.equal(ITEMS[o.id].tier, 1, 'tier-gated to tier 1 at tier 1');
+    assert.ok(!ITEMS[o.id].unique && !ITEMS[o.id].inc);
+    assert.equal(o.bought, false);
+  }
+  assert.equal(camp.mendUsed, false);
+  assert.equal(camp.credit, 0);
+});
+
+test('campEnsure is stable across retries and reloads, regenerates only on a new gate', () => {
+  const run = newRun({seed: SEED});
+  const node = bossNode(SEED);
+  const a = campEnsure(run, node, 1);
+  const b = campEnsure(run, node, 1);
+  assert.equal(a, b, 'same object kept while at the same gate');
+  assert.deepEqual(a.offers.map(o => o.id), b.offers.map(o => o.id));
+  /* a fresh run at the same node gives the same three (deterministic) */
+  const run2 = newRun({seed: SEED});
+  assert.deepEqual(campEnsure(run2, node, 1).offers.map(o => o.id), a.offers.map(o => o.id));
+  /* a different node regenerates */
+  const other = genMap(SEED).districts[1].boss;
+  const c = campEnsure(run, other, 1);
+  assert.equal(c.nodeId, other.id);
+});
+
+test('campMend pays gold for Resolve once per gate, capped at max', () => {
+  const run = newRun({seed: SEED});
+  campEnsure(run, bossNode(SEED), 1);
+  run.economy.gold = 10; run.route.resolve = 20; run.route.resolveMax = 40;
+  const r = campMend(run);
+  assert.ok(r.ok);
+  assert.equal(run.economy.gold, 10 - CAMP_MEND.cost);
+  assert.equal(run.route.resolve, 20 + CAMP_MEND.gain);
+  assert.equal(campMend(run).ok, false, 'once per gate');
+});
+
+test('campMend refuses when gold is short and never exceeds max Resolve', () => {
+  const run = newRun({seed: SEED});
+  campEnsure(run, bossNode(SEED), 1);
+  run.economy.gold = 0;
+  assert.equal(campMend(run).ok, false);
+  run.economy.gold = 5; run.route.resolve = 39; run.route.resolveMax = 40;
+  assert.ok(campMend(run).ok);
+  assert.equal(run.route.resolve, 40, 'capped at max, not 43');
+});
+
+test('campLastReserve trades Resolve and max for credit, once per run, never a self-KO', () => {
+  const run = newRun({seed: SEED});
+  campEnsure(run, bossNode(SEED), 1);
+  run.route.resolve = 30; run.route.resolveMax = 40;
+  const r = campLastReserve(run);
+  assert.ok(r.ok);
+  assert.equal(run.route.resolve, 30 - CAMP_LAST_RESERVE.resolve);
+  assert.equal(run.route.resolveMax, 40 - CAMP_LAST_RESERVE.maxCut);
+  assert.equal(run.camp.credit, CAMP_LAST_RESERVE.credit);
+  assert.equal(run.lastReserveUsed, true);
+  assert.equal(campLastReserve(run).ok, false, 'once per run');
+});
+
+test('campLastReserve is refused when it would not leave the player alive', () => {
+  const run = newRun({seed: SEED});
+  campEnsure(run, bossNode(SEED), 1);
+  run.route.resolve = CAMP_LAST_RESERVE.resolve;   /* exactly the cost */
+  assert.equal(campLastReserve(run).ok, false);
+  assert.equal(run.lastReserveUsed, false, 'a refused use is not spent');
+});
+
+test('campExpireCredit zeroes unspent credit; campClear drops the stock', () => {
+  const run = newRun({seed: SEED});
+  campEnsure(run, bossNode(SEED), 1);
+  run.camp.credit = 5;
+  campExpireCredit(run);
+  assert.equal(run.camp.credit, 0);
+  campClear(run);
+  assert.equal(run.camp, null);
+});
+
+test('camp and lastReserveUsed round-trip through the run codec', () => {
+  const run = newRun({seed: SEED});
+  campEnsure(run, bossNode(SEED), 1);
+  run.camp.mendUsed = true; run.camp.credit = 4; run.lastReserveUsed = true;
+  const revived = reviveRun(serializeRun(run));
+  assert.deepEqual(revived.camp, run.camp);
+  assert.equal(revived.lastReserveUsed, true);
+  /* an older save without the fields revives to clean defaults */
+  const legacy = reviveRun({seed: SEED, route: initRoute(SEED), economy: newEconomy()});
+  assert.equal(legacy.camp, null);
+  assert.equal(legacy.lastReserveUsed, false);
 });

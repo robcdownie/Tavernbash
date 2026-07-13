@@ -7,7 +7,8 @@ import {genMap,MAP_VERSION} from './map.js';
 import {frontier,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
 import {planReward} from './route-rewards.js';
-import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy,allocId,ensureIdFloor} from './route-run.js';
+import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy,allocId,ensureIdFloor,
+        campEnsure,campMend,campLastReserve,campExpireCredit,campClear,CAMP_MEND,CAMP_LAST_RESERVE} from './route-run.js';
 import {rewardKey,settleFixed,refreshPendingChoice,nextPresentation} from './route-runtime.js';
 import {ic} from './art.js';
 import {effChips,wareDetailHTML} from './cards.js';
@@ -17,7 +18,7 @@ import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxTo
 import {initMusic,music,musicMute,sting,musicNow} from './music.js';
 import pkg from '../package.json';
 import {G,setG,RM,setRM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
-import {wireRouteUI,routeMap,routeState,renderRouteMap,renderGateCamp,showFightRecap,
+import {wireRouteUI,routeMap,routeState,renderRouteMap,combatPreview,showFightRecap,
         routeEventCard,openRewardChoice,routeEnd,openRouteContinue,openUniquePick} from './route-ui.js';
 /* ============ SESSION + UI PRIMITIVES ============ */
 /* G (the game aggregate) and RM (reduced-motion) are the shared live singletons
@@ -213,21 +214,27 @@ function renderSheet(){
   };
 }
 function renderDraft(){
+  const camp=G.phase==='gateCamp';
   const slots=4+G.tier,used=usedCells(G.board);
   let h='<div class="stage" id="stage">';
-  G._wfresh=G.shopFresh!==false;G.shopFresh=false;
-  h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
-  h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
-  h+='<div class="controls">'
-    +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'+1 slot &middot; Tier '+(G.tier+1)+' &middot; '+G.tierCost+'g')+'</button>'
-    +'<button class="btn" id="btnRe"'+(G.gold<1?' disabled':'')+'>'+ic('g-coin','bi')+' Reroll 1</button>'
-    +'<button class="btn frz'+(G.frozen?' iceon':'')+'" id="btnFrz">'+ic('e-frost','bi')+' '+(G.frozen?'Frozen':'Freeze')+'</button>'
-  +'</div></div>';
+  if(camp){
+    h+=campTopHTML();
+  }else{
+    G._wfresh=G.shopFresh!==false;G.shopFresh=false;
+    h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
+    h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
+    h+='<div class="controls">'
+      +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'+1 slot &middot; Tier '+(G.tier+1)+' &middot; '+G.tierCost+'g')+'</button>'
+      +'<button class="btn" id="btnRe"'+(G.gold<1?' disabled':'')+'>'+ic('g-coin','bi')+' Reroll 1</button>'
+      +'<button class="btn frz'+(G.frozen?' iceon':'')+'" id="btnFrz">'+ic('e-frost','bi')+' '+(G.frozen?'Frozen':'Freeze')+'</button>'
+    +'</div></div>';
+  }
   h+='</div>';
+  const goHTML=camp?campRetryBtnHTML():('<button class="btn gold tob" id="btnGo">'+ic('g-lantern','bi vsp')+'<span class="tbt"><span class="tbl">'+(G.route.opening?'Set out':'Leave')+'</span><span class="tbn">'+(G.route.opening?'onto the road':'back to the road')+'</span></span></button>');
   h+='<div class="dock"><div class="docktop"><div class="label" style="margin:0">'+(G.dockV?'The Vault':'Your Stall')
    +'<span class="side">'+(G.dockV?'no fights, no forging':(G.swapV!=null?'tap a ware to trade with the vault':used+' / '+slots+' slots'))+'</span></div>'
    +'<button class="btn mini" id="dockFlip">'+(G.dockV?'Stall':'Vault'+(G.vault.length?' ('+G.vault.length+')':''))+'</button>'
-   +'<button class="btn gold tob" id="btnGo">'+ic('g-lantern','bi vsp')+'<span class="tbt"><span class="tbl">'+(G.route.opening?'Set out':'Leave')+'</span><span class="tbn">'+(G.route.opening?'onto the road':'back to the road')+'</span></span></button></div>';
+   +goHTML+'</div>';
   if(G.dockV){
     h+='<div class="vault" id="vlt">'+G.vault.map(function(it,i){
         const d=ITEMS[it.id];
@@ -255,23 +262,132 @@ function renderDraft(){
     const i=+c.dataset.v;if(!G.vault[i])return;
     G.vsel=(G.vsel===i?null:i);G.sel=null;G.shopSel=null;renderDraft();
   };});
-  document.querySelectorAll('.ware').forEach(function(w){
-    w.onclick=function(){selectWare(+w.dataset.w);};
-    w.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();selectWare(+w.dataset.w);}};
-  });
-  const bt=$('btnTier');if(bt)bt.onclick=tierUp;
-  const br=$('btnRe');if(br)br.onclick=reroll;
-  const bf=$('btnFrz');if(bf)bf.onclick=toggleFreeze;
-  const bg=$('btnGo');if(bg)bg.onclick=G.route.opening?leaveOpeningMarket:function(){dispatchRoute({type:'leaveMarket'});};
+  if(camp){
+    document.querySelectorAll('.ware[data-c]').forEach(function(w){
+      w.onclick=function(){campSelectWare(+w.dataset.c);};
+      w.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();campSelectWare(+w.dataset.c);}};
+    });
+    const bm=$('btnMend');if(bm)bm.onclick=campMendClick;
+    const bl=$('btnReserve');if(bl)bl.onclick=campReserveClick;
+    const ci=$('campInspect');if(ci)ci.onclick=campInspect;
+    const bg=$('btnGo');if(bg)bg.onclick=function(){campExpireCredit(G.run);dispatchRoute({type:'startBossRetry'});};
+  }else{
+    document.querySelectorAll('.ware[data-w]').forEach(function(w){
+      w.onclick=function(){selectWare(+w.dataset.w);};
+      w.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();selectWare(+w.dataset.w);}};
+    });
+    const bt=$('btnTier');if(bt)bt.onclick=tierUp;
+    const br=$('btnRe');if(br)br.onclick=reroll;
+    const bf=$('btnFrz');if(bf)bf.onclick=toggleFreeze;
+    const bg=$('btnGo');if(bg)bg.onclick=G.route.opening?leaveOpeningMarket:function(){dispatchRoute({type:'leaveMarket'});};
+  }
   renderSheet();
   snapshotRoute();
+}
+/* ============ THE GATE CAMP (camp-mode draft) ============ */
+/* a lost district boss holds the player at the gate. The camp reuses the draft's
+   board/vault/sheet (reorder, sell, vault all free) and swaps the market top for a
+   three-offer Quartermaster plus Mend and Last Reserve, and the To Battle button
+   for Rally & Retry. Retry itself is free; the boss-loss chip is the real cost, so
+   the loss range is shown. No boss skip. State + tuning live in route-run.js. */
+function campTopHTML(){
+  const st=routeState();const node=nodeOf(routeMap(),st.pendingId);
+  const M=MONSTERS[node.monId];
+  const camp=campEnsure(G.run,node,G.tier);
+  const credit=camp.credit||0;
+  return '<div class="sec secmarket"><div class="label">Gate Camp<span class="side">'+esc(M.n)+' bars the gate</span></div>'
+    +'<button class="campboss" id="campInspect">'+ic(M.glyph,'campbi')
+      +'<span class="campbt"><span class="campbn">'+esc(M.n)+'</span><span class="campbs">Threat '+node.threat+' &middot; tap to scout the board</span></span></button>'
+    +'<div class="label" style="margin-top:9px">Quartermaster'+(credit?'<span class="side">'+credit+' credit</span>':'<span class="side">shore up your board</span>')+'</div>'
+    +'<div class="shop">'+camp.offers.map(function(o,i){return campWareHTML(o,i,credit);}).join('')+'</div>'
+    +'<div class="controls">'
+      +'<button class="btn" id="btnMend"'+((camp.mendUsed||G.gold<CAMP_MEND.cost)?' disabled':'')+'>'+ic('g-heart','bi')+' Mend &middot; '+CAMP_MEND.cost+'g, +'+CAMP_MEND.gain+'</button>'
+      +'<button class="btn" id="btnReserve"'+((G.run.lastReserveUsed||st.resolve<=CAMP_LAST_RESERVE.resolve)?' disabled':'')+'>'+ic('g-skull','bi')+' Last Reserve</button>'
+    +'</div></div>';
+}
+function campRetryBtnHTML(){
+  const st=routeState();const node=nodeOf(routeMap(),st.pendingId);
+  const lo=lossDamage(node,0),hi=lossDamage(node,12);
+  return '<button class="btn gold tob" id="btnGo">'+ic('g-medallion','bi vsp')
+    +'<span class="tbt"><span class="tbl">Rally &amp; Retry</span><span class="tbn">defeat costs '+lo+' to '+hi+' Resolve</span></span></button>';
+}
+function campWareHTML(o,i,credit){
+  const d=ITEMS[o.id];const cost=COST[d.size];
+  const fromGold=cost-Math.min(credit,cost);
+  const can=!o.bought&&(usedCells(G.board)+d.size<=4+G.tier)&&G.gold>=fromGold;
+  let gems='';for(let g=0;g<d.tier;g++){gems+=ic('g-gem');}
+  let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=d.size?'on':'')+'"></i>';}
+  return '<div class="ware'+(o.bought?' gone':(can?'':' cant'))+'" data-c="'+i+'" role="button" tabindex="0" aria-label="'+esc(d.n)+(o.bought?' (bought)':', '+cost+' gold')+'" style="--cat:'+CATC[d.cat]+'">'
+   +'<div class="ph">'+ic('g-'+o.id,'gi')+'<span class="cost">'+ic('g-coin')+'<b>'+(o.bought?'&mdash;':cost)+'</b></span></div>'
+   +'<div class="tg">'+gems+'</div>'
+   +'<div class="wn">'+d.n+'</div>'
+   +'<div class="sz">'+pips+'<span class="szl">'+(d.size===1?'1 slot':d.size+' slots')+'</span></div>'
+   +'<div class="chips">'+effChips(o.id,0)+'</div>'
+   +'<div class="wd">'+esc(d.d)+'</div>'
+  +'</div>';
+}
+function campSelectWare(i){
+  const camp=G.run.camp;if(!camp||G.phase!=='gateCamp')return;
+  const o=camp.offers[i];if(!o||o.bought)return;
+  const d=ITEMS[o.id];const cost=COST[d.size];const credit=camp.credit||0;const fromGold=cost-Math.min(credit,cost);
+  const room=usedCells(G.board)+d.size<=4+G.tier;const afford=G.gold>=fromGold;const can=afford&&room;
+  const why=!afford?'Not enough gold':(!room?'No room on your stall':'');
+  const payLbl=(fromGold<cost)?('Buy &middot; '+(cost-fromGold)+' credit'+(fromGold?' + '+fromGold+'g':'')):'Buy &middot; '+cost+'g';
+  const ov=ovOpen('<div class="card inspectcard"><div class="kick gold">Quartermaster</div>'
+   +'<div class="sheet">'+wareDetailHTML({id:o.id,rarity:0,size:d.size,ench:null})
+   +'<div class="bs"><button class="btn buy'+(can?'':' cant')+'" id="cBuy"'+(can?'':' disabled')+'>'+ic('g-coin','bi')+' '+payLbl+'</button>'
+   +'<button class="btn" id="cClose">Close</button></div>'
+   +(why?'<div class="whyno">'+why+'</div>':'')+'</div></div>');
+  const b=ov.querySelector('#cBuy');if(b)b.onclick=function(){ovClose(ov);campBuy(i);};
+  const c=ov.querySelector('#cClose');if(c)c.onclick=function(){ovClose(ov);};
+  ov.onclick=function(ev){if(ev.target===ov)ovClose(ov);};
+}
+function campBuy(i){
+  if(G.phase!=='gateCamp')return;
+  const camp=G.run.camp;if(!camp)return;
+  const o=camp.offers[i];if(!o||o.bought)return;
+  const d=ITEMS[o.id];const cost=COST[d.size];
+  if(usedCells(G.board)+d.size>4+G.tier){toast('No room on your stall');return;}
+  const credit=camp.credit||0;const fromCredit=Math.min(credit,cost);const fromGold=cost-fromCredit;
+  if(G.gold<fromGold){toast('Not enough gold');return;}
+  camp.credit=credit-fromCredit;G.gold-=fromGold;o.bought=true;sCoin();
+  G.board.push(mkWare(o.id,0));
+  const forged=fuseStamp(G.board);fuseWithVault();
+  if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();sting('forgesting');}
+  else{toast(d.n+' joins your stall.');}
+  renderDraft();
+}
+function campMendClick(){
+  const r=campMend(G.run);
+  if(!r.ok){toast(r.reason==='gold'?'Not enough gold to Mend.':'Already mended at this gate.');return;}
+  toast('Mended. +'+CAMP_MEND.gain+' Resolve.');
+  renderRibbon();renderDraft();
+}
+function campReserveClick(){
+  const st=routeState();
+  if(G.run.lastReserveUsed){toast('The Last Reserve is spent for this run.');return;}
+  if(st.resolve<=CAMP_LAST_RESERVE.resolve){toast('Too little Resolve to risk the Last Reserve.');return;}
+  const ov=ovOpen('<div class="card"><div class="rays red"></div><div class="kick">Last Reserve</div>'
+   +ic('g-skull','bigic skullic')+'<h2 class="big" style="font-size:21px">Spend the Reserve?</h2>'
+   +'<p>Lose '+CAMP_LAST_RESERVE.resolve+' Resolve now and '+CAMP_LAST_RESERVE.maxCut+' maximum Resolve for the rest of the run, for '+CAMP_LAST_RESERVE.credit+' Quartermaster credit. Once per run. The boss must still fall.</p>'
+   +'<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
+   +'<button class="btn gold" id="lrGo">Spend it</button><button class="btn" id="lrNo">Keep it</button></div></div>');
+  ov.querySelector('#lrGo').onclick=function(){const r=campLastReserve(G.run);ovClose(ov);if(r.ok){toast(CAMP_LAST_RESERVE.credit+' credit at the Quartermaster.');renderRibbon();renderDraft();}};
+  ov.querySelector('#lrNo').onclick=function(){ovClose(ov);};
+}
+function campInspect(){
+  const st=routeState();const node=nodeOf(routeMap(),st.pendingId);
+  const ov=ovOpen('<div class="card inspectcard"><div class="kick gold">'+esc(MONSTERS[node.monId].n)+'</div>'
+   +'<div class="sheet">'+combatPreview(node)+'</div>'
+   +'<button class="btn gold" id="ciClose" style="width:100%;margin-top:12px">Back to camp</button></div>');
+  ov.querySelector('#ciClose').onclick=function(){ovClose(ov);};
+  ov.onclick=function(ev){if(ev.target===ov)ovClose(ov);};
 }
 function renderAll(){
   document.body.classList.add('run','route');document.body.classList.toggle('fight',G.phase==='fight');
   renderRibbon();renderAno();renderTrow();
   if(G.phase==='routeMap')renderRouteMap();
-  else if(G.phase==='draft')renderDraft();
-  else if(G.phase==='gateCamp')renderGateCamp();
+  else if(G.phase==='draft'||G.phase==='gateCamp')renderDraft();   /* the Gate Camp is a camp-mode draft */
 }
 /* ============ THE VOICE: your hero watches you play ============ */
 function bark(ev,always){
@@ -732,6 +848,7 @@ function settleRouteReward(e){
     bark('win');
   }
   G.route.combat=null;
+  if(G.run.camp&&G.run.camp.nodeId===e.nodeId)campClear(G.run);   /* boss felled: strike the gate camp */
   /* write-ahead: economy + receipt + pendingChoice saved before any overlay. If
      the save fails the reward stays correct (a later crash re-settles from the
      clean pre-reward snapshot, and the receipt keeps it exactly once), so we block
@@ -791,6 +908,7 @@ function snapshotRoute(){
         shop:E.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null,offerId:w.offerId};}),
         trinkets:E.trinkets.map(function(t){return t.id;})},
       receipts:G.run.receipts||{},pendingChoice:G.run.pendingChoice||null,
+      camp:G.run.camp||null,lastReserveUsed:!!G.run.lastReserveUsed,
       ids:{nextItem:G.run.ids.nextItem}},
     setup:{hero:G.hero||null,anom:G.anom.id,tags:G.tags.slice()},
     fightN:G.fightN,
