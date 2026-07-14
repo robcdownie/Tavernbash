@@ -61,11 +61,11 @@ export const ITEMS={
    d:"Boss bounty. Sold: the finest enemy ware, out of the fight."},
  /* R8 weapon and item-destruction bridges. Each ware is unique so the
     original shop, rival generation, and combat parity remain untouched. */
- viperverdict:{n:"Viper's Verdict",size:2,tier:3,cat:"dmg",cd:4.5,fx:{dmg:16},unique:true,
+ viperverdict:{n:"Viper's Verdict",size:2,tier:3,cat:"dmg",cd:4.5,fx:{dmg:16},unique:true,acquisition:"treasure",
    hooks:[{on:"beforeHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"item"}],
      actions:[{op:"modifyContact",add:{from:"status",side:"enemy",status:"pois",divide:4,floor:true,max:8}}]}],
    d:"Deal 16. Item hits gain +1 damage per 4 enemy poison, up to +8."},
- cinderhook:{n:"Cinderhook Falchion",size:2,tier:3,cat:"dmg",cd:4,fx:{dmg:14},unique:true,
+ cinderhook:{n:"Cinderhook Falchion",size:2,tier:3,cat:"dmg",cd:4,fx:{dmg:14},unique:true,acquisition:"treasure",
    hooks:[{on:"afterHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"item"},
      {test:"destroyed"},{test:"contextAtLeast",key:"overkill",value:1},
      {test:"statusAtLeast",side:"enemy",status:"burn",value:1}],actions:[
@@ -73,25 +73,56 @@ export const ITEMS={
        {op:"consumeStatus",side:"enemy",status:"burn",amount:1}
      ]}],
    d:"Deal 14. Against a burning foe, 35% of item overkill hits the merchant and consumes 1 burn."},
- brassreclaimer:{n:"Brass Reclaimer",size:3,tier:3,cat:"dmg",cd:5.5,fx:{dmg:30},unique:true,
+ brassreclaimer:{n:"Brass Reclaimer",size:3,tier:3,cat:"dmg",cd:5.5,fx:{dmg:30},unique:true,acquisition:"treasure",
    hooks:[{on:"afterHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"item"},
      {test:"destroyed"},{test:"contextAtLeast",key:"overkill",value:1}],actions:[
        {op:"shield",side:"owner",amount:{from:"context",key:"overkill",multiply:0.5,round:true},
         capPerRoot:15,capKey:"reclaimerShield"}
      ]}],
    d:"Deal 30. Item overkill becomes 50% shield, up to 15 per activation."},
- surgeonhook:{n:"Surgeon's Hook",size:1,tier:2,cat:"dmg",cd:3.5,fx:{dmg:7},unique:true,
+ surgeonhook:{n:"Surgeon's Hook",size:1,tier:2,cat:"dmg",cd:3.5,fx:{dmg:7},unique:true,acquisition:"treasure",
    hooks:[{on:"afterActivate",when:[{test:"actorIsSource"},{test:"healedWithin",side:"enemy",ms:3000}],
      actions:[{op:"timedDebuff",side:"enemy",id:"wound",duration:4,modifiers:{healReceivedMul:0.75}}]}],
    d:"Deal 7. A foe healed in the last 3 seconds is Wounded for 4 seconds and receives 25% less healing."},
- sapperspick:{n:"Sapper's Pick",size:1,tier:2,cat:"dmg",cd:3,fx:{dmg:6},unique:true,
+ sapperspick:{n:"Sapper's Pick",size:1,tier:2,cat:"dmg",cd:3,fx:{dmg:6},unique:true,acquisition:"treasure",
    hooks:[
      {on:"beforeHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"merchant"}],
       actions:[{op:"modifyContact",shieldPierce:0.5}]},
      {on:"afterHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"merchant"},
       {test:"contextAtLeast",key:"shieldAbsorbed",value:1}],actions:[{op:"haste",target:"self",amount:0.4}]}
    ],
-   d:"Deal 6. Half its merchant damage bypasses shield. Damaging shield charges it 0.4 seconds."}
+   d:"Deal 6. Half its merchant damage bypasses shield. Damaging shield charges it 0.4 seconds."},
+ blacklotuspress:{n:"Black Lotus Press",size:2,tier:3,cat:"poison",cd:0,fx:{},unique:true,acquisition:"treasure",
+   hooks:[
+     {on:"afterActivate",when:[{test:"actorNotSource"},{test:"actorCategory",value:"poison"}],actions:[
+       {op:"haste",target:{side:"owner",category:"dmg",active:true},amount:0.25}
+     ]},
+     {on:"afterActivate",every:4,when:[{test:"actorNotSource"},{test:"actorCategory",value:"poison"}],actions:[
+       {op:"poison",targetSide:"enemy",amount:{from:"sourceRarity",values:[1,2,2,3]}}
+     ]}
+   ],
+   d:"Other poison activations charge your leftmost weapon 0.25 seconds. Every fourth also applies 1 poison."},
+ serpentsdue:{n:"Serpent's Due",size:3,tier:4,cat:"poison",cd:5.5,fx:{poison:5},unique:true,acquisition:"treasure",
+   hooks:[{on:"afterActivate",when:[{test:"actorIsSource"},{test:"statusAtLeast",side:"enemy",status:"pois",value:20}],actions:[
+     {op:"damage",targetSide:"enemy",amount:{from:"sourceRarity",values:[8,12,18,26]},itemOnly:true,overflow:0,crit:0}
+   ]}],
+   d:"Apply 5 poison. At 20 enemy poison, deal 8 damage to its leftmost reachable item."},
+ antidotethief:{n:"Antidote Thief",size:2,tier:3,cat:"poison",cd:5,fx:{poison:3},unique:true,acquisition:"treasure",
+   hooks:[
+     {on:"afterHeal",when:[{test:"eventSideIsEnemy"},{test:"cleansedPoisonAtLeast",value:1}],actions:[
+       {op:"stateAdd",key:"cleansedPoison",amount:{from:"context",key:"cleansedPoison"},max:4}
+     ]},
+     {on:"afterActivate",when:[{test:"actorIsSource"},{test:"stateAtLeast",key:"cleansedPoison",value:1}],actions:[
+       {op:"poison",targetSide:"enemy",amount:{from:"state",key:"cleansedPoison",max:4}},
+       {op:"stateReset",key:"cleansedPoison"}
+     ]}
+   ],
+   d:"Apply 3 poison, plus poison the enemy cleansed since this last activated, up to 4."},
+ venomsiphon:{n:"Venom Siphon",size:1,tier:2,cat:"poison",cd:4,fx:{poison:2},unique:true,acquisition:"treasure",
+   hooks:[{on:"afterActivate",when:[{test:"actorIsSource"},{test:"statusAtLeast",side:"enemy",status:"pois",value:6}],actions:[
+     {op:"heal",side:"owner",amount:{from:"status",side:"enemy",status:"pois",divide:6,floor:true,max:5},quiet:false}
+   ]}],
+   d:"Apply 2 poison, then heal 1 per 6 enemy poison, up to 5."}
 };
 /* ============ HEROES ============ */
 /* Picked at run start. The personal tag weights your shop like a lobby

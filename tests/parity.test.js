@@ -39,6 +39,20 @@ const RENAMED_MONSTERS={
 const RENAMED_TRINKETS={
   venomancer:{n:"Poisonmonger"},
 };
+/* R8 adds hook-driven unique wares without placing them in the legacy shop or
+   rival pools. This ledger pins every approved addition to its version and its
+   concrete route acquisition path. */
+const R8_UNIQUE_WARES={
+  viperverdict:{version:"0.69.0",batch:"weapons",acquisition:"treasure"},
+  cinderhook:{version:"0.69.0",batch:"weapons",acquisition:"treasure"},
+  brassreclaimer:{version:"0.69.0",batch:"weapons",acquisition:"treasure"},
+  surgeonhook:{version:"0.69.0",batch:"weapons",acquisition:"treasure"},
+  sapperspick:{version:"0.69.0",batch:"weapons",acquisition:"treasure"},
+  blacklotuspress:{version:"0.70.0",batch:"poison",acquisition:"treasure"},
+  serpentsdue:{version:"0.70.0",batch:"poison",acquisition:"treasure"},
+  antidotethief:{version:"0.70.0",batch:"poison",acquisition:"treasure"},
+  venomsiphon:{version:"0.70.0",batch:"poison",acquisition:"treasure"},
+};
 
 /* The byte-identical fight-for-fight parity test was retired on 2026-07-12.
    Its job was to prove the module extraction faithfully reproduced the
@@ -61,6 +75,13 @@ test('parity: data tables identical to the original outside the rebalance ledger
     assert.deepEqual(j(ITEMS[k]),expected,'item '+k);
   }
   for(const k of Object.keys(ITEMS)){if(!(k in ORIG.ITEMS))assert.ok(ITEMS[k].unique,'new item '+k+' must be flagged unique');}
+  for(const [id,entry] of Object.entries(R8_UNIQUE_WARES)){
+    assert.ok(ITEMS[id],'R8 ware '+id+' exists');
+    assert.equal(ITEMS[id].unique,true,'R8 ware '+id+' is unique');
+    assert.equal(ITEMS[id].acquisition,entry.acquisition,'R8 ware '+id+' acquisition');
+  }
+  assert.deepEqual(Object.keys(ITEMS).filter(id=>ITEMS[id].acquisition==='treasure').sort(),Object.keys(R8_UNIQUE_WARES).sort(),
+    'every Treasure-only R8 ware has a parity-ledger entry');
   /* Phase 5 adds monsters the original never shipped; every monster the
      original did ship must stay byte-identical outside the rename ledger */
   for(const k of Object.keys(ORIG.MONSTERS)){

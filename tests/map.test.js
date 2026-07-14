@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {genMap, districtPaths, isCombat} from '../src/map.js';
+import {genMap, districtPaths, isCombat, treasureWareIds} from '../src/map.js';
 import {DISTRICTS, MONSTERS, PERSONAS, ITEMS, ENCH} from '../src/data.js';
 
 /* a broad seed spread so the structural rules are proven, not sampled */
@@ -197,7 +197,8 @@ test('every Treasure previews three options; every Negotiation names a persona',
           assert.ok(['gold','ware','enchant','silver'].includes(o.kind),'bad reward kind');
           /* face-up: the ware/enchant options carry a concrete, valid id at gen time */
           if(o.kind==='ware'){
-            assert.ok(o.id&&ITEMS[o.id]&&!ITEMS[o.id].unique&&!ITEMS[o.id].inc,'ware option not face-up at '+n.id);
+            assert.ok(o.id&&ITEMS[o.id]&&!ITEMS[o.id].inc&&(!ITEMS[o.id].unique||ITEMS[o.id].acquisition==='treasure'),
+              'ware option not face-up at '+n.id);
             if(n.district===1)assert.equal(ITEMS[o.id].tier,1,'district I treasure ware over-tier at '+n.id);
           }
           if(o.kind==='enchant')assert.ok(o.ench&&ENCH[o.ench],'enchant option not face-up at '+n.id);
@@ -207,6 +208,13 @@ test('every Treasure previews three options; every Negotiation names a persona',
         assert.ok(Number.isInteger(n.persona)&&PERSONAS[n.persona],'bad persona at '+n.id);
       }
     }
+  }
+});
+
+test('every R8 unique ware has a nonzero face-up Treasure acquisition path',()=>{
+  const dragonGatePool=new Set(treasureWareIds(4));
+  for(const [id,item] of Object.entries(ITEMS)){
+    if(item.acquisition==='treasure')assert.ok(dragonGatePool.has(id),id+' is missing from Dragon Gate Treasure stock');
   }
 });
 

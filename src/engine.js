@@ -4,7 +4,7 @@ import {TICK,RSTAT,RINTEG,BASEINTEG,COST,ANONE,ITEMS,MONSTERS,ENCH} from './data
 export function mulberry(seed){let t=seed>>>0;return function(){t+=0x6D2B79F5;let r=Math.imul(t^t>>>15,1|t);r^=r+Math.imul(r^r>>>7,61|r);return((r^r>>>14)>>>0)/4294967296;};}
 export function fightHP(round,hpFlat,A){return Math.round((90+round*8+(hpFlat||0))*((A||ANONE).hpMul));}
 export function stormAt(round){return Math.max(16,34-round*1.5)*1000;}
-export function gateOK(defTier,yourTier){return defTier===1||(defTier===2&&yourTier>=2)||(defTier===3&&yourTier>=4);}
+export function gateOK(defTier,yourTier){return defTier===1||(defTier===2&&yourTier>=2)||(defTier===3&&yourTier>=4)||(defTier===4&&yourTier>=6);}
 /* ============ ITEM INSTANCES + FUSION ============ */
 let UID=1;
 export function makeItem(id,rarity,ench){return {uid:UID++,id:id,rarity:rarity||0,size:ITEMS[id].size,ench:ench||null};}
@@ -204,7 +204,8 @@ const HOOK_ACTION_POINTS={
 };
 const HOOK_ACTIONS=new Set([
   "activate","burn","consumeStatus","damage","destroy","haste","heal",
-  "merchantHit","modifyContact","poison","shield","spawn","timedDebuff"
+  "merchantHit","modifyContact","poison","shield","spawn","stateAdd",
+  "stateReset","timedDebuff"
 ]);
 
 /* Reject only unconditional immediate cycles. Conditional loops remain legal
@@ -324,6 +325,7 @@ export function createFight(cfg){
     if(!entries.length){return;}
     validateCombatHooks(hookRegistry.map(h=>h.spec).concat(entries.map(h=>h.spec)));
     for(const entry of entries){
+      entry.stateIdentity=entry.side+"|"+entry.kind+"|"+entry.id;
       entry.identity=entry.side+"|"+entry.kind+"|"+entry.id+"|"+entry.declaration+"|"+entry.spec.on;
       hookRegistry.push(entry);hookPoints.add(entry.spec.on);
     }
@@ -368,6 +370,7 @@ export function createFight(cfg){
   }
 
   function sameRef(a,b){return !!a&&!!b&&a.side===b.side&&a.uid===b.uid&&a.slot===b.slot;}
+  function hookStateKey(hook,key){return hook.stateIdentity+"|state|"+key;}
   function hookSide(selector,hook,context){
     if(selector==="a"||selector==="b"){return selector;}
     if(!selector||selector==="owner"){return hook.side;}
@@ -398,6 +401,7 @@ export function createFight(cfg){
     if(test==="statusAtLeast"){
       const side=sideOf(hookSide(condition.side,hook,context));return (side[condition.status]||0)>=condition.value;
     }
+    if(test==="stateAtLeast"){return (hookState.get(hookStateKey(hook,condition.key))||0)>=condition.value;}
     if(test==="contextAtLeast"){return (context[condition.key]||0)>=condition.value;}
     if(test==="healedWithin"){
       const side=sideOf(hookSide(condition.side,hook,context));
@@ -450,6 +454,13 @@ export function createFight(cfg){
     if(value.from==="context"){result=context[value.key]||0;}
     else if(value.from==="status"){
       const side=sideOf(hookSide(value.side,hook,context));result=side[value.status]||0;
+    }else if(value.from==="state"){
+      result=hookState.get(hookStateKey(hook,value.key))||0;
+    }else if(value.from==="sourceRarity"){
+      const item=hook.sourceRef&&(liveItem(hook.sourceRef)||(tombstones.get(sourceKey(hook.sourceRef))||{}).item);
+      const rarity=item?item.rarity||0:0;
+      if(!Array.isArray(value.values)||value.values[rarity]===undefined){throw new Error("missing combat hook rarity value");}
+      result=value.values[rarity];
     }else{throw new Error("unknown combat hook value");}
     if(value.multiply!==undefined){result*=value.multiply;}
     if(value.divide!==undefined){result/=value.divide;}
@@ -489,6 +500,8 @@ export function createFight(cfg){
       action.side=hookSide(action.side||"enemy",hook,context);
     }else if(action.op==="modifyContact"){
       action.context=context;
+    }else if(action.op==="stateAdd"||action.op==="stateReset"){
+      action.stateKey=hookStateKey(hook,action.key);
     }
     return action;
   }
@@ -766,6 +779,13 @@ export function createFight(cfg){
         const side=sideOf(action.side);
         side.debuffs[action.id]={until:F.t+action.duration*1000,modifiers:Object.assign({},action.modifiers)};
       }
+    }else if(action.op==="stateAdd"){
+      if(!action.source||source){
+        const current=hookState.get(action.stateKey)||0;
+        hookState.set(action.stateKey,Math.min(action.max===undefined?Infinity:action.max,current+action.amount));
+      }
+    }else if(action.op==="stateReset"){
+      if(!action.source||source){hookState.set(action.stateKey,0);}
     }else if(action.op==="modifyContact"){
       if(action.add){action.context.damage+=action.add;}
       if(action.mul!==undefined){action.context.damage*=action.mul;}

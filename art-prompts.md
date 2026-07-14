@@ -45,6 +45,10 @@ For monsters swap "item icon" for "monster bust, composed for a circular medalli
 | brassreclaimer.png | a massive brass salvage cleaver with a shield-shaped counterweight and gear teeth |
 | surgeonhook.png | a slim steel surgeon hook with a rose-gold handle and one loop of crimson thread |
 | sapperspick.png | a compact steel sapper pick with brass collars and a scarred wooden haft |
+| blacklotuspress.png | a compact brass alchemical press crushing a black lotus, vivid green venom collecting below |
+| serpentsdue.png | a coiled emerald serpent formed into a heavy ceremonial poison vessel with ruby eyes |
+| antidotethief.png | a nimble brass hand stealing a luminous antidote vial, trailing green droplets |
+| venomsiphon.png | a curved brass siphon drawing luminous green venom into a dark glass flask |
 
 ## Monsters, to public/art/monsters/
 

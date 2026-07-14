@@ -16,7 +16,7 @@ import {DISTRICTS, PERSONAS, ITEMS, ENCH} from './data.js';
 
 /* bump when the generator's output shape or rules change, so a saved run that
    regenerates its map from the seed can reject a stale layout */
-export const MAP_VERSION=3;
+export const MAP_VERSION=4;
 
 export const COMBAT=new Set(['monster','elite','boss']);
 export function isCombat(n){return COMBAT.has(n.type);}
@@ -72,14 +72,20 @@ const COLTYPES={
 
 /* how high a tier a district's free treasure ware may roll, so an early Treasure
    stays district-appropriate rather than handing out a late-game ware */
-const TREASURE_GATE={1:1,2:2,3:4,4:4};
+const TREASURE_GATE={1:1,2:2,3:4,4:6};
+export function treasureWareIds(districtId){
+  const gate=TREASURE_GATE[districtId]||6;
+  return Object.keys(ITEMS).filter(function(id){
+    const item=ITEMS[id];
+    return gateOK(item.tier,gate)&&!item.inc&&(!item.unique||item.acquisition==='treasure');
+  });
+}
 /* roll a face-up Treasure at map generation: the ware option carries a concrete
    ware id and the enchant option a concrete enchant, so the node can be scouted
    and the card shows exactly what it grants instead of a generic "Free Ware". The
    result is stored on the node and consumed as-is on arrival. */
 function rollTreasure(rng,districtId){
-  const gate=TREASURE_GATE[districtId]||4;
-  const wareIds=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,gate)&&!ITEMS[id].unique&&!ITEMS[id].inc;});
+  const wareIds=treasureWareIds(districtId);
   const enchIds=Object.keys(ENCH);
   const concrete=function(o){
     if(o.kind==='ware'&&wareIds.length)return {kind:'ware',id:wareIds[Math.floor(rng()*wareIds.length)]};
