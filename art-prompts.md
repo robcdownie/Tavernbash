@@ -57,6 +57,10 @@ For monsters swap "item icon" for "monster bust, composed for a circular medalli
 | mirrorbastion.png | a tall polished silver mirror-shield in a heavy brass bastion frame |
 | saltward.png | a small carved salt ward tablet bound in brass wire, dusted with white crystals |
 | breakwaterbuckler.png | a round blue-steel buckler embossed with a breaking wave and edged in brass |
+| rosewaterpump.png | an ornate brass hand pump drawing glowing rosewater through a crystal chamber |
+| chirurgeonsscissors.png | fine silver surgical scissors with rose-gold hinges and a loop of clean linen |
+| bloodpricechalice.png | a heavy dark jade chalice filled with luminous crimson liquid, set with brass thorns |
+| mendersbell.png | a small rose-brass mending bell wrapped with linen strips and fine gold thread |
 
 ## Monsters, to public/art/monsters/
 

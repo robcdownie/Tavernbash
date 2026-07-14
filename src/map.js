@@ -16,7 +16,7 @@ import {DISTRICTS, PERSONAS, ITEMS, ENCH} from './data.js';
 
 /* bump when the generator's output shape or rules change, so a saved run that
    regenerates its map from the seed can reject a stale layout */
-export const MAP_VERSION=6;
+export const MAP_VERSION=7;
 
 export const COMBAT=new Set(['monster','elite','boss']);
 export function isCombat(n){return COMBAT.has(n.type);}

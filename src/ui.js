@@ -664,9 +664,11 @@ function handleEvents(F,evs){
   for(let x=0;x<evs.length;x++){
     const e=evs[x];
     if(e.k==='fire'){cellFx(e.side,e.i,'fire');lastFire={side:e.side,i:e.i};}
-    else if(e.k==='chip'){const ig=$('fi-'+e.side+'-'+e.i);if(ig)ig.textContent=e.integ;cellFx(e.side,e.i,'chip');
-      if(lastFire&&lastFire.side!==e.side){streakFx($('fc-'+lastFire.side+'-'+lastFire.i),$('fc-'+e.side+'-'+e.i));}
-      const p=ctrOf($('fc-'+e.side+'-'+e.i));if(p&&!RM)fxHit(p.x,p.y,e.amt);sHit(e.amt);}
+    else if(e.k==='chip'){const ig=$('fi-'+e.side+'-'+e.i);if(ig)ig.textContent=e.integ;
+      if(e.repair){cellFx(e.side,e.i,'fire');}
+      else{cellFx(e.side,e.i,'chip');
+        if(lastFire&&lastFire.side!==e.side){streakFx($('fc-'+lastFire.side+'-'+lastFire.i),$('fc-'+e.side+'-'+e.i));}
+        const p=ctrOf($('fc-'+e.side+'-'+e.i));if(p&&!RM)fxHit(p.x,p.y,e.amt);sHit(e.amt);}}
     else if(e.k==='destroy'){if(G.recap)G.recap[e.side].dead.push(e.nm);const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('dead');logLine('<b class="r">'+esc(e.nm)+'</b> destroyed','e-skull','#ff8d76');const p=ctrOf(c);if(p&&!RM)fxDestroy(p.x,p.y);sDestroy();}
     else if(e.k==='hhit'){
       if(G.recap)G.recap[e.side].wpn+=e.amt;

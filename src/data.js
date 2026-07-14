@@ -210,7 +210,34 @@ export const ITEMS={
        {op:"stateReset",key:"burnCleansed"}
      ]}
    ],
-   d:"Gain 14 shield. Remove up to 2 own burn and gain 4 more shield for each removed."}
+   d:"Gain 14 shield. Remove up to 2 own burn and gain 4 more shield for each removed."},
+ rosewaterpump:{n:"Rosewater Pump",size:2,tier:2,cat:"heal",cd:4.5,fx:{heal:12},unique:true,acquisition:"treasure",
+   hooks:[{on:"afterActivate",when:{test:"actorIsSource"},actions:[
+     {op:"haste",target:{side:"owner",category:"dmg",active:true},amount:0.75}
+   ]}],
+   d:"Heal 12 and charge your leftmost living weapon 0.75 seconds."},
+ chirurgeonsscissors:{n:"Chirurgeon's Scissors",size:1,tier:2,cat:"heal",cd:3.5,fx:{heal:7},cleanseTotal:2,unique:true,acquisition:"treasure",
+   hooks:[
+     {on:"afterCleanse",when:[{test:"actorIsSource"},{test:"contextAtLeast",key:"cleansedTotal",value:1}],actions:[
+       {op:"stateSet",key:"nextOtherHeal",value:{from:"sourceRarity",values:[3,5,7,10]}}
+     ]},
+     {on:"beforeHeal",allowDead:true,when:[{test:"actorSideIsOwner"},{test:"actorNotSource"},
+       {test:"stateAtLeast",key:"nextOtherHeal",value:1}],actions:[
+       {op:"modifyHeal",source:"actor",add:{from:"state",key:"nextOtherHeal"}},
+       {op:"stateReset",source:"actor",key:"nextOtherHeal"}
+     ]}
+   ],
+   d:"Heal 7 and cleanse 2 from the larger status. A cleanse adds 3 to the next other item heal."},
+ bloodpricechalice:{n:"Blood Price Chalice",size:3,tier:4,cat:"heal",cd:6,fx:{heal:24},unique:true,acquisition:"treasure",
+   hooks:[{on:"afterHeal",when:[{test:"actorIsSource"},{test:"contextAtLeast",key:"overheal",value:1}],actions:[
+     {op:"shield",side:"owner",amount:{from:"context",key:"overheal",multiply:0.75,round:true,max:18}}
+   ]}],
+   d:"Heal 24. Convert 75% of overhealing into shield, up to 18 per activation."},
+ mendersbell:{n:"Mender's Bell",size:2,tier:3,cat:"heal",cd:0,fx:{},unique:true,acquisition:"treasure",
+   hooks:[{on:"afterActivate",every:3,when:[{test:"actorSideIsOwner"},{test:"actorNotSource"},{test:"actorCategory",value:"heal"}],actions:[
+     {op:"repair",target:{side:"owner",position:"lowestIntegrity",excludeSelf:true},amount:{from:"sourceRarity",values:[10,15,23,33]}}
+   ]}],
+   d:"Every third other heal activation repairs 10 Integrity to your lowest-Integrity living ware."}
 };
 /* ============ HEROES ============ */
 /* Picked at run start. The personal tag weights your shop like a lobby
