@@ -10,8 +10,10 @@
      node scripts/route-sim.js ab         A/B tuning comparison table
      node scripts/route-sim.js 1200       set the seed count
 
-   The player is modelled, not hand-played: a board is rebuilt at each market/camp
-   from the gold invested so far (genRival scaled to that budget). FRESH fight
+   The player is modelled, not hand-played: a FUSION-AWARE board is rebuilt at each
+   market/camp from the gold invested so far - it commits to a few ware lines and
+   spends the budget the way fusing does (Silver/Gold/Diamond), matching real games
+   where people win at tier 1-5 with fused boards, not by maxing tier. FRESH fight
    items are built every battle (playerFightItems), exactly as the game does, so
    combat never carries damage/ammo/timers between fights. The policy walks a
    seeded-random frontier node each step (so it samples both Dragon Gate elites
@@ -27,8 +29,8 @@
    genRival board already always has damage, so the sim cannot see that change. */
 import {genMap} from '../src/map.js';
 import {initRoute, transition, frontier, nodeOf, currentDistrict, BASE_GOLD} from '../src/route.js';
-import {createFight, runHeadless, monsterSide, genRival, playerFightItems, fightHP, stormAt, mulberry} from '../src/engine.js';
-import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, ANONE, COST, TIERCOST} from '../src/data.js';
+import {createFight, runHeadless, monsterSide, playerFightItems, makeItem, usedCells, gateOK, fuseScan, fightHP, stormAt, mulberry} from '../src/engine.js';
+import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, ANONE, COST, TIERCOST, RSTAT} from '../src/data.js';
 import {planReward} from '../src/route-rewards.js';
 
 const args = process.argv.slice(2);
@@ -50,9 +52,51 @@ const pct = x => (100 * x).toFixed(1) + '%';
 const f1 = x => x.toFixed(1);
 const pad = (s, n) => (String(s) + ' '.repeat(n)).slice(0, n);
 
-/* ---- the player board model: genRival scaled to invested gold ---- */
-function synthRound(invested) { return Math.max(1, Math.min(12, Math.round((invested - 2) / 6))); }
-function buildBoard(invested, rng, persona) { return genRival(synthRound(invested), persona, rng, A); }
+/* ---- the player board model: FUSION-AWARE. Slots and the item pool come from
+   the simulated tier (4+tier slots, gateOK gating); the budget is gold invested in
+   the board. It buys wares one at a time (weighted toward the persona's archetype
+   and, crucially, toward wares it already owns so triples complete) and runs the
+   real fuseScan after each buy, so budget concentrates into Silver/Gold/Diamond
+   exactly as real play does, instead of spreading thin across bronze slots. Real
+   games showed fusion, not tier, is the economy: people win at tier 1-5 with fused
+   boards, so this replaces the old genRival stand-in that maxed tier and never
+   fused. ---- */
+/* bronze copies needed to hold a ware at rarity 0..3 (3 bronze -> silver, 2 silver
+   -> gold, 2 gold -> diamond, per the engine's fuseNeed) */
+const COPIES_FOR = [1, 3, 6, 12];
+function buildBoard(tier, budget, rng, persona) {
+  const slots = 4 + tier;
+  const pool = Object.keys(ITEMS).filter(id => gateOK(ITEMS[id].tier, tier) && !ITEMS[id].unique && !ITEMS[id].inc);
+  if (!pool.length) return { items: [], board: [] };
+  /* commit to a few LINES (a real build), persona-weighted, cheap size-1 wares
+     favoured because they fuse readily. Then spend the budget the way fusing spends
+     it: seed each line at Bronze, then greedily buy the cheapest rarity upgrade
+     (fuseNeed copies), so gold concentrates into Silver/Gold/Diamond rather than a
+     wide bronze board. makeItem(id, rarity) is the fused result, so no fuseScan. */
+  const wOf = id => { const d = ITEMS[id]; let w = d.tier === 1 ? 8 : (d.tier === 2 ? 7 : 6); if (d.cat === persona.arch) w *= 3.5; if (d.cat === 'util' && persona.arch !== 'util') w *= 0.3; if (d.size === 1) w *= 1.8; return w; };
+  const nLines = Math.min(slots, Math.max(3, 3 + Math.floor(tier / 2)));
+  const avail = pool.slice(), lines = [];
+  for (let k = 0; k < nLines && avail.length; k++) {
+    let tot = 0; const ws = avail.map(id => { const w = wOf(id); tot += w; return w; });
+    let roll = rng() * tot, idx = 0;
+    for (let i = 0; i < avail.length; i++) { roll -= ws[i]; if (roll <= 0) { idx = i; break; } }
+    lines.push(avail[idx]); avail.splice(idx, 1);
+  }
+  const board = []; let b = budget;
+  for (const id of lines) { const sz = ITEMS[id].size; if (usedCells(board) + sz <= slots && b >= COST[sz]) { board.push(makeItem(id, 0)); b -= COST[sz]; } }
+  let guard = 0;
+  while (guard++ < 300) {
+    let best = null, bestCost = Infinity;
+    for (const w of board) { if (w.rarity >= 3) continue; const c = (COPIES_FOR[w.rarity + 1] - COPIES_FOR[w.rarity]) * COST[w.size]; if (c <= b && c < bestCost) { bestCost = c; best = w; } }
+    if (!best) break;
+    best.rarity++; b -= bestCost;
+  }
+  return { items: playerFightItems(board, {}, A, 1), board: board };
+}
+/* the gold a tier-up costs under a cfg (T6 tunable, plus an all-tier nudge) */
+function tierCost(nextTier, cfg) { return (nextTier === 6 ? (cfg.tier6Cost || TIERCOST[6]) : TIERCOST[nextTier]) + (cfg.tierCostAdj || 0); }
+/* how rich a board ended up: the best rarity present (0 bronze .. 3 diamond) */
+function topRarity(board) { return board.board.reduce((m, w) => Math.max(m, w.rarity), 0); }
 
 /* ---- one fight, headless, with FRESH fight items (as the game rebuilds them) ---- */
 function simFight(board, node, gold, seed) {
@@ -74,7 +118,7 @@ function simRun(seed, cfg) {
   if (cfg.startResolve !== 40) { st.resolve = cfg.startResolve; st.resolveMax = cfg.startResolve; }
   let gold = 6, invested = 0, tier = 1, lastReserveUsed = false, mendGate = null, mendUsed = false;
   invested += 6; gold = 0;             /* opening stall: the six starting gold */
-  let board = buildBoard(invested, rng, persona);
+  let board = buildBoard(tier, invested, rng, persona);
   const m = { fights: [], retries: 0, goldEarned: 0, goldSpent: 6, minResolve: st.resolveMax, tierMax: 1 };
 
   let guard = 0;
@@ -99,13 +143,16 @@ function simRun(seed, cfg) {
       const node = nodeOf(map, st.pendingId);
       const plan = planReward(MONSTERS[node.monId].bounty || {}, { baseGold: BASE_GOLD[node.type], gilded: !!node.gilded, enteredGold: gold, pocketed: 0, minGold: 0, board: board.board });
       gold += plan.gold; m.goldEarned += plan.gold;
-      if (plan.items && plan.items.length) { plan.items.forEach(id => { invested += COST[ITEMS[id].size] || 2; }); board = buildBoard(invested, rng, persona); }
+      if (plan.items && plan.items.length) { plan.items.forEach(id => { invested += COST[ITEMS[id].size] || 2; }); board = buildBoard(tier, invested, rng, persona); }
       st = transition(st, map, { type: 'settleReward' }).state;
     } else if (st.phase === 'market') {
-      while (tier < 6 && gold >= TIERCOST[tier + 1]) { gold -= TIERCOST[tier + 1]; m.goldSpent += TIERCOST[tier + 1]; tier++; }
+      /* fusion-first: tier up only toward a district-appropriate cap (players win
+         at tier 1-5, not by maxing), reserving gold so the board keeps fusing */
+      const cap = Math.min(6, currentDistrict(st, map) + 2);
+      while (tier < cap && gold >= tierCost(tier + 1, cfg) + 2) { const tc = tierCost(tier + 1, cfg); gold -= tc; m.goldSpent += tc; tier++; }
       const spend = Math.max(0, gold - 2); gold -= spend; invested += spend; m.goldSpent += spend;
       if (tier > m.tierMax) m.tierMax = tier;
-      board = buildBoard(invested, rng, persona);
+      board = buildBoard(tier, invested, rng, persona);
       st = transition(st, map, { type: 'leaveMarket' }).state;
     } else if (st.phase === 'event') {
       const node = nodeOf(map, st.pendingId); let delta = 0;
@@ -121,7 +168,7 @@ function simRun(seed, cfg) {
       if (!lastReserveUsed && st.resolve > 6 && st.resolve <= 16) { st.resolve -= 6; st.resolveMax -= 6; invested += 6; lastReserveUsed = true; }
       if (!mendUsed && gold >= 3 && st.resolve < st.resolveMax) { gold -= 3; m.goldSpent += 3; st.resolve = Math.min(st.resolveMax, st.resolve + 4); mendUsed = true; }
       const spend = Math.max(0, gold - 1); gold -= spend; invested += spend; m.goldSpent += spend;
-      board = buildBoard(invested, rng, persona);
+      board = buildBoard(tier, invested, rng, persona);
       st = transition(st, map, { type: 'startBossRetry' }).state;
     } else break;
   }
@@ -131,8 +178,11 @@ function simRun(seed, cfg) {
   m.resolveEnd = st.resolve;
   m.path = st.path.length;
   m.goldHeld = gold;
+  m.tierEnd = tier;
+  m.topRarity = topRarity(board);
   return m;
 }
+const RARITY_NAME = ['Bronze', 'Silver', 'Gold', 'Diamond'];
 
 function runBatch(cfg) {
   const c = Object.assign({}, DEFAULT_CFG, cfg);
@@ -164,8 +214,10 @@ function detailed(runs) {
   console.log('\nRESOLVE (' + med(runs.map(r => r.resolveEnd + 0)) + ' end on clears; 40 start)');
   console.log('  final on a clear      median ' + med(wins.map(r => r.resolveEnd)) + '   min-ever median ' + med(wins.map(r => r.minResolve)));
   console.log('  at death              median ' + med(runs.filter(r => r.result === 'lost').map(r => r.minResolve)));
-  console.log('\nGOLD + TIER');
-  console.log('  earned median ' + med(runs.map(r => r.goldEarned)) + '   spent median ' + med(runs.map(r => r.goldSpent)) + '   held median ' + med(runs.map(r => r.goldHeld)) + '   tier median ' + med(runs.map(r => r.tierMax)));
+  console.log('\nGOLD + TIER + FUSION');
+  console.log('  earned median ' + med(runs.map(r => r.goldEarned)) + '   spent median ' + med(runs.map(r => r.goldSpent)) + '   held median ' + med(runs.map(r => r.goldHeld)));
+  console.log('  end tier median ' + med(runs.map(r => r.tierEnd)) + '   distribution ' + [1, 2, 3, 4, 5, 6].map(t => 't' + t + ' ' + pct(runs.filter(r => r.tierEnd === t).length / RUNS)).join(' '));
+  console.log('  best rarity on the final board ' + RARITY_NAME.map((n, r) => n + ' ' + pct(runs.filter(x => x.topRarity === r).length / RUNS)).join('  '));
   console.log('\nFIRST-ATTEMPT WIN RATE by band');
   for (const d of DISTRICTS) console.log('  ' + pad(d.name, 16) + pct(bandWin(runs, d.id)));
   console.log('\nFIRST-ATTEMPT WIN RATE by key encounter');
