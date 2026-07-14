@@ -1,6 +1,7 @@
 "use strict";
 import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,ANONE,
-        ITEMS,TRINKETS,ANOMALIES,MONSTERS,ENCH,ENCH_CHANCE,ENCH_PREMIUM,HEROES} from './data.js';
+        ITEMS,TRINKETS,ANOMALIES,MONSTERS,ENCH,ENCH_CHANCE,ENCH_PREMIUM,HEROES,
+        shopTagWeight,canSpendGold,heroCreditLimit} from './data.js';
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,usedCells,
         playerFightItems,monsterSide,createFight,boardRegen} from './engine.js';
 import {genMap,MAP_VERSION} from './map.js';
@@ -99,10 +100,12 @@ function renderAno(){$('anobar').innerHTML='';}
 function renderTrow(){$('trow').innerHTML='';}
 function renderRibbon(){
   const st=routeState();const H=heroOf();
+  const debt=G.gold<0&&H&&H.mod&&H.mod.rerollBlockedInDebt?-G.gold:0;
   $('ribbon').innerHTML=
     '<div class="heroP">'+ic(H?H.g:'p-0','hpv')+'</div>'
    +'<div class="chip hp"><span class="lab">Resolve</span><span class="val">'+ic('g-heart','ci')+Math.max(0,st.resolve)+'</span></div>'
    +'<div class="chip gold"><span class="lab">Gold</span><span class="val">'+ic('g-coin','ci')+G.gold+'</span></div>'
+   +(debt?'<div class="chip"><span class="lab">Debt due next reward</span><span class="val">'+debt+'g</span><span class="lab2">No rerolls. Unpaid debt costs '+H.mod.debtLobbyDamage+' Resolve per gold.</span></div>':'')
    +'<div class="chip"><span class="lab">Tier</span><span class="val">'+ic('g-gem','ci')+G.tier+'</span></div>'
    +'<button class="chip act grow" id="chipAno"><span class="lab">Omen</span><span class="lab2">'+G.anom.n+'</span></button>'
    +(G.trinkets.length?'<button class="chip act" id="chipTrk"><span class="lab">Charms</span><span class="val">'+G.trinkets.map(function(t){return ic(t.g,'ci');}).join('')+'</span></button>':'');
@@ -127,7 +130,7 @@ function openTrkInfo(){
 function wareHTML(w,i){
   const d=ITEMS[w.id];
   const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
-  const can=!w.bought&&(w.free||G.gold>=cost)&&(usedCells(G.board)+d.size<=4+G.tier);
+  const can=!w.bought&&(w.free||canSpend(cost))&&(usedCells(G.board)+d.size<=4+G.tier);
   const own=G.board.filter(function(x){return x.id===w.id&&x.rarity===0;}).length
     +G.vault.filter(function(x){return x.id===w.id&&x.rarity===0;}).length;
   const trip=own>=2&&!w.bought;
@@ -224,8 +227,8 @@ function renderDraft(){
     h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
     h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
     h+='<div class="controls">'
-      +'<button class="btn" id="btnTier"'+((G.tier>=6||G.gold<G.tierCost)?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'+1 slot &middot; Tier '+(G.tier+1)+' &middot; '+G.tierCost+'g')+'</button>'
-      +'<button class="btn" id="btnRe"'+(G.gold<1?' disabled':'')+'>'+ic('g-coin','bi')+' Reroll 1</button>'
+      +'<button class="btn" id="btnTier"'+((G.tier>=6||!canSpend(G.tierCost))?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'+1 slot &middot; Tier '+(G.tier+1)+' &middot; '+G.tierCost+'g')+'</button>'
+      +'<button class="btn" id="btnRe"'+(rerollAllowed()?'':' disabled')+'>'+ic('g-coin','bi')+' Reroll 1</button>'
       +'<button class="btn frz'+(G.frozen?' iceon':'')+'" id="btnFrz">'+ic('e-frost','bi')+' '+(G.frozen?'Frozen':'Freeze')+'</button>'
     +'</div></div>';
   }
@@ -301,7 +304,7 @@ function campTopHTML(){
     +'<div class="label" style="margin-top:9px">Quartermaster'+(credit?'<span class="side">'+credit+' credit</span>':'<span class="side">shore up your board</span>')+'</div>'
     +'<div class="shop">'+camp.offers.map(function(o,i){return campWareHTML(o,i,credit);}).join('')+'</div>'
     +'<div class="controls">'
-      +'<button class="btn" id="btnMend"'+((camp.mendUsed||G.gold<CAMP_MEND.cost)?' disabled':'')+'>'+ic('g-heart','bi')+' Mend &middot; '+CAMP_MEND.cost+'g, +'+CAMP_MEND.gain+'</button>'
+      +'<button class="btn" id="btnMend"'+((camp.mendUsed||!canSpend(CAMP_MEND.cost))?' disabled':'')+'>'+ic('g-heart','bi')+' Mend &middot; '+CAMP_MEND.cost+'g, +'+CAMP_MEND.gain+'</button>'
       +'<button class="btn" id="btnReserve"'+((G.run.lastReserveUsed||st.resolve<=CAMP_LAST_RESERVE.resolve)?' disabled':'')+'>'+ic('g-skull','bi')+' Last Reserve</button>'
     +'</div></div>';
 }
@@ -314,7 +317,7 @@ function campRetryBtnHTML(){
 function campWareHTML(o,i,credit){
   const d=ITEMS[o.id];const cost=COST[d.size];
   const fromGold=cost-Math.min(credit,cost);
-  const can=!o.bought&&(usedCells(G.board)+d.size<=4+G.tier)&&G.gold>=fromGold;
+  const can=!o.bought&&(usedCells(G.board)+d.size<=4+G.tier)&&canSpend(fromGold);
   let gems='';for(let g=0;g<d.tier;g++){gems+=ic('g-gem');}
   let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=d.size?'on':'')+'"></i>';}
   return '<div class="ware'+(o.bought?' gone':(can?'':' cant'))+'" data-c="'+i+'" role="button" tabindex="0" aria-label="'+esc(d.n)+(o.bought?' (bought)':', '+cost+' gold')+'" style="--cat:'+CATC[d.cat]+'">'
@@ -330,7 +333,7 @@ function campSelectWare(i){
   const camp=G.run.camp;if(!camp||G.phase!=='gateCamp')return;
   const o=camp.offers[i];if(!o||o.bought)return;
   const d=ITEMS[o.id];const cost=COST[d.size];const credit=camp.credit||0;const fromGold=cost-Math.min(credit,cost);
-  const room=usedCells(G.board)+d.size<=4+G.tier;const afford=G.gold>=fromGold;const can=afford&&room;
+  const room=usedCells(G.board)+d.size<=4+G.tier;const afford=canSpend(fromGold);const can=afford&&room;
   const why=!afford?'Not enough gold':(!room?'No room on your stall':'');
   const payLbl=(fromGold<cost)?('Buy &middot; '+(cost-fromGold)+' credit'+(fromGold?' + '+fromGold+'g':'')):'Buy &middot; '+cost+'g';
   const ov=ovOpen('<div class="card inspectcard"><div class="kick gold">Quartermaster</div>'
@@ -349,7 +352,7 @@ function campBuy(i){
   const d=ITEMS[o.id];const cost=COST[d.size];
   if(usedCells(G.board)+d.size>4+G.tier){toast('No room on your stall');return;}
   const credit=camp.credit||0;const fromCredit=Math.min(credit,cost);const fromGold=cost-fromCredit;
-  if(G.gold<fromGold){toast('Not enough gold');return;}
+  if(!canSpend(fromGold)){toast('Not enough gold');return;}
   camp.credit=credit-fromCredit;G.gold-=fromGold;o.bought=true;sCoin();
   G.board.push(mkWare(o.id,0));
   const forged=fuseStamp(G.board);fuseWithVault();
@@ -358,7 +361,7 @@ function campBuy(i){
   renderDraft();
 }
 function campMendClick(){
-  const r=campMend(G.run);
+  const r=campMend(G.run,heroCreditLimit(heroOf()));
   if(!r.ok){toast(r.reason==='gold'?'Not enough gold to Mend.':'Already mended at this gate.');return;}
   toast('Mended. +'+CAMP_MEND.gain+' Resolve.');
   renderRibbon();renderDraft();
@@ -441,6 +444,12 @@ function flyCoins(from,n){
   }
 }
 /* ============ ECONOMY ACTIONS ============ */
+function canSpend(cost){return canSpendGold(G.gold,cost,heroOf());}
+function rerollAllowed(){
+  const H=heroOf();
+  if(H&&H.mod&&H.mod.rerollBlockedInDebt&&G.gold<0)return false;
+  return !!(G.mode==='route'&&G.freeReroll)||G.gold>=1;
+}
 /* a bought or returned copy can complete a forge whose other copies
    rest in the vault: pull them through and fuse automatically. If the
    pull leaves the stall over capacity, the newest piece rests in the
@@ -480,7 +489,7 @@ function fuseWithVault(){
 function selectWare(i){
   const w=G.shop[i];if(!w||w.bought||G.phase!=='draft')return;
   const d=ITEMS[w.id];const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
-  const room=usedCells(G.board)+d.size<=4+G.tier;const afford=w.free||G.gold>=cost;const can=afford&&room;
+  const room=usedCells(G.board)+d.size<=4+G.tier;const afford=w.free||canSpend(cost);const can=afford&&room;
   const why=!afford?'Not enough gold':(!room?'No room on your stall':'');
   const o=ovOpen('<div class="card inspectcard"><div class="kick gold">Market ware</div>'
    +'<div class="sheet">'+wareDetailHTML({id:w.id,rarity:0,size:d.size,ench:w.ench})
@@ -496,7 +505,7 @@ function buyWare(i){
   if(G.phase!=='draft')return;
   const w=G.shop[i];if(!w||w.bought)return;
   const d=ITEMS[w.id];const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
-  if(G.gold<cost){toast('Not enough gold');return;}
+  if(!canSpend(cost)){toast('Not enough gold');return;}
   if(usedCells(G.board)+d.size>4+G.tier){toast('No room on your stall');return;}
   const wEl=document.querySelector('.ware[data-w="'+i+'"]');
   const fromRect=wEl?wEl.getBoundingClientRect():null;
@@ -526,7 +535,7 @@ function buyWare(i){
   else if(G.gold===0){bark('broke');}
 }
 function tierUp(){
-  if(G.tier>=6||G.gold<G.tierCost)return;
+  if(G.tier>=6||!canSpend(G.tierCost))return;
   G.gold-=G.tierCost;G.tier++;sFanfare();
   G.tierCost=TIERCOST[G.tier+1]||0;
   toast('Tier '+G.tier+': new slot, richer wares');
@@ -535,6 +544,7 @@ function tierUp(){
   if(dk&&!RM){dk.classList.add('flare');setTimeout(function(){dk.classList.remove('flare');},650);}
 }
 function reroll(){
+  if(!rerollAllowed()){if(G.gold<0)toast('Debt blocks rerolls until the next reward.');return;}
   const free=G.mode==='route'&&G.freeReroll;
   if(free){G.freeReroll=false;toast('A free reroll, courtesy of Refit.');}
   else{if(G.gold<1)return;G.gold-=1;}
@@ -561,8 +571,7 @@ function rollShop(){
     const ws=ids.map(function(id){
       const d=ITEMS[id];
       let w=d.tier===1?8:(d.tier===2?7:6);
-      if(G.tags.indexOf(d.cat)>=0)w*=2.2;
-      if(hTag===d.cat)w*=2.2;
+      w*=shopTagWeight(d.cat,G.tags,hTag);
       const own=G.board.filter(function(x){return x.id===id&&x.rarity===0;}).length;
       if(own===1||own===2)w*=1.6;
       tot+=w;return w;
@@ -649,7 +658,7 @@ function paintFight(F){
     S.items.forEach(function(it,i){
       const c=$('fc-'+key+'-'+i);if(!c)return;
       if(!it.alive&&!c.classList.contains('dead')){c.classList.add('dead');}
-      if(it.alive&&it.cd>0){const r=c.querySelector('.ring');if(r)r.style.setProperty('--p',Math.min(1,it.timer/it.cd));}
+      if(it.alive&&it.cd>0){const r=c.querySelector('.ring');if(r)r.style.setProperty('--p',Math.min(1,it.timer/(it.cd+(it.nextCdFlat||0))));}
       const ig=$('fi-'+key+'-'+i);if(ig)ig.textContent=it.integ;
     });
   });
@@ -680,9 +689,15 @@ function handleEvents(F,evs){
       if(e.amt>=18)logLine((e.side==='a'?'You take ':'They take ')+'<b class="r">'+e.amt+'</b>','e-blade','#ff8d76');
     }
     else if(e.k==='storm'){if(G.recap)G.recap[e.side].storm+=e.amt;fltFx(e.side,'-'+e.amt,'#e8c27a','e-bolt',e.amt);}
-    else if(e.k==='shield'){fltFx(e.side,'Shielded '+e.amt,'#6fe0cd','e-shield',false);}
+    else if(e.k==='shield'){
+      if(e.item){cellFx(e.side,e.i,'fire');fltFx(e.side,e.absorbed?'Rampart blocked '+(-e.amt):'Rampart +'+e.amt+' Shield','#6fe0cd','e-shield',false);}
+      else{fltFx(e.side,(e.transfer?'Rampart transferred ':'Shielded ')+e.amt,'#6fe0cd','e-shield',false);}
+    }
     else if(e.k==='heal'){fltFx(e.side,'Mended '+e.amt,'#ffb3b8','e-heart',false);if(e.amt>=22)logLine((e.side==='a'?'You mend ':'They mend ')+'<b class="t">'+e.amt+'</b>','e-heart','#ffb3b8');}
-    else if(e.k==='pois'){fltFx(e.side,'Spilled '+e.amt+' poison','#c0e070','e-skull',false);}
+    else if(e.k==='pois'){
+      if(e.item){cellFx(e.side,e.i,'fire');fltFx(e.side,'Ware marked +'+e.amt+' poison','#c0e070','e-skull',false);}
+      else{fltFx(e.side,'Spilled '+e.amt+' poison','#c0e070','e-skull',false);}
+    }
     else if(e.k==='burn'){fltFx(e.side,'Lit '+e.amt+' burn','#ffb066','e-flame',false);}
     else if(e.k==='haste'){const nm=hasteName(F,e.side,e.i);cellFx(e.side,e.i,'fire');
       if(lastFire&&lastFire.side===e.side&&lastFire.i!==e.i)streakFx($('fc-'+lastFire.side+'-'+lastFire.i),$('fc-'+e.side+'-'+e.i));
@@ -717,6 +732,9 @@ function fightDetailHTML(fi){
   if(f.hasteAll)rows.push(['util','e-bolt','+'+f.hasteAll+'s to allies']);
   if(f.reload)rows.push(['util','e-bolt','reloads '+f.reload]);
   if(fi.bulwark)rows.push(['shield','e-shield','Bulwark: struck first']);
+  if(fi.itemShield)rows.push(['shield','e-shield',fi.itemShield+' stored Shield']);
+  if(fi.pois)rows.push(['poison','e-skull',fi.pois+' item Poison']);
+  if(fi.nextCdFlat)rows.push(['util','e-clock','next cooldown +'+(fi.nextCdFlat/1000)+'s']);
   if(fi.crit)rows.push(['dmg','e-blade',Math.round(fi.crit*100)+'% crit']);
   if(fi.flying)rows.push(['util','e-bolt','Flying: no weapon reaches it']);
   const chips=rows.length?rows.map(function(r){return '<span class="eff '+r[0]+'">'+ic(r[1],'mi')+' '+r[2]+'</span>';}).join(''):'<span class="eff util">no active effect</span>';
@@ -833,6 +851,7 @@ function startFight(me,foe,opts){
 function settleRouteReward(e){
   const c=G.route.combat||{};
   const M=MONSTERS[e.monId];
+  const H=heroOf();
   const key=rewardKey(G.run.runId,e.nodeId,c.attempt||0);
   const already=!!(G.run.receipts[key]&&G.run.receipts[key].fixedApplied);
   const plan=planReward(M.bounty||{},{baseGold:e.gold,incomeGold:boardVictoryIncome(G.board),gilded:e.gilded,
@@ -843,8 +862,10 @@ function settleRouteReward(e){
      the choice so the win screen follows the recap directly; the fixed gold is
      harmless and the pickUnique stays in the data for a future post-win use. */
   if(routeState().phase==='won')plan.choice=null;
-  settleFixed(G.run,plan,key);
+  const receipt=settleFixed(G.run,plan,key,H&&H.mod&&H.mod.debtLobbyDamage?{debtLobbyDamage:H.mod.debtLobbyDamage}:null);
   if(!already){
+    if(receipt.debtPaid){toast(receipt.debtPaid+' gold repaid your debt before the reward landed.');}
+    if(receipt.debtDamage){toast('Unpaid debt cost '+receipt.debtDamage+' Resolve and was cleared.');}
     if(plan.drained>0){toast('The monkey kept '+plan.drained+' gold of the bounty.');}
     if(plan.relic){toast('Income relic: +1 gold each dawn');}
     if(plan.mote&&plan.mote.gold){toast('The mote found nothing bronze to copy. '+plan.mote.gold+' gold instead.');}
@@ -994,9 +1015,11 @@ function runEffects(effects,i,ctx){
 /* ---- combat adapter: reuse startFight, feed it a route-built foe ---- */
 function startRouteFight(e){
   const M=MONSTERS[e.monId];
+  const H=heroOf();
   const php=fightHP(e.threat,G.T.hpFlat,G.A);
   const foe=monsterSide(e.monId,{gold:G.gold,round:e.threat,A:G.A,gilded:!!e.gilded,playerBoard:G.board,playerHp:php});
-  const me={nm:'You',portrait:G.you.p,hp:php,items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,regen:boardRegen(G.board)};
+  const me={nm:'You',portrait:G.you.p,hp:php,items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,
+    regen:boardRegen(G.board),rules:H?H.mod:{}};
   startFight(me,foe,{seed:e.fightSeed,threat:e.threat,caption:'Threat '+e.threat,boss:!!e.boss,
     stormAt:M.stormAt?M.stormAt*1000:0,onEnd:function(F){endRouteFight(F,e);}});
 }
@@ -1139,9 +1162,9 @@ function openHeroPick(cont){
   /* selected-hero layout: a portrait rail up top, one large hero with its
      rule below, and a Confirm. Scales to eight heroes where the old grid
      clipped at four on a short landscape screen. */
-  /* the Moneylender's whole identity is income, which is dead in route; hold it
-     out of the picker until the hero rework */
-  const pool=HEROES.filter(function(h){return h.id!=='lender';});
+  /* All eight rules-based heroes fit the portrait rail without shrinking the
+     selected rule card on short landscape screens. */
+  const pool=HEROES;
   let sel=pool[0].id;
   const o=ovOpen('<div class="card heropick"><div class="rays"></div>'
    +'<div class="kick gold">Choose Your Merchant</div>'

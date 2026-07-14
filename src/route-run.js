@@ -113,9 +113,9 @@ export function campClear(run){ run.camp = null; }
 export function campExpireCredit(run){ if(run.camp) run.camp.credit = 0; }
 
 /* pay a little gold for a small Resolve top-up, once per gate */
-export function campMend(run){
+export function campMend(run,creditLimit){
   const c=run.camp; if(!c||c.mendUsed) return {ok:false, reason:'used'};
-  if(run.economy.gold < CAMP_MEND.cost) return {ok:false, reason:'gold'};
+  if(run.economy.gold-CAMP_MEND.cost < -(creditLimit||0)) return {ok:false, reason:'gold'};
   run.economy.gold -= CAMP_MEND.cost;
   run.route.resolve = Math.min(run.route.resolveMax, run.route.resolve + CAMP_MEND.gain);
   c.mendUsed = true;

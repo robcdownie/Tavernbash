@@ -95,6 +95,10 @@ Shoulders-up merchant busts. p0 is the player.
 | p5.png | Kasra of the Ash Quarter, a soot-streaked man with ember-lit eyes |
 | p6.png | Bibi Gol, a broad cheerful arms dealer draped in blades |
 | p7.png | Tariq Two-Knives, a wiry duelist with a knife over each shoulder |
+| h-venom.png | the Venom Broker, a calculating poison merchant with green glass vials and a brass debt token |
+| h-architect.png | the Brass Architect, a precise master builder carrying a small geometric shield and brass calipers |
+| h-silkblade.png | the Silkblade, an elegant masked duelist with crossed narrow blades and violet silk |
+| h-ash.png | the Ash Collector, a solemn funeral keeper holding a warm urn of embers and grey ash |
 
 ## Larger pieces, when ready
 

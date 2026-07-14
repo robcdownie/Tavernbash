@@ -273,31 +273,48 @@ export const ITEMS={
 /* Picked at run start. The personal tag weights your shop like a lobby
    featured tag; mods merge into the trinket aggregate; a start id lands
    on the board before round 1. */
+export const HERO_SHOP_WEIGHT=1.5, FEATURED_SHOP_WEIGHT=2.2;
+export function shopTagWeight(category,featuredTags,heroTag){
+ let weight=1;
+ if((featuredTags||[]).indexOf(category)>=0)weight=Math.max(weight,FEATURED_SHOP_WEIGHT);
+ if(heroTag===category)weight=Math.max(weight,HERO_SHOP_WEIGHT);
+ return weight;
+}
+export function heroCreditLimit(hero){return hero&&hero.mod&&hero.mod.creditLimit||0;}
+export function canSpendGold(gold,cost,hero){return gold-cost>=-heroCreditLimit(hero);}
 export const HEROES=[
- {id:"kiln",n:"The Kilnkeeper",tag:"burn",g:"h-kiln",d:"Starts with an Oil Torch. Burn wares seek your stall.",start:"torch",mod:{},
+ {id:"kiln",n:"The Kilnkeeper",tag:"burn",g:"h-kiln",d:"Last Light: your leftmost Burn ware gains Bulwark and activates once before its first destruction.",start:"torch",mod:{leftmostBurnLastLight:true},
   barks:{forge:["Three become one. The kiln approves.","Now that is proper heat."],
          win:["The fire held.","Ash on their side of the street."],
          loss:["Smoke stings. We stoke again.","Even kilns crack. Patch it and burn on."],
          boss:["That gate breathes like a furnace. Mind yourself."],
          broke:["Empty purse, warm forge. Priorities."]}},
- {id:"apoth",n:"The Apothecary",tag:"heal",g:"h-apoth",d:"+6 fight health every battle. Heal wares seek your stall.",mod:{hpFlat:6},
+ {id:"apoth",n:"The Apothecary",tag:"heal",g:"h-apoth",d:"No Medicine Wasted: overhealing becomes Shield, but healing no longer cleanses Poison or Burn.",mod:{overhealToShield:true,healingCleanses:false},
   barks:{forge:["Distilled to its essence.","Three doses become a cure."],
          win:["The remedy took.","Steady hands, steady heart."],
          loss:["A bitter draught. Note the dose.","We survive worse every day."],
          boss:["I smell ash beyond that gate. Bring bandages."],
          broke:["Spent to the last drop."]}},
- {id:"knife",n:"The Knifegrinder",tag:"dmg",g:"h-knife",d:"Your leftmost ware strikes +2 harder. Weapon wares seek your stall.",mod:{firstFlat:2},
+ {id:"knife",n:"The Knifegrinder",tag:"dmg",g:"h-knife",d:"Perfect Edge: your leftmost weapon has full overflow. A failed kill adds 1 second to its next cooldown.",mod:{leftmostWeaponPerfectEdge:true},
   barks:{forge:["Three blades, one edge. Efficient.","The wheel sings tonight."],
          win:["Clean cut.","They will feel that one tomorrow."],
          loss:["Nicked. It happens.","Dull night. Sharpen and return."],
          boss:["Big door. Bigger target."],
          broke:["Gold dulls. Steel does not."]}},
- {id:"lender",n:"The Moneylender",tag:"util",g:"h-lender",d:"+1 income each round, -4 fight health. Economy wares seek your stall.",mod:{income:1,hpFlat:-4},
+ {id:"lender",n:"The Moneylender",tag:"util",g:"h-lender",d:"Credit Is Gold: spend to -3 gold. Debt blocks rerolls and the next reward repays it first.",mod:{creditLimit:3,debtLobbyDamage:2,rerollBlockedInDebt:true},
   barks:{forge:["Consolidation! I love consolidation.","Three small debts, one great asset."],
          win:["Profit!","The ledger smiles on us tonight."],
          loss:["A write down. Painful, survivable.","We book the loss and move on."],
          boss:["Careful. That gate charges interest."],
-         broke:["We are, how to say it, illiquid."]}}
+         broke:["We are, how to say it, illiquid."]}},
+ {id:"venom",n:"The Venom Broker",tag:"poison",g:"h-venom",d:"Marked for Collection: your Poison marks enemy wares, damages them each second, then spills to the merchant when they break.",mod:{poisonTargetsItems:true,poisonSpillsOnDestroy:true},
+  barks:{forge:["A stronger claim on the marked."],win:["Collection complete."],loss:["The mark escaped us."],boss:["Even kings owe their due."],broke:["No coin. Plenty of leverage."]}},
+ {id:"architect",n:"The Brass Architect",tag:"shield",g:"h-architect",d:"Living Rampart: your leftmost Shield ware gains Bulwark and stores its own Shield until it falls.",mod:{leftmostShieldBulwark:true,leftmostShieldStoresOnSelf:true,transferItemShieldOnDeath:true},
+  barks:{forge:["The joins will hold."],win:["A sound foundation."],loss:["Rebuild from the true line."],boss:["Every gate has a weak arch."],broke:["Brass can wait. Measure first."]}},
+ {id:"silkblade",n:"The Silkblade",tag:"dmg",g:"h-silkblade",d:"Measure Twice, Strike Once: your fastest weapon alternates a guaranteed critical activation with a skipped one.",mod:{fastestWeaponAlternatingCrit:true},
+  barks:{forge:["One edge, no hesitation."],win:["The second measure was enough."],loss:["My rhythm broke."],boss:["Wait for the opening."],broke:["Patience costs nothing."]}},
+ {id:"ash",n:"The Ash Collector",tag:"util",g:"h-ash",d:"One True Funeral: only your first rattle resolves each fight. It resolves twice and all later rattles are suppressed.",mod:{oneTrueFuneral:true},
+  barks:{forge:["Ash remembers every shape."],win:["One funeral was enough."],loss:["The wrong flame went first."],boss:["Choose what the pyre will honor."],broke:["The dead leave no invoices."]}}
 ];
 /* ============ ENCHANTS ============ */
 /* need: "dmg" requires a damage effect, "cd" requires an active cooldown,

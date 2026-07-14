@@ -78,6 +78,7 @@ export function playerFightItems(board,T,A,scale){
       cd:def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd*(en==="swift"?0.85:1))):0,
       timer:0,alive:true,integ:integOf(it),maxI:integOf(it),
       fx:fx,printedDmg:def.fx&&def.fx.dmg?Math.round(def.fx.dmg*rs):0,bulwark:!!def.bulwark,targeting:def.targeting||null,charge:null,flying:fly,frozen:0,disarmed:0,
+      pois:0,itemShield:0,nextCdFlat:0,
       crit:fx.dmg?Math.min(0.9,(def.crit||0)+boardCrit):0,rattle:def.rattle||null,selfdestruct:!!def.selfdestruct,
       ammo:def.ammo||0,maxAmmo:def.ammo||0,freezeOnce:en==="icy"?2:0,ench:en||null,
       cleanseTotal:def.cleanseTotal||0,hooks:def.hooks||null,uid:it.uid};
@@ -102,7 +103,8 @@ export function monsterFightItems(mid,ctx){
     return {nm:b.nm,g:b.g,size:b.size,rarity:ctx.gilded?2:0,cat:"dmg",tier:M.band,
       cd:b.cd>0?Math.round(b.cd*1000*A.cdMul):0,timer:0,alive:true,
       integ:Math.round(b.integ*gild),maxI:Math.round(b.integ*gild),
-      fx:fx,printedDmg:fx.dmg||0,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,disarmed:0,crit:b.crit||0,rattle:b.rattle||null,selfdestruct:!!b.selfdestruct,ammo:b.ammo||0,maxAmmo:b.ammo||0,pay:b.pay||0,cleanseTotal:b.cleanseTotal||0,hooks:b.hooks||null,uid:UID++};
+      fx:fx,printedDmg:fx.dmg||0,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,disarmed:0,
+      pois:0,itemShield:0,nextCdFlat:0,crit:b.crit||0,rattle:b.rattle||null,selfdestruct:!!b.selfdestruct,ammo:b.ammo||0,maxAmmo:b.ammo||0,pay:b.pay||0,cleanseTotal:b.cleanseTotal||0,hooks:b.hooks||null,uid:UID++};
   });
 }
 export function monsterSide(mid,ctx){
@@ -251,7 +253,7 @@ export function createFight(cfg){
   const _rng=mulberry(cfg.seed||1);
   const rng=cfg.rngTap?function(tag){const v=_rng();cfg.rngTap(tag,v);return v;}:_rng;
   const mk=(s,key)=>({key:key,nm:s.nm,portrait:s.portrait||"g-medallion",hp:s.hp,maxHp:s.hp,shield:0,pois:0,burn:0,
-    items:s.items,ls:s.lifesteal||0,regen:s.regen||0,lastHealTime:null,debuffs:{}});
+    items:s.items,ls:s.lifesteal||0,regen:s.regen||0,lastHealTime:null,debuffs:{},rules:Object.assign({},s.rules||{}),friendlyRattleUsed:false});
   const A=mk(cfg.a,"a"), B=mk(cfg.b,"b");
   const F={t:0,done:false,winner:null,stormAt:cfg.stormAt,stormOn:false,a:A,b:B,secMark:0,stormDmg:5,pocketed:0,lotPaid:0,
     diagnostics:{guardTrips:0,guardCounts:{contacts:0,catchup:0,depth:0,root:0,step:0,hook:0}}};
@@ -286,6 +288,33 @@ export function createFight(cfg){
     const ref=itemRefs.get(it);
     return ref&&ref.side===side.key&&ref.slot===slot?ref:registerSource(side,it,slot);
   }
+  /* Hero rules select their single centerpiece once, from the immutable fight
+     opening order. Later spawns never steal the role. These marks are ordinary
+     fight-local item state, so sides without rules remain byte-identical. */
+  function prepareRules(side){
+    const rules=side.rules||{};
+    if(rules.leftmostBurnLastLight){
+      const item=side.items.find(function(it){return it.alive&&it.cat==="burn";});
+      if(item){item.bulwark=true;item.heroLastLight=true;item.heroLastLightSpent=false;}
+    }
+    if(rules.leftmostWeaponPerfectEdge){
+      const item=side.items.find(function(it){return it.alive&&it.fx&&it.fx.dmg>0;});
+      if(item){item.heroPerfectEdge=true;item.nextCdFlat=item.nextCdFlat||0;}
+    }
+    if(rules.leftmostShieldStoresOnSelf){
+      const item=side.items.find(function(it){return it.alive&&it.cat==="shield";});
+      if(item){item.bulwark=true;item.heroLivingRampart=true;item.itemShield=item.itemShield||0;}
+    }
+    if(rules.fastestWeaponAlternatingCrit){
+      let chosen=null;
+      for(const item of side.items){
+        if(!item.alive||!item.fx||!item.fx.dmg||item.cd<=0){continue;}
+        if(!chosen||item.cd<chosen.cd){chosen=item;}
+      }
+      if(chosen){chosen.heroSilkblade=true;chosen.activationCount=0;}
+    }
+  }
+  prepareRules(A);prepareRules(B);
   const initialHooks=[];
   function queueHookSpecs(out,side,kind,id,order,sourceRef,specs){
     if(!specs){return;}
@@ -618,6 +647,9 @@ export function createFight(cfg){
     const side=sideOf(action.side),context={source:action.source||null,side:side.key,
       amount:action.amount,requested:action.amount,quiet:!!action.quiet,
       cleanPoison:action.cleanPoison||0,cleanBurn:action.cleanBurn||0,cleanTotal:action.cleanTotal||0};
+    if(action.automaticCleanse&&side.rules.healingCleanses===false){
+      context.cleanPoison=0;context.cleanBurn=0;context.cleanTotal=0;
+    }
     triggerHookPoint("beforeHeal",context,depth);
     const receivedMul=sideModifier(side,"healReceivedMul");
     const amount=Math.max(0,Math.round(context.amount*receivedMul)),before=side.hp,missing=Math.max(0,side.maxHp-before);
@@ -637,6 +669,9 @@ export function createFight(cfg){
     context.amount=amount;context.actual=side.hp-before;context.overheal=Math.max(0,amount-missing);context.receivedMul=receivedMul;
     context.cleansedPoison=poisonBefore-side.pois;context.cleansedBurn=burnBefore-side.burn;
     context.cleansedTotal=context.cleansedPoison+context.cleansedBurn;
+    if(side.rules.overhealToShield&&context.overheal>0){
+      side.shield+=context.overheal;emit({k:"shield",side:side.key,amt:context.overheal,val:side.shield,overheal:true});
+    }
     if(context.actual>0){side.lastHealTime=F.t;}
     if(context.cleansedPoison||context.cleansedBurn){triggerHookPoint("afterCleanse",context,depth);}
     triggerHookPoint("afterHeal",context,depth);
@@ -647,30 +682,54 @@ export function createFight(cfg){
     triggerHookPoint("afterHaste",{source:source||null,target:targetRef,side:targetRef.side,
       targetSide:targetRef.side,amount:amount},depth);
   }
-  function compileRattle(side,source,dead){
+  function baseRattle(side,source,dead){
     const actions=[],rattle=dead.rattle;
     if(!rattle){return actions;}
     if(rattle.hasteMates){actions.push({op:"rattleHaste",side:side.key,source:source,amount:rattle.hasteMates});}
     if(rattle.spawn){actions.push({op:"spawn",side:side.key,source:source,spec:rattle.spawn,fromRattle:true});}
     return actions;
   }
+  function compileRattle(side,source,dead){
+    const actions=baseRattle(side,source,dead);
+    if(!actions.length||!side.rules.oneTrueFuneral){return actions;}
+    if(side.friendlyRattleUsed){return [];}
+    side.friendlyRattleUsed=true;
+    return actions.concat(actions.map(function(action){
+      const copy=Object.assign({},action);if(copy.op==="spawn"){copy.repeatSpawn=true;}return copy;
+    }));
+  }
   function destroySource(side,source,killer,depth){
     const it=liveItem(source);if(!it){return;}
+    if(it.heroLastLight&&!it.heroLastLightSpent){
+      it.heroLastLightSpent=true;
+      const enemy=side===A?B:A;
+      runChildren(compileActivation(side,enemy,it,source,{skipAmmo:true,ignoreSelfDestruct:true}),depth);
+      if(!liveItem(source)){return;}
+    }
+    const spill=it.poisonSpillsOnDestroy?(it.pois||0):0,rampartShield=it.heroLivingRampart?(it.itemShield||0):0;
+    const queuedSpawns=it.spawnQueue||0,spawnSpec=it.spawnSpec||null,spawnOrigin=it.spawnOrigin||null;
     it.alive=false;it.integ=0;
     emit({k:"destroy",side:side.key,i:source.slot,nm:it.nm});
     burySource(source,it);
+    if(rampartShield>0){it.itemShield=0;side.shield+=rampartShield;emit({k:"shield",side:side.key,amt:rampartShield,val:side.shield,transfer:true});}
+    if(spill>0){it.pois=0;side.pois+=spill;emit({k:"pois",side:side.key,amt:spill,val:side.pois,spill:true});}
     triggerHookPoint("destroyed",{source:killer||null,killer:killer||null,victim:source,
       victimItem:it,victimSize:it.size,side:side.key,targetSide:side.key},depth);
     runChildren(compileRattle(side,source,it),depth);
+    if(queuedSpawns>0&&spawnSpec){
+      runChildren([{op:"spawn",side:side.key,source:source,spec:spawnSpec,fromRattle:true,
+        queue:queuedSpawns-1,origin:spawnOrigin}],depth);
+    }
   }
   function resolveDamage(action,depth){
     const it=liveItem(action.source);if(!it){return;}
     const sourceSide=sideOf(action.source.side),targetSide=sideOf(action.targetSide);
     let dmg=action.amount;
     /* The one crit draw happens at damage start, before the first target lookup. */
-    if(action.crit>0&&rng("crit")<action.crit){dmg*=2;emit({k:"crit",side:sourceSide.key,i:action.source.slot});}
+    if(action.forceCrit){dmg*=2;emit({k:"crit",side:sourceSide.key,i:action.source.slot});}
+    else if(action.crit>0&&rng("crit")<action.crit){dmg*=2;emit({k:"crit",side:sourceSide.key,i:action.source.slot});}
     const overflow=action.overflow!==undefined?action.overflow:(action.size>=3?1:(action.size===2?0.5:0));
-    let remaining=dmg,dealt=0,contacts=0;
+    let remaining=dmg,dealt=0,contacts=0,hitItem=false,destroyedItem=false;
     while(remaining>0&&contacts<12){
       contacts++;
       const slot=action.merchantOnly?-1:pickTarget(targetSide.items,action.targeting);
@@ -683,44 +742,52 @@ export function createFight(cfg){
         side:targetSide.key,kind:"item",target:targetRef,actor:{cat:it.cat,nm:it.nm,size:it.size},originalDamage:remaining,damage:remaining,
         destroyed:false,overkill:0,shieldAbsorbed:0};
       triggerHookPoint("beforeHit",context,depth);
-      const contactDamage=Math.max(0,context.damage),hit=Math.min(target.integ,contactDamage);
+      const contactDamage=Math.max(0,context.damage),itemAbsorbed=Math.min(target.itemShield||0,contactDamage);
+      if(itemAbsorbed>0){
+        target.itemShield-=itemAbsorbed;emit({k:"shield",side:targetSide.key,i:slot,amt:-itemAbsorbed,
+          val:target.itemShield,item:true,absorbed:true});
+      }
+      const integrityDamage=contactDamage-itemAbsorbed,hit=Math.min(target.integ,integrityDamage);
       target.integ-=hit;dealt+=hit;
-      const excess=contactDamage-hit;remaining=0;
+      const excess=integrityDamage-hit;remaining=0;hitItem=true;context.shieldAbsorbed=itemAbsorbed;
       if(target.integ<=0){
         target.integ=0;
         emit({k:"chip",side:targetSide.key,i:slot,amt:hit,integ:0});
         destroySource(targetSide,targetRef,action.source,depth);
-        context.destroyed=true;context.overkill=excess;context.dealt=hit;context.remainingIntegrity=0;
+        context.destroyed=true;destroyedItem=true;context.overkill=excess;context.dealt=hit;context.remainingIntegrity=0;
       }else{
-        emit({k:"chip",side:targetSide.key,i:slot,amt:hit,integ:target.integ});
+        if(hit>0){emit({k:"chip",side:targetSide.key,i:slot,amt:hit,integ:target.integ});}
         context.dealt=hit;context.remainingIntegrity=target.integ;
       }
       triggerHookPoint("afterHit",context,depth);
       if(context.destroyed&&excess>0&&overflow>0){remaining=Math.round(excess*overflow);}
     }
     if(remaining>0){tripGuard("contacts");}
+    if(it.heroPerfectEdge&&hitItem&&!destroyedItem){it.nextCdFlat=1000;}
     if(sourceSide.ls>0&&dealt>0){
       runChildren([{op:"heal",side:sourceSide.key,amount:Math.max(1,Math.round(dealt*sourceSide.ls)),quiet:true,cleanPoison:0,cleanBurn:0}],depth);
     }
   }
-  function compileActivation(sourceSide,targetSide,it,source){
+  function compileActivation(sourceSide,targetSide,it,source,options){
+    options=options||{};
     const context={source:source,sourceSide:sourceSide.key,targetSide:targetSide.key,
       side:sourceSide.key,actor:{cat:it.cat,nm:it.nm,size:it.size}};
     const actions=[];
     if(hookPoints.has("beforeActivate")){actions.push({op:"hookPoint",point:"beforeActivate",context:context});}
     actions.push({op:"fire",source:source,cat:it.cat});
-    if(it.selfdestruct){
+    if(it.selfdestruct&&!options.ignoreSelfDestruct){
       actions.push({op:"selfDestruct",source:source});
       if(hookPoints.has("afterActivate")){actions.push({op:"hookPoint",point:"afterActivate",context:context});}
       return actions;
     }
-    if(it.maxAmmo>0){actions.push({op:"ammo",source:source});}
+    if(it.maxAmmo>0&&!options.skipAmmo){actions.push({op:"ammo",source:source});}
     if(it.freezeOnce>0){actions.push({op:"firstFrost",source:source,targetSide:targetSide.key,amount:it.freezeOnce});}
     const fx=it.fx||{};
-    if(fx.dmg){actions.push({op:"damage",source:source,targetSide:targetSide.key,amount:fx.dmg,crit:it.crit||0,size:it.size,targeting:it.targeting||null});}
+    if(fx.dmg){actions.push({op:"damage",source:source,targetSide:targetSide.key,amount:fx.dmg,crit:it.crit||0,
+      forceCrit:!!options.forceCrit,size:it.size,targeting:it.targeting||null,overflow:it.heroPerfectEdge?1:undefined});}
     if(fx.shield){actions.push({op:"shield",source:source,amount:fx.shield});}
     if(fx.heal){actions.push({op:"heal",source:source,side:sourceSide.key,amount:fx.heal,quiet:false,
-      cleanPoison:it.cleanseTotal?0:1,cleanBurn:it.cleanseTotal?0:1,cleanTotal:it.cleanseTotal||0});}
+      cleanPoison:it.cleanseTotal?0:1,cleanBurn:it.cleanseTotal?0:1,cleanTotal:it.cleanseTotal||0,automaticCleanse:!it.cleanseTotal});}
     if(fx.freeze){actions.push({op:"freeze",source:source,targetSide:targetSide.key,amount:fx.freeze});}
     if(fx.poison){actions.push({op:"poison",source:source,targetSide:targetSide.key,amount:fx.poison});}
     if(fx.burn){actions.push({op:"burn",source:source,targetSide:targetSide.key,amount:fx.burn});}
@@ -750,7 +817,13 @@ export function createFight(cfg){
     }else if(action.op==="damage"){
       resolveDamage(action,depth);
     }else if(action.op==="shield"){
-      if(!action.source||source){const side=sideOf(action.side||(action.source&&action.source.side));side.shield+=action.amount;emit({k:"shield",side:side.key,amt:action.amount,val:side.shield});}
+      if(!action.source||source){
+        const side=sideOf(action.side||(action.source&&action.source.side));
+        if(source&&source.heroLivingRampart){
+          source.itemShield=(source.itemShield||0)+action.amount;
+          emit({k:"shield",side:side.key,i:action.source.slot,amt:action.amount,val:source.itemShield,item:true});
+        }else{side.shield+=action.amount;emit({k:"shield",side:side.key,amt:action.amount,val:side.shield});}
+      }
     }else if(action.op==="heal"){
       if(!action.source||source){resolveHeal(action,depth);}
     }else if(action.op==="freeze"){
@@ -759,7 +832,18 @@ export function createFight(cfg){
       for(let i=0;i<targetSide.items.length;i++){if(targetSide.items[i].alive){slot=i;break;}}
       if(slot>=0){targetSide.items[slot].frozen=(targetSide.items[slot].frozen||0)+action.amount*1000;emit({k:"freeze",side:targetSide.key,i:slot,amt:action.amount});}
     }else if(action.op==="poison"){
-      if(!action.source||source){const side=sideOf(action.targetSide);side.pois+=action.amount;emit({k:"pois",side:side.key,amt:action.amount,val:side.pois});}
+      if(!action.source||source){
+        const side=sideOf(action.targetSide),sourceSide=action.source?sideOf(action.source.side):null;
+        if(source&&sourceSide.rules.poisonTargetsItems){
+          const slot=pickTarget(side.items,source.targeting||null);
+          if(slot>=0){
+            const target=side.items[slot];target.pois=(target.pois||0)+action.amount;
+            target.poisonSpillsOnDestroy=!!sourceSide.rules.poisonSpillsOnDestroy;
+            target.poisonSource=action.source;
+            emit({k:"pois",side:side.key,i:slot,amt:action.amount,val:target.pois,item:true});
+          }else{side.pois+=action.amount;emit({k:"pois",side:side.key,amt:action.amount,val:side.pois});}
+        }else{side.pois+=action.amount;emit({k:"pois",side:side.key,amt:action.amount,val:side.pois});}
+      }
     }else if(action.op==="burn"){
       if(!action.source||source){const side=sideOf(action.targetSide);side.burn+=action.amount;emit({k:"burn",side:side.key,amt:action.amount,val:side.burn});}
     }else if(action.op==="hasteAdjacent"){
@@ -811,12 +895,20 @@ export function createFight(cfg){
     }else if(action.op==="spawn"){
       const tomb=tombstones.get(sourceKey(action.source));if(!tomb){return;}
       const side=sideOf(action.side),dead=tomb.item,slot=action.source.slot,spec=action.spec;
-      if(side.items[slot]!==dead){return;}
+      if(side.items[slot]!==dead){
+        const current=side.items[slot];
+        if(action.repeatSpawn&&current&&current.alive&&current.spawnOrigin===sourceKey(action.source)){
+          current.spawnQueue=(current.spawnQueue||0)+1;
+        }
+        return;
+      }
       const item={nm:spec.nm,g:spec.g,size:dead.size,rarity:dead.rarity,cat:spec.cat||"dmg",tier:dead.tier,
         cd:Math.round(spec.cd*1000),timer:0,alive:true,integ:spec.integ,maxI:spec.integ,
         fx:Object.assign({},spec.fx),printedDmg:spec.fx&&spec.fx.dmg||0,bulwark:!!spec.bulwark,targeting:spec.targeting||null,charge:null,
-        pocket:0,flying:!!spec.flying,frozen:0,disarmed:0,crit:spec.crit||0,rattle:spec.rattle||null,selfdestruct:false,
-        ammo:0,maxAmmo:0,cleanseTotal:spec.cleanseTotal||0,hooks:spec.hooks||null,uid:spawnUid(side)};
+        pocket:0,flying:!!spec.flying,frozen:0,disarmed:0,pois:0,itemShield:0,nextCdFlat:0,
+        crit:spec.crit||0,rattle:spec.rattle||null,selfdestruct:false,ammo:0,maxAmmo:0,
+        cleanseTotal:spec.cleanseTotal||0,hooks:spec.hooks||null,spawnQueue:action.queue||0,
+        spawnSpec:spec,spawnOrigin:action.origin||sourceKey(action.source),uid:spawnUid(side)};
       side.items[slot]=item;const spawnedRef=registerSource(side,item,slot);
       const spawnedHooks=[];queueHookSpecs(spawnedHooks,side,"item",spawnedRef.uid,slot,spawnedRef,item.hooks);installHookEntries(spawnedHooks);
       emit({k:"spawn",side:side.key,i:slot,nm:spec.nm,g:spec.g,integ:spec.integ});
@@ -824,6 +916,12 @@ export function createFight(cfg){
         side:side.key,targetSide:side.key,fromRattle:!!action.fromRattle},depth);
     }else if(action.op==="tickPoison"){
       const side=sideOf(action.side),amount=side.pois;side.hp-=amount;emit({k:"tickp",side:side.key,amt:amount});side.pois=Math.floor(side.pois*0.82);
+    }else if(action.op==="tickItemPoison"){
+      const target=liveItem(action.targetRef);if(!target||!(target.pois>0)){return;}
+      const side=sideOf(action.targetRef.side),amount=target.pois,hit=Math.min(target.integ,amount);
+      target.integ-=hit;emit({k:"chip",side:side.key,i:action.targetRef.slot,amt:hit,integ:Math.max(0,target.integ),poison:true});
+      if(target.integ<=0){target.integ=0;destroySource(side,action.targetRef,target.poisonSource||null,depth);}
+      else{target.pois=Math.floor(target.pois*0.82);}
     }else if(action.op==="tickBurn"){
       const side=sideOf(action.side),amount=side.burn,absorbed=Math.min(side.shield,Math.floor(amount/2));
       side.shield-=absorbed;const hpDamage=amount-absorbed;side.hp-=hpDamage;
@@ -943,15 +1041,24 @@ export function createFight(cfg){
         if(it.lot){continue;}
         it.timer+=dt;
         let g=0;
-        while(liveItem(source)===it&&it.timer>=it.cd&&g<4){
-          g++;it.timer-=it.cd;runRoot(compileActivation(S,D,it,source),ev);
+        const nextCycle=function(){return it.cd+(it.nextCdFlat||0);};
+        while(liveItem(source)===it&&it.timer>=nextCycle()&&g<4){
+          const cycle=nextCycle();g++;it.timer-=cycle;it.nextCdFlat=0;
+          if(it.heroSilkblade){
+            it.activationCount=(it.activationCount||0)+1;
+            if(it.activationCount%2===1){runRoot(compileActivation(S,D,it,source,{forceCrit:true}),ev);}
+          }else{runRoot(compileActivation(S,D,it,source),ev);}
         }
-        if(liveItem(source)===it&&it.cd>0&&it.timer>=it.cd){tripGuard("catchup");}   /* the 4-activation catch-up cap held work back */
+        if(liveItem(source)===it&&it.cd>0&&it.timer>=nextCycle()){tripGuard("catchup");}   /* the 4-activation catch-up cap held work back */
       }
     }
     while(F.t>=F.secMark+1000){
       F.secMark+=1000;
       for(const S of [A,B]){
+        for(let i=0;i<S.items.length;i++){
+          const item=S.items[i];
+          if(item.alive&&item.pois>0){runRoot([{op:"tickItemPoison",targetRef:sourceOf(S,item,i)}],ev);}
+        }
         /* poison ticks its current value, then decays ~30% (stabilization
            2026-07-12): a lone poison hit fades unless reapplied, so poison
            is sustained pressure, not a one-swing merchant nuke */

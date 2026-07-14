@@ -48,18 +48,29 @@ function choiceFallbackGold(kind){ return kind === 'gild' ? 5 : 10; }
    key: a second call (after a reload that re-enters settlement) is a no-op on the
    economy. Mutates run.economy / run.receipts / run.pendingChoice; returns the
    receipt. The caller checkpoints after this, before presenting anything. */
-export function settleFixed(run, plan, key){
+export function settleFixed(run, plan, key, options){
   const existing = run.receipts[key];
   if(existing && existing.fixedApplied) return existing;
   const E = run.economy;
+  const goldBefore=E.gold;
   E.gold += plan.gold;
+  let debtPaid=0,debtDamage=0;
+  if(options&&options.debtLobbyDamage&&goldBefore<0){
+    debtPaid=Math.min(-goldBefore,Math.max(0,plan.gold));
+    if(E.gold<0){
+      const unpaid=-E.gold;debtDamage=unpaid*options.debtLobbyDamage;E.gold=0;
+      run.route.resolve-=debtDamage;
+      if(run.route.resolve<=0){run.route.phase='lost';}
+    }
+  }
   plan.items.forEach(function(id){ E.shop.push(makeOffer(run, id)); });
   if(plan.relic) E.relicIncome += 1;
   if(plan.mote){
     if(plan.mote.item) E.shop.push(makeOffer(run, plan.mote.item));
     else E.gold += plan.mote.gold;
   }
-  const receipt = {fixedApplied: true, choiceRequired: !!plan.choice, choiceApplied: false, choiceKind: plan.choice || null};
+  const receipt = {fixedApplied: true, choiceRequired: !!plan.choice, choiceApplied: false, choiceKind: plan.choice || null,
+    debtPaid:debtPaid,debtDamage:debtDamage};
   run.receipts[key] = receipt;
   if(plan.choice){
     const opts = plan.choice === 'gild'
