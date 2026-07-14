@@ -77,7 +77,7 @@ export function playerFightItems(board,T,A,scale){
     return {nm:(en?ENCH[en].n+" ":"")+def.n,g:"g-"+it.id,size:it.size,rarity:it.rarity,cat:def.cat,tier:def.tier,
       cd:def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd*(en==="swift"?0.85:1))):0,
       timer:0,alive:true,integ:integOf(it),maxI:integOf(it),
-      fx:fx,bulwark:!!def.bulwark,targeting:def.targeting||null,charge:null,flying:fly,frozen:0,
+      fx:fx,printedDmg:def.fx&&def.fx.dmg?Math.round(def.fx.dmg*rs):0,bulwark:!!def.bulwark,targeting:def.targeting||null,charge:null,flying:fly,frozen:0,disarmed:0,
       crit:fx.dmg?Math.min(0.9,(def.crit||0)+boardCrit):0,rattle:def.rattle||null,selfdestruct:!!def.selfdestruct,
       ammo:def.ammo||0,maxAmmo:def.ammo||0,freezeOnce:en==="icy"?2:0,ench:en||null,
       cleanseTotal:def.cleanseTotal||0,hooks:def.hooks||null,uid:it.uid};
@@ -102,7 +102,7 @@ export function monsterFightItems(mid,ctx){
     return {nm:b.nm,g:b.g,size:b.size,rarity:ctx.gilded?2:0,cat:"dmg",tier:M.band,
       cd:b.cd>0?Math.round(b.cd*1000*A.cdMul):0,timer:0,alive:true,
       integ:Math.round(b.integ*gild),maxI:Math.round(b.integ*gild),
-      fx:fx,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,crit:b.crit||0,rattle:b.rattle||null,selfdestruct:!!b.selfdestruct,ammo:b.ammo||0,maxAmmo:b.ammo||0,pay:b.pay||0,cleanseTotal:b.cleanseTotal||0,hooks:b.hooks||null,uid:UID++};
+      fx:fx,printedDmg:fx.dmg||0,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,disarmed:0,crit:b.crit||0,rattle:b.rattle||null,selfdestruct:!!b.selfdestruct,ammo:b.ammo||0,maxAmmo:b.ammo||0,pay:b.pay||0,cleanseTotal:b.cleanseTotal||0,hooks:b.hooks||null,uid:UID++};
   });
 }
 export function monsterSide(mid,ctx){
@@ -207,8 +207,9 @@ const HOOK_ACTION_POINTS={
 const HOOK_ACTIONS=new Set([
   "activate","burn","consumeStatus","damage","destroy","haste","heal",
   "cleanseStatus","itemStateReset","itemStateSet","merchantHit","modifyContact",
-  "modifyHeal","poison","removeShield","repair","shield","spawn",
-  "spendShieldForDamage","stateAdd","stateReset","stateSet","timedDebuff"
+  "disarm","modifyHeal","poison","removeShield","repair","setTimerFraction",
+  "shield","spawn","spendShieldForDamage","stateAdd","stateReset","stateSet",
+  "timedDebuff"
 ]);
 
 /* Reject only unconditional immediate cycles. Conditional loops remain legal
@@ -221,6 +222,7 @@ export function validateCombatHooks(specs){
     if(!Array.isArray(spec.actions)){throw new Error("combat hook actions must be an array");}
     if(spec.every!==undefined&&(!Number.isInteger(spec.every)||spec.every<1)){throw new Error("combat hook every must be a positive integer");}
     if(spec.oncePerMs!==undefined&&(!Number.isInteger(spec.oncePerMs)||spec.oncePerMs<1)){throw new Error("combat hook interval must be a positive integer");}
+    if(spec.oncePerContext!==undefined&&typeof spec.oncePerContext!=="string"){throw new Error("combat hook context lock must be a string");}
     const conditions=Array.isArray(spec.when)?spec.when.length>0:!!spec.when;
     for(const action of spec.actions){
       if(!action||!HOOK_ACTIONS.has(action.op)){throw new Error("unknown combat hook action");}
@@ -403,6 +405,9 @@ export function createFight(cfg){
     if(test==="eventSideIsEnemy"){return (context.side||context.targetSide)!==hook.side;}
     if(test==="contactKind"){return context.kind===condition.value;}
     if(test==="destroyed"){return !!context.destroyed===(condition.value!==false);}
+    if(test==="victimHasRattle"){return !!(context.victimItem&&context.victimItem.rattle);}
+    if(test==="itemExists"){return !!selectHookItem(condition.selector,hook,context);}
+    if(test==="itemMissing"){return !selectHookItem(condition.selector,hook,context);}
     if(test==="hpBelowMax"){
       const side=sideOf(hookSide(condition.side,hook,context));return side.hp<side.maxHp;
     }
@@ -439,6 +444,8 @@ export function createFight(cfg){
       if(!item.alive){continue;}
       if(selector.active&&item.cd<=0){continue;}
       if(selector.category&&item.cat!==selector.category){continue;}
+      if(selector.damageOnly&&!(item.printedDmg||item.fx.dmg)){continue;}
+      if(selector.differentActorCategory&&context.actor&&item.cat===context.actor.cat){continue;}
       const ref=sourceOf(side,item,i);
       if(selector.excludeSelf&&sameRef(ref,hook.sourceRef)){continue;}
       if(selector.excludeActor&&sameRef(ref,context.source)){continue;}
@@ -458,7 +465,10 @@ export function createFight(cfg){
     }
     if(selector.position==="highestDamage"){
       let best=found[0];
-      for(const ref of found){if((liveItem(ref).fx.dmg||0)>(liveItem(best).fx.dmg||0)){best=ref;}}
+      for(const ref of found){
+        const item=liveItem(ref),current=liveItem(best);
+        if((item.printedDmg||item.fx.dmg||0)>(current.printedDmg||current.fx.dmg||0)){best=ref;}
+      }
       return best;
     }
     return found[0];
@@ -518,7 +528,7 @@ export function createFight(cfg){
       action.targetSide=hookSide(action.targetSide||"enemy",hook,context);
     }else if(action.op==="merchantHit"){
       action.side=hookSide(action.side||"enemy",hook,context);action.hookable=true;
-    }else if(action.op==="haste"||action.op==="activate"||action.op==="destroy"){
+    }else if(action.op==="haste"||action.op==="activate"||action.op==="destroy"||action.op==="disarm"){
       if(action.targets!==undefined){
         action.targetRefs=selectHookItems(action.targets,hook,context);if(!action.targetRefs.length){return null;}
       }else{
@@ -543,6 +553,8 @@ export function createFight(cfg){
       action.side=hookSide(action.side||"owner",hook,context);action.context=context;
     }else if(action.op==="repair"){
       action.targetRef=selectHookItem(action.target,hook,context);if(!action.targetRef){return null;}
+    }else if(action.op==="setTimerFraction"){
+      action.targetRef=selectHookItem(action.target,hook,context);if(!action.targetRef){return null;}
     }else if(action.op==="stateAdd"||action.op==="stateReset"||action.op==="stateSet"){
       action.stateKey=hookStateKey(hook,action.key);
     }
@@ -562,6 +574,11 @@ export function createFight(cfg){
       if(hook.spec.oncePerMs){
         const key=hook.identity+"|interval",bucket=Math.floor(F.t/hook.spec.oncePerMs);
         if(hookState.get(key)===bucket){continue;}hookState.set(key,bucket);
+      }
+      if(hook.spec.oncePerContext){
+        const value=hook.spec.oncePerContext==="actorCategory"?(context.actor&&context.actor.cat):context[hook.spec.oncePerContext];
+        const key=hook.identity+"|context|"+String(value);
+        if(value===undefined||hookState.get(key)){continue;}hookState.set(key,1);
       }
       const count=rootBudget.hooks.get(hook.identity)||0;
       if(count>=16){tripGuard("hook");continue;}
@@ -634,7 +651,7 @@ export function createFight(cfg){
     const actions=[],rattle=dead.rattle;
     if(!rattle){return actions;}
     if(rattle.hasteMates){actions.push({op:"rattleHaste",side:side.key,source:source,amount:rattle.hasteMates});}
-    if(rattle.spawn){actions.push({op:"spawn",side:side.key,source:source,spec:rattle.spawn});}
+    if(rattle.spawn){actions.push({op:"spawn",side:side.key,source:source,spec:rattle.spawn,fromRattle:true});}
     return actions;
   }
   function destroySource(side,source,killer,depth){
@@ -797,14 +814,14 @@ export function createFight(cfg){
       if(side.items[slot]!==dead){return;}
       const item={nm:spec.nm,g:spec.g,size:dead.size,rarity:dead.rarity,cat:spec.cat||"dmg",tier:dead.tier,
         cd:Math.round(spec.cd*1000),timer:0,alive:true,integ:spec.integ,maxI:spec.integ,
-        fx:Object.assign({},spec.fx),bulwark:!!spec.bulwark,targeting:spec.targeting||null,charge:null,
-        pocket:0,flying:!!spec.flying,frozen:0,crit:spec.crit||0,rattle:spec.rattle||null,selfdestruct:false,
+        fx:Object.assign({},spec.fx),printedDmg:spec.fx&&spec.fx.dmg||0,bulwark:!!spec.bulwark,targeting:spec.targeting||null,charge:null,
+        pocket:0,flying:!!spec.flying,frozen:0,disarmed:0,crit:spec.crit||0,rattle:spec.rattle||null,selfdestruct:false,
         ammo:0,maxAmmo:0,cleanseTotal:spec.cleanseTotal||0,hooks:spec.hooks||null,uid:spawnUid(side)};
       side.items[slot]=item;const spawnedRef=registerSource(side,item,slot);
       const spawnedHooks=[];queueHookSpecs(spawnedHooks,side,"item",spawnedRef.uid,slot,spawnedRef,item.hooks);installHookEntries(spawnedHooks);
       emit({k:"spawn",side:side.key,i:slot,nm:spec.nm,g:spec.g,integ:spec.integ});
       triggerHookPoint("afterSpawn",{source:action.source,spawned:spawnedRef,target:spawnedRef,
-        side:side.key,targetSide:side.key},depth);
+        side:side.key,targetSide:side.key,fromRattle:!!action.fromRattle},depth);
     }else if(action.op==="tickPoison"){
       const side=sideOf(action.side),amount=side.pois;side.hp-=amount;emit({k:"tickp",side:side.key,amt:amount});side.pois=Math.floor(side.pois*0.82);
     }else if(action.op==="tickBurn"){
@@ -879,6 +896,18 @@ export function createFight(cfg){
         const actual=Math.min(Math.max(0,target.maxI-target.integ),action.amount);
         if(actual>0){target.integ+=actual;emit({k:"chip",side:action.targetRef.side,i:action.targetRef.slot,amt:-actual,integ:target.integ,repair:true});}
       }
+    }else if(action.op==="disarm"){
+      const target=liveItem(action.targetRef);
+      if(target&&(!action.source||source)){
+        target.disarmed=Math.max(target.disarmed||0,action.duration*1000);
+        emit({k:"freeze",side:action.targetRef.side,i:action.targetRef.slot,amt:action.duration,disarm:true});
+      }
+    }else if(action.op==="setTimerFraction"){
+      const target=liveItem(action.targetRef);
+      if(target&&target.cd>0&&(!action.source||source)){
+        const needed=Math.max(0,target.cd*action.value-target.timer);
+        if(needed>0){applyHaste(action.source,action.targetRef,needed/1000,depth);}
+      }
     }else if(action.op==="modifyContact"){
       if(action.add){action.context.damage+=action.add;}
       if(action.mul!==undefined){action.context.damage*=action.mul;}
@@ -886,6 +915,8 @@ export function createFight(cfg){
     }else if(action.op==="modifyHeal"){
       if(action.add){action.context.amount+=action.add;}
       if(action.mul!==undefined){action.context.amount*=action.mul;}
+    }else if(action.op==="thawDisarm"){
+      if(source){source.disarmed=0;emit({k:"thaw",side:action.source.side,i:action.source.slot,disarm:true});}
     }
   }
   F.step=function(dt){
@@ -902,7 +933,10 @@ export function createFight(cfg){
         const it=S.items[i];
         if(!it.alive||it.cd<=0){continue;}
         const source=sourceOf(S,it,i);
-        if(it.frozen>0){it.frozen-=dt;if(it.frozen<=0){runRoot([{op:"thaw",source:source}],ev);}continue;}
+        let paused=false;
+        if(it.frozen>0){it.frozen-=dt;paused=true;if(it.frozen<=0){runRoot([{op:"thaw",source:source}],ev);}}
+        if(it.disarmed>0){it.disarmed-=dt;paused=true;if(it.disarmed<=0){runRoot([{op:"thawDisarm",source:source}],ev);}}
+        if(paused){continue;}
         /* an empty magazine holds its swing until a reload lands */
         if(it.maxAmmo>0&&it.ammo<=0){continue;}
         /* an auctioned lot never acts again */

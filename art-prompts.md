@@ -61,6 +61,10 @@ For monsters swap "item icon" for "monster bust, composed for a circular medalli
 | chirurgeonsscissors.png | fine silver surgical scissors with rose-gold hinges and a loop of clean linen |
 | bloodpricechalice.png | a heavy dark jade chalice filled with luminous crimson liquid, set with brass thorns |
 | mendersbell.png | a small rose-brass mending bell wrapped with linen strips and fine gold thread |
+| smoketaxstamp.png | a carved black tax stamp with a brass handle, trailing a thin curl of gray smoke |
+| peacebinderchain.png | a folded silver restraint chain with heavy brass locks and blue silk binding cords |
+| gravebell.png | a small blackened grave bell engraved with pale bone motifs and green patina |
+| bazaarcompass.png | an ornate brass compass with six colored enamel points for the bazaar's ware families |
 
 ## Monsters, to public/art/monsters/
 

@@ -7,9 +7,18 @@
    R4 commit makes that application idempotent with transaction receipts. */
 import {ITEMS} from './data.js';
 
+export function boardVictoryIncome(board){
+  let gold=0;
+  for(const ware of board||[]){
+    const curve=ITEMS[ware.id]&&ITEMS[ware.id].incomeByRarity;
+    if(curve){gold+=curve[ware.rarity||0]||0;}
+  }
+  return gold;
+}
+
 export function planReward(bounty, ctx){
   const b = bounty || {};
-  let gold = ctx.baseGold || 0;
+  let gold = (ctx.baseGold || 0) + (ctx.incomeGold || 0);
   let drained = 0;
   if(b.gold){
     const purse = b.gold * (ctx.gilded ? 2 : 1);

@@ -6,7 +6,7 @@ import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,usedC
 import {genMap,MAP_VERSION} from './map.js';
 import {frontier,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
-import {planReward} from './route-rewards.js';
+import {planReward,boardVictoryIncome} from './route-rewards.js';
 import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy,allocId,ensureIdFloor,
         campEnsure,campMend,campLastReserve,campExpireCredit,campClear,CAMP_MEND,CAMP_LAST_RESERVE} from './route-run.js';
 import {rewardKey,settleFixed,refreshPendingChoice,nextPresentation} from './route-runtime.js';
@@ -690,7 +690,8 @@ function handleEvents(F,evs){
     else if(e.k==='tickp'){if(G.recap)G.recap[e.side].pois+=e.amt;fltFx(e.side,'-'+e.amt,'#c0e070','e-skull',false);sTick();}
     else if(e.k==='tickb'){if(G.recap)G.recap[e.side].burn+=e.amt;fltFx(e.side,'-'+e.amt,'#ffb066','e-flame',false);sTick();}
     else if(e.k==='pocket'){fltFx(e.side,'-'+e.amt,'#e8c27a','e-bolt',false);logLine('<b class="y">Sticky Paws pockets '+e.amt+' bounty gold</b>','e-bolt','#e8c27a');}
-    else if(e.k==='freeze'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('frz');fltFx(e.side,'Froze '+e.amt+'s','#9ad8ef','e-clock',false);sTick();}
+    else if(e.k==='freeze'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('frz');
+      fltFx(e.side,(e.disarm?'Disarmed ':'Froze ')+e.amt+'s',e.disarm?'#e8c27a':'#9ad8ef','e-clock',false);sTick();}
     else if(e.k==='thaw'){const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.remove('frz');}
     else if(e.k==='crit'){cellFx(e.side,e.i,'fire');logLine('<b class="y">Critical strike</b>','e-blade','#f4cf7c');}
     else if(e.k==='ammo'){if(e.left===0){fltFx(e.side,'empty','#8d7f6c','e-clock',false);logLine('<b class="r">The cannon clicks empty</b>','e-clock','#8d7f6c');}}
@@ -834,7 +835,8 @@ function settleRouteReward(e){
   const M=MONSTERS[e.monId];
   const key=rewardKey(G.run.runId,e.nodeId,c.attempt||0);
   const already=!!(G.run.receipts[key]&&G.run.receipts[key].fixedApplied);
-  const plan=planReward(M.bounty||{},{baseGold:e.gold,gilded:e.gilded,enteredGold:c.enteredGold||0,pocketed:c.pocketed||0,minGold:0,board:G.board});
+  const plan=planReward(M.bounty||{},{baseGold:e.gold,incomeGold:boardVictoryIncome(G.board),gilded:e.gilded,
+    enteredGold:c.enteredGold||0,pocketed:c.pocketed||0,minGold:0,board:G.board});
   /* the final boss dies as the run is won (settleReward sets phase 'won' before this
      reward), so its choice reward (the Vizier's pick-any-unique) would drop a ware
      into a market that never opens and stall the victory behind a moot overlay. Drop

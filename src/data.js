@@ -237,7 +237,37 @@ export const ITEMS={
    hooks:[{on:"afterActivate",every:3,when:[{test:"actorSideIsOwner"},{test:"actorNotSource"},{test:"actorCategory",value:"heal"}],actions:[
      {op:"repair",target:{side:"owner",position:"lowestIntegrity",excludeSelf:true},amount:{from:"sourceRarity",values:[10,15,23,33]}}
    ]}],
-   d:"Every third other heal activation repairs 10 Integrity to your lowest-Integrity living ware."}
+   d:"Every third other heal activation repairs 10 Integrity to your lowest-Integrity living ware."},
+ smoketaxstamp:{n:"Smoke Tax Stamp",size:1,tier:2,cat:"util",cd:0,fx:{},incomeByRarity:[1,2,3,4],unique:true,acquisition:"treasure",
+   hooks:[{on:"beforeHeal",when:{test:"eventSideIsEnemy"},actions:[
+     {op:"modifyHeal",mul:0.8}
+   ]}],
+   d:"After each combat victory, gain 1 gold. While alive, enemy healing is reduced by 20%."},
+ peacebinderchain:{n:"Peacebinder Chain",size:2,tier:3,cat:"util",cd:5,fx:{},unique:true,acquisition:"treasure",
+   hooks:[
+     {on:"afterActivate",when:[{test:"actorIsSource"},{test:"itemExists",selector:{side:"enemy",damageOnly:true,position:"highestDamage"}}],actions:[
+       {op:"disarm",target:{side:"enemy",damageOnly:true,position:"highestDamage"},duration:2}
+     ]},
+     {on:"afterActivate",when:[{test:"actorIsSource"},{test:"itemMissing",selector:{side:"enemy",damageOnly:true,position:"highestDamage"}}],actions:[
+       {op:"haste",targets:{side:"owner",active:true,adjacentToSelf:true},amount:0.5}
+     ]}
+   ],
+   d:"Disarm the enemy's highest printed damage ware for 2 seconds. With none, charge adjacent allies 0.5 seconds."},
+ gravebell:{n:"Grave Bell",size:1,tier:3,cat:"util",cd:0,fx:{},unique:true,acquisition:"treasure",
+   hooks:[
+     {on:"destroyed",when:[{test:"eventSideIsOwner"},{test:"victimNotSource"},{test:"victimHasRattle"}],actions:[
+       {op:"shield",side:"owner",amount:{from:"sourceRarity",values:[6,9,14,20]}}
+     ]},
+     {on:"afterSpawn",when:[{test:"eventSideIsOwner"},{test:"contextAtLeast",key:"fromRattle",value:1}],actions:[
+       {op:"setTimerFraction",target:"target",value:0.5}
+     ]}
+   ],
+   d:"Allied rattles grant 6 shield. Their spawned replacements begin half charged."},
+ bazaarcompass:{n:"Bazaar Compass",size:2,tier:3,cat:"util",cd:0,fx:{},unique:true,acquisition:"treasure",
+   hooks:[{on:"afterActivate",oncePerContext:"actorCategory",when:[{test:"actorSideIsOwner"},{test:"actorNotSource"}],actions:[
+     {op:"haste",targets:{side:"owner",active:true,differentActorCategory:true,excludeSelf:true},amount:0.2}
+   ]}],
+   d:"The first other activation of each category charges every active ware of a different category 0.2 seconds."}
 };
 /* ============ HEROES ============ */
 /* Picked at run start. The personal tag weights your shop like a lobby

@@ -64,6 +64,10 @@ const R8_UNIQUE_WARES={
   chirurgeonsscissors:{version:"0.73.0",batch:"healing",acquisition:"treasure"},
   bloodpricechalice:{version:"0.73.0",batch:"healing",acquisition:"treasure"},
   mendersbell:{version:"0.73.0",batch:"healing",acquisition:"treasure"},
+  smoketaxstamp:{version:"0.74.0",batch:"utility",acquisition:"treasure"},
+  peacebinderchain:{version:"0.74.0",batch:"utility",acquisition:"treasure"},
+  gravebell:{version:"0.74.0",batch:"utility",acquisition:"treasure"},
+  bazaarcompass:{version:"0.74.0",batch:"utility",acquisition:"treasure"},
 };
 
 /* The byte-identical fight-for-fight parity test was retired on 2026-07-12.

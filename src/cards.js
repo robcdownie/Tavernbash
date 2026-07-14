@@ -18,6 +18,7 @@ export function effChips(id,rarity){
   if(f.heal)c.push(['heal','e-heart',Math.round(f.heal*rs)]);
   if(f.haste)c.push(['util','e-bolt',(Math.round(f.haste*rs*10)/10)+'s haste']);
   if(d.inc)c.push(['util','e-bolt','+'+Math.round(d.inc*rs)+'g/rd']);
+  if(d.incomeByRarity)c.push(['util','e-bolt','+'+d.incomeByRarity[rarity||0]+'g/win']);
   if(d.adjDmg)c.push(['util','e-blade','adj +'+Math.round(d.adjDmg*rs)]);
   if(d.cdMul)c.push(['util','e-clock','12% faster']);
   if(d.bulwark)c.push(['shield','e-shield','Bulwark']);
