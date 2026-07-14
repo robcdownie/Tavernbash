@@ -56,6 +56,10 @@ const R8_UNIQUE_WARES={
   ashencenser:{version:"0.71.0",batch:"burn",acquisition:"treasure"},
   kilnchain:{version:"0.71.0",batch:"burn",acquisition:"treasure"},
   phoenixbell:{version:"0.71.0",batch:"burn",acquisition:"treasure"},
+  coinplatedram:{version:"0.72.0",batch:"shield",acquisition:"treasure"},
+  mirrorbastion:{version:"0.72.0",batch:"shield",acquisition:"treasure"},
+  saltward:{version:"0.72.0",batch:"shield",acquisition:"treasure"},
+  breakwaterbuckler:{version:"0.72.0",batch:"shield",acquisition:"treasure"},
 };
 
 /* The byte-identical fight-for-fight parity test was retired on 2026-07-12.

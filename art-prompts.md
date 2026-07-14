@@ -53,6 +53,10 @@ For monsters swap "item icon" for "monster bust, composed for a circular medalli
 | ashencenser.png | an ornate pierced brass censer spilling embers and trailing bands of gray ash |
 | kilnchain.png | a short iron kiln chain glowing orange at each link, with hooked brass clasps |
 | phoenixbell.png | a ceremonial brass bell shaped like a phoenix, its clapper glowing with live fire |
+| coinplatedram.png | a massive brass battering ram plated in overlapping gold coins with a dark wooden core |
+| mirrorbastion.png | a tall polished silver mirror-shield in a heavy brass bastion frame |
+| saltward.png | a small carved salt ward tablet bound in brass wire, dusted with white crystals |
+| breakwaterbuckler.png | a round blue-steel buckler embossed with a breaking wave and edged in brass |
 
 ## Monsters, to public/art/monsters/
 

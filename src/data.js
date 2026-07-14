@@ -94,10 +94,10 @@ export const ITEMS={
    d:"Deal 6. Half its merchant damage bypasses shield. Damaging shield charges it 0.4 seconds."},
  blacklotuspress:{n:"Black Lotus Press",size:2,tier:3,cat:"poison",cd:0,fx:{},unique:true,acquisition:"treasure",
    hooks:[
-     {on:"afterActivate",when:[{test:"actorNotSource"},{test:"actorCategory",value:"poison"}],actions:[
+     {on:"afterActivate",when:[{test:"actorSideIsOwner"},{test:"actorNotSource"},{test:"actorCategory",value:"poison"}],actions:[
        {op:"haste",target:{side:"owner",category:"dmg",active:true},amount:0.25}
      ]},
-     {on:"afterActivate",every:4,when:[{test:"actorNotSource"},{test:"actorCategory",value:"poison"}],actions:[
+     {on:"afterActivate",every:4,when:[{test:"actorSideIsOwner"},{test:"actorNotSource"},{test:"actorCategory",value:"poison"}],actions:[
        {op:"poison",targetSide:"enemy",amount:{from:"sourceRarity",values:[1,2,2,3]}}
      ]}
    ],
@@ -109,7 +109,7 @@ export const ITEMS={
    d:"Apply 5 poison. At 20 enemy poison, deal 8 damage to its leftmost reachable item."},
  antidotethief:{n:"Antidote Thief",size:2,tier:3,cat:"poison",cd:5,fx:{poison:3},unique:true,acquisition:"treasure",
    hooks:[
-     {on:"afterHeal",when:[{test:"eventSideIsEnemy"},{test:"cleansedPoisonAtLeast",value:1}],actions:[
+     {on:"afterCleanse",when:[{test:"eventSideIsEnemy"},{test:"cleansedPoisonAtLeast",value:1}],actions:[
        {op:"stateAdd",key:"cleansedPoison",amount:{from:"context",key:"cleansedPoison"},max:4}
      ]},
      {on:"afterActivate",when:[{test:"actorIsSource"},{test:"stateAtLeast",key:"cleansedPoison",value:1}],actions:[
@@ -150,7 +150,7 @@ export const ITEMS={
        {op:"itemStateSet",targets:{side:"owner",category:"dmg",adjacentToSelf:true},key:"ignited",
         value:{from:"sourceRarity",values:[1,2,2,3]}}
      ]},
-     {on:"afterActivate",allowDead:true,when:[{test:"actorCategory",value:"dmg"},{test:"actorStateAtLeast",key:"ignited",value:1}],actions:[
+     {on:"afterActivate",allowDead:true,when:[{test:"actorSideIsOwner"},{test:"actorCategory",value:"dmg"},{test:"actorStateAtLeast",key:"ignited",value:1}],actions:[
        {op:"burn",source:"actor",targetSide:"enemy",amount:{from:"actorState",key:"ignited"}},
        {op:"itemStateReset",source:"actor",target:"actor",key:"ignited"}
      ]}
@@ -167,7 +167,50 @@ export const ITEMS={
        {op:"stateReset",key:"allyDestroyed"}
      ]}
    ],
-   d:"Apply 3 burn. An allied item death adds 3 burn and charges every other burn ware 0.5 seconds."}
+   d:"Apply 3 burn. An allied item death adds 3 burn and charges every other burn ware 0.5 seconds."},
+ coinplatedram:{n:"Coin-Plated Ram",size:3,tier:3,cat:"shield",cd:5,fx:{shield:18},unique:true,acquisition:"treasure",
+   hooks:[
+     {on:"afterActivate",when:{test:"actorIsSource"},actions:[
+       {op:"itemStateSet",targets:{side:"owner",category:"dmg",active:true},key:"shieldSpend",value:8}
+     ]},
+     {on:"beforeHit",allowDead:true,when:[{test:"actorSideIsOwner"},{test:"actorCategory",value:"dmg"},
+       {test:"actorStateAtLeast",key:"shieldSpend",value:1}],actions:[
+       {op:"spendShieldForDamage",source:"actor",side:"owner",key:"shieldSpend"}
+     ]}
+   ],
+   d:"Gain 18 shield. Your leftmost weapon's next attack spends up to 8 shield for equal bonus damage."},
+ mirrorbastion:{n:"Mirror Bastion",size:3,tier:4,cat:"shield",cd:6,fx:{shield:24},unique:true,acquisition:"treasure",
+   hooks:[{on:"afterHit",oncePerMs:1000,when:[{test:"eventSideIsOwner"},{test:"contextAtLeast",key:"shieldAbsorbed",value:1}],actions:[
+     {op:"haste",target:{side:"owner",active:true,position:"rightmost"},amount:0.35}
+   ]}],
+   d:"Gain 24 shield. Once per second, shield absorption charges your rightmost active ware 0.35 seconds."},
+ saltward:{n:"Salt Ward",size:1,tier:2,cat:"shield",cd:4,fx:{shield:8},unique:true,acquisition:"treasure",
+   hooks:[
+     {on:"beforeActivate",when:{test:"actorIsSource"},actions:[
+       {op:"cleanseStatus",side:"owner",status:"pois",amount:2,store:"poisonCleansed"}
+     ]},
+     {on:"afterActivate",when:[{test:"actorIsSource"},{test:"stateAtLeast",key:"poisonCleansed",value:1}],actions:[
+       {op:"shield",side:"owner",amount:{from:"sourceRarity",values:[4,6,9,13]}},
+       {op:"stateReset",key:"poisonCleansed"}
+     ]}
+   ],
+   d:"Gain 8 shield and cleanse 2 poison. Cleansing any poison grants 4 more shield."},
+ breakwaterbuckler:{n:"Breakwater Buckler",size:2,tier:3,cat:"shield",cd:4.5,fx:{shield:14},unique:true,acquisition:"treasure",
+   hooks:[
+     {on:"beforeActivate",when:{test:"actorIsSource"},actions:[
+       {op:"cleanseStatus",side:"owner",status:"burn",amount:2,store:"burnCleansed"}
+     ]},
+     {on:"afterActivate",when:[{test:"actorIsSource"},{test:"stateAtLeast",key:"burnCleansed",value:1}],actions:[
+       {op:"shield",side:"owner",amount:{from:"sourceRarity",values:[4,6,9,13]}}
+     ]},
+     {on:"afterActivate",when:[{test:"actorIsSource"},{test:"stateAtLeast",key:"burnCleansed",value:2}],actions:[
+       {op:"shield",side:"owner",amount:{from:"sourceRarity",values:[4,6,9,13]}}
+     ]},
+     {on:"afterActivate",when:[{test:"actorIsSource"},{test:"stateAtLeast",key:"burnCleansed",value:1}],actions:[
+       {op:"stateReset",key:"burnCleansed"}
+     ]}
+   ],
+   d:"Gain 14 shield. Remove up to 2 own burn and gain 4 more shield for each removed."}
 };
 /* ============ HEROES ============ */
 /* Picked at run start. The personal tag weights your shop like a lobby

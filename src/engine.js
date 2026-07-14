@@ -190,7 +190,7 @@ export const COMBAT_RENDER_EVENT_KINDS=Object.freeze([
 export const COMBAT_EVENT_KINDS=Object.freeze(COMBAT_RENDER_EVENT_KINDS.concat(["end"]));
 export const COMBAT_HOOK_POINTS=Object.freeze([
   "fightStart","beforeActivate","afterActivate","beforeHit","afterHit",
-  "destroyed","beforeHeal","afterHeal","afterHaste","afterSpawn"
+  "destroyed","beforeHeal","afterHeal","afterCleanse","afterHaste","afterSpawn"
 ]);
 const HOOK_POINT_SET=new Set(COMBAT_HOOK_POINTS);
 const HOOK_ACTION_POINTS={
@@ -199,13 +199,15 @@ const HOOK_ACTION_POINTS={
   merchantHit:["beforeHit","afterHit"],
   destroy:["destroyed"],
   heal:["beforeHeal","afterHeal"],
+  cleanseStatus:["afterCleanse"],
   haste:["afterHaste"],
   spawn:["afterSpawn"]
 };
 const HOOK_ACTIONS=new Set([
   "activate","burn","consumeStatus","damage","destroy","haste","heal",
-  "itemStateReset","itemStateSet","merchantHit","modifyContact","poison",
-  "removeShield","shield","spawn","stateAdd","stateReset","timedDebuff"
+  "cleanseStatus","itemStateReset","itemStateSet","merchantHit","modifyContact",
+  "poison","removeShield","shield","spawn","spendShieldForDamage","stateAdd",
+  "stateReset","timedDebuff"
 ]);
 
 /* Reject only unconditional immediate cycles. Conditional loops remain legal
@@ -217,6 +219,7 @@ export function validateCombatHooks(specs){
     if(!spec||!HOOK_POINT_SET.has(spec.on)){throw new Error("unknown combat hook point");}
     if(!Array.isArray(spec.actions)){throw new Error("combat hook actions must be an array");}
     if(spec.every!==undefined&&(!Number.isInteger(spec.every)||spec.every<1)){throw new Error("combat hook every must be a positive integer");}
+    if(spec.oncePerMs!==undefined&&(!Number.isInteger(spec.oncePerMs)||spec.oncePerMs<1)){throw new Error("combat hook interval must be a positive integer");}
     const conditions=Array.isArray(spec.when)?spec.when.length>0:!!spec.when;
     for(const action of spec.actions){
       if(!action||!HOOK_ACTIONS.has(action.op)){throw new Error("unknown combat hook action");}
@@ -389,6 +392,7 @@ export function createFight(cfg){
     if(test==="sourceAlive"){return !hook.sourceRef||!!liveItem(hook.sourceRef);}
     if(test==="actorIsSource"){return sameRef(context.source,hook.sourceRef);}
     if(test==="actorNotSource"){return !sameRef(context.source,hook.sourceRef);}
+    if(test==="actorSideIsOwner"){return !!context.source&&context.source.side===hook.side;}
     if(test==="victimNotSource"){return !sameRef(context.victim,hook.sourceRef);}
     if(test==="actorCategory"){return context.actor&&context.actor.cat===condition.value;}
     if(test==="actorStateAtLeast"){
@@ -525,10 +529,15 @@ export function createFight(cfg){
     }else if(action.op==="removeShield"){
       action.side=hookSide(action.side||"enemy",hook,context);
       if(action.store){action.stateKey=hookStateKey(hook,action.store);}
+    }else if(action.op==="cleanseStatus"){
+      action.side=hookSide(action.side||"owner",hook,context);
+      if(action.store){action.stateKey=hookStateKey(hook,action.store);}
     }else if(action.op==="timedDebuff"){
       action.side=hookSide(action.side||"enemy",hook,context);
     }else if(action.op==="modifyContact"){
       action.context=context;
+    }else if(action.op==="spendShieldForDamage"){
+      action.side=hookSide(action.side||"owner",hook,context);action.context=context;
     }else if(action.op==="stateAdd"||action.op==="stateReset"){
       action.stateKey=hookStateKey(hook,action.key);
     }
@@ -545,6 +554,10 @@ export function createFight(cfg){
         const key=hook.identity+"|every",count=(hookState.get(key)||0)+1;hookState.set(key,count);
         if(count%hook.spec.every!==0){continue;}
       }
+      if(hook.spec.oncePerMs){
+        const key=hook.identity+"|interval",bucket=Math.floor(F.t/hook.spec.oncePerMs);
+        if(hookState.get(key)===bucket){continue;}hookState.set(key,bucket);
+      }
       const count=rootBudget.hooks.get(hook.identity)||0;
       if(count>=16){tripGuard("hook");continue;}
       rootBudget.hooks.set(hook.identity,count+1);
@@ -556,8 +569,10 @@ export function createFight(cfg){
   }
 
   function hitMerchant(side,amt,kind,source,depth,hookable){
+    const sourceItem=source&&liveItem(source);
     const context={source:source||null,sourceSide:source?source.side:null,targetSide:side.key,
-      side:side.key,kind:"merchant",target:null,originalDamage:amt,damage:amt,destroyed:false,shieldPierce:0};
+      side:side.key,kind:"merchant",target:null,actor:sourceItem?{cat:sourceItem.cat,nm:sourceItem.nm,size:sourceItem.size}:null,
+      originalDamage:amt,damage:amt,destroyed:false,shieldPierce:0};
     if(hookable){triggerHookPoint("beforeHit",context,depth);}
     const damage=Math.max(0,context.damage),pierce=Math.max(0,Math.min(1,context.shieldPierce||0));
     const bypass=Math.round(damage*pierce),shieldable=damage-bypass;
@@ -592,6 +607,7 @@ export function createFight(cfg){
     context.amount=amount;context.actual=side.hp-before;context.overheal=Math.max(0,amount-missing);context.receivedMul=receivedMul;
     context.cleansedPoison=poisonBefore-side.pois;context.cleansedBurn=burnBefore-side.burn;
     if(context.actual>0){side.lastHealTime=F.t;}
+    if(context.cleansedPoison||context.cleansedBurn){triggerHookPoint("afterCleanse",context,depth);}
     triggerHookPoint("afterHeal",context,depth);
   }
   function applyHaste(source,targetRef,amount,depth){
@@ -633,7 +649,7 @@ export function createFight(cfg){
       }
       const target=targetSide.items[slot],targetRef=sourceOf(targetSide,target,slot);
       const context={source:action.source,sourceSide:sourceSide.key,targetSide:targetSide.key,
-        side:targetSide.key,kind:"item",target:targetRef,originalDamage:remaining,damage:remaining,
+        side:targetSide.key,kind:"item",target:targetRef,actor:{cat:it.cat,nm:it.nm,size:it.size},originalDamage:remaining,damage:remaining,
         destroyed:false,overkill:0,shieldAbsorbed:0};
       triggerHookPoint("beforeHit",context,depth);
       const contactDamage=Math.max(0,context.damage),hit=Math.min(target.integ,contactDamage);
@@ -824,6 +840,20 @@ export function createFight(cfg){
       if(!action.source||source){
         const side=sideOf(action.side),removed=Math.min(side.shield,Math.max(0,action.amount));
         side.shield-=removed;if(action.stateKey){hookState.set(action.stateKey,removed);}
+      }
+    }else if(action.op==="cleanseStatus"){
+      if(!action.source||source){
+        const side=sideOf(action.side),before=side[action.status]||0,removed=Math.min(before,Math.max(0,action.amount));
+        side[action.status]=before-removed;if(action.stateKey){hookState.set(action.stateKey,removed);}
+        if(removed){
+          triggerHookPoint("afterCleanse",{source:action.source||null,side:side.key,targetSide:side.key,
+            cleansedPoison:action.status==="pois"?removed:0,cleansedBurn:action.status==="burn"?removed:0},depth);
+        }
+      }
+    }else if(action.op==="spendShieldForDamage"){
+      if(source){
+        const key=itemStateKey(action.source,action.key),cap=itemState.get(key)||0,side=sideOf(action.side);
+        const spent=Math.min(side.shield,cap);side.shield-=spent;action.context.damage+=spent;itemState.delete(key);
       }
     }else if(action.op==="modifyContact"){
       if(action.add){action.context.damage+=action.add;}
