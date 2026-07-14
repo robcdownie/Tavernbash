@@ -100,6 +100,15 @@ export const FIXTURES = [
       b:side([ fi({nm:'Egg', cd:9e9, integ:5, selfdestruct:false,
         rattle:{spawn:{nm:'Chick', g:'g-sword', cd:2, integ:40, fx:{dmg:3}}}}) ]) } },
 
+  /* a replacement created on the later side is eligible when that side has not
+     been visited yet: overflow lands first, then the new source activates */
+  { name:'spawn-unvisited-side-acts-later',
+    dts:[1000],
+    cfg:{ seed:2, stormAt:9e9, playerIs:'a',
+      a:side([ fi({nm:'Cleaver', cd:1000, size:3, fx:{dmg:10}}) ]),
+      b:side([ fi({nm:'Egg', cd:9e9, integ:5, selfdestruct:false,
+        rattle:{spawn:{nm:'Chick', g:'g-sword', cd:1, integ:40, fx:{dmg:3}}}}) ]) } },
+
   /* self-destruct hatch: activation is its own death, then the deathrattle spawns */
   { name:'selfdestruct-hatch',
     dts:[1000],
@@ -107,6 +116,18 @@ export const FIXTURES = [
       a:side([ fi({nm:'RocEgg', cd:1000, selfdestruct:true,
         rattle:{spawn:{nm:'Roc', g:'g-sword', cd:3, integ:60, fx:{dmg:12}}}}) ]),
       b:side([ fi({nm:'Wall', cd:9e9, integ:100}) ]) } },
+
+  /* the other deathrattle verb mutates each survivor left-to-right before the
+     scheduler reaches that side, and emits one enrage per affected source */
+  { name:'rattle-haste-mates-order',
+    dts:[1000],
+    cfg:{ seed:2, stormAt:9e9, playerIs:'a',
+      a:side([ fi({nm:'Pick', cd:1000, fx:{dmg:5}}) ]),
+      b:side([
+        fi({nm:'Head', cd:9e9, integ:5, rattle:{hasteMates:0.5}}),
+        fi({nm:'MateL', cd:4000, integ:40}),
+        fi({nm:'MateR', cd:6000, integ:40})
+      ]) } },
 
   /* adjacent haste hits idx-1 (already visited this step: hasted but does NOT
      re-fire this step) and idx+1 (not yet visited: the boost makes it fire now) */
@@ -143,6 +164,15 @@ export const FIXTURES = [
     cfg:{ seed:1, stormAt:9e9, playerIs:'a',
       a:side([ fi({nm:'Vamp', cd:1000, fx:{dmg:20}}) ], {hp:50, lifesteal:0.5}),
       b:side([ fi({nm:'Wall', cd:9e9, integ:100}) ]) } },
+
+  /* merchant contact through shield pins hhit amt/abs plus the legacy quiet
+     lifesteal accounting; no public heal event is emitted */
+  { name:'merchant-shielded-lifesteal',
+    dts:[1000],
+    setup:(F)=>{ F.a.hp=50; F.b.shield=6; },
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([ fi({nm:'Vamp', cd:1000, fx:{dmg:10}}) ], {hp:100, lifesteal:0.5}),
+      b:side([], {hp:100}) } },
 
   /* icy first-use frost fires before damage and only once */
   { name:'icy-frost-once',

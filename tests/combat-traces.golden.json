@@ -622,6 +622,114 @@
    }
   ]
  },
+ "spawn-unvisited-side-acts-later": {
+  "done": false,
+  "winner": null,
+  "t": 1000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Cleaver",
+      "alive": true,
+      "integ": 17,
+      "rarity": 0,
+      "cd": 1000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Chick",
+      "alive": true,
+      "integ": 35,
+      "rarity": 0,
+      "cd": 1000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 1000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 1000,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 5,
+    "integ": 0
+   },
+   {
+    "t": 1000,
+    "k": "destroy",
+    "side": "b",
+    "i": 0,
+    "nm": "Egg"
+   },
+   {
+    "t": 1000,
+    "k": "spawn",
+    "side": "b",
+    "i": 0,
+    "nm": "Chick",
+    "g": "g-sword",
+    "integ": 40
+   },
+   {
+    "t": 1000,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 5,
+    "integ": 35
+   },
+   {
+    "t": 1000,
+    "k": "fire",
+    "side": "b",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 1000,
+    "k": "chip",
+    "side": "a",
+    "i": 0,
+    "amt": 3,
+    "integ": 17
+   }
+  ]
+ },
  "selfdestruct-hatch": {
   "done": false,
   "winner": null,
@@ -696,6 +804,116 @@
     "nm": "Roc",
     "g": "g-sword",
     "integ": 60
+   }
+  ]
+ },
+ "rattle-haste-mates-order": {
+  "done": false,
+  "winner": null,
+  "t": 1000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Pick",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 1000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Head",
+      "alive": false,
+      "integ": 0,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "MateL",
+      "alive": true,
+      "integ": 40,
+      "rarity": 0,
+      "cd": 2000,
+      "timer": 1000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "MateR",
+      "alive": true,
+      "integ": 40,
+      "rarity": 0,
+      "cd": 3000,
+      "timer": 1000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 1000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 1000,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 5,
+    "integ": 0
+   },
+   {
+    "t": 1000,
+    "k": "destroy",
+    "side": "b",
+    "i": 0,
+    "nm": "Head"
+   },
+   {
+    "t": 1000,
+    "k": "enrage",
+    "side": "b",
+    "i": 1
+   },
+   {
+    "t": 1000,
+    "k": "enrage",
+    "side": "b",
+    "i": 2
    }
   ]
  },
@@ -1068,6 +1286,62 @@
     "i": 0,
     "amt": 20,
     "integ": 80
+   }
+  ]
+ },
+ "merchant-shielded-lifesteal": {
+  "done": false,
+  "winner": null,
+  "t": 1000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 55,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Vamp",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 1000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 96,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": []
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 1000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 1000,
+    "k": "hhit",
+    "side": "b",
+    "amt": 4,
+    "abs": 6
    }
   ]
  },
