@@ -122,7 +122,52 @@ export const ITEMS={
    hooks:[{on:"afterActivate",when:[{test:"actorIsSource"},{test:"statusAtLeast",side:"enemy",status:"pois",value:6}],actions:[
      {op:"heal",side:"owner",amount:{from:"status",side:"enemy",status:"pois",divide:6,floor:true,max:5},quiet:false}
    ]}],
-   d:"Apply 2 poison, then heal 1 per 6 enemy poison, up to 5."}
+   d:"Apply 2 poison, then heal 1 per 6 enemy poison, up to 5."},
+ funeralbrazier:{n:"Funeral Brazier",size:3,tier:4,cat:"burn",cd:0,fx:{},unique:true,acquisition:"treasure",
+   hooks:[
+     {on:"destroyed",when:{test:"eventSideIsEnemy"},actions:[
+       {op:"burn",targetSide:"enemy",amount:{from:"context",key:"victimSize"}}
+     ]},
+     {on:"destroyed",when:[{test:"eventSideIsEnemy"},{test:"statusAtLeast",side:"enemy",status:"burn",value:10}],actions:[
+       {op:"merchantHit",side:"enemy",amount:{from:"sourceRarity",values:[2,3,5,7]}}
+     ]}
+   ],
+   d:"Enemy item destruction applies burn equal to its size. At 10 burn, it also hits the merchant for 2."},
+ ashencenser:{n:"Ashen Censer",size:2,tier:3,cat:"burn",cd:4.5,fx:{burn:3},unique:true,acquisition:"treasure",
+   hooks:[
+     {on:"beforeActivate",when:{test:"actorIsSource"},actions:[
+       {op:"removeShield",side:"enemy",amount:8,store:"shieldRemoved"}
+     ]},
+     {on:"afterActivate",when:[{test:"actorIsSource"},{test:"stateAtLeast",key:"shieldRemoved",value:4}],actions:[
+       {op:"burn",targetSide:"enemy",amount:{from:"state",key:"shieldRemoved",divide:4,floor:true,max:2}},
+       {op:"stateReset",key:"shieldRemoved"}
+     ]}
+   ],
+   d:"Destroy up to 8 enemy shield. Apply 3 burn, plus 1 per 4 shield destroyed, up to 2."},
+ kilnchain:{n:"Kiln Chain",size:1,tier:2,cat:"burn",cd:3.5,fx:{burn:2},unique:true,acquisition:"treasure",
+   hooks:[
+     {on:"afterActivate",when:{test:"actorIsSource"},actions:[
+       {op:"itemStateSet",targets:{side:"owner",category:"dmg",adjacentToSelf:true},key:"ignited",
+        value:{from:"sourceRarity",values:[1,2,2,3]}}
+     ]},
+     {on:"afterActivate",allowDead:true,when:[{test:"actorCategory",value:"dmg"},{test:"actorStateAtLeast",key:"ignited",value:1}],actions:[
+       {op:"burn",source:"actor",targetSide:"enemy",amount:{from:"actorState",key:"ignited"}},
+       {op:"itemStateReset",source:"actor",target:"actor",key:"ignited"}
+     ]}
+   ],
+   d:"Apply 2 burn. Adjacent weapons become Ignited and apply burn on their next activation."},
+ phoenixbell:{n:"Phoenix Bell",size:2,tier:3,cat:"burn",cd:5.5,fx:{burn:3},unique:true,acquisition:"treasure",
+   hooks:[
+     {on:"destroyed",when:[{test:"eventSideIsOwner"},{test:"victimNotSource"}],actions:[
+       {op:"stateAdd",key:"allyDestroyed",amount:1,max:1}
+     ]},
+     {on:"afterActivate",when:[{test:"actorIsSource"},{test:"stateAtLeast",key:"allyDestroyed",value:1}],actions:[
+       {op:"burn",targetSide:"enemy",amount:{from:"sourceRarity",values:[3,5,7,10]}},
+       {op:"haste",targets:{side:"owner",category:"burn",active:true,excludeSelf:true},amount:0.5},
+       {op:"stateReset",key:"allyDestroyed"}
+     ]}
+   ],
+   d:"Apply 3 burn. An allied item death adds 3 burn and charges every other burn ware 0.5 seconds."}
 };
 /* ============ HEROES ============ */
 /* Picked at run start. The personal tag weights your shop like a lobby

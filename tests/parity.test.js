@@ -52,6 +52,10 @@ const R8_UNIQUE_WARES={
   serpentsdue:{version:"0.70.0",batch:"poison",acquisition:"treasure"},
   antidotethief:{version:"0.70.0",batch:"poison",acquisition:"treasure"},
   venomsiphon:{version:"0.70.0",batch:"poison",acquisition:"treasure"},
+  funeralbrazier:{version:"0.71.0",batch:"burn",acquisition:"treasure"},
+  ashencenser:{version:"0.71.0",batch:"burn",acquisition:"treasure"},
+  kilnchain:{version:"0.71.0",batch:"burn",acquisition:"treasure"},
+  phoenixbell:{version:"0.71.0",batch:"burn",acquisition:"treasure"},
 };
 
 /* The byte-identical fight-for-fight parity test was retired on 2026-07-12.

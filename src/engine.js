@@ -204,8 +204,8 @@ const HOOK_ACTION_POINTS={
 };
 const HOOK_ACTIONS=new Set([
   "activate","burn","consumeStatus","damage","destroy","haste","heal",
-  "merchantHit","modifyContact","poison","shield","spawn","stateAdd",
-  "stateReset","timedDebuff"
+  "itemStateReset","itemStateSet","merchantHit","modifyContact","poison",
+  "removeShield","shield","spawn","stateAdd","stateReset","timedDebuff"
 ]);
 
 /* Reject only unconditional immediate cycles. Conditional loops remain legal
@@ -260,6 +260,7 @@ export function createFight(cfg){
   const hookRegistry=[];
   const hookPoints=new Set();
   const hookState=new Map();
+  const itemState=new Map();
   let localUid=-1,eventSink=null,rootBudget=null,stepActions=0,startPending=true;
   Object.defineProperty(F.diagnostics,"pendingActions",{enumerable:true,get:function(){return worklist.length;}});
   function tripGuard(kind){F.diagnostics.guardTrips++;F.diagnostics.guardCounts[kind]++;}
@@ -371,6 +372,7 @@ export function createFight(cfg){
 
   function sameRef(a,b){return !!a&&!!b&&a.side===b.side&&a.uid===b.uid&&a.slot===b.slot;}
   function hookStateKey(hook,key){return hook.stateIdentity+"|state|"+key;}
+  function itemStateKey(ref,key){return sourceKey(ref)+"|state|"+key;}
   function hookSide(selector,hook,context){
     if(selector==="a"||selector==="b"){return selector;}
     if(!selector||selector==="owner"){return hook.side;}
@@ -387,7 +389,11 @@ export function createFight(cfg){
     if(test==="sourceAlive"){return !hook.sourceRef||!!liveItem(hook.sourceRef);}
     if(test==="actorIsSource"){return sameRef(context.source,hook.sourceRef);}
     if(test==="actorNotSource"){return !sameRef(context.source,hook.sourceRef);}
+    if(test==="victimNotSource"){return !sameRef(context.victim,hook.sourceRef);}
     if(test==="actorCategory"){return context.actor&&context.actor.cat===condition.value;}
+    if(test==="actorStateAtLeast"){
+      return !!context.source&&(itemState.get(itemStateKey(context.source,condition.key))||0)>=condition.value;
+    }
     if(test==="eventSideIsOwner"){return (context.side||context.targetSide)===hook.side;}
     if(test==="eventSideIsEnemy"){return (context.side||context.targetSide)!==hook.side;}
     if(test==="contactKind"){return context.kind===condition.value;}
@@ -416,12 +422,12 @@ export function createFight(cfg){
     for(const condition of conditions){if(!hookCondition(condition,hook,context)){return false;}}
     return true;
   }
-  function selectHookItem(selector,hook,context){
-    if(selector==="self"||selector==="hook"){return hook.sourceRef&&liveItem(hook.sourceRef)?hook.sourceRef:null;}
-    if(selector==="actor"){return context.source&&liveItem(context.source)?context.source:null;}
-    if(selector==="target"){return context.target&&liveItem(context.target)?context.target:null;}
-    if(selector==="victim"){return context.victim&&liveItem(context.victim)?context.victim:null;}
-    if(!selector||typeof selector!=="object"){return null;}
+  function hookItemCandidates(selector,hook,context){
+    if(selector==="self"||selector==="hook"){return hook.sourceRef&&liveItem(hook.sourceRef)?[hook.sourceRef]:[];}
+    if(selector==="actor"){return context.source&&liveItem(context.source)?[context.source]:[];}
+    if(selector==="target"){return context.target&&liveItem(context.target)?[context.target]:[];}
+    if(selector==="victim"){return context.victim&&liveItem(context.victim)?[context.victim]:[];}
+    if(!selector||typeof selector!=="object"){return [];}
     const side=sideOf(hookSide(selector.side,hook,context)),found=[];
     for(let i=0;i<side.items.length;i++){
       const item=side.items[i];
@@ -431,10 +437,15 @@ export function createFight(cfg){
       const ref=sourceOf(side,item,i);
       if(selector.excludeSelf&&sameRef(ref,hook.sourceRef)){continue;}
       if(selector.excludeActor&&sameRef(ref,context.source)){continue;}
+      if(selector.adjacentToSelf&&(!hook.sourceRef||Math.abs(ref.slot-hook.sourceRef.slot)!==1)){continue;}
       found.push(ref);
     }
+    return found;
+  }
+  function selectHookItem(selector,hook,context){
+    const found=hookItemCandidates(selector,hook,context);
     if(!found.length){return null;}
-    if(selector.position==="rightmost"){return found[found.length-1];}
+    if(selector&&selector.position==="rightmost"){return found[found.length-1];}
     if(selector.position==="lowestIntegrity"){
       let best=found[0];
       for(const ref of found){if(liveItem(ref).integ<liveItem(best).integ){best=ref;}}
@@ -447,6 +458,12 @@ export function createFight(cfg){
     }
     return found[0];
   }
+  function selectHookItems(selector,hook,context){
+    if(selector&&typeof selector==="object"&&selector.position){
+      const selected=selectHookItem(selector,hook,context);return selected?[selected]:[];
+    }
+    return hookItemCandidates(selector,hook,context);
+  }
   function hookValue(value,hook,context){
     if(typeof value==="number"){return value;}
     if(!value||typeof value!=="object"){return value;}
@@ -456,6 +473,8 @@ export function createFight(cfg){
       const side=sideOf(hookSide(value.side,hook,context));result=side[value.status]||0;
     }else if(value.from==="state"){
       result=hookState.get(hookStateKey(hook,value.key))||0;
+    }else if(value.from==="actorState"){
+      result=context.source?(itemState.get(itemStateKey(context.source,value.key))||0):0;
     }else if(value.from==="sourceRarity"){
       const item=hook.sourceRef&&(liveItem(hook.sourceRef)||(tombstones.get(sourceKey(hook.sourceRef))||{}).item);
       const rarity=item?item.rarity||0:0;
@@ -469,6 +488,7 @@ export function createFight(cfg){
     if(value.ceil){result=Math.ceil(result);}
     if(value.min!==undefined){result=Math.max(value.min,result);}
     if(value.max!==undefined){result=Math.min(value.max,result);}
+    if(value.add!==undefined){result+=value.add;}
     return result;
   }
   function materializeHookAction(template,hook,context){
@@ -477,7 +497,7 @@ export function createFight(cfg){
     else if(template.source==="hook"||template.source===undefined){action.source=hook.sourceRef||context.source||null;}
     if(action.side){action.side=hookSide(action.side,hook,context);}
     if(action.targetSide){action.targetSide=hookSide(action.targetSide,hook,context);}
-    for(const key of ["amount","add","mul","shieldPierce","duration","capPerRoot"]){
+    for(const key of ["amount","add","mul","shieldPierce","duration","capPerRoot","value"]){
       if(action[key]!==undefined){action[key]=hookValue(action[key],hook,context);}
     }
     if(action.amount!==undefined&&action.capPerRoot!==undefined){
@@ -494,8 +514,17 @@ export function createFight(cfg){
     }else if(action.op==="merchantHit"){
       action.side=hookSide(action.side||"enemy",hook,context);action.hookable=true;
     }else if(action.op==="haste"||action.op==="activate"||action.op==="destroy"){
-      action.targetRef=selectHookItem(action.target,hook,context);
-      if(!action.targetRef){return null;}
+      if(action.targets!==undefined){
+        action.targetRefs=selectHookItems(action.targets,hook,context);if(!action.targetRefs.length){return null;}
+      }else{
+        action.targetRef=selectHookItem(action.target,hook,context);if(!action.targetRef){return null;}
+      }
+    }else if(action.op==="itemStateSet"||action.op==="itemStateReset"){
+      action.targetRefs=selectHookItems(action.targets!==undefined?action.targets:action.target,hook,context);
+      if(!action.targetRefs.length){return null;}
+    }else if(action.op==="removeShield"){
+      action.side=hookSide(action.side||"enemy",hook,context);
+      if(action.store){action.stateKey=hookStateKey(hook,action.store);}
     }else if(action.op==="timedDebuff"){
       action.side=hookSide(action.side||"enemy",hook,context);
     }else if(action.op==="modifyContact"){
@@ -584,7 +613,7 @@ export function createFight(cfg){
     emit({k:"destroy",side:side.key,i:source.slot,nm:it.nm});
     burySource(source,it);
     triggerHookPoint("destroyed",{source:killer||null,killer:killer||null,victim:source,
-      victimItem:it,side:side.key,targetSide:side.key},depth);
+      victimItem:it,victimSize:it.size,side:side.key,targetSide:side.key},depth);
     runChildren(compileRattle(side,source,it),depth);
   }
   function resolveDamage(action,depth){
@@ -764,7 +793,8 @@ export function createFight(cfg){
     }else if(action.op==="hookPoint"){
       triggerHookPoint(action.point,action.context,depth);
     }else if(action.op==="haste"){
-      applyHaste(action.source,action.targetRef,action.amount,depth);
+      if(action.targetRefs){for(const ref of action.targetRefs){applyHaste(action.source,ref,action.amount,depth);}}
+      else{applyHaste(action.source,action.targetRef,action.amount,depth);}
     }else if(action.op==="activate"){
       const target=liveItem(action.targetRef);if(!target){return;}
       const side=sideOf(action.targetRef.side),enemy=side===A?B:A;
@@ -786,6 +816,15 @@ export function createFight(cfg){
       }
     }else if(action.op==="stateReset"){
       if(!action.source||source){hookState.set(action.stateKey,0);}
+    }else if(action.op==="itemStateSet"){
+      if(!action.source||source){for(const ref of action.targetRefs){itemState.set(itemStateKey(ref,action.key),action.value);}}
+    }else if(action.op==="itemStateReset"){
+      if(!action.source||source){for(const ref of action.targetRefs){itemState.delete(itemStateKey(ref,action.key));}}
+    }else if(action.op==="removeShield"){
+      if(!action.source||source){
+        const side=sideOf(action.side),removed=Math.min(side.shield,Math.max(0,action.amount));
+        side.shield-=removed;if(action.stateKey){hookState.set(action.stateKey,removed);}
+      }
     }else if(action.op==="modifyContact"){
       if(action.add){action.context.damage+=action.add;}
       if(action.mul!==undefined){action.context.damage*=action.mul;}

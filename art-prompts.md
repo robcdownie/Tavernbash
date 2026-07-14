@@ -49,6 +49,10 @@ For monsters swap "item icon" for "monster bust, composed for a circular medalli
 | serpentsdue.png | a coiled emerald serpent formed into a heavy ceremonial poison vessel with ruby eyes |
 | antidotethief.png | a nimble brass hand stealing a luminous antidote vial, trailing green droplets |
 | venomsiphon.png | a curved brass siphon drawing luminous green venom into a dark glass flask |
+| funeralbrazier.png | a broad blackened brass funeral brazier filled with white-hot coals and curling ash |
+| ashencenser.png | an ornate pierced brass censer spilling embers and trailing bands of gray ash |
+| kilnchain.png | a short iron kiln chain glowing orange at each link, with hooked brass clasps |
+| phoenixbell.png | a ceremonial brass bell shaped like a phoenix, its clapper glowing with live fire |
 
 ## Monsters, to public/art/monsters/
 
