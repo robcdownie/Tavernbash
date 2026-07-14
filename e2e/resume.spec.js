@@ -207,5 +207,5 @@ test('resume during the victory recap settles the reward exactly once', async ({
   const after = await page.evaluate(() => { const G = window.BBDEV.g(); const s = window.BBDEV.routeState(); return {gold: G.gold, path: s.path.length, phase: s.phase}; });
   expect(after.phase).toBe('map');
   expect(after.path).toBe(before.path + 1);      /* the node completed once, not zero or twice */
-  expect(after.gold).toBeGreaterThanOrEqual(before.gold + 3);   /* base monster gold paid once */
+  expect(after.gold).toBeGreaterThanOrEqual(before.gold + 2);   /* base monster gold (2/4/6) paid once */
 });
