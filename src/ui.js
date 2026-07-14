@@ -1,9 +1,11 @@
 "use strict";
-import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,COST,SELLV,TIERCOST,CATN,CATC,ANONE,
-        ITEMS,TRINKETS,ANOMALIES,MONSTERS,ENCH,ENCH_CHANCE,ENCH_PREMIUM,HEROES,
+import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,TIERCOST,CATN,CATC,ANONE,
+        ITEMS,TRINKETS,ANOMALIES,MONSTERS,ENCH,ENCH_CHANCE,HEROES,
         shopTagWeight,canSpendGold,heroCreditLimit} from './data.js';
-import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,usedCells,
+import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,
         playerFightItems,monsterSide,createFight,boardRegen} from './engine.js';
+import {wareSlotCost,boardUsedCells,boardSlotCount,warePurchaseCost,wareSaleValue,rerollPrice,
+        adjustedStormAt,adjustedVictoryIncome,advanceFrozenOffers,setFrozenOffers,thawOffers} from './anomaly-rules.js';
 import {genMap,MAP_VERSION} from './map.js';
 import {frontier,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
@@ -62,11 +64,12 @@ function primStat(fi){const f=fi.fx||{};
 /* ============ CELLS + BOARD ============ */
 function cellHTML(it,i,sel){
   const d=ITEMS[it.id];const ps=primDraft(it);
+  const footprint=slotCost(it.size);
   const pair=it.rarity<3&&G&&G.board&&G.board.filter(function(x){return x.id===it.id&&x.rarity===it.rarity;}).length===2;
-  return '<div class="cell it s'+it.size+' rar'+it.rarity+(sel?' sel':'')+(pair?' pair':'')+'" style="grid-column:span '+it.size+';--cat:'+CATC[d.cat]+'" data-i="'+i+'">'
+  return '<div class="cell it s'+it.size+' rar'+it.rarity+(sel?' sel':'')+(pair?' pair':'')+'" style="grid-column:span '+footprint+';--cat:'+CATC[d.cat]+'" data-i="'+i+'">'
    +'<div class="glow"></div>'+ic('g-'+it.id,'gi')
    +(ps?'<span class="stat sl '+ps[0]+'">'+ps[1]+'</span>':'')
-   +'<span class="stat sr">'+integOf(it)+'</span>'
+   +'<span class="stat sr">'+Math.round(integOf(it)*(G.A.itemIntegrityMul||1))+'</span>'
    +(d.bulwark?ic('e-shield','bw'):'')
    +(it.rarity>0?'<span class="fuse">'+RNAME[it.rarity].charAt(0)+'</span>':'')
    +(it.ench?'<i class="edot" style="background:'+ENCH[it.ench].c+'"></i>':'')
@@ -76,14 +79,14 @@ function boardHTML(board,slots,selIdx){
   let h='';
   if(!board.length){h+='<div class="bhint">Your wares fight from here</div>';}
   board.forEach(function(it,i){h+=cellHTML(it,i,i===selIdx);});
-  const used=usedCells(board);
+  const used=usedNow(board);
   for(let c=used;c<slots;c++){h+='<div class="cell empty'+(c===used?' nxt':'')+'"></div>';}
   for(let c=slots;c<10;c++){h+='<div class="cell lock"></div>';}
   return '<div class="board" id="bd">'+h+'</div>';
 }
 function fightCellHTML(fi,i,side){
   const ps=primStat(fi);const col=CATC[fi.cat]||CATC.util;
-  return '<div class="cell f s'+fi.size+' rar'+fi.rarity+(fi.alive?'':' dead')+'" id="fc-'+side+'-'+i+'" style="grid-column:span '+fi.size+';--cat:'+col+';--fc:'+col+';--rc:'+col+'">'
+  return '<div class="cell f s'+fi.size+' rar'+fi.rarity+(fi.alive?'':' dead')+'" id="fc-'+side+'-'+i+'" style="grid-column:span '+(fi.slotSize||fi.size)+';--cat:'+col+';--fc:'+col+';--rc:'+col+'">'
    +'<div class="ring"></div><div class="cdf" id="cdf-'+side+'-'+i+'"></div><div class="glow"></div>'+ic(fi.g,'gi')
    +(ps?'<span class="stat sl '+ps[0]+'">'+ps[1]+'</span>':'')
    +'<span class="stat sr" id="fi-'+side+'-'+i+'">'+fi.integ+'</span>'
@@ -129,37 +132,38 @@ function openTrkInfo(){
 /* ============ MARKET ============ */
 function wareHTML(w,i){
   const d=ITEMS[w.id];
-  const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
-  const can=!w.bought&&(w.free||canSpend(cost))&&(usedCells(G.board)+d.size<=4+G.tier);
+  const cost=w.free?0:buyCost(d.size,!!w.ench);
+  const footprint=slotCost(d.size);
+  const can=!w.bought&&(w.free||canSpend(cost))&&(usedNow(G.board)+footprint<=slotsNow());
   const own=G.board.filter(function(x){return x.id===w.id&&x.rarity===0;}).length
     +G.vault.filter(function(x){return x.id===w.id&&x.rarity===0;}).length;
   const trip=own>=2&&!w.bought;
   const match=own===1&&!w.bought;
   let gems='';for(let g=0;g<d.tier;g++){gems+=ic('g-gem');}
-  let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=d.size?'on':'')+'"></i>';}
+  let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=footprint?'on':'')+'"></i>';}
   const en=w.ench?ENCH[w.ench]:null;
   const anim=G._wfresh?';animation-delay:'+(i*45)+'ms':';animation:none';
   const alab=esc(d.n)+(w.bought?' (bought)':', '+(w.free?'free':cost+' gold'));
-  return '<div class="ware'+(w.bought?' gone':(can?'':' cant'))+(en?' enchw':'')+(trip?' trip':'')+(match?' match':'')+(G.shopSel===i?' sel':'')+(G.frozen&&!w.bought?' icew':'')+'" data-w="'+i+'" role="button" tabindex="0" aria-label="'+alab+'" style="--cat:'+CATC[d.cat]+(en?';--ec:'+en.c:'')+anim+'">'
+  return '<div class="ware'+(w.bought?' gone':(can?'':' cant'))+(en?' enchw':'')+(trip?' trip':'')+(match?' match':'')+(G.shopSel===i?' sel':'')+((G.frozen||w.hold>0)&&!w.bought?' icew':'')+'" data-w="'+i+'" role="button" tabindex="0" aria-label="'+alab+'" style="--cat:'+CATC[d.cat]+(en?';--ec:'+en.c:'')+anim+'">'
    +'<div class="ph">'+ic('g-'+w.id,'gi')+'<span class="cost'+(w.free?' free':'')+'">'+ic('g-coin')+'<b>'+(w.free?'FREE':cost)+'</b></span></div>'
    +'<div class="tg">'+gems+'</div>'
    +'<div class="wn">'+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div>'
-   +'<div class="sz">'+pips+'<span class="szl">'+(d.size===1?'1 slot':d.size+' slots')+'</span></div>'
-   +'<div class="chips">'+effChips(w.id,0)+(en?'<span class="eff util" style="color:'+en.c+'">'+ic('e-bolt','mi')+' '+en.d+'</span>':'')+(trip?'<span class="eff trip">'+ic('e-bolt','mi')+' Forges Silver</span>':(match?'<span class="eff mt">'+ic('e-bolt','mi')+' You own 1</span>':''))+'</div>'
+   +'<div class="sz">'+pips+'<span class="szl">'+(footprint===1?'1 slot':footprint+' slots')+'</span></div>'
+   +'<div class="chips">'+effChips(w.id,0)+(en?'<span class="eff util" style="color:'+en.c+'">'+ic('e-bolt','mi')+' '+en.d+'</span>':'')+(w.hold?'<span class="eff util">'+ic('e-frost','mi')+' Held '+w.hold+' more market'+(w.hold===1?'':'s')+'</span>':'')+(trip?'<span class="eff trip">'+ic('e-bolt','mi')+' Forges Silver</span>':(match?'<span class="eff mt">'+ic('e-bolt','mi')+' You own 1</span>':''))+'</div>'
    +'<div class="wd">'+esc(d.d)+'</div>'
-   +'<div class="wr">'+(d.cd>0?ic('e-clock','mi')+' every '+d.cd+'s':'<span>passive</span>')+'<span>'+ic('e-shield','mi')+' '+Math.round(BASEINTEG[d.size]*(d.integMul||1))+'</span></div>'
+   +'<div class="wr">'+(d.cd>0?ic('e-clock','mi')+' every '+d.cd+'s':'<span>passive</span>')+'<span>'+ic('e-shield','mi')+' '+Math.round(BASEINTEG[d.size]*(d.integMul||1)*(G.A.itemIntegrityMul||1))+'</span></div>'
    +(own>0?'<div class="own">'+own+'/3</div>':'')
   +'</div>';
 }
 function renderVaultSheet(sh){
   const it=G.vault[G.vsel];
-  const room=usedCells(G.board)+it.size<=4+G.tier;
-  sh.innerHTML='<div class="sheet">'+wareDetailHTML(it)
+  const room=usedNow(G.board)+slotCost(it.size)<=slotsNow();
+  sh.innerHTML='<div class="sheet">'+wareDetailHTML(it,G.A)
    +'<div class="bs"><button class="btn" id="vOut"'+(room?'':' disabled')+'>To the Stall</button>'
    +'<button class="btn" id="vSwp"'+(G.board.length?'':' disabled')+'>Swap</button>'
-   +'<button class="btn sell" id="vSl">Sell +'+SELLV[it.size]+'</button></div></div>';
+   +'<button class="btn sell" id="vSl">Sell +'+sellValue(it.size)+'</button></div></div>';
   const O=$('vOut');if(O)O.onclick=function(){
-    if(usedCells(G.board)+it.size>4+G.tier)return;
+    if(usedNow(G.board)+slotCost(it.size)>slotsNow())return;
     G.vault.splice(G.vsel,1);G.vsel=null;G.board.push(it);
     const forged=fuseStamp(G.board);
     if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();sting('forgesting');}
@@ -175,15 +179,15 @@ function renderVaultSheet(sh){
   const S=$('vSl');if(S)S.onclick=function(){
     const cell=document.querySelector('#vlt .cell.it[data-v="'+G.vsel+'"]');
     const from=cell?cell.getBoundingClientRect():null;
-    G.gold+=SELLV[it.size];G.vault.splice(G.vsel,1);G.vsel=null;
-    toast('Sold from the vault for '+SELLV[it.size]+' gold');renderAll();
-    if(from){flyCoins(from,3+SELLV[it.size]);}
+    const value=sellValue(it.size);G.gold+=value;G.vault.splice(G.vsel,1);G.vsel=null;recordMarketSale();
+    toast('Sold from the vault for '+value+' gold');renderAll();
+    if(from){flyCoins(from,3+value);}
   };
 }
 function vaultSwap(i){
   const vi=G.swapV;const inIt=G.vault[vi];const outIt=G.board[i];
   if(!inIt||!outIt){G.swapV=null;renderDraft();return;}
-  if(usedCells(G.board)-outIt.size+inIt.size>4+G.tier){toast('No room for that trade');return;}
+  if(usedNow(G.board)-slotCost(outIt.size)+slotCost(inIt.size)>slotsNow()){toast('No room for that trade');return;}
   G.vault[vi]=outIt;G.board[i]=inIt;G.swapV=null;G.sel=null;
   const forged=fuseStamp(G.board);
   if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();sting('forgesting');}
@@ -196,19 +200,19 @@ function renderSheet(){
   if(G.dockV&&G.vsel!=null&&G.vault[G.vsel]){renderVaultSheet(sh);return;}
   if(G.sel==null||!G.board[G.sel]){sh.innerHTML='';return;}
   const it=G.board[G.sel];
-  sh.innerHTML='<div class="sheet">'+wareDetailHTML(it)
+  sh.innerHTML='<div class="sheet">'+wareDetailHTML(it,G.A)
    +'<div class="bs"><button class="btn" id="mvL"'+(G.sel===0?' disabled':'')+'>&#9664; Move</button>'
    +'<button class="btn" id="mvR"'+(G.sel>=G.board.length-1?' disabled':'')+'>Move &#9654;</button>'
    +'<button class="btn" id="vtI"'+(G.vault.length>=3?' disabled':'')+'>Vault</button>'
-   +'<button class="btn sell" id="slI">Sell +'+SELLV[it.size]+'</button></div></div>';
+   +'<button class="btn sell" id="slI">Sell +'+sellValue(it.size)+'</button></div></div>';
   const L=$('mvL');if(L)L.onclick=function(){if(G.sel>0){const t=G.board[G.sel];G.board[G.sel]=G.board[G.sel-1];G.board[G.sel-1]=t;G.sel--;renderDraft();}};
   const R=$('mvR');if(R)R.onclick=function(){if(G.sel<G.board.length-1){const t=G.board[G.sel];G.board[G.sel]=G.board[G.sel+1];G.board[G.sel+1]=t;G.sel++;renderDraft();}};
   const S=$('slI');if(S)S.onclick=function(){
     const cell=document.querySelector('#bd .cell.it[data-i="'+G.sel+'"]');
     const from=cell?cell.getBoundingClientRect():null;
-    G.gold+=SELLV[it.size];G.board.splice(G.sel,1);G.sel=null;
-    toast('Sold for '+SELLV[it.size]+' gold');renderAll();
-    if(from){flyCoins(from,3+SELLV[it.size]);}
+    const value=sellValue(it.size);G.gold+=value;G.board.splice(G.sel,1);G.sel=null;recordMarketSale();
+    toast('Sold for '+value+' gold');renderAll();
+    if(from){flyCoins(from,3+value);}
   };
   const V=$('vtI');if(V)V.onclick=function(){
     if(G.vault.length>=3)return;
@@ -218,7 +222,7 @@ function renderSheet(){
 }
 function renderDraft(){
   const camp=G.phase==='gateCamp';
-  const slots=4+G.tier,used=usedCells(G.board);
+  const slots=slotsNow(),used=usedNow(G.board);
   let h='<div class="stage" id="stage">';
   if(camp){
     h+=campTopHTML();
@@ -227,9 +231,9 @@ function renderDraft(){
     h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
     h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
     h+='<div class="controls">'
-      +'<button class="btn" id="btnTier"'+((G.tier>=6||!canSpend(G.tierCost))?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':'+1 slot &middot; Tier '+(G.tier+1)+' &middot; '+G.tierCost+'g')+'</button>'
-      +'<button class="btn" id="btnRe"'+(rerollAllowed()?'':' disabled')+'>'+ic('g-coin','bi')+' Reroll 1</button>'
-      +'<button class="btn frz'+(G.frozen?' iceon':'')+'" id="btnFrz">'+ic('e-frost','bi')+' '+(G.frozen?'Frozen':'Freeze')+'</button>'
+      +'<button class="btn" id="btnTier"'+((G.tier>=6||!canSpend(G.tierCost))?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':((slotsNow(G.tier+1)>slotsNow()?'+1 slot &middot; ':'')+'Tier '+(G.tier+1)+' &middot; '+G.tierCost+'g'))+'</button>'
+      +'<button class="btn" id="btnRe"'+(rerollAllowed()?'':' disabled')+'>'+ic('g-coin','bi')+' '+(G.A.rerollDisabled?'Rerolls Closed':'Reroll '+currentRerollCost())+'</button>'
+      +'<button class="btn frz'+(G.frozen?' iceon':'')+'" id="btnFrz">'+ic('e-frost','bi')+' '+freezeButtonLabel()+'</button>'
     +'</div></div>';
   }
   h+='</div>';
@@ -315,16 +319,16 @@ function campRetryBtnHTML(){
     +'<span class="tbt"><span class="tbl">Rally &amp; Retry</span><span class="tbn">defeat costs '+lo+' to '+hi+' Resolve</span></span></button>';
 }
 function campWareHTML(o,i,credit){
-  const d=ITEMS[o.id];const cost=COST[d.size];
+  const d=ITEMS[o.id];const cost=buyCost(d.size,false),footprint=slotCost(d.size);
   const fromGold=cost-Math.min(credit,cost);
-  const can=!o.bought&&(usedCells(G.board)+d.size<=4+G.tier)&&canSpend(fromGold);
+  const can=!o.bought&&(usedNow(G.board)+footprint<=slotsNow())&&canSpend(fromGold);
   let gems='';for(let g=0;g<d.tier;g++){gems+=ic('g-gem');}
-  let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=d.size?'on':'')+'"></i>';}
+  let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=footprint?'on':'')+'"></i>';}
   return '<div class="ware'+(o.bought?' gone':(can?'':' cant'))+'" data-c="'+i+'" role="button" tabindex="0" aria-label="'+esc(d.n)+(o.bought?' (bought)':', '+cost+' gold')+'" style="--cat:'+CATC[d.cat]+'">'
    +'<div class="ph">'+ic('g-'+o.id,'gi')+'<span class="cost">'+ic('g-coin')+'<b>'+(o.bought?'&mdash;':cost)+'</b></span></div>'
    +'<div class="tg">'+gems+'</div>'
    +'<div class="wn">'+d.n+'</div>'
-   +'<div class="sz">'+pips+'<span class="szl">'+(d.size===1?'1 slot':d.size+' slots')+'</span></div>'
+   +'<div class="sz">'+pips+'<span class="szl">'+(footprint===1?'1 slot':footprint+' slots')+'</span></div>'
    +'<div class="chips">'+effChips(o.id,0)+'</div>'
    +'<div class="wd">'+esc(d.d)+'</div>'
   +'</div>';
@@ -332,12 +336,12 @@ function campWareHTML(o,i,credit){
 function campSelectWare(i){
   const camp=G.run.camp;if(!camp||G.phase!=='gateCamp')return;
   const o=camp.offers[i];if(!o||o.bought)return;
-  const d=ITEMS[o.id];const cost=COST[d.size];const credit=camp.credit||0;const fromGold=cost-Math.min(credit,cost);
-  const room=usedCells(G.board)+d.size<=4+G.tier;const afford=canSpend(fromGold);const can=afford&&room;
+  const d=ITEMS[o.id];const cost=buyCost(d.size,false);const credit=camp.credit||0;const fromGold=cost-Math.min(credit,cost);
+  const room=usedNow(G.board)+slotCost(d.size)<=slotsNow();const afford=canSpend(fromGold);const can=afford&&room;
   const why=!afford?'Not enough gold':(!room?'No room on your stall':'');
   const payLbl=(fromGold<cost)?('Buy &middot; '+(cost-fromGold)+' credit'+(fromGold?' + '+fromGold+'g':'')):'Buy &middot; '+cost+'g';
   const ov=ovOpen('<div class="card inspectcard"><div class="kick gold">Quartermaster</div>'
-   +'<div class="sheet">'+wareDetailHTML({id:o.id,rarity:0,size:d.size,ench:null})
+   +'<div class="sheet">'+wareDetailHTML({id:o.id,rarity:0,size:d.size,ench:null},G.A)
    +'<div class="bs"><button class="btn buy'+(can?'':' cant')+'" id="cBuy"'+(can?'':' disabled')+'>'+ic('g-coin','bi')+' '+payLbl+'</button>'
    +'<button class="btn" id="cClose">Close</button></div>'
    +(why?'<div class="whyno">'+why+'</div>':'')+'</div></div>');
@@ -349,8 +353,8 @@ function campBuy(i){
   if(G.phase!=='gateCamp')return;
   const camp=G.run.camp;if(!camp)return;
   const o=camp.offers[i];if(!o||o.bought)return;
-  const d=ITEMS[o.id];const cost=COST[d.size];
-  if(usedCells(G.board)+d.size>4+G.tier){toast('No room on your stall');return;}
+  const d=ITEMS[o.id];const cost=buyCost(d.size,false);
+  if(usedNow(G.board)+slotCost(d.size)>slotsNow()){toast('No room on your stall');return;}
   const credit=camp.credit||0;const fromCredit=Math.min(credit,cost);const fromGold=cost-fromCredit;
   if(!canSpend(fromGold)){toast('Not enough gold');return;}
   camp.credit=credit-fromCredit;G.gold-=fromGold;o.bought=true;sCoin();
@@ -444,11 +448,27 @@ function flyCoins(from,n){
   }
 }
 /* ============ ECONOMY ACTIONS ============ */
+function slotCost(size){return wareSlotCost(size,G.A);}
+function usedNow(board){return boardUsedCells(board,G.A);}
+function slotsNow(tier){return boardSlotCount(tier===undefined?G.tier:tier,G.A);}
+function buyCost(size,enchanted){return warePurchaseCost(size,enchanted,G.A);}
+function sellValue(size){return wareSaleValue(size,G.A);}
+function currentMarketSales(){return G.route&&G.route.market?G.route.market.sales||0:0;}
+function currentRerollCost(){return rerollPrice(G.A,currentMarketSales());}
+function recordMarketSale(){
+  if(G.phase==='draft'&&G.route&&G.route.market&&G.A.rerollCostPerSaleThisMarket){G.route.market.sales=(G.route.market.sales||0)+1;}
+}
+function freezeButtonLabel(){
+  const held=(G.shop||[]).reduce(function(max,w){return Math.max(max,w.hold||0);},0);
+  if(G.frozen||held)return 'Frozen: '+Math.max(held,1)+' roll'+(Math.max(held,1)===1?'':'s');
+  const duration=G.A.freezeDurationRounds||1;return duration>1?'Freeze '+duration+' markets':'Freeze';
+}
 function canSpend(cost){return canSpendGold(G.gold,cost,heroOf());}
 function rerollAllowed(){
   const H=heroOf();
+  if(G.A.rerollDisabled)return false;
   if(H&&H.mod&&H.mod.rerollBlockedInDebt&&G.gold<0)return false;
-  return !!(G.mode==='route'&&G.freeReroll)||G.gold>=1;
+  return !!(G.mode==='route'&&G.freeReroll)||G.gold>=currentRerollCost();
 }
 /* a bought or returned copy can complete a forge whose other copies
    rest in the vault: pull them through and fuse automatically. If the
@@ -477,7 +497,7 @@ function fuseWithVault(){
     }
     if(!pulled&&!forged.length)break;
   }
-  while(usedCells(G.board)>4+G.tier&&G.vault.length<3){
+  while(usedNow(G.board)>slotsNow()&&G.vault.length<3){
     const last=G.board.pop();G.vault.push(last);
     toast(ITEMS[last.id].n+' waits in the vault: no room on the stall');
   }
@@ -488,11 +508,11 @@ function fuseWithVault(){
    button. Floats above the market so nothing scrolls, no buying on a stray tap. */
 function selectWare(i){
   const w=G.shop[i];if(!w||w.bought||G.phase!=='draft')return;
-  const d=ITEMS[w.id];const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
-  const room=usedCells(G.board)+d.size<=4+G.tier;const afford=w.free||canSpend(cost);const can=afford&&room;
+  const d=ITEMS[w.id];const cost=w.free?0:buyCost(d.size,!!w.ench);
+  const room=usedNow(G.board)+slotCost(d.size)<=slotsNow();const afford=w.free||canSpend(cost);const can=afford&&room;
   const why=!afford?'Not enough gold':(!room?'No room on your stall':'');
   const o=ovOpen('<div class="card inspectcard"><div class="kick gold">Market ware</div>'
-   +'<div class="sheet">'+wareDetailHTML({id:w.id,rarity:0,size:d.size,ench:w.ench})
+   +'<div class="sheet">'+wareDetailHTML({id:w.id,rarity:0,size:d.size,ench:w.ench},G.A)
    +'<div class="bs"><button class="btn buy'+(can?'':' cant')+'" id="shopBuy"'+(can?'':' disabled')+'>'+ic('g-coin','bi')+' '+(w.free?'Take':'Buy &middot; '+cost+'g')+'</button>'
    +'<button class="btn" id="shopClose">Close</button></div>'
    +(why?'<div class="whyno">'+why+'</div>':'')+'</div></div>');
@@ -504,9 +524,9 @@ function selectWare(i){
 function buyWare(i){
   if(G.phase!=='draft')return;
   const w=G.shop[i];if(!w||w.bought)return;
-  const d=ITEMS[w.id];const cost=w.free?0:COST[d.size]+(w.ench?ENCH_PREMIUM:0);
+  const d=ITEMS[w.id];const cost=w.free?0:buyCost(d.size,!!w.ench);
   if(!canSpend(cost)){toast('Not enough gold');return;}
-  if(usedCells(G.board)+d.size>4+G.tier){toast('No room on your stall');return;}
+  if(usedNow(G.board)+slotCost(d.size)>slotsNow()){toast('No room on your stall');return;}
   const wEl=document.querySelector('.ware[data-w="'+i+'"]');
   const fromRect=wEl?wEl.getBoundingClientRect():null;
   G.gold-=cost;w.bought=true;sCoin();
@@ -536,19 +556,24 @@ function buyWare(i){
 }
 function tierUp(){
   if(G.tier>=6||!canSpend(G.tierCost))return;
+  const beforeSlots=slotsNow();
   G.gold-=G.tierCost;G.tier++;sFanfare();
   G.tierCost=TIERCOST[G.tier+1]||0;
-  toast('Tier '+G.tier+': new slot, richer wares');
+  toast('Tier '+G.tier+': '+(slotsNow()>beforeSlots?'new slot and ':'')+'richer wares');
   renderAll();
   const dk=document.querySelector('.dock');
   if(dk&&!RM){dk.classList.add('flare');setTimeout(function(){dk.classList.remove('flare');},650);}
 }
 function reroll(){
-  if(!rerollAllowed()){if(G.gold<0)toast('Debt blocks rerolls until the next reward.');return;}
+  if(!rerollAllowed()){
+    if(G.A.rerollDisabled)toast('The Silent Bazaar forbids rerolls.');
+    else if(G.gold<0)toast('Debt blocks rerolls until the next reward.');
+    return;
+  }
   const free=G.mode==='route'&&G.freeReroll;
   if(free){G.freeReroll=false;toast('A free reroll, courtesy of Refit.');}
-  else{if(G.gold<1)return;G.gold-=1;}
-  G.frozen=false;G.shopSel=null;
+  else{const price=currentRerollCost();if(G.gold<price)return;G.gold-=price;}
+  G.shopSel=null;
   /* route markets re-seed from a keyed, serializable stream so a reload replays
      the same reroll sequence rather than the lobby rng's hidden position */
   if(G.mode==='route'&&G.route.market){G.route.market.rollIndex++;G.rng=mulberry(fightSeed(G.seed,G.route.market.nodeId,G.route.market.rollIndex));}
@@ -558,8 +583,8 @@ function rollShop(){
   /* free bounty cards always carry over; a frozen shop keeps its paid
      cards too, counted against the roll, then the freeze is spent */
   const freeKeep=G.shop?G.shop.filter(function(w){return w.free&&!w.bought;}):[];
-  const frozenKeep=(G.frozen&&G.shop)?G.shop.filter(function(w){return !w.free&&!w.bought;}):[];
-  G.frozen=false;
+  const frozen=advanceFrozenOffers(G.shop,G.frozen),frozenKeep=frozen.offers;
+  G.frozen=frozen.active;
   const n=Math.max(0,G.A.shopN-frozenKeep.length);
   /* income wares are dead in route mode (income() never runs), so keep them out
      of route shops until the approved rework gives them route semantics */
@@ -595,8 +620,14 @@ function rollShop(){
   G.shopFresh=true;
 }
 function toggleFreeze(){
-  G.frozen=!G.frozen;
-  toast(G.frozen?'The shop holds until dawn.':'The shop thaws.');
+  const held=(G.shop||[]).some(function(w){return (w.hold||0)>0;});
+  if(G.frozen||held){
+    G.frozen=false;thawOffers(G.shop);toast('The shop thaws.');
+  }else{
+    const duration=G.A.freezeDurationRounds||1;G.frozen=true;
+    setFrozenOffers(G.shop,duration);
+    toast('The shop holds through '+duration+' market roll'+(duration===1?'':'s')+'.');
+  }
   renderDraft();
 }
 /* ============ FIGHT UI ============ */
@@ -771,10 +802,11 @@ function startFight(me,foe,opts){
     setTimeout(function(){dk.remove();},2250);
   }
   const fseed=(opts&&opts.seed!=null)?(opts.seed>>>0):((G.seed+G.round*7919+(++G.fightN)*104729)>>>0);
-  const F=createFight({a:me,b:foe,stormAt:(opts&&opts.stormAt)||stormAt((opts&&opts.threat!=null)?opts.threat:runThreat()),seed:fseed,playerIs:'a'});
+  const baseStorm=(opts&&opts.stormAt)||stormAt((opts&&opts.threat!=null)?opts.threat:runThreat());
+  const F=createFight({a:me,b:foe,stormAt:adjustedStormAt(baseStorm,G.A),seed:fseed,playerIs:'a'});
   G.F=F;
   G.recap={a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
-  function pad(items){const u=items.reduce(function(s,x){return s+x.size;},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
+  function pad(items){const u=items.reduce(function(s,x){return s+(x.slotSize||x.size);},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
   $('main').className='fight';
   $('main').innerHTML=
    fighterHTML(foe,'b')
@@ -854,7 +886,8 @@ function settleRouteReward(e){
   const H=heroOf();
   const key=rewardKey(G.run.runId,e.nodeId,c.attempt||0);
   const already=!!(G.run.receipts[key]&&G.run.receipts[key].fixedApplied);
-  const plan=planReward(M.bounty||{},{baseGold:e.gold,incomeGold:boardVictoryIncome(G.board),gilded:e.gilded,
+  const income=adjustedVictoryIncome(boardVictoryIncome(G.board)+(G.relicIncome||0),G.A);
+  const plan=planReward(M.bounty||{},{baseGold:e.gold,incomeGold:income,gilded:e.gilded,
     enteredGold:c.enteredGold||0,pocketed:c.pocketed||0,minGold:0,board:G.board});
   /* the final boss dies as the run is won (settleReward sets phase 'won' before this
      reward), so its choice reward (the Vizier's pick-any-unique) would drop a ware
@@ -867,7 +900,7 @@ function settleRouteReward(e){
     if(receipt.debtPaid){toast(receipt.debtPaid+' gold repaid your debt before the reward landed.');}
     if(receipt.debtDamage){toast('Unpaid debt cost '+receipt.debtDamage+' Resolve and was cleared.');}
     if(plan.drained>0){toast('The monkey kept '+plan.drained+' gold of the bounty.');}
-    if(plan.relic){toast('Income relic: +1 gold each dawn');}
+    if(plan.relic){toast('Income relic: +1 gold after each victory');}
     if(plan.mote&&plan.mote.gold){toast('The mote found nothing bronze to copy. '+plan.mote.gold+' gold instead.');}
     toast(M.n+' slain. '+plan.gold+' gold'+(plan.items.length?', bounty wares in the market':'')+'.');
     bark('win');
@@ -930,14 +963,14 @@ function snapshotRoute(){
       route:G.run.route,
       economy:{gold:E.gold,tier:E.tier,tierCost:E.tierCost,relicIncome:E.relicIncome,freeReroll:!!E.freeReroll,frozen:!!E.frozen,
         board:E.board.map(item),vault:E.vault.map(item),
-        shop:E.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null,offerId:w.offerId};}),
+        shop:E.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null,offerId:w.offerId,hold:w.hold||0};}),
         trinkets:E.trinkets.map(function(t){return t.id;})},
       receipts:G.run.receipts||{},pendingChoice:G.run.pendingChoice||null,
       camp:G.run.camp||null,lastReserveUsed:!!G.run.lastReserveUsed,
       ids:{nextItem:G.run.ids.nextItem}},
     setup:{hero:G.hero||null,anom:G.anom.id,tags:G.tags.slice()},
     fightN:G.fightN,
-    market:R.market?{nodeId:R.market.nodeId,rollIndex:R.market.rollIndex}:null,opening:!!R.opening,
+    market:R.market?{nodeId:R.market.nodeId,rollIndex:R.market.rollIndex,sales:R.market.sales||0}:null,opening:!!R.opening,
     /* the fight's settlement context, so a reload during a fight or victory
        recap still pays the right bounty (Debt Collector entered gold, Pilfer
        Monkey drain) rather than seeing zero */
@@ -954,9 +987,7 @@ function checkpointActiveRun(){return snapshotRoute();}
 function newRoute(){
   const seed=((Date.now()>>>0)^0x9e3779b9)>>>0;
   const rng=mulberry(seed);
-  /* Bull Market only scales income, which never pays in route; skip it until
-     the omen rework gives it a route-live benefit */
-  const anomPool=ANOMALIES.filter(function(a){return a.id!=='bull';});
+  const anomPool=ANOMALIES;
   const anom=anomPool[Math.floor(rng()*anomPool.length)];
   const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
   setG({mode:'route',seed:seed,rng:rng,round:0,anom:anom,A:Object.assign({},ANONE,anom.m),tags:[cats[0],cats[1]],
@@ -1018,10 +1049,11 @@ function startRouteFight(e){
   const H=heroOf();
   const php=fightHP(e.threat,G.T.hpFlat,G.A);
   const foe=monsterSide(e.monId,{gold:G.gold,round:e.threat,A:G.A,gilded:!!e.gilded,playerBoard:G.board,playerHp:php});
-  const me={nm:'You',portrait:G.you.p,hp:php,items:playerFightItems(G.board,G.T,G.A,1),lifesteal:G.T.lifesteal||0,
-    regen:boardRegen(G.board),rules:H?H.mod:{}};
+  const me={nm:'You',portrait:G.you.p,hp:php,items:playerFightItems(G.board,G.T,G.A,1),
+    lifesteal:G.A.healingDisabled?0:(G.T.lifesteal||0),regen:G.A.healingDisabled?0:boardRegen(G.board),
+    rules:Object.assign({},G.A,H?H.mod:{})};
   startFight(me,foe,{seed:e.fightSeed,threat:e.threat,caption:'Threat '+e.threat,boss:!!e.boss,
-    stormAt:M.stormAt?M.stormAt*1000:0,onEnd:function(F){endRouteFight(F,e);}});
+    stormAt:M.stormAt?M.stormAt*1000:stormAt(e.threat),onEnd:function(F){endRouteFight(F,e);}});
 }
 function endRouteFight(F,e){
   if(F.lotPaid){G.gold+=F.lotPaid;toast('The Auctioneer paid you '+F.lotPaid+' gold.');}
@@ -1042,7 +1074,7 @@ function endRouteFight(F,e){
    the save (the shop is restored, not re-rolled, on resume). */
 function ensureOpeningOffense(){
   const OFF=['dmg','poison','burn'];
-  const has=G.shop.some(function(w){return !w.bought&&OFF.indexOf(ITEMS[w.id].cat)>=0&&COST[ITEMS[w.id].size]<=6;});
+  const has=G.shop.some(function(w){return !w.bought&&OFF.indexOf(ITEMS[w.id].cat)>=0&&buyCost(ITEMS[w.id].size,!!w.ench)<=6;});
   if(has)return;
   const pool=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,1)&&OFF.indexOf(ITEMS[id].cat)>=0&&ITEMS[id].size===1&&!ITEMS[id].unique&&!ITEMS[id].inc;});
   if(!pool.length)return;
@@ -1052,7 +1084,7 @@ function ensureOpeningOffense(){
   if(idx>=0)G.shop[idx]=mkOffer({id:id,free:false,bought:false,ench:null});
 }
 function enterOpeningMarket(){
-  G.route.opening=true;G.route.market={nodeId:'__opening__',rollIndex:0};
+  G.route.opening=true;G.route.market={nodeId:'__opening__',rollIndex:0,sales:0};
   G.rng=mulberry(fightSeed(G.seed,'__opening__',0));
   G.frozen=false;G.shopSel=null;G.sel=null;G.vsel=null;G.swapV=null;G.dockV=false;
   rollShop();ensureOpeningOffense();
@@ -1064,9 +1096,9 @@ function leaveOpeningMarket(){
 }
 /* ---- market node: reuse the draft, deterministic keyed stock ---- */
 function enterRouteMarket(nodeId){
-  G.route.market={nodeId:nodeId,rollIndex:0};
+  G.route.market={nodeId:nodeId,rollIndex:0,sales:0};
   G.rng=mulberry(fightSeed(G.seed,nodeId,0));
-  G.frozen=false;G.shopSel=null;G.sel=null;G.vsel=null;G.swapV=null;G.dockV=false;
+  G.shopSel=null;G.sel=null;G.vsel=null;G.swapV=null;G.dockV=false;
   rollShop();
   G.phase='draft';checkpointActiveRun();renderAll();
 }

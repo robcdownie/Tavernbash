@@ -57,7 +57,7 @@ export function playerFightItems(board,T,A,scale){
     if(def.fx&&def.fx.poison){fx.poison=Math.max(1,Math.round(def.fx.poison*rs*(T.poisonMul||1)*fd*A.poisonMul));}
     if(def.fx&&def.fx.burn){fx.burn=Math.max(1,Math.round(def.fx.burn*rs*(T.burnMul||1)*fd*A.burnMul));}
     if(def.fx&&def.fx.shield){fx.shield=Math.max(1,Math.round(def.fx.shield*rs*(T.shieldMul||1)*fd));}
-    if(def.fx&&def.fx.heal){fx.heal=Math.max(1,Math.round(def.fx.heal*rs*(T.healMul||1)*fd));}
+    if(def.fx&&def.fx.heal&&!A.healingDisabled){fx.heal=Math.max(1,Math.round(def.fx.heal*rs*(T.healMul||1)*fd));}
     /* haste is capped (stabilization 2026-07-12) so rarity can never push a
        single charge past a neighbour's cooldown, which is what let two high
        rarity Hourglasses drive each other into a supercritical loop */
@@ -74,9 +74,12 @@ export function playerFightItems(board,T,A,scale){
     if(en==="fiery"&&fx.dmg){fx.burn=(fx.burn||0)+Math.max(1,Math.round((fx.dmg/3)*(T.burnMul||1)*A.burnMul));}
     if(en==="venomous"){fx.poison=(fx.poison||0)+Math.max(1,Math.round(2*rs*(T.poisonMul||1)*A.poisonMul));}
     if(en==="winged"){fly=true;}
-    return {nm:(en?ENCH[en].n+" ":"")+def.n,g:"g-"+it.id,size:it.size,rarity:it.rarity,cat:def.cat,tier:def.tier,
-      cd:def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd*(en==="swift"?0.85:1))):0,
-      timer:0,alive:true,integ:integOf(it),maxI:integOf(it),
+    const cd=def.cd>0?Math.max(600,Math.round(def.cd*1000*(T.cdMul||1)*A.cdMul*boardCd*(en==="swift"?0.85:1))):0;
+    const integrity=Math.round(integOf(it)*(A.itemIntegrityMul||1));
+    const slotSize=A.sizeCostOverride&&A.sizeCostOverride[it.size]!==undefined?A.sizeCostOverride[it.size]:it.size;
+    const charged=cd>0&&A.startFullyChargedIfBaseCdAtLeast&&def.cd*1000>=A.startFullyChargedIfBaseCdAtLeast;
+    return {nm:(en?ENCH[en].n+" ":"")+def.n,g:"g-"+it.id,size:it.size,slotSize:slotSize,rarity:it.rarity,cat:def.cat,tier:def.tier,
+      cd:cd,timer:charged?cd:0,alive:true,integ:integrity,maxI:integrity,
       fx:fx,printedDmg:def.fx&&def.fx.dmg?Math.round(def.fx.dmg*rs):0,bulwark:!!def.bulwark,targeting:def.targeting||null,charge:null,flying:fly,frozen:0,disarmed:0,
       pois:0,itemShield:0,nextCdFlat:0,
       crit:fx.dmg?Math.min(0.9,(def.crit||0)+boardCrit):0,rattle:def.rattle||null,selfdestruct:!!def.selfdestruct,
@@ -95,14 +98,18 @@ export function monsterFightItems(mid,ctx){
     if(b.fx.burn){fx.burn=Math.max(1,Math.round(b.fx.burn*gild*A.burnMul));}
     if(b.fx.poison){fx.poison=Math.max(1,Math.round(b.fx.poison*gild*A.poisonMul));}
     if(b.fx.shield){fx.shield=Math.round(b.fx.shield*gild);}
-    if(b.fx.heal){fx.heal=Math.round(b.fx.heal*gild);}
+    if(b.fx.heal&&!A.healingDisabled){fx.heal=Math.round(b.fx.heal*gild);}
     if(b.fx.freeze){fx.freeze=b.fx.freeze;}
     if(b.fx.hasteAll){fx.hasteAll=b.fx.hasteAll;}
     if(b.fx.reload){fx.reload=b.fx.reload;}
     if(b.fx.disable){fx.disable=true;}
-    return {nm:b.nm,g:b.g,size:b.size,rarity:ctx.gilded?2:0,cat:"dmg",tier:M.band,
-      cd:b.cd>0?Math.round(b.cd*1000*A.cdMul):0,timer:0,alive:true,
-      integ:Math.round(b.integ*gild),maxI:Math.round(b.integ*gild),
+    const cd=b.cd>0?Math.round(b.cd*1000*A.cdMul):0;
+    const integrity=Math.round(b.integ*gild*(A.itemIntegrityMul||1));
+    const slotSize=A.sizeCostOverride&&A.sizeCostOverride[b.size]!==undefined?A.sizeCostOverride[b.size]:b.size;
+    const charged=cd>0&&A.startFullyChargedIfBaseCdAtLeast&&b.cd*1000>=A.startFullyChargedIfBaseCdAtLeast;
+    return {nm:b.nm,g:b.g,size:b.size,slotSize:slotSize,rarity:ctx.gilded?2:0,cat:"dmg",tier:M.band,
+      cd:cd,timer:charged?cd:0,alive:true,
+      integ:integrity,maxI:integrity,
       fx:fx,printedDmg:fx.dmg||0,bulwark:!!b.bulwark,targeting:b.targeting||null,charge:b.charge||null,pocket:b.pocket||0,flying:!!b.flying,frozen:0,disarmed:0,
       pois:0,itemShield:0,nextCdFlat:0,crit:b.crit||0,rattle:b.rattle||null,selfdestruct:!!b.selfdestruct,ammo:b.ammo||0,maxAmmo:b.ammo||0,pay:b.pay||0,cleanseTotal:b.cleanseTotal||0,hooks:b.hooks||null,uid:UID++};
   });
@@ -113,7 +120,8 @@ export function monsterSide(mid,ctx){
   if(M.special==="mirror"){hp=Math.round((ctx.playerHp||fightHP(ctx.round,0,A))*0.85*gild);}
   else if(M.special==="gold"){hp=Math.round((M.hp+15*(ctx.gold||0))*gild*A.hpMul);}
   else{hp=Math.round(M.hp*gild*A.hpMul);}
-  return {nm:M.n,portrait:M.glyph,hp:hp,items:monsterFightItems(mid,ctx),lifesteal:0,regen:Math.round((M.regen||0)*gild)};
+  return {nm:M.n,portrait:M.glyph,hp:hp,items:monsterFightItems(mid,ctx),lifesteal:0,
+    regen:A.healingDisabled?0:Math.round((M.regen||0)*gild),rules:Object.assign({},A)};
 }
 /* ============ RIVAL GENERATION ============ */
 export function genRival(round,persona,rng,A){
@@ -647,15 +655,17 @@ export function createFight(cfg){
     const side=sideOf(action.side),context={source:action.source||null,side:side.key,
       amount:action.amount,requested:action.amount,quiet:!!action.quiet,
       cleanPoison:action.cleanPoison||0,cleanBurn:action.cleanBurn||0,cleanTotal:action.cleanTotal||0};
+    if(side.rules.healingDisabled){return;}
     if(action.automaticCleanse&&side.rules.healingCleanses===false){
       context.cleanPoison=0;context.cleanBurn=0;context.cleanTotal=0;
     }
     triggerHookPoint("beforeHeal",context,depth);
     const receivedMul=sideModifier(side,"healReceivedMul");
     const amount=Math.max(0,Math.round(context.amount*receivedMul)),before=side.hp,missing=Math.max(0,side.maxHp-before);
+    const poisonBefore=side.pois,burnBefore=side.burn;
+    if(side.rules.healClearsAllBurn){side.burn=0;}
     side.hp=Math.min(side.maxHp,side.hp+amount);
     if(!action.quiet){emit({k:"heal",side:side.key,amt:side.hp-before});}
-    const poisonBefore=side.pois,burnBefore=side.burn;
     if(context.cleanTotal){
       for(let i=0;i<context.cleanTotal;i++){
         if(side.pois<=0&&side.burn<=0){break;}
@@ -691,12 +701,17 @@ export function createFight(cfg){
   }
   function compileRattle(side,source,dead){
     const actions=baseRattle(side,source,dead);
-    if(!actions.length||!side.rules.oneTrueFuneral){return actions;}
-    if(side.friendlyRattleUsed){return [];}
-    side.friendlyRattleUsed=true;
-    return actions.concat(actions.map(function(action){
-      const copy=Object.assign({},action);if(copy.op==="spawn"){copy.repeatSpawn=true;}return copy;
-    }));
+    if(!actions.length){return actions;}
+    let doubled=false;
+    if(side.rules.oneTrueFuneral){
+      if(side.friendlyRattleUsed){return [];}
+      side.friendlyRattleUsed=true;doubled=true;
+    }else if(side.rules.firstDeathrattleDouble&&!side.firstDeathrattleDoubled){
+      side.firstDeathrattleDoubled=true;doubled=true;
+    }
+    if(!doubled){return actions;}
+    return actions.concat(actions.map(function(action){const copy=Object.assign({},action);
+      if(copy.op==="spawn"){copy.repeatSpawn=true;}return copy;}));
   }
   function destroySource(side,source,killer,depth){
     const it=liveItem(source);if(!it){return;}
@@ -764,7 +779,7 @@ export function createFight(cfg){
     }
     if(remaining>0){tripGuard("contacts");}
     if(it.heroPerfectEdge&&hitItem&&!destroyedItem){it.nextCdFlat=1000;}
-    if(sourceSide.ls>0&&dealt>0){
+    if(sourceSide.ls>0&&dealt>0&&!sourceSide.rules.healingDisabled){
       runChildren([{op:"heal",side:sourceSide.key,amount:Math.max(1,Math.round(dealt*sourceSide.ls)),quiet:true,cleanPoison:0,cleanBurn:0}],depth);
     }
   }
@@ -798,6 +813,7 @@ export function createFight(cfg){
     if(it.charge){actions.push({op:"charge",source:source,target:it.charge.t,amount:it.charge.s});}
     if(it.pocket){actions.push({op:"pocket",source:source,targetSide:targetSide.key,amount:it.pocket});}
     if(hookPoints.has("afterActivate")){actions.push({op:"hookPoint",point:"afterActivate",context:context});}
+    if(sourceSide.rules.activationSelfDamagePct){actions.push({op:"activationSelfDamage",source:source,pct:sourceSide.rules.activationSelfDamagePct});}
     return actions;
   }
   function resolveAction(action,depth){
@@ -902,8 +918,11 @@ export function createFight(cfg){
         }
         return;
       }
-      const item={nm:spec.nm,g:spec.g,size:dead.size,rarity:dead.rarity,cat:spec.cat||"dmg",tier:dead.tier,
-        cd:Math.round(spec.cd*1000),timer:0,alive:true,integ:spec.integ,maxI:spec.integ,
+      const spawnCd=Math.round(spec.cd*1000),spawnInteg=Math.round(spec.integ*(side.rules.itemIntegrityMul||1));
+      const spawnSlotSize=side.rules.sizeCostOverride&&side.rules.sizeCostOverride[dead.size]!==undefined?side.rules.sizeCostOverride[dead.size]:dead.size;
+      const spawnCharged=spawnCd>0&&side.rules.startFullyChargedIfBaseCdAtLeast&&spec.cd*1000>=side.rules.startFullyChargedIfBaseCdAtLeast;
+      const item={nm:spec.nm,g:spec.g,size:dead.size,slotSize:spawnSlotSize,rarity:dead.rarity,cat:spec.cat||"dmg",tier:dead.tier,
+        cd:spawnCd,timer:spawnCharged?spawnCd:0,alive:true,integ:spawnInteg,maxI:spawnInteg,
         fx:Object.assign({},spec.fx),printedDmg:spec.fx&&spec.fx.dmg||0,bulwark:!!spec.bulwark,targeting:spec.targeting||null,charge:null,
         pocket:0,flying:!!spec.flying,frozen:0,disarmed:0,pois:0,itemShield:0,nextCdFlat:0,
         crit:spec.crit||0,rattle:spec.rattle||null,selfdestruct:false,ammo:0,maxAmmo:0,
@@ -911,17 +930,18 @@ export function createFight(cfg){
         spawnSpec:spec,spawnOrigin:action.origin||sourceKey(action.source),uid:spawnUid(side)};
       side.items[slot]=item;const spawnedRef=registerSource(side,item,slot);
       const spawnedHooks=[];queueHookSpecs(spawnedHooks,side,"item",spawnedRef.uid,slot,spawnedRef,item.hooks);installHookEntries(spawnedHooks);
-      emit({k:"spawn",side:side.key,i:slot,nm:spec.nm,g:spec.g,integ:spec.integ});
+      emit({k:"spawn",side:side.key,i:slot,nm:spec.nm,g:spec.g,integ:spawnInteg});
       triggerHookPoint("afterSpawn",{source:action.source,spawned:spawnedRef,target:spawnedRef,
         side:side.key,targetSide:side.key,fromRattle:!!action.fromRattle},depth);
     }else if(action.op==="tickPoison"){
-      const side=sideOf(action.side),amount=side.pois;side.hp-=amount;emit({k:"tickp",side:side.key,amt:amount});side.pois=Math.floor(side.pois*0.82);
+      const side=sideOf(action.side),amount=side.pois,decay=side.rules.poisonDecayAfterTick||0.82;
+      side.hp-=amount;emit({k:"tickp",side:side.key,amt:amount});side.pois=Math.floor(side.pois*decay);
     }else if(action.op==="tickItemPoison"){
       const target=liveItem(action.targetRef);if(!target||!(target.pois>0)){return;}
       const side=sideOf(action.targetRef.side),amount=target.pois,hit=Math.min(target.integ,amount);
       target.integ-=hit;emit({k:"chip",side:side.key,i:action.targetRef.slot,amt:hit,integ:Math.max(0,target.integ),poison:true});
       if(target.integ<=0){target.integ=0;destroySource(side,action.targetRef,target.poisonSource||null,depth);}
-      else{target.pois=Math.floor(target.pois*0.82);}
+      else{target.pois=Math.floor(target.pois*(side.rules.poisonDecayAfterTick||0.82));}
     }else if(action.op==="tickBurn"){
       const side=sideOf(action.side),amount=side.burn,absorbed=Math.min(side.shield,Math.floor(amount/2));
       side.shield-=absorbed;const hpDamage=amount-absorbed;side.hp-=hpDamage;
@@ -1015,6 +1035,12 @@ export function createFight(cfg){
       if(action.mul!==undefined){action.context.amount*=action.mul;}
     }else if(action.op==="thawDisarm"){
       if(source){source.disarmed=0;emit({k:"thaw",side:action.source.side,i:action.source.slot,disarm:true});}
+    }else if(action.op==="activationSelfDamage"){
+      if(source){
+        const hit=Math.min(source.integ,Math.max(1,Math.round(source.maxI*action.pct)));
+        source.integ-=hit;emit({k:"chip",side:action.source.side,i:action.source.slot,amt:hit,integ:Math.max(0,source.integ),selfDamage:true});
+        if(source.integ<=0){source.integ=0;destroySource(sideOf(action.source.side),action.source,action.source,depth);}
+      }
     }
   }
   F.step=function(dt){
@@ -1069,7 +1095,7 @@ export function createFight(cfg){
         if(S.burn>0){runRoot([{op:"tickBurn",side:S.key}],ev);}
         /* regen knits fight health every second, capped at the starting
            pool; it does not cleanse stacks and cannot raise the dead */
-        if(S.regen>0&&S.hp>0&&S.hp<S.maxHp){runRoot([{op:"heal",side:S.key,amount:S.regen,quiet:false,cleanPoison:0,cleanBurn:0}],ev);}
+        if(!S.rules.healingDisabled&&S.regen>0&&S.hp>0&&S.hp<S.maxHp){runRoot([{op:"heal",side:S.key,amount:S.regen,quiet:false,cleanPoison:0,cleanBurn:0}],ev);}
       }
       if(F.secMark>=F.stormAt){
         const storm=[];

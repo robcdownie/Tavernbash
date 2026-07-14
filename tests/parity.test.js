@@ -69,6 +69,23 @@ const R8_UNIQUE_WARES={
   gravebell:{version:"0.74.0",batch:"utility",acquisition:"treasure"},
   bazaarcompass:{version:"0.74.0",batch:"utility",acquisition:"treasure"},
 };
+/* The 0.76.0 Omen rework is an approved replacement of all eight legacy
+   anomaly modifiers plus four additions. Pin the complete rule payload here so
+   no later data edit can silently turn a benefit or cost off. */
+const R8_OMEN_RULES={
+  bull:{version:"0.76.0",m:{goldMul:1.5,shopItemCostFlat:1}},
+  moon:{version:"0.76.0",m:{dmgMul:1.3,healingDisabled:true}},
+  wildfire:{version:"0.76.0",m:{burnMul:2,healClearsAllBurn:true}},
+  plague:{version:"0.76.0",m:{poisonMul:2,poisonDecayAfterTick:0.5}},
+  molasses:{version:"0.76.0",m:{cdMul:1.2,startFullyChargedIfBaseCdAtLeast:5000}},
+  overstock:{version:"0.76.0",m:{shopN:6,rerollCost:2}},
+  fortified:{version:"0.76.0",m:{hpMul:1.3,stormStartOffsetMs:-5000}},
+  rapid:{version:"0.76.0",m:{cdMul:0.85,activationSelfDamagePct:0.05}},
+  narrow:{version:"0.76.0",m:{slotCountFlat:-2,sizeCostOverride:{3:2}}},
+  glass:{version:"0.76.0",m:{itemIntegrityMul:0.6,firstDeathrattleDouble:true}},
+  silent:{version:"0.76.0",m:{shopN:6,rerollDisabled:true,freezeDurationRounds:2}},
+  auctionbell:{version:"0.76.0",m:{sellReturnsBaseCost:true,rerollCostPerSaleThisMarket:1}}
+};
 
 /* The byte-identical fight-for-fight parity test was retired on 2026-07-12.
    Its job was to prove the module extraction faithfully reproduced the
@@ -109,7 +126,12 @@ test('parity: data tables identical to the original outside the rebalance ledger
     const expected=Object.assign(j(ot),j(RENAMED_TRINKETS[ot.id]||{}));
     assert.deepEqual(j(now),expected,'trinket '+ot.id);
   }
-  assert.deepEqual(j(ANOMALIES),j(ORIG.ANOMALIES));
+  assert.deepEqual(ANOMALIES.map(function(a){return a.id;}).sort(),Object.keys(R8_OMEN_RULES).sort(),
+    'every R8 Omen has a parity-ledger entry');
+  for(const omen of ANOMALIES){
+    assert.deepEqual(j(omen.m),j(R8_OMEN_RULES[omen.id].m),'Omen '+omen.id+' rule payload');
+    assert.ok(omen.n&&omen.g&&omen.d,'Omen '+omen.id+' has presentation data');
+  }
   assert.deepEqual(j(PERSONAS),j(ORIG.PERSONAS));
   assert.deepEqual(j(ANONE),j(ORIG.ANONE));
 });

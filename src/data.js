@@ -344,14 +344,18 @@ export const TRINKETS=[
 ];
 /* ============ ANOMALIES ============ */
 export const ANOMALIES=[
- {id:"bull",n:"Bull Market",g:"g-purse",d:"Income is half again as rich for everyone.",m:{goldMul:1.5}},
- {id:"moon",n:"Blood Moon",g:"g-moon",d:"All damage up a third. All merchants frailer.",m:{dmgMul:1.3,hpMul:0.85}},
- {id:"wildfire",n:"Wildfire",g:"g-magma",d:"Every burn in the market is doubled.",m:{burnMul:2}},
- {id:"plague",n:"Plague Winds",g:"g-venom",d:"Every poison in the market is doubled.",m:{poisonMul:2}},
- {id:"molasses",n:"Molasses Night",g:"g-hourglass",d:"All cooldowns run 20% slower.",m:{cdMul:1.2}},
- {id:"overstock",n:"Overstocked",g:"g-ledger",d:"The market shows six wares each round.",m:{shopN:6}},
- {id:"fortified",n:"Fortified",g:"g-tower",d:"All merchants are a third tougher.",m:{hpMul:1.3}},
- {id:"rapid",n:"Rapid Trade",g:"g-adren",d:"All cooldowns run 15% faster.",m:{cdMul:0.85}}
+ {id:"bull",n:"Bull Market",g:"g-purse",d:"Income is increased by 50%, but every shop ware costs 1 additional gold.",m:{goldMul:1.5,shopItemCostFlat:1}},
+ {id:"moon",n:"Blood Moon",g:"g-moon",d:"Weapon damage is increased by 30%. Healing, regeneration, and lifesteal are disabled.",m:{dmgMul:1.3,healingDisabled:true}},
+ {id:"wildfire",n:"Wildfire",g:"g-magma",d:"Burn applications are doubled. Any Heal activation removes all Burn before restoring health.",m:{burnMul:2,healClearsAllBurn:true}},
+ {id:"plague",n:"Plague Winds",g:"g-venom",d:"Poison applications are doubled, but Poison loses half its stacks after every tick.",m:{poisonMul:2,poisonDecayAfterTick:0.5}},
+ {id:"molasses",n:"Molasses Night",g:"g-hourglass",d:"All cooldowns are 20% slower. Wares with a base cooldown of at least 5 seconds begin fully charged.",m:{cdMul:1.2,startFullyChargedIfBaseCdAtLeast:5000}},
+ {id:"overstock",n:"Overstocked",g:"g-ledger",d:"Markets show six wares, but rerolls cost 2 gold.",m:{shopN:6,rerollCost:2}},
+ {id:"fortified",n:"Fortified",g:"g-tower",d:"Merchants have 30% more Fight Health, but the storm begins 5 seconds earlier.",m:{hpMul:1.3,stormStartOffsetMs:-5000}},
+ {id:"rapid",n:"Rapid Trade",g:"g-adren",d:"Cooldowns are 15% faster, but every activation damages its ware for 5% of maximum integrity.",m:{cdMul:0.85,activationSelfDamagePct:0.05}},
+ {id:"narrow",n:"Narrow Alleys",g:"g-bazaarcompass",d:"Every merchant has two fewer board slots, but Large wares occupy two slots instead of three.",m:{slotCountFlat:-2,sizeCostOverride:{3:2}}},
+ {id:"glass",n:"Glass Night",g:"g-prism",d:"All wares have 40% less integrity. The first rattle triggered by each side resolves twice.",m:{itemIntegrityMul:0.6,firstDeathrattleDouble:true}},
+ {id:"silent",n:"Silent Bazaar",g:"g-peacebinderchain",d:"Rerolls are disabled. Markets show six wares, and frozen wares remain through two market rolls.",m:{shopN:6,rerollDisabled:true,freezeDurationRounds:2}},
+ {id:"auctionbell",n:"The Auction Bell",g:"g-gavel",d:"Wares sell for full base cost, but each sale raises reroll cost by 1 for the rest of that market.",m:{sellReturnsBaseCost:true,rerollCostPerSaleThisMarket:1}}
 ];
 /* ============ RIVAL PERSONAS ============ */
 export const PERSONAS=[
