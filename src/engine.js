@@ -190,119 +190,247 @@ export function createFight(cfg){
   const mk=(s,key)=>({key:key,nm:s.nm,portrait:s.portrait||"g-medallion",hp:s.hp,maxHp:s.hp,shield:0,pois:0,burn:0,items:s.items,ls:s.lifesteal||0,regen:s.regen||0});
   const A=mk(cfg.a,"a"), B=mk(cfg.b,"b");
   const F={t:0,done:false,winner:null,stormAt:cfg.stormAt,stormOn:false,a:A,b:B,secMark:0,stormDmg:5,pocketed:0,lotPaid:0,diagnostics:{guardTrips:0}};
-  function hHit(D,amt,ev,kind){
-    const abs=Math.min(D.shield,amt);D.shield-=abs;const hpd=amt-abs;D.hp-=hpd;
-    ev.push({k:kind||"hhit",side:D.key,amt:hpd,abs:abs});
+  /* R7 source identity is fight-local. A live source is found by side + uid,
+     while a tombstone keeps the dead slot and captured rattle data. A same-slot
+     replacement therefore cannot inherit queued work from the item it replaced. */
+  const worklist=[];
+  const liveSources=new Map();
+  const tombstones=new Map();
+  const itemRefs=new WeakMap();
+  const usedSourceKeys=new Set();
+  let localUid=-1,eventSink=null;
+  Object.defineProperty(F.diagnostics,"pendingActions",{enumerable:true,get:function(){return worklist.length;}});
+  const sideOf=key=>key==="a"?A:B;
+  const sourceKey=ref=>ref.side+":"+String(ref.uid);
+  function registerSource(side,it,slot){
+    let uid=it.uid,key=side.key+":"+String(uid);
+    while(uid===undefined||uid===null||usedSourceKeys.has(key)){
+      uid=localUid--;key=side.key+":"+String(uid);
+    }
+    it.uid=uid;
+    const ref={side:side.key,uid:uid,slot:slot};
+    usedSourceKeys.add(key);liveSources.set(key,{ref:ref,item:it});itemRefs.set(it,ref);
+    return ref;
   }
-  function healSide(S,amt,ev,quiet){
-    const before=S.hp;S.hp=Math.min(S.maxHp,S.hp+amt);
-    if(!quiet){ev.push({k:"heal",side:S.key,amt:S.hp-before});}
+  function sourceOf(side,it,slot){
+    const ref=itemRefs.get(it);
+    return ref&&ref.side===side.key&&ref.slot===slot?ref:registerSource(side,it,slot);
   }
-  /* deathrattle: when an item dies its rattle fires; spawn replaces it in
-     place, same index, fresh timers, so event indices stay honest */
-  function rattleOf(side,i,ev){
-    const it=side.items[i];if(!it||!it.rattle){return;}
-    /* hasteMates: the survivors rage, their cooldowns permanently cut */
-    if(it.rattle.hasteMates){
-      for(let j=0;j<side.items.length;j++){
-        const t=side.items[j];
-        if(t.alive&&t.cd>0){t.cd=Math.max(600,Math.round(t.cd*(1-it.rattle.hasteMates)));ev.push({k:"enrage",side:side.key,i:j});}
-      }
-    }
-    const sp=it.rattle.spawn;
-    if(sp){
-      side.items[i]={nm:sp.nm,g:sp.g,size:it.size,rarity:it.rarity,cat:sp.cat||"dmg",tier:it.tier,
-        cd:Math.round(sp.cd*1000),timer:0,alive:true,integ:sp.integ,maxI:sp.integ,
-        fx:Object.assign({},sp.fx),bulwark:!!sp.bulwark,targeting:sp.targeting||null,charge:null,
-        pocket:0,flying:!!sp.flying,frozen:0,crit:sp.crit||0,rattle:sp.rattle||null,selfdestruct:false,ammo:0,maxAmmo:0,uid:UID++};
-      ev.push({k:"spawn",side:side.key,i:i,nm:sp.nm,g:sp.g,integ:sp.integ});
+  for(const side of [A,B]){for(let i=0;i<side.items.length;i++){registerSource(side,side.items[i],i);}}
+  function liveItem(ref){
+    const row=liveSources.get(sourceKey(ref));
+    if(!row){return null;}
+    const side=sideOf(ref.side);
+    return row.ref.slot===ref.slot&&side.items[ref.slot]===row.item&&row.item.alive?row.item:null;
+  }
+  function burySource(ref,it){
+    const key=sourceKey(ref);liveSources.delete(key);tombstones.set(key,{ref:ref,item:it});
+  }
+  function spawnUid(side){
+    let uid=UID++;
+    while(usedSourceKeys.has(side.key+":"+String(uid))){uid=UID++;}
+    return uid;
+  }
+
+  /* The worklist is a depth-first stack owned by this fight. Each scheduler
+     activation is one root; child work drains before the parent's continuation. */
+  function emit(event){eventSink.push(event);}
+  function pushActions(actions,depth){
+    for(let i=actions.length-1;i>=0;i--){if(actions[i]){worklist.push({action:actions[i],depth:depth});}}
+  }
+  function drain(stop){
+    while(worklist.length){
+      const frame=worklist.pop();
+      if(frame.stop){if(frame.stop===stop){return;}continue;}
+      resolveAction(frame.action,frame.depth);
     }
   }
-  function fire(S,D,it,idx,ev){
-    ev.push({k:"fire",side:S.key,i:idx,cat:it.cat});
-    /* a self-destructing item's activation is its own death: the timed
-       hatch is just a deathrattle on a fuse */
-    if(it.selfdestruct){it.alive=false;it.integ=0;ev.push({k:"destroy",side:S.key,i:idx,nm:it.nm});rattleOf(S,idx,ev);return;}
-    if(it.maxAmmo>0){it.ammo--;ev.push({k:"ammo",side:S.key,i:idx,left:it.ammo});}
-    /* icy enchant: the first activation also freezes, then the frost is spent */
-    if(it.freezeOnce>0){
-      let fi=-1;for(let j=0;j<D.items.length;j++){if(D.items[j].alive){fi=j;break;}}
-      if(fi>=0){D.items[fi].frozen=(D.items[fi].frozen||0)+it.freezeOnce*1000;ev.push({k:"freeze",side:D.key,i:fi,amt:it.freezeOnce});}
-      it.freezeOnce=0;
-    }
-    const fx=it.fx;
-    if(fx.dmg){
-      /* crit rolls draw from the fight's seeded rng, so replays and the
-         headless runner stay deterministic; items without crit never roll */
-      let dmg=fx.dmg;
-      if(it.crit>0&&rng("crit")<it.crit){dmg*=2;ev.push({k:"crit",side:S.key,i:idx});}
-      /* overflow by size (stabilization 2026-07-12): a Large weapon cleaves
-         all its excess into the next item, a Medium half, a Small none. This
-         gives big weapons a real identity and stops a bronze chaff body from
-         absorbing an entire overkill. Lifesteal heals from damage actually
-         dealt (integrity + merchant), never the nominal number. */
-      const over=it.size>=3?1:(it.size===2?0.5:0);
-      let remaining=dmg,dealt=0,guard=0;
-      while(remaining>0&&guard++<12){
-        const ti=pickTarget(D.items,it.targeting);
-        if(ti<0){hHit(D,remaining,ev);dealt+=remaining;remaining=0;break;}
-        const tgt=D.items[ti];
-        const hit=Math.min(tgt.integ,remaining);
-        tgt.integ-=hit;dealt+=hit;
-        const excess=remaining-hit;remaining=0;
-        if(tgt.integ<=0){
-          tgt.integ=0;tgt.alive=false;
-          ev.push({k:"chip",side:D.key,i:ti,amt:hit,integ:0});
-          ev.push({k:"destroy",side:D.key,i:ti,nm:tgt.nm});
-          rattleOf(D,ti,ev);
-          if(excess>0&&over>0){remaining=Math.round(excess*over);}
-        }else{
-          ev.push({k:"chip",side:D.key,i:ti,amt:hit,integ:tgt.integ});
-        }
-      }
-      if(remaining>0){F.diagnostics.guardTrips++;}   /* the 12-contact cap stopped an unresolved cleave */
-      if(S.ls>0&&dealt>0){healSide(S,Math.max(1,Math.round(dealt*S.ls)),ev,true);}
-    }
-    if(fx.shield){S.shield+=fx.shield;ev.push({k:"shield",side:S.key,amt:fx.shield,val:S.shield});}
-    if(fx.heal){healSide(S,fx.heal,ev,false);S.pois=Math.max(0,S.pois-1);S.burn=Math.max(0,S.burn-1);}
-    if(fx.freeze){
-      let ti=-1;for(let j=0;j<D.items.length;j++){if(D.items[j].alive){ti=j;break;}}
-      if(ti>=0){D.items[ti].frozen=(D.items[ti].frozen||0)+fx.freeze*1000;ev.push({k:"freeze",side:D.key,i:ti,amt:fx.freeze});}
-    }
-    if(fx.poison){D.pois+=fx.poison;ev.push({k:"pois",side:D.key,amt:fx.poison,val:D.pois});}
-    if(fx.burn){D.burn+=fx.burn;ev.push({k:"burn",side:D.key,amt:fx.burn,val:D.burn});}
-    if(fx.haste){
-      [idx-1,idx+1].forEach(j=>{if(j>=0&&j<S.items.length&&S.items[j].alive&&S.items[j].cd>0){S.items[j].timer+=fx.haste*1000;ev.push({k:"haste",side:S.key,i:j});}});
-    }
-    if(fx.hasteAll){
-      for(let j=0;j<S.items.length;j++){
-        if(j!==idx&&S.items[j].alive&&S.items[j].cd>0){S.items[j].timer+=fx.hasteAll*1000;ev.push({k:"haste",side:S.key,i:j});}
-      }
-    }
-    if(fx.reload){
-      for(let j=0;j<S.items.length;j++){
-        const t=S.items[j];
-        if(t.alive&&t.maxAmmo>0&&t.ammo<t.maxAmmo){t.ammo=Math.min(t.maxAmmo,t.ammo+fx.reload);ev.push({k:"reload",side:S.key,i:j,left:t.ammo});}
+  function runChildren(actions,parentDepth){
+    if(!actions.length){return;}
+    const stop={};worklist.push({stop:stop});pushActions(actions,parentDepth+1);drain(stop);
+  }
+  function runRoot(actions,ev){
+    if(worklist.length){throw new Error("combat worklist leaked between roots");}
+    eventSink=ev;
+    try{pushActions(actions,0);drain(null);}
+    finally{worklist.length=0;eventSink=null;}
+  }
+
+  function hitMerchant(side,amt,kind){
+    const absorbed=Math.min(side.shield,amt);side.shield-=absorbed;
+    const hpDamage=amt-absorbed;side.hp-=hpDamage;
+    emit({k:kind||"hhit",side:side.key,amt:hpDamage,abs:absorbed});
+    return {dealt:amt,hpDamage:hpDamage,absorbed:absorbed};
+  }
+  function resolveHeal(action){
+    const side=sideOf(action.side),before=side.hp;
+    side.hp=Math.min(side.maxHp,side.hp+action.amount);
+    if(!action.quiet){emit({k:"heal",side:side.key,amt:side.hp-before});}
+    if(action.cleanPoison){side.pois=Math.max(0,side.pois-action.cleanPoison);}
+    if(action.cleanBurn){side.burn=Math.max(0,side.burn-action.cleanBurn);}
+  }
+  function compileRattle(side,source,dead){
+    const actions=[],rattle=dead.rattle;
+    if(!rattle){return actions;}
+    if(rattle.hasteMates){actions.push({op:"rattleHaste",side:side.key,source:source,amount:rattle.hasteMates});}
+    if(rattle.spawn){actions.push({op:"spawn",side:side.key,source:source,spec:rattle.spawn});}
+    return actions;
+  }
+  function destroySource(side,source,killer,depth){
+    const it=liveItem(source);if(!it){return;}
+    it.alive=false;it.integ=0;
+    emit({k:"destroy",side:side.key,i:source.slot,nm:it.nm});
+    burySource(source,it);
+    runChildren(compileRattle(side,source,it),depth);
+  }
+  function resolveDamage(action,depth){
+    const it=liveItem(action.source);if(!it){return;}
+    const sourceSide=sideOf(action.source.side),targetSide=sideOf(action.targetSide);
+    let dmg=action.amount;
+    /* The one crit draw happens at damage start, before the first target lookup. */
+    if(action.crit>0&&rng("crit")<action.crit){dmg*=2;emit({k:"crit",side:sourceSide.key,i:action.source.slot});}
+    const overflow=action.size>=3?1:(action.size===2?0.5:0);
+    let remaining=dmg,dealt=0,contacts=0;
+    while(remaining>0&&contacts<12){
+      contacts++;
+      const slot=pickTarget(targetSide.items,action.targeting);
+      if(slot<0){hitMerchant(targetSide,remaining);dealt+=remaining;remaining=0;break;}
+      const target=targetSide.items[slot],targetRef=sourceOf(targetSide,target,slot);
+      const hit=Math.min(target.integ,remaining);
+      target.integ-=hit;dealt+=hit;
+      const excess=remaining-hit;remaining=0;
+      if(target.integ<=0){
+        target.integ=0;
+        emit({k:"chip",side:targetSide.key,i:slot,amt:hit,integ:0});
+        destroySource(targetSide,targetRef,action.source,depth);
+        if(excess>0&&overflow>0){remaining=Math.round(excess*overflow);}
+      }else{
+        emit({k:"chip",side:targetSide.key,i:slot,amt:hit,integ:target.integ});
       }
     }
-    /* the auction: the finest enemy weapon goes under the hammer, inert
-       for the rest of the fight but still on the block to be hit; a pay
-       field on the caller compensates the victim after the fight */
-    if(fx.disable){
-      let ti=-1,best=-1;
-      for(let j=0;j<D.items.length;j++){const t=D.items[j];if(t.alive&&!t.lot&&t.fx.dmg&&t.fx.dmg>best){best=t.fx.dmg;ti=j;}}
-      if(ti>=0){
-        D.items[ti].lot=true;ev.push({k:"lot",side:D.key,i:ti,nm:D.items[ti].nm});
-        if(it.pay){F.lotPaid+=it.pay;ev.push({k:"lotpay",side:D.key,amt:it.pay});}
+    if(remaining>0){F.diagnostics.guardTrips++;}
+    if(sourceSide.ls>0&&dealt>0){
+      runChildren([{op:"heal",side:sourceSide.key,amount:Math.max(1,Math.round(dealt*sourceSide.ls)),quiet:true,cleanPoison:0,cleanBurn:0}],depth);
+    }
+  }
+  function compileActivation(sourceSide,targetSide,it,source){
+    const actions=[{op:"fire",source:source,cat:it.cat}];
+    if(it.selfdestruct){actions.push({op:"selfDestruct",source:source});return actions;}
+    if(it.maxAmmo>0){actions.push({op:"ammo",source:source});}
+    if(it.freezeOnce>0){actions.push({op:"firstFrost",source:source,targetSide:targetSide.key,amount:it.freezeOnce});}
+    const fx=it.fx||{};
+    if(fx.dmg){actions.push({op:"damage",source:source,targetSide:targetSide.key,amount:fx.dmg,crit:it.crit||0,size:it.size,targeting:it.targeting||null});}
+    if(fx.shield){actions.push({op:"shield",source:source,amount:fx.shield});}
+    if(fx.heal){actions.push({op:"heal",source:source,side:sourceSide.key,amount:fx.heal,quiet:false,cleanPoison:1,cleanBurn:1});}
+    if(fx.freeze){actions.push({op:"freeze",source:source,targetSide:targetSide.key,amount:fx.freeze});}
+    if(fx.poison){actions.push({op:"poison",source:source,targetSide:targetSide.key,amount:fx.poison});}
+    if(fx.burn){actions.push({op:"burn",source:source,targetSide:targetSide.key,amount:fx.burn});}
+    if(fx.haste){actions.push({op:"hasteAdjacent",source:source,amount:fx.haste});}
+    if(fx.hasteAll){actions.push({op:"hasteAll",source:source,amount:fx.hasteAll});}
+    if(fx.reload){actions.push({op:"reload",source:source,amount:fx.reload});}
+    if(fx.disable){actions.push({op:"disable",source:source,targetSide:targetSide.key,pay:it.pay||0});}
+    if(it.charge){actions.push({op:"charge",source:source,target:it.charge.t,amount:it.charge.s});}
+    if(it.pocket){actions.push({op:"pocket",source:source,targetSide:targetSide.key,amount:it.pocket});}
+    return actions;
+  }
+  function resolveAction(action,depth){
+    const source=action.source?liveItem(action.source):null;
+    if(action.op==="fire"){
+      if(source){emit({k:"fire",side:action.source.side,i:action.source.slot,cat:action.cat});}
+    }else if(action.op==="selfDestruct"){
+      if(source){destroySource(sideOf(action.source.side),action.source,action.source,depth);}
+    }else if(action.op==="ammo"){
+      if(source){source.ammo--;emit({k:"ammo",side:action.source.side,i:action.source.slot,left:source.ammo});}
+    }else if(action.op==="firstFrost"){
+      if(!source){return;}
+      const targetSide=sideOf(action.targetSide);let slot=-1;
+      for(let i=0;i<targetSide.items.length;i++){if(targetSide.items[i].alive){slot=i;break;}}
+      if(slot>=0){targetSide.items[slot].frozen=(targetSide.items[slot].frozen||0)+action.amount*1000;emit({k:"freeze",side:targetSide.key,i:slot,amt:action.amount});}
+      source.freezeOnce=0;
+    }else if(action.op==="damage"){
+      resolveDamage(action,depth);
+    }else if(action.op==="shield"){
+      if(source){const side=sideOf(action.source.side);side.shield+=action.amount;emit({k:"shield",side:side.key,amt:action.amount,val:side.shield});}
+    }else if(action.op==="heal"){
+      if(!action.source||source){resolveHeal(action);}
+    }else if(action.op==="freeze"){
+      if(!source){return;}
+      const targetSide=sideOf(action.targetSide);let slot=-1;
+      for(let i=0;i<targetSide.items.length;i++){if(targetSide.items[i].alive){slot=i;break;}}
+      if(slot>=0){targetSide.items[slot].frozen=(targetSide.items[slot].frozen||0)+action.amount*1000;emit({k:"freeze",side:targetSide.key,i:slot,amt:action.amount});}
+    }else if(action.op==="poison"){
+      if(source){const side=sideOf(action.targetSide);side.pois+=action.amount;emit({k:"pois",side:side.key,amt:action.amount,val:side.pois});}
+    }else if(action.op==="burn"){
+      if(source){const side=sideOf(action.targetSide);side.burn+=action.amount;emit({k:"burn",side:side.key,amt:action.amount,val:side.burn});}
+    }else if(action.op==="hasteAdjacent"){
+      if(!source){return;}
+      const side=sideOf(action.source.side),slot=action.source.slot;
+      for(const target of [slot-1,slot+1]){
+        if(target>=0&&target<side.items.length&&side.items[target].alive&&side.items[target].cd>0){side.items[target].timer+=action.amount*1000;emit({k:"haste",side:side.key,i:target});}
       }
+    }else if(action.op==="hasteAll"){
+      if(!source){return;}
+      const side=sideOf(action.source.side);
+      for(let i=0;i<side.items.length;i++){
+        if(i!==action.source.slot&&side.items[i].alive&&side.items[i].cd>0){side.items[i].timer+=action.amount*1000;emit({k:"haste",side:side.key,i:i});}
+      }
+    }else if(action.op==="reload"){
+      if(!source){return;}
+      const side=sideOf(action.source.side);
+      for(let i=0;i<side.items.length;i++){
+        const target=side.items[i];
+        if(target.alive&&target.maxAmmo>0&&target.ammo<target.maxAmmo){target.ammo=Math.min(target.maxAmmo,target.ammo+action.amount);emit({k:"reload",side:side.key,i:i,left:target.ammo});}
+      }
+    }else if(action.op==="disable"){
+      if(!source){return;}
+      const targetSide=sideOf(action.targetSide);let slot=-1,best=-1;
+      for(let i=0;i<targetSide.items.length;i++){
+        const target=targetSide.items[i];
+        if(target.alive&&!target.lot&&target.fx.dmg&&target.fx.dmg>best){best=target.fx.dmg;slot=i;}
+      }
+      if(slot>=0){
+        targetSide.items[slot].lot=true;emit({k:"lot",side:targetSide.key,i:slot,nm:targetSide.items[slot].nm});
+        if(action.pay){F.lotPaid+=action.pay;emit({k:"lotpay",side:targetSide.key,amt:action.pay});}
+      }
+    }else if(action.op==="charge"){
+      if(!source){return;}
+      const side=sideOf(action.source.side),target=side.items[action.target];
+      if(target&&target.alive&&target.cd>0){target.timer+=action.amount*1000;emit({k:"haste",side:side.key,i:action.target});}
+    }else if(action.op==="pocket"){
+      if(source){F.pocketed+=action.amount;emit({k:"pocket",side:action.targetSide,amt:action.amount});}
+    }else if(action.op==="rattleHaste"){
+      const side=sideOf(action.side);
+      for(let i=0;i<side.items.length;i++){
+        const target=side.items[i];
+        if(target.alive&&target.cd>0){target.cd=Math.max(600,Math.round(target.cd*(1-action.amount)));emit({k:"enrage",side:side.key,i:i});}
+      }
+    }else if(action.op==="spawn"){
+      const tomb=tombstones.get(sourceKey(action.source));if(!tomb){return;}
+      const side=sideOf(action.side),dead=tomb.item,slot=action.source.slot,spec=action.spec;
+      if(side.items[slot]!==dead){return;}
+      const item={nm:spec.nm,g:spec.g,size:dead.size,rarity:dead.rarity,cat:spec.cat||"dmg",tier:dead.tier,
+        cd:Math.round(spec.cd*1000),timer:0,alive:true,integ:spec.integ,maxI:spec.integ,
+        fx:Object.assign({},spec.fx),bulwark:!!spec.bulwark,targeting:spec.targeting||null,charge:null,
+        pocket:0,flying:!!spec.flying,frozen:0,crit:spec.crit||0,rattle:spec.rattle||null,selfdestruct:false,ammo:0,maxAmmo:0,uid:spawnUid(side)};
+      side.items[slot]=item;registerSource(side,item,slot);
+      emit({k:"spawn",side:side.key,i:slot,nm:spec.nm,g:spec.g,integ:spec.integ});
+    }else if(action.op==="tickPoison"){
+      const side=sideOf(action.side),amount=side.pois;side.hp-=amount;emit({k:"tickp",side:side.key,amt:amount});side.pois=Math.floor(side.pois*0.82);
+    }else if(action.op==="tickBurn"){
+      const side=sideOf(action.side),amount=side.burn,absorbed=Math.min(side.shield,Math.floor(amount/2));
+      side.shield-=absorbed;const hpDamage=amount-absorbed;side.hp-=hpDamage;
+      emit({k:"tickb",side:side.key,amt:hpDamage});side.burn=Math.floor(side.burn*0.6);
+    }else if(action.op==="stormStart"){
+      F.stormOn=true;emit({k:"stormstart"});
+    }else if(action.op==="merchantHit"){
+      hitMerchant(sideOf(action.side),action.amount,action.kind);
+    }else if(action.op==="raiseStorm"){
+      F.stormDmg+=action.amount;
+    }else if(action.op==="thaw"){
+      if(source){source.frozen=0;emit({k:"thaw",side:action.source.side,i:action.source.slot});}
+    }else if(action.op==="end"){
+      emit({k:"end",winner:action.winner});
     }
-    if(it.charge){
-      const tj=it.charge.t;
-      if(S.items[tj]&&S.items[tj].alive&&S.items[tj].cd>0){S.items[tj].timer+=it.charge.s*1000;ev.push({k:"haste",side:S.key,i:tj});}
-    }
-    /* bounty drain: each activation pockets gold out of the door bounty;
-       the fight only counts, the market settles up afterward */
-    if(it.pocket){F.pocketed+=it.pocket;ev.push({k:"pocket",side:D.key,amt:it.pocket});}
   }
   F.step=function(dt){
     if(F.done){return [];}
@@ -313,15 +441,18 @@ export function createFight(cfg){
       for(let i=0;i<S.items.length;i++){
         const it=S.items[i];
         if(!it.alive||it.cd<=0){continue;}
-        if(it.frozen>0){it.frozen-=dt;if(it.frozen<=0){it.frozen=0;ev.push({k:"thaw",side:S.key,i:i});}continue;}
+        const source=sourceOf(S,it,i);
+        if(it.frozen>0){it.frozen-=dt;if(it.frozen<=0){runRoot([{op:"thaw",source:source}],ev);}continue;}
         /* an empty magazine holds its swing until a reload lands */
         if(it.maxAmmo>0&&it.ammo<=0){continue;}
         /* an auctioned lot never acts again */
         if(it.lot){continue;}
         it.timer+=dt;
         let g=0;
-        while(it.timer>=it.cd&&g++<4){it.timer-=it.cd;fire(S,D,it,i,ev);}
-        if(it.alive&&it.cd>0&&it.timer>=it.cd){F.diagnostics.guardTrips++;}   /* the 4-activation catch-up cap held work back */
+        while(liveItem(source)===it&&it.timer>=it.cd&&g<4){
+          g++;it.timer-=it.cd;runRoot(compileActivation(S,D,it,source),ev);
+        }
+        if(liveItem(source)===it&&it.cd>0&&it.timer>=it.cd){F.diagnostics.guardTrips++;}   /* the 4-activation catch-up cap held work back */
       }
     }
     while(F.t>=F.secMark+1000){
@@ -330,22 +461,21 @@ export function createFight(cfg){
         /* poison ticks its current value, then decays ~30% (stabilization
            2026-07-12): a lone poison hit fades unless reapplied, so poison
            is sustained pressure, not a one-swing merchant nuke */
-        if(S.pois>0){S.hp-=S.pois;ev.push({k:"tickp",side:S.key,amt:S.pois});S.pois=Math.floor(S.pois*0.82);}
+        if(S.pois>0){runRoot([{op:"tickPoison",side:S.key}],ev);}
         /* burn decays proportionally (~45%/s) instead of 1/s, so a big
            packet no longer implies quadratic total damage; shield still
            halves each tick */
-        if(S.burn>0){
-          const eff=S.burn;const abs=Math.min(S.shield,Math.floor(eff/2));S.shield-=abs;const hpd=eff-abs;S.hp-=hpd;
-          ev.push({k:"tickb",side:S.key,amt:hpd});S.burn=Math.floor(S.burn*0.6);
-        }
+        if(S.burn>0){runRoot([{op:"tickBurn",side:S.key}],ev);}
         /* regen knits fight health every second, capped at the starting
            pool; it does not cleanse stacks and cannot raise the dead */
-        if(S.regen>0&&S.hp>0&&S.hp<S.maxHp){healSide(S,S.regen,ev,false);}
+        if(S.regen>0&&S.hp>0&&S.hp<S.maxHp){runRoot([{op:"heal",side:S.key,amount:S.regen,quiet:false,cleanPoison:0,cleanBurn:0}],ev);}
       }
       if(F.secMark>=F.stormAt){
-        if(!F.stormOn){F.stormOn=true;ev.push({k:"stormstart"});}
-        hHit(A,F.stormDmg,ev,"storm");hHit(B,F.stormDmg,ev,"storm");
-        F.stormDmg+=4;
+        const storm=[];
+        if(!F.stormOn){storm.push({op:"stormStart"});}
+        storm.push({op:"merchantHit",side:"a",amount:F.stormDmg,kind:"storm"});
+        storm.push({op:"merchantHit",side:"b",amount:F.stormDmg,kind:"storm"});
+        storm.push({op:"raiseStorm",amount:4});runRoot(storm,ev);
       }
     }
     const ad=A.hp<=0,bd=B.hp<=0;
@@ -356,7 +486,7 @@ export function createFight(cfg){
         else if(cfg.playerIs==="b"){F.winner="b";}
         else{F.winner=rng("tiebreak")<0.5?"a":"b";}
       }else{F.winner=ad?"b":"a";}
-      ev.push({k:"end",winner:F.winner});
+      runRoot([{op:"end",winner:F.winner}],ev);
     }
     return ev;
   };
