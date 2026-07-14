@@ -180,10 +180,16 @@ export function pickTarget(items,mode){
   return alive[0];
 }
 export function createFight(cfg){
-  const rng=mulberry(cfg.seed||1);
+  /* R7 diagnostics: an optional cfg.rngTap(tag, value) observes every seeded draw
+     without changing its value or order (inert unless a tap is passed), and
+     F.diagnostics.guardTrips counts safety-cap trips. Both exist so the golden
+     combat-trace fixtures can pin RNG consumption and prove no fight hits a guard;
+     they never affect fight behavior. */
+  const _rng=mulberry(cfg.seed||1);
+  const rng=cfg.rngTap?function(tag){const v=_rng();cfg.rngTap(tag,v);return v;}:_rng;
   const mk=(s,key)=>({key:key,nm:s.nm,portrait:s.portrait||"g-medallion",hp:s.hp,maxHp:s.hp,shield:0,pois:0,burn:0,items:s.items,ls:s.lifesteal||0,regen:s.regen||0});
   const A=mk(cfg.a,"a"), B=mk(cfg.b,"b");
-  const F={t:0,done:false,winner:null,stormAt:cfg.stormAt,stormOn:false,a:A,b:B,secMark:0,stormDmg:5,pocketed:0,lotPaid:0};
+  const F={t:0,done:false,winner:null,stormAt:cfg.stormAt,stormOn:false,a:A,b:B,secMark:0,stormDmg:5,pocketed:0,lotPaid:0,diagnostics:{guardTrips:0}};
   function hHit(D,amt,ev,kind){
     const abs=Math.min(D.shield,amt);D.shield-=abs;const hpd=amt-abs;D.hp-=hpd;
     ev.push({k:kind||"hhit",side:D.key,amt:hpd,abs:abs});
@@ -229,7 +235,7 @@ export function createFight(cfg){
       /* crit rolls draw from the fight's seeded rng, so replays and the
          headless runner stay deterministic; items without crit never roll */
       let dmg=fx.dmg;
-      if(it.crit>0&&rng()<it.crit){dmg*=2;ev.push({k:"crit",side:S.key,i:idx});}
+      if(it.crit>0&&rng("crit")<it.crit){dmg*=2;ev.push({k:"crit",side:S.key,i:idx});}
       /* overflow by size (stabilization 2026-07-12): a Large weapon cleaves
          all its excess into the next item, a Medium half, a Small none. This
          gives big weapons a real identity and stops a bronze chaff body from
@@ -254,6 +260,7 @@ export function createFight(cfg){
           ev.push({k:"chip",side:D.key,i:ti,amt:hit,integ:tgt.integ});
         }
       }
+      if(remaining>0){F.diagnostics.guardTrips++;}   /* the 12-contact cap stopped an unresolved cleave */
       if(S.ls>0&&dealt>0){healSide(S,Math.max(1,Math.round(dealt*S.ls)),ev,true);}
     }
     if(fx.shield){S.shield+=fx.shield;ev.push({k:"shield",side:S.key,amt:fx.shield,val:S.shield});}
@@ -314,6 +321,7 @@ export function createFight(cfg){
         it.timer+=dt;
         let g=0;
         while(it.timer>=it.cd&&g++<4){it.timer-=it.cd;fire(S,D,it,i,ev);}
+        if(it.alive&&it.cd>0&&it.timer>=it.cd){F.diagnostics.guardTrips++;}   /* the 4-activation catch-up cap held work back */
       }
     }
     while(F.t>=F.secMark+1000){
@@ -346,7 +354,7 @@ export function createFight(cfg){
       if(ad&&bd){
         if(cfg.playerIs==="a"){F.winner="a";}
         else if(cfg.playerIs==="b"){F.winner="b";}
-        else{F.winner=rng()<0.5?"a":"b";}
+        else{F.winner=rng("tiebreak")<0.5?"a":"b";}
       }else{F.winner=ad?"b":"a";}
       ev.push({k:"end",winner:F.winner});
     }
