@@ -38,7 +38,7 @@ const AB = args.includes('ab');
 const RUNS = +(args.find(a => /^\d+$/.test(a)) || (AB ? 1200 : 600));
 const A = ANONE;                       /* baseline: no anomaly, to isolate the route economy */
 
-const DEFAULT_CFG = { startResolve: 40, bossLossAdj: 0, treasureCash: 6, negoCash: 6 };
+const DEFAULT_CFG = { startResolve: 40, bossLossAdj: 0, treasureCash: 6, negoCash: 6, rewardGoldAdj: 0 };
 /* the district bosses and the two Dragon Gate elites, reported by name */
 const KEYMONS = [['matron', 'Matron (D1)'], ['collector', 'Collector (D2)'], ['ifrit', 'Ifrit (D3)'],
                  ['azhdaha', 'Azhdaha (D4 elite)'], ['auctioneer', 'Auctioneer (D4 elite)'], ['vizier', 'Vizier (D4)']];
@@ -141,7 +141,7 @@ function simRun(seed, cfg) {
       }
     } else if (st.phase === 'reward') {
       const node = nodeOf(map, st.pendingId);
-      const plan = planReward(MONSTERS[node.monId].bounty || {}, { baseGold: BASE_GOLD[node.type], gilded: !!node.gilded, enteredGold: gold, pocketed: 0, minGold: 0, board: board.board });
+      const plan = planReward(MONSTERS[node.monId].bounty || {}, { baseGold: Math.max(0, BASE_GOLD[node.type] + cfg.rewardGoldAdj), gilded: !!node.gilded, enteredGold: gold, pocketed: 0, minGold: 0, board: board.board });
       gold += plan.gold; m.goldEarned += plan.gold;
       if (plan.items && plan.items.length) { plan.items.forEach(id => { invested += COST[ITEMS[id].size] || 2; }); board = buildBoard(tier, invested, rng, persona); }
       st = transition(st, map, { type: 'settleReward' }).state;
@@ -232,11 +232,15 @@ function detailed(runs) {
 function abTable() {
   /* baseline is the current game, which already ships the boss-loss 4->2 change
      (0.68.20). bossLossAdj:2 here therefore models a FURTHER softening to 0. */
+  /* economy-tightening options for a "bit harder, progressive" difficulty: a
+     tighter economy means less fusion, which bites hardest in the late game */
   const variants = [
-    { name: 'A current (incl B)', cfg: {} },
-    { name: 'boss loss 2->0 more', cfg: { bossLossAdj: 2 } },
-    { name: 'C start 36 Resolve', cfg: { startResolve: 36 } },
-    { name: 'D event cash 6->4', cfg: { treasureCash: 4, negoCash: 4 } }
+    { name: 'A current', cfg: {} },
+    { name: 'event cash 6->5', cfg: { treasureCash: 5, negoCash: 5 } },
+    { name: 'event cash 6->4', cfg: { treasureCash: 4, negoCash: 4 } },
+    { name: 'reward gold -1 (2/4/6)', cfg: { rewardGoldAdj: -1 } },
+    { name: 'mild: cash5 + gold-1', cfg: { treasureCash: 5, negoCash: 5, rewardGoldAdj: -1 } },
+    { name: 'firm: cash4 + gold-1', cfg: { treasureCash: 4, negoCash: 4, rewardGoldAdj: -1 } }
   ];
   console.log('== ROUTE SIM A/B (' + RUNS + ' seeds each, no anomaly, fresh items, sampled paths) ==\n');
   console.log(pad('variant', 20) + pad('clear', 8) + pad('D4-death', 10) + pad('Matron', 8) + pad('Azhdaha', 9) + pad('Vizier', 8) + pad('tier', 6) + pad('retries', 8));
