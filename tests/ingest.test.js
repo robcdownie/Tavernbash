@@ -73,3 +73,20 @@ test('ingest matcher: unmatchable and ambiguous names are refused, never guessed
   assert.equal(targetFor('cool song.mp3'), null, 'audio without a track token must not match');
   assert.ok(targetFor('market battle mix.mp3').ambiguous, 'audio with both track tokens must come back ambiguous');
 });
+
+test('ingest matcher: R8 ware and hero filenames map to their production slots', () => {
+  const itemIds = [
+    'viperverdict','cinderhook','brassreclaimer','surgeonhook','sapperspick',
+    'blacklotuspress','serpentsdue','antidotethief','venomsiphon',
+    'funeralbrazier','ashencenser','kilnchain','phoenixbell',
+    'coinplatedram','mirrorbastion','saltward','breakwaterbuckler',
+    'rosewaterpump','chirurgeonsscissors','bloodpricechalice','mendersbell',
+    'smoketaxstamp','peacebinderchain','gravebell','bazaarcompass'
+  ];
+  for (const id of itemIds) {
+    assert.deepEqual(targetFor(id + '.png'), {dir:'items', name:id + '.png', kind:'icon'});
+  }
+  for (const id of ['h-venom','h-architect','h-silkblade','h-ash']) {
+    assert.deepEqual(targetFor(id + '.png'), {dir:'portraits', name:id + '.png', kind:'icon'});
+  }
+});

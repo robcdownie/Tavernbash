@@ -27,10 +27,11 @@ import {writeManifest} from './make-art-manifest.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-const ITEM_IDS = ['dagger','sword','fangs','serpent','mace','crossbow','hammer','vial','venom','torch','bomb','magma','buckler','brassbuckler','barricade','tower','aegis','bandage','salve','chalice','sanctum','purse','ledger','whetstone','hourglass','adren','serpentcrown','tidewall','weepingstone','flyingcharm','prism','rocegg','feather','coincannon','coinhopper','azhfang','gavel'];
+const ITEM_IDS = ['dagger','sword','fangs','serpent','mace','crossbow','hammer','vial','venom','torch','bomb','magma','buckler','brassbuckler','barricade','tower','aegis','bandage','salve','chalice','sanctum','purse','ledger','whetstone','hourglass','adren','serpentcrown','tidewall','weepingstone','flyingcharm','prism','rocegg','feather','coincannon','coinhopper','azhfang','gavel','viperverdict','cinderhook','brassreclaimer','surgeonhook','sapperspick','blacklotuspress','serpentsdue','antidotethief','venomsiphon','funeralbrazier','ashencenser','kilnchain','phoenixbell','coinplatedram','mirrorbastion','saltward','breakwaterbuckler','rosewaterpump','chirurgeonsscissors','bloodpricechalice','mendersbell','smoketaxstamp','peacebinderchain','gravebell','bazaarcompass'];
 const MONSTER_IDS = ['imp','rats','ghul','lamassu','kark','debt','ifrit','qareen','samovar','shahmaran','marid','nasnas','matron','sandling','monkey','icebox','peri','roc','simurgh','golem','azhdaha','auctioneer','vizier'];
 const PORTRAIT_IDS = ['p0','p1','p2','p3','p4','p5','p6','p7'];
 const HERO_MAP = {kilnkeeper:'h-kiln', apothecary:'h-apoth', knifegrinder:'h-knife', moneylender:'h-lender'};
+const HERO_IDS = ['h-venom','h-architect','h-silkblade','h-ash'];
 const UI_IDS = ['coin','heart','gem','crown','door','lantern','phoenix','medallion'];
 const FRAME_METALS = ['bronze','silver','gold','diamond'];
 
@@ -43,6 +44,7 @@ const AUDIO_EXTS = ['.mp3', '.wav', '.m4a'];
 export function targetFor(filename) {
   const ext = extname(filename).toLowerCase();
   const base = basename(filename, extname(filename)).toLowerCase();
+  if (HERO_IDS.includes(base)) return {dir:'portraits', name:base + '.png', kind:'icon'};
   const tokens = new Set(base.split(/[^a-z0-9]+/).filter(Boolean).map(t => ALIASES[t] || t));
   if (AUDIO_EXTS.includes(ext)) {
     const tracks = ['market', 'battle'].filter(n => tokens.has(n));
