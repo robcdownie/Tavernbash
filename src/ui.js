@@ -1007,11 +1007,28 @@ function endRouteFight(F,e){
 /* ---- the opening stall: spend the six starting gold before the first forced
    Monster Door, so every hero sets out with a board. Not a route node; leaving
    it just enters District I. ---- */
+/* the offensive opening offer (R6, real-playtest driven): the six-gold opening
+   stall must let every hero assemble damage. Real games showed a defence-only
+   opening board (bandages, no weapon) dying in Back Alleys, so if the roll left no
+   affordable weapon/poison/burn ware, seed one size-1 offensive ware in its place.
+   Opening market only; keyed to the opening rng, so it is deterministic and rides
+   the save (the shop is restored, not re-rolled, on resume). */
+function ensureOpeningOffense(){
+  const OFF=['dmg','poison','burn'];
+  const has=G.shop.some(function(w){return !w.bought&&OFF.indexOf(ITEMS[w.id].cat)>=0&&COST[ITEMS[w.id].size]<=6;});
+  if(has)return;
+  const pool=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,1)&&OFF.indexOf(ITEMS[id].cat)>=0&&ITEMS[id].size===1&&!ITEMS[id].unique&&!ITEMS[id].inc;});
+  if(!pool.length)return;
+  const id=pool[Math.floor(G.rng()*pool.length)];
+  let idx=G.shop.findIndex(function(w){return !w.free&&!w.bought&&OFF.indexOf(ITEMS[w.id].cat)<0;});
+  if(idx<0)idx=G.shop.findIndex(function(w){return !w.free&&!w.bought;});
+  if(idx>=0)G.shop[idx]=mkOffer({id:id,free:false,bought:false,ench:null});
+}
 function enterOpeningMarket(){
   G.route.opening=true;G.route.market={nodeId:'__opening__',rollIndex:0};
   G.rng=mulberry(fightSeed(G.seed,'__opening__',0));
   G.frozen=false;G.shopSel=null;G.sel=null;G.vsel=null;G.swapV=null;G.dockV=false;
-  rollShop();
+  rollShop();ensureOpeningOffense();
   G.phase='draft';checkpointActiveRun();renderAll();
 }
 function leaveOpeningMarket(){
