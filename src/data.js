@@ -58,7 +58,40 @@ export const ITEMS={
  azhfang:{n:"Azhdaha Fang",size:2,tier:3,cat:"dmg",cd:4,fx:{dmg:18},unique:true,rattle:{hasteMates:0.5},
    d:"Boss bounty. When it shatters, the rest of your stall rages."},
  gavel:{n:"The Gavel",size:2,tier:3,cat:"dmg",cd:5,fx:{dmg:12,disable:true},unique:true,
-   d:"Boss bounty. Sold: the finest enemy ware, out of the fight."}
+   d:"Boss bounty. Sold: the finest enemy ware, out of the fight."},
+ /* R8 weapon and item-destruction bridges. Each ware is unique so the
+    original shop, rival generation, and combat parity remain untouched. */
+ viperverdict:{n:"Viper's Verdict",size:2,tier:3,cat:"dmg",cd:4.5,fx:{dmg:16},unique:true,
+   hooks:[{on:"beforeHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"item"}],
+     actions:[{op:"modifyContact",add:{from:"status",side:"enemy",status:"pois",divide:4,floor:true,max:8}}]}],
+   d:"Deal 16. Item hits gain +1 damage per 4 enemy poison, up to +8."},
+ cinderhook:{n:"Cinderhook Falchion",size:2,tier:3,cat:"dmg",cd:4,fx:{dmg:14},unique:true,
+   hooks:[{on:"afterHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"item"},
+     {test:"destroyed"},{test:"contextAtLeast",key:"overkill",value:1},
+     {test:"statusAtLeast",side:"enemy",status:"burn",value:1}],actions:[
+       {op:"merchantHit",side:"enemy",amount:{from:"context",key:"overkill",multiply:0.35,round:true}},
+       {op:"consumeStatus",side:"enemy",status:"burn",amount:1}
+     ]}],
+   d:"Deal 14. Against a burning foe, 35% of item overkill hits the merchant and consumes 1 burn."},
+ brassreclaimer:{n:"Brass Reclaimer",size:3,tier:3,cat:"dmg",cd:5.5,fx:{dmg:30},unique:true,
+   hooks:[{on:"afterHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"item"},
+     {test:"destroyed"},{test:"contextAtLeast",key:"overkill",value:1}],actions:[
+       {op:"shield",side:"owner",amount:{from:"context",key:"overkill",multiply:0.5,round:true},
+        capPerRoot:15,capKey:"reclaimerShield"}
+     ]}],
+   d:"Deal 30. Item overkill becomes 50% shield, up to 15 per activation."},
+ surgeonhook:{n:"Surgeon's Hook",size:1,tier:2,cat:"dmg",cd:3.5,fx:{dmg:7},unique:true,
+   hooks:[{on:"afterActivate",when:[{test:"actorIsSource"},{test:"healedWithin",side:"enemy",ms:3000}],
+     actions:[{op:"timedDebuff",side:"enemy",id:"wound",duration:4,modifiers:{healReceivedMul:0.75}}]}],
+   d:"Deal 7. A foe healed in the last 3 seconds is Wounded for 4 seconds and receives 25% less healing."},
+ sapperspick:{n:"Sapper's Pick",size:1,tier:2,cat:"dmg",cd:3,fx:{dmg:6},unique:true,
+   hooks:[
+     {on:"beforeHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"merchant"}],
+      actions:[{op:"modifyContact",shieldPierce:0.5}]},
+     {on:"afterHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"merchant"},
+      {test:"contextAtLeast",key:"shieldAbsorbed",value:1}],actions:[{op:"haste",target:"self",amount:0.4}]}
+   ],
+   d:"Deal 6. Half its merchant damage bypasses shield. Damaging shield charges it 0.4 seconds."}
 };
 /* ============ HEROES ============ */
 /* Picked at run start. The personal tag weights your shop like a lobby

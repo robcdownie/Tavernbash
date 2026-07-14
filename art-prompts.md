@@ -40,6 +40,11 @@ For monsters swap "item icon" for "monster bust, composed for a circular medalli
 | whetstone.png | a worn sharpening whetstone with metal shavings |
 | hourglass.png | an ornate brass hourglass with flowing amber sand |
 | adren.png | a fizzing crimson adrenaline draught in a slim flask |
+| viperverdict.png | a broad verdict blade wrapped by a brass viper, its edge wet with green venom |
+| cinderhook.png | a hooked falchion with a charred grip and a live ember burning in the hook |
+| brassreclaimer.png | a massive brass salvage cleaver with a shield-shaped counterweight and gear teeth |
+| surgeonhook.png | a slim steel surgeon hook with a rose-gold handle and one loop of crimson thread |
+| sapperspick.png | a compact steel sapper pick with brass collars and a scarred wooden haft |
 
 ## Monsters, to public/art/monsters/
 

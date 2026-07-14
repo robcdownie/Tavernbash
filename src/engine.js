@@ -204,7 +204,7 @@ const HOOK_ACTION_POINTS={
 };
 const HOOK_ACTIONS=new Set([
   "activate","burn","consumeStatus","damage","destroy","haste","heal",
-  "merchantHit","modifyContact","poison","shield","spawn"
+  "merchantHit","modifyContact","poison","shield","spawn","timedDebuff"
 ]);
 
 /* Reject only unconditional immediate cycles. Conditional loops remain legal
@@ -243,7 +243,8 @@ export function createFight(cfg){
      they never affect fight behavior. */
   const _rng=mulberry(cfg.seed||1);
   const rng=cfg.rngTap?function(tag){const v=_rng();cfg.rngTap(tag,v);return v;}:_rng;
-  const mk=(s,key)=>({key:key,nm:s.nm,portrait:s.portrait||"g-medallion",hp:s.hp,maxHp:s.hp,shield:0,pois:0,burn:0,items:s.items,ls:s.lifesteal||0,regen:s.regen||0});
+  const mk=(s,key)=>({key:key,nm:s.nm,portrait:s.portrait||"g-medallion",hp:s.hp,maxHp:s.hp,shield:0,pois:0,burn:0,
+    items:s.items,ls:s.lifesteal||0,regen:s.regen||0,lastHealTime:null,debuffs:{}});
   const A=mk(cfg.a,"a"), B=mk(cfg.b,"b");
   const F={t:0,done:false,winner:null,stormAt:cfg.stormAt,stormOn:false,a:A,b:B,secMark:0,stormDmg:5,pocketed:0,lotPaid:0,
     diagnostics:{guardTrips:0,guardCounts:{contacts:0,catchup:0,depth:0,root:0,step:0,hook:0}}};
@@ -361,7 +362,7 @@ export function createFight(cfg){
   }
   function runRoot(actions,ev){
     if(worklist.length){throw new Error("combat worklist leaked between roots");}
-    eventSink=ev;rootBudget={actions:0,hooks:new Map()};
+    eventSink=ev;rootBudget={actions:0,hooks:new Map(),values:new Map()};
     try{pushActions(actions,0);drain(null);}
     finally{worklist.length=0;eventSink=null;rootBudget=null;}
   }
@@ -396,6 +397,11 @@ export function createFight(cfg){
     }
     if(test==="statusAtLeast"){
       const side=sideOf(hookSide(condition.side,hook,context));return (side[condition.status]||0)>=condition.value;
+    }
+    if(test==="contextAtLeast"){return (context[condition.key]||0)>=condition.value;}
+    if(test==="healedWithin"){
+      const side=sideOf(hookSide(condition.side,hook,context));
+      return side.lastHealTime!==null&&F.t-side.lastHealTime<=condition.ms;
     }
     if(test==="cleansedPoisonAtLeast"){return (context.cleansedPoison||0)>=condition.value;}
     if(test==="cleansedBurnAtLeast"){return (context.cleansedBurn||0)>=condition.value;}
@@ -437,12 +443,39 @@ export function createFight(cfg){
     }
     return found[0];
   }
+  function hookValue(value,hook,context){
+    if(typeof value==="number"){return value;}
+    if(!value||typeof value!=="object"){return value;}
+    let result;
+    if(value.from==="context"){result=context[value.key]||0;}
+    else if(value.from==="status"){
+      const side=sideOf(hookSide(value.side,hook,context));result=side[value.status]||0;
+    }else{throw new Error("unknown combat hook value");}
+    if(value.multiply!==undefined){result*=value.multiply;}
+    if(value.divide!==undefined){result/=value.divide;}
+    if(value.floor){result=Math.floor(result);}
+    if(value.round){result=Math.round(result);}
+    if(value.ceil){result=Math.ceil(result);}
+    if(value.min!==undefined){result=Math.max(value.min,result);}
+    if(value.max!==undefined){result=Math.min(value.max,result);}
+    return result;
+  }
   function materializeHookAction(template,hook,context){
     const action=Object.assign({},template);
     if(template.source==="actor"){action.source=context.source||null;}
     else if(template.source==="hook"||template.source===undefined){action.source=hook.sourceRef||context.source||null;}
     if(action.side){action.side=hookSide(action.side,hook,context);}
     if(action.targetSide){action.targetSide=hookSide(action.targetSide,hook,context);}
+    for(const key of ["amount","add","mul","shieldPierce","duration","capPerRoot"]){
+      if(action[key]!==undefined){action[key]=hookValue(action[key],hook,context);}
+    }
+    if(action.amount!==undefined&&action.capPerRoot!==undefined){
+      const capKey=hook.identity+"|cap|"+(action.capKey||action.op);
+      const used=rootBudget.values.get(capKey)||0;
+      action.amount=Math.max(0,Math.min(action.amount,action.capPerRoot-used));
+      if(action.amount<=0){return null;}
+      rootBudget.values.set(capKey,used+action.amount);
+    }
     if(action.op==="heal"||action.op==="shield"||action.op==="consumeStatus"){
       action.side=hookSide(action.side||"owner",hook,context);
     }else if(action.op==="poison"||action.op==="burn"||action.op==="damage"){
@@ -452,6 +485,8 @@ export function createFight(cfg){
     }else if(action.op==="haste"||action.op==="activate"||action.op==="destroy"){
       action.targetRef=selectHookItem(action.target,hook,context);
       if(!action.targetRef){return null;}
+    }else if(action.op==="timedDebuff"){
+      action.side=hookSide(action.side||"enemy",hook,context);
     }else if(action.op==="modifyContact"){
       action.context=context;
     }
@@ -491,19 +526,30 @@ export function createFight(cfg){
     if(hookable){triggerHookPoint("afterHit",context,depth);}
     return {dealt:damage,hpDamage:hpDamage,absorbed:absorbed};
   }
+  function sideModifier(side,key){
+    let value=1;
+    for(const id of Object.keys(side.debuffs)){
+      const debuff=side.debuffs[id];
+      if(debuff.until<=F.t){delete side.debuffs[id];continue;}
+      if(debuff.modifiers&&debuff.modifiers[key]!==undefined){value*=debuff.modifiers[key];}
+    }
+    return value;
+  }
   function resolveHeal(action,depth){
     const side=sideOf(action.side),context={source:action.source||null,side:side.key,
       amount:action.amount,requested:action.amount,quiet:!!action.quiet,
       cleanPoison:action.cleanPoison||0,cleanBurn:action.cleanBurn||0};
     triggerHookPoint("beforeHeal",context,depth);
-    const amount=Math.max(0,context.amount),before=side.hp,missing=Math.max(0,side.maxHp-before);
+    const receivedMul=sideModifier(side,"healReceivedMul");
+    const amount=Math.max(0,Math.round(context.amount*receivedMul)),before=side.hp,missing=Math.max(0,side.maxHp-before);
     side.hp=Math.min(side.maxHp,side.hp+amount);
     if(!action.quiet){emit({k:"heal",side:side.key,amt:side.hp-before});}
     const poisonBefore=side.pois,burnBefore=side.burn;
     if(context.cleanPoison){side.pois=Math.max(0,side.pois-context.cleanPoison);}
     if(context.cleanBurn){side.burn=Math.max(0,side.burn-context.cleanBurn);}
-    context.amount=amount;context.actual=side.hp-before;context.overheal=Math.max(0,amount-missing);
+    context.amount=amount;context.actual=side.hp-before;context.overheal=Math.max(0,amount-missing);context.receivedMul=receivedMul;
     context.cleansedPoison=poisonBefore-side.pois;context.cleansedBurn=burnBefore-side.burn;
+    if(context.actual>0){side.lastHealTime=F.t;}
     triggerHookPoint("afterHeal",context,depth);
   }
   function applyHaste(source,targetRef,amount,depth){
@@ -715,6 +761,11 @@ export function createFight(cfg){
     }else if(action.op==="consumeStatus"){
       const side=sideOf(action.side),status=action.status;
       side[status]=Math.max(0,(side[status]||0)-action.amount);
+    }else if(action.op==="timedDebuff"){
+      if(!action.source||source){
+        const side=sideOf(action.side);
+        side.debuffs[action.id]={until:F.t+action.duration*1000,modifiers:Object.assign({},action.modifiers)};
+      }
     }else if(action.op==="modifyContact"){
       if(action.add){action.context.damage+=action.add;}
       if(action.mul!==undefined){action.context.damage*=action.mul;}
