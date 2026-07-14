@@ -232,15 +232,14 @@ function detailed(runs) {
 function abTable() {
   /* baseline is the current game, which already ships the boss-loss 4->2 change
      (0.68.20). bossLossAdj:2 here therefore models a FURTHER softening to 0. */
-  /* economy-tightening options for a "bit harder, progressive" difficulty: a
-     tighter economy means less fusion, which bites hardest in the late game */
+  /* economy levers. The baseline now SHIPS reward gold 2/4/6 (0.68.24), so
+     rewardGoldAdj here models a FURTHER cut; the remaining candidates are event
+     cash, held pending a real playtest of the reward-gold trial. */
   const variants = [
-    { name: 'A current', cfg: {} },
+    { name: 'A current (2/4/6)', cfg: {} },
     { name: 'event cash 6->5', cfg: { treasureCash: 5, negoCash: 5 } },
     { name: 'event cash 6->4', cfg: { treasureCash: 4, negoCash: 4 } },
-    { name: 'reward gold -1 (2/4/6)', cfg: { rewardGoldAdj: -1 } },
-    { name: 'mild: cash5 + gold-1', cfg: { treasureCash: 5, negoCash: 5, rewardGoldAdj: -1 } },
-    { name: 'firm: cash4 + gold-1', cfg: { treasureCash: 4, negoCash: 4, rewardGoldAdj: -1 } }
+    { name: 'reward gold -1 more', cfg: { rewardGoldAdj: -1 } }
   ];
   console.log('== ROUTE SIM A/B (' + RUNS + ' seeds each, no anomaly, fresh items, sampled paths) ==\n');
   console.log(pad('variant', 20) + pad('clear', 8) + pad('D4-death', 10) + pad('Matron', 8) + pad('Azhdaha', 9) + pad('Vizier', 8) + pad('tier', 6) + pad('retries', 8));

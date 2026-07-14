@@ -11,7 +11,11 @@ import {MONSTERS, MONCHIP, DISTRICTS} from './data.js';
 import {MAP_VERSION} from './map.js';
 
 /* victory gold by encounter; a monster bounty is added by the caller */
-export const BASE_GOLD={monster:3,elite:5,boss:7};
+/* base reward gold per encounter kind. 3/5/7 -> 2/4/6 (R6, Codex-approved economy
+   trial 2026-07-14): a uniform per-fight tightening so boards fuse a touch slower
+   and the high-power late game (Dragon Gate) is where it bites, leaving the early
+   game and the visible monster bounties (settled separately in planReward) alone. */
+export const BASE_GOLD={monster:2,elite:4,boss:6};
 /* extra Resolve lost on a loss, by encounter kind. Boss bonus 4 -> 2 (R6, first
    balance trial, Codex-approved 2026-07-13): a softer boss-loss consequence lets
    the Gate Camp do its intended recovery job. The survivor-tier term is kept as
