@@ -15,10 +15,21 @@
    checkpoint -> open overlay or present. Nothing visible before the checkpoint. */
 import {ITEMS,TRINKETS} from './data.js';
 import {allocId} from './route-run.js';
+import {mulberry} from './engine.js';
+import {fightSeed} from './route.js';
+
+export const MIDPOINT_FALLBACK_GOLD = 10;
 
 /* one receipt per reward; the pendingChoice references this key */
 export function rewardKey(runId, nodeId, attempt){
   return runId + ':reward:' + nodeId + ':' + (attempt || 0);
+}
+
+/* Long mode's midpoint pivot owns a separate receipt from the D3 boss reward.
+   The stable key lets restore and presentation code call the ensure seam freely
+   without ever re-rolling, re-offering, or re-paying it. */
+export function midpointTreasureKey(runId){
+  return runId + ':midpoint:d3boss';
 }
 
 function makeOffer(run, id){
@@ -40,6 +51,55 @@ export function uniqueOptions(board, vault, shop){
   (vault || []).forEach(function(it){ owned[it.id] = true; });
   (shop || []).forEach(function(w){ if(!w.bought) owned[w.id] = true; });
   return Object.keys(ITEMS).filter(function(id){ return ITEMS[id].unique && !owned[id]; });
+}
+
+function midpointPool(run){
+  return uniqueOptions(run.economy.board,run.economy.vault,run.economy.shop)
+    .filter(function(id){return ITEMS[id].acquisition==='treasure';})
+    .sort();
+}
+
+/* The three midpoint offers are deterministic from only the durable run seed
+   and the named D3 boundary. The sorted base pool makes object declaration
+   order irrelevant before the seeded shuffle. */
+export function midpointTreasureOptions(run){
+  const pool=midpointPool(run);
+  const rng=mulberry(fightSeed(run.seed,'d3boss','midpoint'));
+  for(let i=pool.length-1;i>0;i--){
+    const j=Math.floor(rng()*(i+1));
+    const t=pool[i];pool[i]=pool[j];pool[j]=t;
+  }
+  return pool.slice(0,3);
+}
+
+function atMidpointBoundary(run){
+  const route=run&&run.route;
+  return !!(run&&run.routeMode==='long'&&route&&route.phase==='map'&&!route.pendingId&&
+    route.path&&route.path[route.path.length-1]==='d3boss');
+}
+
+/* Open Long mode's one-time midpoint Treasure choice at the exact D3 to D4
+   boundary. A different owed reward choice wins and must be resolved first.
+   Returns the dedicated receipt when this boundary owns one, otherwise null. */
+export function ensureMidpointTreasure(run){
+  if(!atMidpointBoundary(run))return null;
+  const key=midpointTreasureKey(run.runId);
+  const existing=run.receipts&&run.receipts[key];
+  if(existing)return existing;
+  if(run.pendingChoice)return null;
+  if(!run.receipts)run.receipts={};
+  const offeredIds=midpointTreasureOptions(run);
+  const receipt={kind:'midpointTreasure',fixedApplied:true,choiceRequired:offeredIds.length>0,
+    choiceApplied:offeredIds.length===0,choiceKind:'midpointTreasure',offeredIds:offeredIds.slice(),
+    selectedId:null,fallbackGold:MIDPOINT_FALLBACK_GOLD,fallbackApplied:offeredIds.length===0};
+  run.receipts[key]=receipt;
+  if(offeredIds.length){
+    run.pendingChoice={key:key,kind:'midpointTreasure',options:offeredIds.slice(),fallbackGold:MIDPOINT_FALLBACK_GOLD};
+  }else{
+    run.economy.gold+=MIDPOINT_FALLBACK_GOLD;
+    run.pendingChoice=null;
+  }
+  return receipt;
 }
 
 function choiceFallbackGold(kind){ return kind === 'gild' ? 5 : (kind === 'pickUnique' ? 10 : 0); }
@@ -133,8 +193,17 @@ export function chooseGild(run, iid){
    that is not offered or is no longer available. */
 export function chooseUnique(run, uid){
   const pc = run.pendingChoice;
-  if(!pc || pc.kind !== 'pickUnique') return {ok: false, reason: 'no unique pending'};
+  if(!pc || (pc.kind !== 'pickUnique'&&pc.kind !== 'midpointTreasure')) return {ok: false, reason: 'no unique pending'};
   if(pc.options.indexOf(uid) < 0) return {ok: false, reason: 'not offered'};
+  if(pc.kind==='midpointTreasure'){
+    const midpointReceipt=run.receipts&&run.receipts[pc.key];
+    if(run.routeMode!=='long'||pc.key!==midpointTreasureKey(run.runId)||!midpointReceipt||
+       midpointReceipt.kind!=='midpointTreasure'||midpointReceipt.choiceApplied||
+       !Array.isArray(midpointReceipt.offeredIds)||midpointReceipt.offeredIds.indexOf(uid)<0||
+       !ITEMS[uid]||ITEMS[uid].acquisition!=='treasure'){
+      return {ok:false,reason:'not midpoint treasure'};
+    }
+  }
   if(uniqueOptions(run.economy.board, run.economy.vault, run.economy.shop).indexOf(uid) < 0) return {ok: false, reason: 'no longer available'};
   run.economy.shop.push(makeOffer(run, uid));
   const receipt = run.receipts[pc.key];
@@ -172,10 +241,14 @@ export function refreshPendingChoice(run){
     opts = pc.options.filter(function(o){ return live[o.iid]; });
   }else if(pc.kind === 'charm'){
     opts=charmChoiceOptions(run.economy.trinkets,pc.options);
-  }else{
+  }else if(pc.kind==='pickUnique'||pc.kind==='midpointTreasure'){
     const valid = uniqueOptions(run.economy.board, run.economy.vault, run.economy.shop);
-    opts = pc.options.filter(function(id){ return valid.indexOf(id) >= 0; });
-  }
+    const offered=pc.kind==='midpointTreasure'&&run.receipts&&run.receipts[pc.key]&&run.receipts[pc.key].offeredIds;
+    opts = pc.options.filter(function(id){
+      return valid.indexOf(id)>=0&&(pc.kind!=='midpointTreasure'||(run.routeMode==='long'&&Array.isArray(offered)&&
+        offered.indexOf(id)>=0&&ITEMS[id]&&ITEMS[id].acquisition==='treasure'));
+    });
+  }else return pc;
   if(opts.length){ pc.options = opts; return pc; }
   run.economy.gold += pc.fallbackGold||0;
   const receipt = run.receipts[pc.key];

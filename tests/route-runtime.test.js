@@ -2,12 +2,19 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ITEMS,TRINKETS} from '../src/data.js';
 import {newRun, serializeRun, reviveRun} from '../src/route-run.js';
-import {rewardKey, gildOptions, uniqueOptions, charmChoiceOptions, settleFixed, chooseGild, chooseUnique, chooseCharm, refreshPendingChoice, nextPresentation} from '../src/route-runtime.js';
+import {rewardKey, midpointTreasureKey, midpointTreasureOptions, ensureMidpointTreasure, MIDPOINT_FALLBACK_GOLD,
+  gildOptions, uniqueOptions, charmChoiceOptions, settleFixed, chooseGild, chooseUnique, chooseCharm,
+  refreshPendingChoice, nextPresentation} from '../src/route-runtime.js';
 
 const SEED = 1234567;
 const someUnique = Object.keys(ITEMS).find(id => ITEMS[id].unique);
 /* a plain plan in the shape route-rewards.planReward returns */
 function plan(over){ return Object.assign({gold: 0, drained: 0, items: [], relic: false, mote: null, choice: null}, over); }
+function midpointRun(seed=SEED){
+  const run=newRun({seed:seed,routeMode:'long'});
+  run.route.path=['d3boss'];run.route.pendingId=null;run.route.phase='map';
+  return run;
+}
 
 test('rewardKey ties a receipt to run, node, and attempt', () => {
   assert.equal(rewardKey('rABC', 'd1c1l0', 2), 'rABC:reward:d1c1l0:2');
@@ -143,6 +150,120 @@ test('a unique bounty with every unique already owned pays the 10 gold fallback'
   settleFixed(run, plan({choice: 'pickUnique'}), rewardKey(run.runId, 'n', 0));
   assert.equal(run.pendingChoice, null);
   assert.equal(run.economy.gold, 10);
+});
+
+test('Long midpoint options are deterministic Treasure uniques and exclude every owned surface',()=>{
+  const treasure=Object.keys(ITEMS).filter(id=>ITEMS[id].unique&&ITEMS[id].acquisition==='treasure').sort();
+  assert.ok(treasure.length>3,'fixture has a real Treasure unique pool');
+  const run=midpointRun();
+  run.economy.board=[{id:treasure[0],iid:1,rarity:0}];
+  run.economy.vault=[{id:treasure[1],iid:2,rarity:0}];
+  run.economy.shop=[{id:treasure[2],offerId:3,bought:false},{id:treasure[3],offerId:4,bought:true}];
+  const options=midpointTreasureOptions(run);
+  assert.equal(options.length,3);
+  assert.deepEqual(midpointTreasureOptions(run),options,'same aggregate re-rolls byte-identically');
+  assert.ok(options.every(id=>ITEMS[id].unique&&ITEMS[id].acquisition==='treasure'));
+  assert.ok(!options.includes(treasure[0])&&!options.includes(treasure[1])&&!options.includes(treasure[2]));
+  const copy=midpointRun();
+  copy.economy=JSON.parse(JSON.stringify(run.economy));
+  assert.deepEqual(midpointTreasureOptions(copy),options,'same seed and ownership reproduce exact options');
+});
+
+test('ensureMidpointTreasure opens only at the exact Long D3 boundary and waits behind another choice',()=>{
+  const cases=[
+    run=>{run.routeMode='quick';},
+    run=>{run.route.path=['d2boss'];},
+    run=>{run.route.path=['d3boss','d4c1l0'];},
+    run=>{run.route.phase='market';run.route.pendingId='d3boss';},
+    run=>{run.route.pendingId='d4c1l0';}
+  ];
+  for(const change of cases){
+    const run=midpointRun();change(run);
+    assert.equal(ensureMidpointTreasure(run),null);
+    assert.equal(run.receipts[midpointTreasureKey(run.runId)],undefined);
+  }
+  const owed=midpointRun();
+  owed.pendingChoice={key:'reward',kind:'gild',options:[{iid:1}],fallbackGold:5};
+  assert.equal(ensureMidpointTreasure(owed),null,'an existing reward choice is never overwritten');
+  owed.pendingChoice=null;
+  assert.ok(ensureMidpointTreasure(owed),'the midpoint opens once the prior choice closes');
+});
+
+test('ensureMidpointTreasure persists exact offers in a dedicated idempotent receipt',()=>{
+  const run=midpointRun(),key=midpointTreasureKey(run.runId);
+  const receipt=ensureMidpointTreasure(run);
+  assert.equal(run.receipts[key],receipt);
+  assert.deepEqual(receipt.offeredIds,midpointTreasureOptions(run));
+  assert.deepEqual(run.pendingChoice,{key:key,kind:'midpointTreasure',options:receipt.offeredIds,
+    fallbackGold:MIDPOINT_FALLBACK_GOLD});
+  assert.equal(receipt.choiceApplied,false);
+  const nextId=run.ids.nextItem,gold=run.economy.gold;
+  assert.equal(ensureMidpointTreasure(run),receipt,'repeat returns the same receipt');
+  assert.equal(run.ids.nextItem,nextId);
+  assert.equal(run.economy.gold,gold);
+});
+
+test('chooseUnique commits a midpoint Treasure as one free unbought offer exactly once',()=>{
+  const run=midpointRun(),receipt=ensureMidpointTreasure(run),id=receipt.offeredIds[0];
+  assert.deepEqual(chooseUnique(run,id),{ok:true});
+  const offer=run.economy.shop.find(o=>o.id===id);
+  assert.ok(offer&&offer.free&&!offer.bought&&Number.isInteger(offer.offerId));
+  assert.equal(receipt.choiceApplied,true);
+  assert.equal(receipt.selectedId,id);
+  assert.equal(receipt.fallbackApplied,false);
+  assert.equal(run.pendingChoice,null);
+  assert.equal(chooseUnique(run,id).ok,false,'the consumed midpoint cannot grant twice');
+  assert.equal(ensureMidpointTreasure(run),receipt,'the boundary cannot reopen after selection');
+});
+
+test('an empty midpoint pool pays 10 gold once and records the fallback',()=>{
+  const run=midpointRun();run.economy.gold=0;
+  run.economy.board=Object.keys(ITEMS).filter(id=>ITEMS[id].unique&&ITEMS[id].acquisition==='treasure')
+    .map((id,i)=>({id:id,iid:i+1,rarity:0}));
+  const receipt=ensureMidpointTreasure(run);
+  assert.deepEqual(receipt.offeredIds,[]);
+  assert.equal(receipt.choiceRequired,false);
+  assert.equal(receipt.choiceApplied,true);
+  assert.equal(receipt.selectedId,null);
+  assert.equal(receipt.fallbackApplied,true);
+  assert.equal(receipt.fallbackGold,MIDPOINT_FALLBACK_GOLD);
+  assert.equal(run.economy.gold,MIDPOINT_FALLBACK_GOLD);
+  assert.equal(run.pendingChoice,null);
+  ensureMidpointTreasure(run);
+  assert.equal(run.economy.gold,MIDPOINT_FALLBACK_GOLD,'receipt blocks a second fallback');
+});
+
+test('refreshPendingChoice never adds midpoint options and falls back once when all offered wares go stale',()=>{
+  const run=midpointRun();run.economy.gold=0;
+  const receipt=ensureMidpointTreasure(run),offered=receipt.offeredIds.slice();
+  run.economy.vault=offered.map((id,i)=>({id:id,iid:i+1,rarity:0}));
+  assert.equal(refreshPendingChoice(run),null);
+  assert.equal(run.economy.gold,MIDPOINT_FALLBACK_GOLD);
+  assert.equal(receipt.choiceApplied,true);
+  assert.equal(receipt.fallbackApplied,true);
+  assert.equal(receipt.selectedId,null);
+  assert.equal(refreshPendingChoice(run),null);
+  assert.equal(run.economy.gold,MIDPOINT_FALLBACK_GOLD);
+});
+
+test('a tampered midpoint cannot grant a unique from outside the Treasure pool',()=>{
+  const id=Object.keys(ITEMS).find(uid=>ITEMS[uid].unique&&ITEMS[uid].acquisition!=='treasure');
+  assert.ok(id,'fixture has a non-Treasure unique');
+  const run=midpointRun(),key=midpointTreasureKey(run.runId);
+  run.pendingChoice={key:key,kind:'midpointTreasure',options:[id],fallbackGold:MIDPOINT_FALLBACK_GOLD};
+  run.receipts[key]={choiceApplied:false,offeredIds:[id],fallbackApplied:false};
+  assert.deepEqual(chooseUnique(run,id),{ok:false,reason:'not midpoint treasure'});
+  assert.equal(refreshPendingChoice(run),null);
+  assert.equal(run.receipts[key].fallbackApplied,true);
+});
+
+test('a midpoint pending choice cannot grant an id absent from its dedicated receipt',()=>{
+  const run=midpointRun(),receipt=ensureMidpointTreasure(run);
+  const other=Object.keys(ITEMS).find(id=>ITEMS[id].unique&&ITEMS[id].acquisition==='treasure'&&!receipt.offeredIds.includes(id));
+  assert.ok(other);
+  run.pendingChoice.options.push(other);
+  assert.deepEqual(chooseUnique(run,other),{ok:false,reason:'not midpoint treasure'});
+  assert.deepEqual(refreshPendingChoice(run).options,receipt.offeredIds,'refresh restores the receipt intersection');
 });
 
 test('a Charm checkpoint pends four offers and awards one exactly once', () => {

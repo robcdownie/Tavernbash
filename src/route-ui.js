@@ -41,6 +41,7 @@ export function openRewardChoice(pc){
   B.renderAll();
   if(pc.kind==='gild'){openRewardGild(pc);}
   else if(pc.kind==='charm'){openRewardCharm(pc);}
+  else if(pc.kind==='midpointTreasure'){openMidpointTreasure(pc);}
   else{openRewardUnique(pc);}
 }
 /* gild presenter: renders the serialized board-iid options and dispatches the
@@ -81,6 +82,29 @@ function chooseRewardUnique(o,id){
   if(!res.ok){return;}
   toast(ITEMS[id].n+' waits in the market, free.');
   B.metricEvent('reward_choice',{kind:'unique',id:id});
+  ovClose(o);B.criticalSave(B.presentAfterReward);
+}
+
+/* The Long Bazaar midpoint uses the same durable unique-choice transaction as
+   the Vizier vault, but presents its much smaller offer as a distinct road
+   reward. The chosen ware becomes a free market offer, never an instant board
+   mutation, so the player can still decide how to make room. */
+function openMidpointTreasure(pc){
+  const o=ovOpen('<div class="card midpointtreasure"><div class="rays"></div>'
+   +'<div class="kick gold">Midpoint Treasure</div>'
+   +'<h2 class="big" style="font-size:23px">Choose one for the road ahead.</h2>'
+   +'<p>Your pick waits as a free ware in the next Market.</p>'
+   +'<div class="picks">'+pc.options.map(function(id){
+      const d=ITEMS[id];if(!d)return '';
+      return '<div class="pick" data-mt="'+id+'"><div class="ph2">'+ic('g-'+id,'','width:28px;height:28px')+'</div><div class="pn">'+d.n+'</div><div class="pd">'+d.d+'</div></div>';
+    }).join('')+'</div></div>');
+  o.querySelectorAll('.pick[data-mt]').forEach(function(p){p.onclick=function(){chooseMidpointTreasure(o,pc,p.dataset.mt);};});
+}
+function chooseMidpointTreasure(o,pc,id){
+  const res=runtimeChooseUnique(G.run,id);
+  if(!res.ok)return;
+  B.metricEvent('midpoint_treasure_selected',{receiptKey:pc.key,id:id});
+  toast(ITEMS[id].n+' waits in the next Market, free.');
   ovClose(o);B.criticalSave(B.presentAfterReward);
 }
 

@@ -3,14 +3,14 @@ import {test, expect} from '@playwright/test';
 /* drive a fresh route to the map screen through the real UI, using the
    localhost-only BBDEV-free path (plain clicks) so the test exercises what a
    player does */
-async function toMap(page) {
+async function toMap(page,mode='quick') {
   await page.goto('/');
   await page.evaluate(() => {
     try { localStorage.removeItem('bb-route-run'); localStorage.removeItem('bb-run'); } catch (e) {}
   });
   await page.reload();
   await page.click('#inNew');
-  await page.click('#modeQuick');
+  await page.click(mode==='long'?'#modeLong':'#modeQuick');
   await page.click('#heroGo');
   await page.click('#rvGo');
   await page.click('#btnGo');
@@ -148,4 +148,25 @@ test('the run debrief and export controls fit the end overlay', async ({page}) =
     };
   });
   expect(fit).toEqual({cardFitsWidth: true, overlayScrolls: true, buttonsTall: true, debriefVisible: true});
+});
+
+test('the Midpoint Treasure offer fits and states where the free ware goes', async ({page}) => {
+  await toMap(page,'long');
+  await page.evaluate(() => {
+    const G=window.BBDEV.g(),boss=G.route.map.districts[2].boss;
+    G.run.route.path=[boss.id];G.run.route.pendingId=null;G.run.route.phase='map';
+    window.BBDEV.presentAfterReward();
+  });
+  await page.waitForSelector('.midpointtreasure');
+  await expect(page.getByText('Midpoint Treasure',{exact:true})).toBeVisible();
+  await expect(page.getByText('Your pick waits as a free ware in the next Market.',{exact:true})).toBeVisible();
+  const fit=await page.evaluate(() => {
+    const vp={w:document.documentElement.clientWidth,h:document.documentElement.clientHeight};
+    const overlay=document.querySelector('.ov'),card=document.querySelector('.midpointtreasure').getBoundingClientRect();
+    const picks=Array.from(document.querySelectorAll('.pick[data-mt]')).map(p=>p.getBoundingClientRect());
+    return {count:picks.length,cardFitsWidth:card.left>=-1&&card.right<=vp.w+1,
+      overlayScrolls:overlay.scrollHeight<=vp.h+1||getComputedStyle(overlay).overflowY==='auto',
+      touch:picks.every(p=>p.width>=44&&p.height>=44)};
+  });
+  expect(fit).toEqual({count:3,cardFitsWidth:true,overlayScrolls:true,touch:true});
 });

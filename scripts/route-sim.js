@@ -35,6 +35,7 @@ import {createFight, runHeadless, monsterSide, playerFightItems, makeItem, usedC
 import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, ANONE, COST, TIERCOST} from '../src/data.js';
 import {planReward} from '../src/route-rewards.js';
 import {beginCombatTally, recordCombatDiagnostic} from '../src/route-metrics.js';
+import {midpointTreasureOptions, MIDPOINT_FALLBACK_GOLD} from '../src/route-runtime.js';
 import {pathToFileURL} from 'node:url';
 
 export function parseSimArgs(argv){
@@ -103,6 +104,17 @@ function tierCost(nextTier, cfg) { return (nextTier === 6 ? (cfg.tier6Cost || TI
 /* how rich a board ended up: the best rarity present (0 bronze .. 3 diamond) */
 function topRarity(board) { return board.board.reduce((m, w) => Math.max(m, w.rarity), 0); }
 
+/* The policy records the real deterministic offer, then takes its first card.
+   Treasure uniques stay outside buildBoard and combat attribution: until the
+   harness can model their hooks faithfully, acquisition is evidence, not fake
+   generic combat power. */
+export function simMidpointTreasure(seed,owned){
+  const held=Array.from(owned||[]).map(function(id){return {id:id};});
+  const offered=midpointTreasureOptions({seed:seed>>>0,economy:{board:held,vault:[],shop:[]}});
+  return {offered:offered,selected:offered[0]||null,
+    fallbackGold:offered.length?0:MIDPOINT_FALLBACK_GOLD,contribution:'abstracted'};
+}
+
 /* ---- one fight, headless, with FRESH fight items (as the game rebuilds them) ---- */
 function applyEnemyPower(side,power){
   if(!(power>1))return side;
@@ -151,7 +163,8 @@ export function simRun(seed, cfg, mode) {
   let board = buildBoard(tier, invested, rng, persona);
   const m = { mode:mode,districtCount:map.districts.length,fights: [], retries: 0, goldEarned: 0, goldSpent: 6,
     resolveStart:st.resolveMax,minResolve: st.resolveMax, tierMax: 1,guardTrips:0,guardCounts:{},fightTimeouts:0,
-    combatPendingActions:0,routeGuardExits:0,pendingActions:[],duplicateUniqueCash:0 };
+    combatPendingActions:0,routeGuardExits:0,pendingActions:[],duplicateUniqueCash:0,
+    midpointTreasure:{reached:false,offered:[],selected:null,fallbackGold:0,contribution:'abstracted'} };
 
   let guard = 0;
   while (st.phase !== 'won' && st.phase !== 'lost' && guard<ROUTE_GUARD) {
@@ -193,6 +206,12 @@ export function simRun(seed, cfg, mode) {
         board = buildBoard(tier, invested, rng, persona);
       }
       st = transition(st, map, { type: 'settleReward' }).state;
+      if(mode==='long'&&node.id==='d3boss'){
+        const pivot=simMidpointTreasure(seed,ownedUniques);
+        m.midpointTreasure=Object.assign({reached:true},pivot);
+        if(pivot.selected)ownedUniques.add(pivot.selected);
+        else if(pivot.fallbackGold){gold+=pivot.fallbackGold;m.goldEarned+=pivot.fallbackGold;}
+      }
     } else if (st.phase === 'market') {
       /* fusion-first: tier up only toward a district-appropriate cap (players win
          at tier 1-5, not by maxing), reserving gold so the board keeps fusing */
@@ -296,6 +315,20 @@ export function batchValidity(runs){
     pendingActions:runs.reduce((s,r)=>s+(r.combatPendingActions||0)+(r.pendingActions||[]).length,0)};
 }
 
+export function midpointSummary(runs){
+  const offered={},selected={};let reached=0,fallbacks=0,fallbackGold=0;
+  (runs||[]).forEach(function(run){
+    const p=run.midpointTreasure||{};if(!p.reached)return;reached++;
+    (p.offered||[]).forEach(function(id){offered[id]=(offered[id]||0)+1;});
+    if(p.selected)selected[p.selected]=(selected[p.selected]||0)+1;
+    if(p.fallbackGold){fallbacks++;fallbackGold+=p.fallbackGold;}
+  });
+  const rows=function(counts){return Object.keys(counts).map(function(id){return {id:id,name:ITEMS[id]?ITEMS[id].n:id,count:counts[id]};})
+    .sort(function(a,b){return b.count-a.count||a.id.localeCompare(b.id);});};
+  return {runs:(runs||[]).length,reached:reached,selections:Object.values(selected).reduce(function(s,n){return s+n;},0),
+    fallbacks:fallbacks,fallbackGold:fallbackGold,offered:rows(offered),selected:rows(selected),contribution:'abstracted'};
+}
+
 function modeDistricts(runs){
   const count=runs[0]&&runs[0].districtCount||DISTRICTS.length;
   if(count===DISTRICTS.length)return DISTRICTS;
@@ -328,6 +361,17 @@ function printValidity(runs){
   return v;
 }
 
+function printMidpointTreasure(runs){
+  const p=midpointSummary(runs);
+  console.log('\nMIDPOINT TREASURE');
+  console.log('  reached '+p.reached+'/'+p.runs+'   selections '+p.selections+'   fallbacks '+p.fallbacks+' ('+p.fallbackGold+' gold)');
+  if(p.reached){
+    console.log('  selected '+p.selected.slice(0,8).map(function(r){return r.name+' '+r.count;}).join('   '));
+    console.log('  offered  '+p.offered.slice(0,8).map(function(r){return r.name+' '+r.count;}).join('   '));
+  }else console.log('  Quick mode has no midpoint pivot.');
+  console.log('  combat contribution is abstracted; selected Treasure hooks are not credited to shop wares.');
+}
+
 /* ---- detailed single-config readout ---- */
 export function detailed(runs) {
   const runN=runs.length,districts=modeDistricts(runs),mode=runs[0]&&runs[0].mode||'quick';
@@ -358,6 +402,7 @@ export function detailed(runs) {
   const allF = runs.flatMap(r => r.fights);
   console.log('  fight seconds         median ' + med(allF.map(f => f.t)) + '   p90 ' + qtile(allF.map(f => f.t), 0.9) + '   win margin (HP) median ' + med(allF.filter(f => f.won).map(f => f.margin)));
   console.log('  duplicate unique fallback gold '+runs.reduce((s,r)=>s+(r.duplicateUniqueCash||0),0));
+  printMidpointTreasure(runs);
   printDamageShares(runs);
   return printValidity(runs);
 }
@@ -393,6 +438,7 @@ export function abTable(options) {
   }
   console.log('\nD'+finalDistrict+'-death = share of runs ending in the Dragon Gate. Matron/Azhdaha/Vizier = first-attempt');
   console.log('win rate. Dragon Gate elites are sampled and reported apart.');
+  printMidpointTreasure(baseline);
   printDamageShares(baseline);
   return printValidity(allRuns);
 }

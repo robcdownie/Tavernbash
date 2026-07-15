@@ -17,6 +17,32 @@ test('run report has one parseable full record and a readable YAML summary',()=>
   assert.match(summary,/Final board: Silver Rusty Dagger/);
 });
 
+test('midpoint Treasure report is derived from its receipt without telemetry events',()=>{
+  const run=newRun({seed:27,routeMode:'long',now:1000});
+  const key=run.runId+':midpoint:d3boss';
+  run.receipts[key]={kind:'midpointTreasure',fixedApplied:true,choiceRequired:true,choiceApplied:true,
+    choiceKind:'midpointTreasure',offeredIds:['serpentcrown','tidewall','prism'],selectedId:'tidewall',
+    fallbackGold:10,fallbackApplied:false};
+  const r=buildRunRecord({run:run,map:genMap(27,'long'),setup:{hero:'kiln',anom:'wild',tags:['burn']},
+    result:'long_clear',version:'0.84.0',endedAt:5000});
+  assert.deepEqual(r.midpointTreasure.offeredIds,['serpentcrown','tidewall','prism']);
+  assert.equal(r.midpointTreasure.selected.name,'Tide Wall');
+  assert.equal(r.midpointTreasure.fallbackApplied,false);
+  assert.match(formatRunSummary(r),/Midpoint Treasure selected: Tide Wall/);
+});
+
+test('midpoint Treasure fallback is explicit in the full record and summary',()=>{
+  const run=newRun({seed:28,routeMode:'long',now:1000});
+  const key=run.runId+':midpoint:d3boss';
+  run.receipts[key]={kind:'midpointTreasure',fixedApplied:true,choiceRequired:false,choiceApplied:true,
+    choiceKind:'midpointTreasure',offeredIds:[],selectedId:null,fallbackGold:10,fallbackApplied:true};
+  const r=buildRunRecord({run:run,map:genMap(28,'long'),setup:{hero:'kiln',anom:'wild',tags:['burn']},
+    result:'loss',version:'0.84.0',endedAt:5000});
+  assert.deepEqual(r.midpointTreasure.offered,[]);
+  assert.equal(r.midpointTreasure.fallbackGold,10);
+  assert.match(formatRunSummary(r),/Midpoint Treasure fallback: 10 gold/);
+});
+
 test('report archive upserts, keeps ten, and marks only confirmed ids exported',()=>{
   const s=storage();const first=report(1,1001);
   assert.ok(saveReport(s,first));assert.equal(first.archive_saved,true);

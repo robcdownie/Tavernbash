@@ -13,7 +13,7 @@ import {planReward,boardVictoryIncome} from './route-rewards.js';
 import {attachCharmCheckpoint,charmVictoryIncome} from './route-charms.js';
 import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy,allocId,ensureIdFloor,
         campEnsure,campMend,campLastReserve,campExpireCredit,campClear,CAMP_MEND,CAMP_LAST_RESERVE} from './route-run.js';
-import {rewardKey,settleFixed,refreshPendingChoice,nextPresentation} from './route-runtime.js';
+import {rewardKey,settleFixed,refreshPendingChoice,nextPresentation,ensureMidpointTreasure,midpointTreasureKey} from './route-runtime.js';
 import {resumeMetrics,activateMetrics,pauseMetrics,setMetricPhase,touchMetrics,serializeMetrics,recordMetric,
         captureBoardSnapshot,beginCombatTally,recordCombatDiagnostic,commitCombatTally,metricPhaseTotals} from './route-metrics.js';
 import {ic} from './art.js';
@@ -958,11 +958,28 @@ function settleRouteReward(e){
   }
   G.route.combat=null;
   if(G.run.camp&&G.run.camp.nodeId===e.nodeId)campClear(G.run);   /* boss felled: strike the gate camp */
+  ensureMidpointTransaction();
   /* write-ahead: economy + receipt + pendingChoice saved before any overlay. If
      the save fails the reward stays correct (a later crash re-settles from the
      clean pre-reward snapshot, and the receipt keeps it exactly once), so we block
      on an explicit retry rather than a missable toast, then present. */
   criticalSave(presentAfterReward);
+}
+/* Create the Long midpoint choice once, with its offer telemetry in the same
+   transaction. Callers checkpoint after a true return before showing anything.
+   A receipt that already exists means a retry or reload and emits no duplicate. */
+function ensureMidpointTransaction(){
+  if(!G||!G.run)return false;
+  const key=midpointTreasureKey(G.run.runId);
+  const existed=Object.prototype.hasOwnProperty.call(G.run.receipts||{},key);
+  const receipt=ensureMidpointTreasure(G.run);
+  if(!receipt||existed)return false;
+  recordMidpointOffer(receipt,key);
+  return true;
+}
+function recordMidpointOffer(receipt,key){
+  metricEvent('midpoint_treasure_offered',{receiptKey:key,options:(receipt.offeredIds||[]).slice(),
+    fallbackGold:receipt.fallbackApplied?(receipt.fallbackGold||0):0});
 }
 /* a checkpoint that must land because the reward economy just changed. On success
    proceed at once. On failure (storage full or blocked) the receipt still keeps
@@ -987,6 +1004,9 @@ function criticalSave(onProceed){
    a finished run ends (so a final-boss choice resolves before the win screen),
    otherwise back to the map */
 function presentAfterReward(){
+  /* A reward with its own choice may have delayed the midpoint. Create it only
+     after that choice resolves, then save the new receipt before its overlay. */
+  if(ensureMidpointTransaction()){criticalSave(presentAfterReward);return;}
   const np=nextPresentation(G.run);
   if(np.kind==='choice'){openRewardChoice(np.choice);}
   else if(np.kind==='end'){routeEnd(np.cause);}
@@ -1203,7 +1223,8 @@ function restoreRoute(d){
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:d.fightN||0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
      run:reviveRun(d.run),
-      route:{map:map,selectedId:null,market:d.market||null,combat:d.combat||null,opening:!!d.opening}});
+      route:{map:map,selectedId:null,market:d.market||null,combat:d.combat||null,opening:!!d.opening,
+        midpointNeedsSave:!!d.midpointInjected}});
   G.run.metrics=resumeMetrics(G.run.metrics,Date.now(),true);
   /* revive the economy into live objects. Presence checks, not `||`: tierCost 0,
      frozen false, and empty arrays are all valid saved values. reviveItem/
@@ -1223,6 +1244,14 @@ function restoreRoute(d){
 }
 function resumeRoutePhase(){
   const st=routeState();
+  /* A v3 save can gain its midpoint receipt during read-time migration. Persist
+     that injected receipt and its single offer event before reopening the choice. */
+  if(G.route.midpointNeedsSave){
+    G.route.midpointNeedsSave=false;
+    const key=midpointTreasureKey(G.run.runId),receipt=G.run.receipts[key];
+    if(receipt)recordMidpointOffer(receipt,key);
+    criticalSave(resumeRoutePhase);return;
+  }
   if(G.route.opening){G.phase='draft';metricPhase('market');renderAll();return;}   /* the opening stall */
   /* an owed reward choice wins over the controller phase: its fixed part is
      already applied (receipt), so reopen the choice rather than re-settle. If
@@ -1231,6 +1260,7 @@ function resumeRoutePhase(){
     if(refreshPendingChoice(G.run)){openRewardChoice(G.run.pendingChoice);return;}
     checkpointActiveRun();presentAfterReward();return;
   }
+  if(ensureMidpointTransaction()){criticalSave(resumeRoutePhase);return;}
   if(st.phase==='encounter'&&st.pendingId){
     const n=nodeOf(routeMap(),st.pendingId);
     startRouteFight({nodeId:n.id,monId:n.monId,threat:n.threat,gilded:n.gilded,power:n.power||1,boss:n.type==='boss',fightSeed:st.fightSeed});

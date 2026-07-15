@@ -1,8 +1,11 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {ROUTE_SAVE_VERSION, ROUTE_KEY, readRouteSave, writeRouteSave, clearRouteSave, migrateV1toV2, migrateV2toV3} from '../src/route-save.js';
-import {genMap, MAP_VERSION} from '../src/map.js';
+import {ROUTE_SAVE_VERSION, ROUTE_KEY, readRouteSave, writeRouteSave, clearRouteSave,
+  migrateV1toV2, migrateV2toV3, migrateV3toV4} from '../src/route-save.js';
+import {genMap, districtPaths, MAP_VERSION} from '../src/map.js';
 import {initRoute, transition, validRoute} from '../src/route.js';
+import {ITEMS} from '../src/data.js';
+import {midpointTreasureKey} from '../src/route-runtime.js';
 
 const SEED = 1234567;
 
@@ -12,14 +15,14 @@ function fakeStorage(){
   return {getItem:k=>(k in m ? m[k] : null), setItem:(k,v)=>{m[k]=String(v);}, removeItem:k=>{delete m[k];}, _map:m};
 }
 
-/* the v3 envelope the writer produces: the run aggregate is the durable truth,
+/* the v4 envelope the writer produces: the run aggregate is the durable truth,
    setup + session live alongside it */
 function v2env(routeState, extra){
   return Object.assign({
     saveVersion: ROUTE_SAVE_VERSION,
     mapVersion: MAP_VERSION,
     run: {
-      schemaVersion: 3, runId: 'r-test', revision: 3, seed: routeState.seed,routeMode:'quick',
+      schemaVersion: 4, runId: 'r-test', revision: 3, seed: routeState.seed,routeMode:'quick',
       route: routeState,
       economy: {gold: 6, tier: 1, tierCost: 5, relicIncome: 0, freeReroll: false, frozen: false,
         board: [{id:'torch',rarity:0,size:1,ench:null,iid:1}], vault: [],
@@ -29,6 +32,19 @@ function v2env(routeState, extra){
     setup: {hero: 'kiln', anom: 'moon', tags: ['burn','dmg']},
     fightN: 0, market: null, opening: false, combat: null
   }, extra || {});
+}
+
+function v3env(routeState,extra){
+  const env=v2env(routeState,extra);
+  env.saveVersion=3;env.run.schemaVersion=3;
+  return env;
+}
+
+function d3Boundary(seed=SEED){
+  const map=genMap(seed,'long'),route=initRoute(seed,'long');
+  route.path=map.districts.slice(0,3).flatMap(d=>districtPaths(d)[0].map(n=>n.id));
+  route.phase='map';route.pendingId=null;route.resolution=null;
+  return route;
 }
 
 /* the legacy v1 envelope: controller state at the top level, economy flat under
@@ -50,7 +66,7 @@ function v1env(routeState, extra){
   }, extra || {});
 }
 
-test('write then read round-trips a v3 envelope', () => {
+test('write then read round-trips a v4 envelope', () => {
   const s = fakeStorage();
   const env = v2env(initRoute(SEED));
   writeRouteSave(s, env);
@@ -157,13 +173,72 @@ test('migrateV2toV3 preserves the run and adds partial Quick telemetry',()=>{
   assert.equal(v3.run.metrics.timing.startedAt,null,'migration does not invent elapsed time');
 });
 
-test('readRouteSave chains a stored v1 save through v3 on load', () => {
+test('migrateV3toV4 injects the deterministic midpoint only at the Long D3 boundary',()=>{
+  const route=d3Boundary(),v3=v3env(route);
+  v3.run.routeMode='long';
+  v3.run.receipts={'r-test:reward:d3boss:0':{fixedApplied:true,choiceApplied:true}};
+  v3.run.metrics={version:1,partial:false,events:[{seq:1,type:'reward'}]};
+  const before=JSON.parse(JSON.stringify(v3));
+  const v4=migrateV3toV4(v3),key=midpointTreasureKey('r-test');
+  assert.equal(v4.saveVersion,4);
+  assert.equal(v4.run.schemaVersion,4);
+  assert.equal(v4.run.pendingChoice.kind,'midpointTreasure');
+  assert.equal(v4.midpointInjected,true,'live restore must save the migrated receipt before display');
+  assert.equal(v4.run.pendingChoice.key,key);
+  assert.equal(v4.run.pendingChoice.options.length,3);
+  assert.deepEqual(v4.run.pendingChoice.options,v4.run.receipts[key].offeredIds);
+  assert.ok(v4.run.pendingChoice.options.every(id=>ITEMS[id].unique&&ITEMS[id].acquisition==='treasure'));
+  assert.deepEqual(v4.run.receipts['r-test:reward:d3boss:0'],v3.run.receipts['r-test:reward:d3boss:0'],
+    'existing reward receipts survive');
+  assert.deepEqual(v4.run.metrics,v3.run.metrics,'existing metrics survive byte for byte');
+  assert.deepEqual(v3,before,'migration does not mutate the v3 wire object');
+  assert.deepEqual(migrateV3toV4(v3).run.pendingChoice.options,v4.run.pendingChoice.options,
+    'the migration is deterministic');
+});
+
+test('migrateV3toV4 does not inject before, past, or outside Long midpoint',()=>{
+  const boundary=d3Boundary();
+  const cases=[
+    {name:'Quick',routeMode:'quick',route:boundary},
+    {name:'before',routeMode:'long',route:Object.assign({},boundary,{path:boundary.path.slice(0,-1)})},
+    {name:'past',routeMode:'long',route:Object.assign({},boundary,{path:boundary.path.concat(['d4c1l0'])})},
+    {name:'committed',routeMode:'long',route:Object.assign({},boundary,{phase:'encounter',pendingId:'d4c1l0'})}
+  ];
+  for(const c of cases){
+    const v3=v3env(c.route);v3.run.routeMode=c.routeMode;
+    const v4=migrateV3toV4(v3);
+    assert.equal(v4.run.pendingChoice,null,c.name+' does not inject');
+    assert.equal(v4.midpointInjected,undefined,c.name+' needs no migration checkpoint');
+    assert.equal(v4.run.receipts[midpointTreasureKey('r-test')],undefined,c.name+' has no midpoint receipt');
+  }
+});
+
+test('migrateV3toV4 never overwrites an owed reward choice at the boundary',()=>{
+  const v3=v3env(d3Boundary());v3.run.routeMode='long';
+  v3.run.pendingChoice={key:'reward',kind:'gild',options:[{iid:1,rarity:0}],fallbackGold:5};
+  const v4=migrateV3toV4(v3);
+  assert.deepEqual(v4.run.pendingChoice,v3.run.pendingChoice);
+  assert.equal(v4.run.receipts[midpointTreasureKey('r-test')],undefined);
+  assert.equal(v4.midpointInjected,undefined);
+});
+
+test('readRouteSave upgrades a stored 0.83 Long boundary save and preserves its exact offers',()=>{
+  const s=fakeStorage(),v3=v3env(d3Boundary());v3.run.routeMode='long';
+  writeRouteSave(s,v3);
+  const loaded=readRouteSave(s),key=midpointTreasureKey('r-test');
+  assert.equal(loaded.saveVersion,4);
+  assert.equal(loaded.run.schemaVersion,4);
+  assert.deepEqual(loaded.run.pendingChoice.options,loaded.run.receipts[key].offeredIds);
+  assert.deepEqual(readRouteSave(s),loaded,'repeated reads reproduce the exact migrated offer set');
+});
+
+test('readRouteSave chains a stored v1 save through v4 on load', () => {
   const s = fakeStorage();
   writeRouteSave(s, v1env(initRoute(SEED)));
   const loaded = readRouteSave(s);
   assert.ok(loaded, 'a v1 save loads');
-  assert.equal(loaded.saveVersion, 3, 'as v3');
-  assert.equal(loaded.run.schemaVersion,3);
+  assert.equal(loaded.saveVersion, 4, 'as v4');
+  assert.equal(loaded.run.schemaVersion,4);
   assert.equal(loaded.run.routeMode,'quick');
   assert.equal(loaded.run.metrics.partial,true);
   assert.ok(validRoute(loaded.run.route, genMap(SEED)), 'the migrated route revalidates');
@@ -178,7 +253,7 @@ test('a v1 save from a stale generator is dropped, not migrated', () => {
   assert.equal(s.getItem(ROUTE_KEY), null, 'and removed');
 });
 
-test('a v3 envelope for every route phase round-trips and revalidates', () => {
+test('a v4 envelope for every route phase round-trips and revalidates', () => {
   const map = genMap(SEED);
   const allNodes = [];
   for (const d of map.districts){ for (const col of d.columns) for (const n of col) allNodes.push(n); allNodes.push(d.boss); }

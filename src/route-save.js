@@ -6,8 +6,9 @@
    aggregate and a v1 to v2 migration behind this same module. */
 import {MAP_VERSION} from './map.js';
 import {newMetrics,serializeMetrics} from './route-metrics.js';
+import {ensureMidpointTreasure,midpointTreasureKey} from './route-runtime.js';
 
-export const ROUTE_SAVE_VERSION = 3;
+export const ROUTE_SAVE_VERSION = 4;
 export const ROUTE_KEY = 'bb-route-run';
 
 function highestId(list,key){
@@ -59,6 +60,26 @@ export function migrateV2toV3(d){
       metrics:(d.run&&d.run.metrics)||serializeMetrics(legacy)})});
 }
 
+/* v3 -> v4 adds the one-time Long midpoint pivot. Only a 0.83 save parked at
+   the exact D3 to D4 boundary is eligible for immediate injection. The shared
+   ensure seam owns all guards and receipt creation, so migration and live play
+   cannot disagree or double-pay. Copy the mutable aggregate branches first so
+   this remains a pure wire transform. */
+export function migrateV3toV4(d){
+  const old=d.run||{};
+  const economy=Object.assign({},old.economy||{});
+  const run=Object.assign({},old,{schemaVersion:4,economy:economy,
+    receipts:Object.assign({},old.receipts||{}),
+    pendingChoice:old.pendingChoice?Object.assign({},old.pendingChoice,{options:(old.pendingChoice.options||[]).slice()}):null});
+  const v4=Object.assign({},d,{saveVersion:4,run:run});
+  const key=midpointTreasureKey(run.runId),existed=Object.prototype.hasOwnProperty.call(run.receipts,key);
+  const receipt=ensureMidpointTreasure(run);
+  /* This transient envelope marker tells the live restore flow that migration
+     created an unsaved transaction. The next v4 snapshot omits the marker. */
+  if(receipt&&!existed)v4.midpointInjected=true;
+  return v4;
+}
+
 /* read, migrate, then version-gate. A save from a stale generator (mapVersion)
    is dropped regardless of format. A v1 save is migrated to v2 in memory. Any
    failure (bad JSON, a migration throw) falls back to null so restore starts a
@@ -75,6 +96,7 @@ export function readRouteSave(storage){
     }
     if(d.saveVersion===1){d=migrateV1toV2(d);}
     if(d.saveVersion===2){d=migrateV2toV3(d);}
+    if(d.saveVersion===3){d=migrateV3toV4(d);}
     if(!d||d.saveVersion!==ROUTE_SAVE_VERSION){storage.removeItem(ROUTE_KEY);return null;}
     return d;
   }catch(e){return null;}

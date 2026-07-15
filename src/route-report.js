@@ -20,6 +20,16 @@ function districtReached(route,map){
   const id=route.pendingId||(route.path&&route.path[route.path.length-1]);
   const n=id&&map.nodes[id];return n?n.district:1;
 }
+function midpointTreasureOutcome(run){
+  const receipts=run.receipts||{};
+  const key=run.runId+':midpoint:d3boss',r=receipts[key];
+  if(!r||r.kind!=='midpointTreasure')return null;
+  const offeredIds=(r.offeredIds||[]).slice();
+  const ware=function(id){return id?{id:id,name:ITEMS[id]?ITEMS[id].n:id}:null;};
+  return {receiptKey:key,offeredIds:offeredIds,offered:offeredIds.map(ware),
+    selectedId:r.selectedId||null,selected:ware(r.selectedId),resolved:!!r.choiceApplied,
+    fallbackApplied:!!r.fallbackApplied,fallbackGold:r.fallbackApplied?(r.fallbackGold||0):0};
+}
 
 export function buildRunRecord(input){
   const run=input.run,map=input.map,metrics=serializeMetrics(run.metrics);
@@ -44,6 +54,7 @@ export function buildRunRecord(input){
       gameplayMs:gameplayMs(metrics),debriefMs:(metrics.timing.phases||{}).debrief||0,
       sessions:metrics.timing.sessions||0,reloads:metrics.timing.reloads||0,
       phases:clone(metrics.timing.phases||{}),districts:clone(metrics.timing.districts||{})},
+    midpointTreasure:midpointTreasureOutcome(run),
     debrief:clone(metrics.debrief||{}),metrics:metrics};
   return report;
 }
@@ -69,6 +80,12 @@ export function formatRunSummary(record){
       ?'Cleared '+record.progress.district+'.':'The caravan broke in '+record.progress.district+'.','',
     'Final board: '+(record.economy.board.length?record.economy.board.map(function(w){return w.rarityName+' '+(w.enchantName?w.enchantName+' ':'')+w.name;}).join(', '):'empty')];
   const top=topDamage(record);if(top.length){L.push('','Top attributed damage: '+top.map(function(x){return x.n+' '+Math.round(x.d);}).join(', '));}
+  const mt=record.midpointTreasure;if(mt){
+    L.push('','Midpoint Treasure offered: '+(mt.offered.length?mt.offered.map(function(w){return w.name;}).join(', '):'none'));
+    if(mt.selected)L.push('Midpoint Treasure selected: '+mt.selected.name);
+    else if(mt.fallbackApplied)L.push('Midpoint Treasure fallback: '+mt.fallbackGold+' gold');
+    else L.push('Midpoint Treasure selected: unresolved');
+  }
   const d=record.debrief||{};if(d.pace||d.difficulty||d.agency||d.note){L.push('','Debrief: pace '+(d.pace||'unset')+', difficulty '+(d.difficulty||'unset')+', build agency '+(d.agency||'unset')+(d.note?'. '+d.note:''));}
   return L.join('\n');
 }

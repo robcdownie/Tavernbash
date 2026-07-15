@@ -1,7 +1,8 @@
 "use strict";
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseSimArgs,damageShareRows,encounterRows,encounterWin,batchValidity} from '../scripts/route-sim.js';
+import {parseSimArgs,damageShareRows,encounterRows,encounterWin,batchValidity,simMidpointTreasure,midpointSummary,runBatch} from '../scripts/route-sim.js';
+import {ITEMS} from '../src/data.js';
 
 test('route sim arguments accept mode, ab, and seed count in any order',()=>{
   assert.deepEqual(parseSimArgs([]),{ab:false,mode:'quick',runs:600});
@@ -47,4 +48,31 @@ test('batch validity reports every safety failure',()=>{
   assert.deepEqual(batchValidity(runs),{invalid:1,guardTrips:2,
     guardCounts:{contacts:0,catchup:0,depth:1,root:1,step:0,hook:0},
     fightTimeouts:1,routeGuardExits:1,pendingActions:3});
+});
+
+test('sim midpoint offers are deterministic, unowned Treasure uniques with an honest fallback',()=>{
+  const first=simMidpointTreasure(123,new Set()),again=simMidpointTreasure(123,new Set());
+  assert.deepEqual(again,first);
+  assert.equal(first.offered.length,3);
+  assert.equal(first.selected,first.offered[0]);
+  first.offered.forEach(function(id){assert.equal(ITEMS[id].unique&&ITEMS[id].acquisition==='treasure',true);});
+  const excluded=simMidpointTreasure(123,new Set([first.offered[0]]));
+  assert.equal(excluded.offered.includes(first.offered[0]),false);
+  const all=new Set(Object.keys(ITEMS).filter(function(id){return ITEMS[id].unique&&ITEMS[id].acquisition==='treasure';}));
+  assert.deepEqual(simMidpointTreasure(123,all),{offered:[],selected:null,fallbackGold:10,contribution:'abstracted'});
+});
+
+test('sim reports zero Quick pivots and one abstracted Long pivot per run reaching D4',()=>{
+  const quick=runBatch({},{runs:3,mode:'quick'}),long=runBatch({},{runs:3,mode:'long'});
+  assert.deepEqual(midpointSummary(quick),{runs:3,reached:0,selections:0,fallbacks:0,fallbackGold:0,
+    offered:[],selected:[],contribution:'abstracted'});
+  const p=midpointSummary(long);
+  assert.equal(p.reached,3);
+  assert.equal(p.selections,3);
+  assert.equal(p.fallbacks,0);
+  assert.equal(p.contribution,'abstracted');
+  long.forEach(function(run){
+    assert.equal(run.midpointTreasure.offered.includes(run.midpointTreasure.selected),true);
+    assert.equal(damageShareRows([run]).some(function(row){return row.id===run.midpointTreasure.selected;}),false);
+  });
 });
