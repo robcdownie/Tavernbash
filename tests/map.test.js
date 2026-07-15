@@ -169,6 +169,10 @@ test('Ifrit carries the strengthened D3 boss health',()=>{
   assert.equal(MONSTERS.ifrit.hp,500);
 });
 
+test('Azhdaha heads open on the softened Gate cadence',()=>{
+  assert.deepEqual(MONSTERS.azhdaha.board.map(head=>head.cd),[12,12,12]);
+});
+
 test('no monster id repeats within a run, and every monster is legal for its role',()=>{
   const normals=new Set(),elites=new Set();
   for(const D of DISTRICTS){D.normals.forEach(m=>normals.add(m));D.elites.forEach(m=>elites.add(m));}
