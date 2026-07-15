@@ -7,7 +7,7 @@ import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,
 import {wareSlotCost,boardUsedCells,boardSlotCount,warePurchaseCost,wareSaleValue,rerollPrice,
         adjustedStormAt,adjustedVictoryIncome,advanceFrozenOffers,setFrozenOffers,thawOffers} from './anomaly-rules.js';
 import {genMap,MAP_VERSION} from './map.js';
-import {frontier,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD} from './route.js';
+import {frontier,currentDistrict,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
 import {planReward,boardVictoryIncome} from './route-rewards.js';
 import {attachCharmCheckpoint,charmVictoryIncome} from './route-charms.js';
@@ -52,12 +52,13 @@ function shuffle(a,rng){for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(
 function shake(){if(RM)return;const a=$('app');a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake');}
 function flashScr(){if(RM)return;const f=$('flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');}
 
-function metricDistrict(){
+function metricDistrict(phase){
   if(!G||!G.run||!G.route)return 1;const st=G.run.route;
+  if(phase==='map')return currentDistrict(st,G.route.map)+1;
   const id=st.pendingId||(st.path&&st.path[st.path.length-1]);const n=id&&G.route.map&&G.route.map.nodes[id];
   return n?n.district:1;
 }
-function metricPhase(name){if(G&&G.run&&G.run.metrics)setMetricPhase(G.run.metrics,name,metricDistrict(),Date.now());}
+function metricPhase(name){if(G&&G.run&&G.run.metrics)setMetricPhase(G.run.metrics,name,metricDistrict(name),Date.now());}
 function metricEvent(type,data){if(G&&G.run&&G.run.metrics)recordMetric(G.run.metrics,type,data,Date.now());}
 function metricSnapshot(label,context){if(G&&G.run&&G.run.metrics)return captureBoardSnapshot(G.run.metrics,label,context,G.board,G.vault,G.run.economy,Date.now());}
 let metricVisibilityBound=false;
@@ -342,7 +343,7 @@ function campTopHTML(){
 }
 function campRetryBtnHTML(){
   const st=routeState();const node=nodeOf(routeMap(),st.pendingId);
-  const lo=lossDamage(node,0),hi=lossDamage(node,12);
+  const lo=lossDamage(node,0,routeMap()),hi=lossDamage(node,12,routeMap());
   return '<button class="btn gold tob" id="btnGo">'+ic('g-medallion','bi vsp')
     +'<span class="tbt"><span class="tbl">Rally &amp; Retry</span><span class="tbn">defeat costs '+lo+' to '+hi+' Resolve</span></span></button>';
 }
@@ -940,14 +941,19 @@ function settleRouteReward(e){
   if(routeState().phase==='won')plan.choice=null;
   const receipt=settleFixed(G.run,plan,key,H&&H.mod&&H.mod.debtLobbyDamage?{debtLobbyDamage:H.mod.debtLobbyDamage}:null);
   if(!already){
-    metricEvent('reward_settled',{nodeId:e.nodeId,monsterId:e.monId,gold:plan.gold,items:plan.items.slice(),
+    const granted=(receipt.grantedItemIds||[]).slice(),duplicates=(receipt.duplicateUniqueIds||[]).slice();
+    metricEvent('reward_settled',{nodeId:e.nodeId,monsterId:e.monId,gold:plan.gold,items:granted,
+      duplicateUniqueIds:duplicates,duplicateUniqueGold:receipt.duplicateUniqueGold||0,
       relic:!!plan.relic,mote:plan.mote||null,choice:plan.choice||null,drained:plan.drained||0});
     if(receipt.debtPaid){toast(receipt.debtPaid+' gold repaid your debt before the reward landed.');}
     if(receipt.debtDamage){toast('Unpaid debt cost '+receipt.debtDamage+' Resolve and was cleared.');}
     if(plan.drained>0){toast('The monkey kept '+plan.drained+' gold of the bounty.');}
     if(plan.relic){toast('Income relic: +1 gold after each victory');}
     if(plan.mote&&plan.mote.gold){toast('The mote found nothing bronze to copy. '+plan.mote.gold+' gold instead.');}
-    toast(M.n+' slain. '+plan.gold+' gold'+(plan.items.length?', bounty wares in the market':'')+'.');
+    const loot=[plan.gold+' gold'];
+    if(granted.length)loot.push(granted.map(function(id){return ITEMS[id]?ITEMS[id].n:id;}).join(', ')+' waiting free in the market');
+    if(receipt.duplicateUniqueGold)loot.push(receipt.duplicateUniqueGold+' gold instead of duplicate '+duplicates.map(function(id){return ITEMS[id]?ITEMS[id].n:id;}).join(', '));
+    toast(M.n+' slain. '+loot.join('; ')+'.');
     bark('win');
   }
   G.route.combat=null;
@@ -984,7 +990,7 @@ function presentAfterReward(){
   const np=nextPresentation(G.run);
   if(np.kind==='choice'){openRewardChoice(np.choice);}
   else if(np.kind==='end'){routeEnd(np.cause);}
-  else{G.phase='routeMap';renderAll();}
+  else{G.phase='routeMap';metricPhase('map');renderAll();}
 }
 /* ============ THE LONG BAZAAR ROUTE ============ */
 /* The route presenters (map, gate camp, event cards, fight recap, reward
@@ -1032,7 +1038,19 @@ function clearRoute(){clearRouteSave(store());}
 function checkpointActiveRun(){return snapshotRoute();}
 
 /* ---- run construction ---- */
-function newRoute(){
+function openRouteModePick(){
+  const o=ovOpen('<div class="card routepick"><div class="rays"></div>'
+   +'<div class="kick gold">Choose Your Road</div>'
+   +'<h2 class="big">How Long Will You Roam?</h2>'
+   +'<div class="routepickgrid">'
+   +'<button class="routechoice primary" id="modeLong"><span class="rct">Long Bazaar</span><span class="rcsub">7 districts &middot; 60 Resolve</span><span class="rcdesc">The full night, with After Midnight reprises and a final Dragon Gate.</span></button>'
+   +'<button class="routechoice" id="modeQuick"><span class="rct">Quick Night</span><span class="rcsub">4 districts &middot; 40 Resolve</span><span class="rcdesc">The original road to the Grand Vizier.</span></button>'
+   +'</div></div>');
+  o.querySelector('#modeLong').onclick=function(){ovClose(o);newRoute('long');};
+  o.querySelector('#modeQuick').onclick=function(){ovClose(o);newRoute('quick');};
+}
+function newRoute(mode){
+  if(mode!=='quick'&&mode!=='long'){openRouteModePick();return;}
   const now=Date.now();
   const seed=((Date.now()>>>0)^0x9e3779b9)>>>0;
   const rng=mulberry(seed);
@@ -1043,8 +1061,8 @@ function newRoute(){
      T:null,hero:null,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
-      run:newRun({seed:seed,routeMode:'quick',now:now}),
-      route:{map:genMap(seed),selectedId:null,market:null,combat:null,opening:false}});
+      run:newRun({seed:seed,routeMode:mode,now:now}),
+      route:{map:genMap(seed,mode),selectedId:null,market:null,combat:null,opening:false}});
   G.run.metrics=resumeMetrics(G.run.metrics,now,false);
   bindEconomy(G);   /* gold/tier/board/shop/... now delegate to G.run.economy */
   computeT();
@@ -1053,12 +1071,13 @@ function newRoute(){
   openHeroPick(function(){openRouteReveal();});
 }
 function openRouteReveal(){
+  const isLong=G.run.routeMode==='long';
   const o=ovOpen('<div class="card reveal"><div class="rays"></div>'
    +'<div class="kick gold">The Road Ahead</div>'
    +ic(G.anom.g,'bigic')
    +'<h2 class="big">'+G.anom.n+'</h2><p>'+G.anom.d+'</p>'
    +'<p>Featured wares: <b style="color:var(--brass)">'+CATN[G.tags[0]]+'</b> and <b style="color:var(--brass)">'+CATN[G.tags[1]]+'</b></p>'
-   +'<p style="font-size:11px">Four districts. Forty Resolve. Reach the Grand Vizier.</p>'
+   +'<p style="font-size:11px">'+(isLong?'Seven districts. Sixty Resolve. Survive After Midnight and reach the Grand Vizier.':'Four districts. Forty Resolve. Reach the Grand Vizier.')+'</p>'
    +'<button class="btn gold" id="rvGo">Enter the Bazaar</button></div>');
   o.querySelector('#rvGo').onclick=function(){ovClose(o);enterOpeningMarket();};
 }
@@ -1098,7 +1117,7 @@ function startRouteFight(e){
   const M=MONSTERS[e.monId];
   const H=heroOf();
   const php=fightHP(e.threat,G.T.hpFlat,G.A);
-  const foe=monsterSide(e.monId,{gold:G.gold,round:e.threat,A:G.A,gilded:!!e.gilded,playerBoard:G.board,playerHp:php});
+  const foe=monsterSide(e.monId,{gold:G.gold,round:e.threat,A:G.A,gilded:!!e.gilded,power:e.power||1,playerBoard:G.board,playerHp:php});
   const playerItems=playerFightItems(G.board,G.T,G.A,1);
   const me={nm:'You',portrait:G.you.p,hp:php,items:playerItems,
     lifesteal:G.A.healingDisabled?0:(G.T.lifesteal||0),regen:G.A.healingDisabled?0:boardRegen(G.board),
@@ -1107,7 +1126,7 @@ function startRouteFight(e){
   metricSnapshot(node.type==='boss'?'boss_pre_fight':'pre_fight',{nodeId:e.nodeId,district:node.district,
     monsterId:e.monId,threat:e.threat,attempt:(routeState().attempts[e.nodeId]||0)});
   const tally=beginCombatTally({nodeId:e.nodeId,district:node.district,encounter:node.type,monsterId:e.monId,
-    threat:e.threat,attempt:(routeState().attempts[e.nodeId]||0),gilded:!!e.gilded,playerStartHp:php,enemyStartHp:foe.hp},
+    threat:e.threat,attempt:(routeState().attempts[e.nodeId]||0),gilded:!!e.gilded,power:e.power||1,playerStartHp:php,enemyStartHp:foe.hp},
     G.board,playerItems,foe.items);
   tally.phaseBaseline=metricPhaseTotals(G.run.metrics,['combat_1x','combat_2x','combat_inspect']);
   G.route.fightTelemetry=tally;
@@ -1175,7 +1194,8 @@ function enterRouteMarket(nodeId){
 /* resume a saved route at whatever phase it stopped */
 function restoreRoute(d){
   const anom=ANOMALIES.filter(function(a){return a.id===d.setup.anom;})[0]||ANOMALIES[0];
-  const map=genMap(d.run.seed);
+  const mode=d.run.routeMode||'quick';
+  const map=genMap(d.run.seed,mode);
   if(!validRoute(d.run.route,map)){clearRoute();openIntro();return;}
   setG({mode:'route',seed:d.run.seed,rng:mulberry((d.run.seed+(d.fightN||0)*2654435761+7)>>>0),round:0,
      anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.setup.tags,
@@ -1213,7 +1233,7 @@ function resumeRoutePhase(){
   }
   if(st.phase==='encounter'&&st.pendingId){
     const n=nodeOf(routeMap(),st.pendingId);
-    startRouteFight({nodeId:n.id,monId:n.monId,threat:n.threat,gilded:n.gilded,boss:n.type==='boss',fightSeed:st.fightSeed});
+    startRouteFight({nodeId:n.id,monId:n.monId,threat:n.threat,gilded:n.gilded,power:n.power||1,boss:n.type==='boss',fightSeed:st.fightSeed});
   }else if(st.phase==='reward'){metricPhase('reward');dispatchRoute({type:'settleReward'});}   /* fixed not saved: re-settle, receipt makes it once */
   else if(st.phase==='market'){G.phase='draft';metricPhase('market');renderAll();}
   else if(st.phase==='event'){metricPhase('event');const n=nodeOf(routeMap(),st.pendingId);routeEventCard({node:n});}
@@ -1315,8 +1335,8 @@ function initEmbers(){
    and Tutorial. Falls straight through to the lobby when the painted
    art has not landed (tests, art-less checkouts). */
 function openIntro(){
-  /* The Long Bazaar is the only game now. Both painted plaques start a route;
-     a route-native tutorial is owed (the old lobby coach was deleted in 0.68). */
+  /* New Game opens the two route lengths. Tutorial stays on the established
+     Quick road until the longer route receives its own guided pass. */
   if(!ART['bg-intro']){newRoute();return;}
   const o=document.createElement('div');o.id='intro';
   o.innerHTML='<div class="ititle">Tavern Bash</div>'
@@ -1326,8 +1346,16 @@ function openIntro(){
    +'</div>'+(unexportedRunCount()?'<button class="btn introexport" id="inExport">Copy Unexported Runs ('+unexportedRunCount()+')</button>':'');
   document.body.appendChild(o);
   o.querySelector('#inNew').onclick=function(){o.remove();newRoute();};
-  o.querySelector('#inTut').onclick=function(){o.remove();newRoute();};
+  o.querySelector('#inTut').onclick=function(){o.remove();newRoute('quick');};
   const ex=o.querySelector('#inExport');if(ex)ex.onclick=function(){copyUnexportedRuns(ex);};
+}
+function openRetiredRouteNotice(d){
+  const oldVersion=d.fromMapVersion||d.mapVersion||8;
+  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">The Road Changed</div>'
+   +ic('g-lantern','bigic')+'<h2 class="big">A New Map Awaits</h2>'
+   +'<p>Your earlier route used map version '+esc(oldVersion)+'. Quick Night and Long Bazaar now use a new map, so that run cannot continue.</p>'
+   +'<button class="btn gold" id="retiredNew" style="width:100%">Choose a New Road</button></div>');
+  o.querySelector('#retiredNew').onclick=function(){ovClose(o);newRoute();};
 }
 /* the debug strip: ?debug in the URL (or bb-debug=1 in storage) pins a
    tiny readout to the corner: build tag, PWA vs browser tab, viewport,
@@ -1371,7 +1399,8 @@ export function boot(){
   initEmbers();
   const dr=loadRoute();
   /* a saved route resumes; otherwise the title */
-  if(dr){music('market');openRouteContinue(dr);}
+  if(dr&&dr.retired){music('title');openRetiredRouteNotice(dr);}
+  else if(dr){music('market');openRouteContinue(dr);}
   else{music('title');openIntro();}
   /* dev-only hooks for driving playtests from the console; the guard
      matches the service worker's, so the live site never carries them */
@@ -1383,6 +1412,7 @@ export function boot(){
       /* reward-flow hooks so the resume e2e can exercise the gild/unique choice
          branch without walking deep into the route to a choice-bounty monster */
       settleFixed:function(plan,nodeId){var key=rewardKey(G.run.runId,nodeId||'test',0);settleFixed(G.run,plan,key);return key;},
-      presentAfterReward:presentAfterReward,checkpoint:checkpointActiveRun,routeEnd:routeEnd};
+      settleRouteReward:settleRouteReward,presentAfterReward:presentAfterReward,
+      checkpoint:checkpointActiveRun,routeEnd:routeEnd};
   }
 }

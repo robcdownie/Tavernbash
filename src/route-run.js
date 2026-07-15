@@ -53,13 +53,14 @@ function runIdFor(seed){ return 'r' + (seed >>> 0).toString(36); }
    canonical here rather than on G. */
 export function newRun(setup){
   const seed = setup.seed >>> 0;
+  const routeMode=setup.routeMode || 'quick';
   return {
     schemaVersion: SCHEMA_VERSION,
     runId: runIdFor(seed),
     revision: 0,
     seed: seed,
-    routeMode: setup.routeMode || 'quick',
-    route: initRoute(seed),
+    routeMode: routeMode,
+    route: initRoute(seed,routeMode),
     economy: newEconomy(),
     metrics: newMetrics(setup.now),
     end: null,

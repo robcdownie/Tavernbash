@@ -88,7 +88,7 @@ export function playerFightItems(board,T,A,scale){
   });
 }
 export function monsterFightItems(mid,ctx){
-  const M=MONSTERS[mid];const A=ctx.A||ANONE;const gild=ctx.gilded?1.5:1;
+  const M=MONSTERS[mid];const A=ctx.A||ANONE;const gild=(ctx.gilded?1.5:1)*(ctx.power||1);
   if(M.special==="mirror"){
     return playerFightItems(ctx.playerBoard,{},A,0.85*gild);
   }
@@ -115,7 +115,7 @@ export function monsterFightItems(mid,ctx){
   });
 }
 export function monsterSide(mid,ctx){
-  const M=MONSTERS[mid];const A=ctx.A||ANONE;const gild=ctx.gilded?1.5:1;
+  const M=MONSTERS[mid];const A=ctx.A||ANONE;const gild=(ctx.gilded?1.5:1)*(ctx.power||1);
   let hp;
   if(M.special==="mirror"){hp=Math.round((ctx.playerHp||fightHP(ctx.round,0,A))*0.85*gild);}
   else if(M.special==="gold"){hp=Math.round((M.hp+15*(ctx.gold||0))*gild*A.hpMul);}

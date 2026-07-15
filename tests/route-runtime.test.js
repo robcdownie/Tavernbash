@@ -39,6 +39,9 @@ test('settleFixed applies gold, offers, relic, and mote once, and is idempotent'
   assert.ok(run.economy.shop.every(o => Number.isInteger(o.offerId)), 'offers got ids');
   assert.equal(r1.fixedApplied, true);
   assert.equal(r1.choiceApplied, true, 'no choice owed, so closed');
+  assert.deepEqual(r1.grantedItemIds, ['torch']);
+  assert.deepEqual(r1.duplicateUniqueIds, []);
+  assert.equal(r1.duplicateUniqueGold, 0);
   const nextItemAfter = run.ids.nextItem;
   settleFixed(run, plan({gold: 5, items: ['torch'], relic: true, mote: {item: 'dagger'}}), key);
   assert.equal(run.economy.gold, 5, 'second call does not re-pay');
@@ -51,6 +54,48 @@ test('settleFixed with a mote fallback pays gold when nothing bronze to copy', (
   run.economy.gold = 0;
   settleFixed(run, plan({gold: 3, mote: {gold: 3}}), rewardKey(run.runId, 'n', 0));
   assert.equal(run.economy.gold, 6);
+});
+
+test('duplicate unique bounties pay 3 gold across board, vault, and waiting shop exactly once',()=>{
+  const cases=[
+    run=>{run.economy.board=[{id:'serpentcrown',iid:1,rarity:0}];},
+    run=>{run.economy.vault=[{id:'serpentcrown',iid:1,rarity:0}];},
+    run=>{run.economy.shop=[{id:'serpentcrown',offerId:1,bought:false}];run.ids.nextItem=2;}
+  ];
+  for(const setup of cases){
+    const run=newRun({seed:SEED});run.economy.gold=0;setup(run);
+    const before=run.economy.shop.length,key=rewardKey(run.runId,'repeat',0);
+    const receipt=settleFixed(run,plan({items:['serpentcrown']}),key);
+    assert.equal(run.economy.gold,3);
+    assert.equal(run.economy.shop.length,before,'no duplicate free offer');
+    assert.deepEqual(receipt.grantedItemIds,[]);
+    assert.deepEqual(receipt.duplicateUniqueIds,['serpentcrown']);
+    assert.equal(receipt.duplicateUniqueGold,3);
+    settleFixed(run,plan({items:['serpentcrown']}),key);
+    assert.equal(run.economy.gold,3,'receipt blocks a second fallback');
+  }
+});
+
+test('a mixed bounty receipt separates granted wares from duplicate unique cash',()=>{
+  const run=newRun({seed:SEED});run.economy.gold=0;
+  run.economy.vault=[{id:'serpentcrown',iid:1,rarity:0}];run.ids.nextItem=2;
+  const receipt=settleFixed(run,plan({items:['torch','serpentcrown','vial']}),rewardKey(run.runId,'mixed',0));
+  assert.deepEqual(receipt.grantedItemIds,['torch','vial']);
+  assert.deepEqual(receipt.duplicateUniqueIds,['serpentcrown']);
+  assert.equal(receipt.duplicateUniqueGold,3);
+  assert.deepEqual(run.economy.shop.map(o=>o.id),['torch','vial']);
+  assert.equal(run.economy.gold,3);
+});
+
+test('a sold unique bounty is reacquirable as a free offer',()=>{
+  const run=newRun({seed:SEED});run.economy.gold=0;
+  run.economy.shop=[{id:'serpentcrown',offerId:1,bought:true}];run.ids.nextItem=2;
+  const receipt=settleFixed(run,plan({items:['serpentcrown']}),rewardKey(run.runId,'sold',0));
+  assert.equal(run.economy.gold,0);
+  assert.deepEqual(receipt.grantedItemIds,['serpentcrown']);
+  assert.deepEqual(receipt.duplicateUniqueIds,[]);
+  assert.equal(receipt.duplicateUniqueGold,0);
+  assert.equal(run.economy.shop.filter(o=>o.id==='serpentcrown'&&!o.bought).length,1);
 });
 
 test('a gild bounty pends a choice, and chooseGild applies it exactly once', () => {

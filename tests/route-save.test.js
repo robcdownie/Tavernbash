@@ -70,6 +70,24 @@ test('read rejects a future save version, a stale map version, and garbage', () 
   assert.equal(readRouteSave(s), null, 'empty is null');
 });
 
+test('the first read of a map v8 save returns a retirement sentinel, then it is gone',()=>{
+  const s=fakeStorage(),old=Object.assign({},v2env(initRoute(SEED)),{mapVersion:8});
+  writeRouteSave(s,old);
+  assert.deepEqual(readRouteSave(s),{retired:true,reason:'map_updated',mapVersion:8});
+  assert.equal(s.getItem(ROUTE_KEY),null,'retired payload was removed');
+  assert.equal(readRouteSave(s),null,'retirement is reported only once');
+});
+
+test('a Long controller and mode round-trip against its seven district map',()=>{
+  const s=fakeStorage(),route=initRoute(SEED,'long');
+  const env=v2env(route);env.run.routeMode='long';
+  writeRouteSave(s,env);
+  const loaded=readRouteSave(s);
+  assert.equal(loaded.run.routeMode,'long');
+  assert.equal(loaded.run.route.resolveMax,60);
+  assert.ok(validRoute(loaded.run.route,genMap(SEED,'long')));
+});
+
 test('clear removes the save', () => {
   const s = fakeStorage();
   writeRouteSave(s, v2env(initRoute(SEED)));

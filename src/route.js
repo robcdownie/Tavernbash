@@ -33,11 +33,18 @@ export function fightSeed(seed,nodeId,attempt){return hash32((seed>>>0)+':'+node
 
 export function nodeOf(map,id){return map.nodes[id];}
 export function visitedSet(state){return new Set(state.path);}
+export function districtOf(map,node){return map&&map.districts&&map.districts[node.district-1];}
+export function slipCost(map,node){
+  const d=districtOf(map,node);
+  return d&&typeof d.slip==='number'?d.slip:DISTRICTS[node.district-1].slip;
+}
 
 /* the Resolve a loss costs: district chip, encounter bonus, and a capped share of
    the enemy's surviving item tiers (passed in from the finished fight) */
-export function lossDamage(node,survTier){
-  return MONCHIP[node.district]+LOSS_BONUS[node.type]+Math.min(4,Math.ceil((survTier||0)/3));
+export function lossDamage(node,survTier,map){
+  const d=districtOf(map,node);
+  const chip=d&&typeof d.lossChip==='number'?d.lossChip:MONCHIP[node.district];
+  return chip+LOSS_BONUS[node.type]+Math.min(4,Math.ceil((survTier||0)/3));
 }
 
 /* the choosable nodes right now: nothing mid-encounter, the district entrance at a
@@ -47,7 +54,7 @@ export function frontier(state,map){
   if(state.path.length===0)return map.districts[0].columns[0].map(n=>n.id);
   const last=nodeOf(map,state.path[state.path.length-1]);
   if(last.type==='boss'){
-    if(last.district>=4)return [];
+    if(last.district>=map.districts.length)return [];
     return map.districts[last.district].columns[0].map(n=>n.id);
   }
   return last.next.slice();
@@ -79,13 +86,14 @@ export function currentDistrict(state,map){
   if(state.pendingId)return nodeOf(map,state.pendingId).district-1;
   if(state.path.length===0)return 0;
   const last=nodeOf(map,state.path[state.path.length-1]);
-  if(last.type==='boss')return Math.min(3,last.district);
+  if(last.type==='boss')return Math.min(map.districts.length-1,last.district);
   return last.district-1;
 }
 
-export function initRoute(seed){
+export function initRoute(seed,mode='quick'){
+  const resolve=mode==='long'?60:40;
   return {seed:seed>>>0,version:MAP_VERSION,path:[],pendingId:null,resolution:null,
-    phase:'map',resolve:40,resolveMax:40,attempts:{},fightSeed:null};
+    phase:'map',resolve:resolve,resolveMax:resolve,attempts:{},fightSeed:null};
 }
 
 const PHASES=new Set(['map','encounter','reward','market','event','gateCamp','won','lost']);
@@ -129,7 +137,7 @@ function commit(state,map,a){
   const node=nodeOf(map,a.nodeId);
   const ns=clone(state);
   if(node.type==='monster'&&a.choice==='slip'){
-    const cost=DISTRICTS[node.district-1].slip;
+    const cost=slipCost(map,node);
     ns.resolve-=cost;complete(ns,node);
     const eff=[{type:'slip',nodeId:node.id,cost:cost}];
     if(ns.resolve<=0){ns.phase='lost';eff.push({type:'end',cause:'resolve'});}
@@ -140,7 +148,7 @@ function commit(state,map,a){
     ns.pendingId=node.id;ns.resolution='challenge';ns.phase='encounter';
     ns.fightSeed=fightSeed(state.seed,node.id,attempt);
     return {state:ns,effects:[{type:'fight',nodeId:node.id,monId:node.monId,threat:node.threat,
-      gilded:!!node.gilded,boss:node.type==='boss',fightSeed:ns.fightSeed}]};
+      gilded:!!node.gilded,power:node.power||1,boss:node.type==='boss',fightSeed:ns.fightSeed}]};
   }
   if(node.type==='market'){
     ns.pendingId=node.id;ns.resolution='market';ns.phase='market';
@@ -162,7 +170,7 @@ function fightResult(state,map,a){
     ns.phase='reward';
     return {state:ns,effects:[{type:'wonFight',nodeId:node.id}]};
   }
-  const dmg=lossDamage(node,a.survTier||0);
+  const dmg=lossDamage(node,a.survTier||0,map);
   ns.resolve-=dmg;
   const eff=[{type:'lostFight',nodeId:node.id,damage:dmg}];
   if(node.type==='boss'){
@@ -181,7 +189,7 @@ function settleReward(state,map){
   if(state.phase!=='reward'||!state.pendingId)throw new Error('route: no reward to settle');
   const node=nodeOf(map,state.pendingId);
   const ns=clone(state);
-  const won=node.type==='boss'&&node.district>=4;
+  const won=node.type==='boss'&&node.district>=map.districts.length;
   complete(ns,node);
   ns.phase=won?'won':'map';
   const eff=[{type:'reward',nodeId:node.id,gold:BASE_GOLD[node.type],monId:node.monId,
@@ -218,7 +226,7 @@ function startBossRetry(state,map){
   const attempt=(state.attempts[node.id]||0)+1;
   ns.attempts[node.id]=attempt;ns.phase='encounter';ns.fightSeed=fightSeed(state.seed,node.id,attempt);
   return {state:ns,effects:[{type:'fight',nodeId:node.id,monId:node.monId,threat:node.threat,
-    gilded:false,boss:true,fightSeed:ns.fightSeed}]};
+    gilded:!!node.gilded,power:node.power||1,boss:true,fightSeed:ns.fightSeed}]};
 }
 
 /* single dispatch entry: transition(state, map, action) -> {state, effects} */

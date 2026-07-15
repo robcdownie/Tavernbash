@@ -4,11 +4,12 @@ import {test, expect} from '@playwright/test';
    only localStorage), continue, and assert the real restoreRoute/resumeRoutePhase
    path recovers it. Drives through the localhost-only BBDEV console hooks. */
 
-async function freshRoute(page) {
+async function freshRoute(page, mode = 'quick') {
   await page.goto('/');
   await page.evaluate(() => { try { localStorage.removeItem('bb-route-run'); localStorage.removeItem('bb-run'); } catch (e) {} });
   await page.reload();
   await page.click('#inNew');
+  await page.click(mode === 'long' ? '#modeLong' : '#modeQuick');
   await page.click('#heroGo');
   await page.click('#rvGo');
   await page.click('#btnGo');                 /* set out from the opening stall */
@@ -201,6 +202,31 @@ test('resume at the map preserves gold, Resolve, and progress', async ({page}) =
   expect(await snap()).toEqual(before);
 });
 
+test('a Long Bazaar save resumes on the seven district map', async ({page}) => {
+  await freshRoute(page, 'long');
+  const before=await page.evaluate(()=>{const G=window.BBDEV.g();return {seed:G.run.seed,mode:G.run.routeMode,resolve:G.run.route.resolve,districts:G.route.map.districts.length};});
+  await reloadAndContinue(page);
+  await page.waitForSelector('.rmplot');
+  const after=await page.evaluate(()=>{const G=window.BBDEV.g();return {seed:G.run.seed,mode:G.run.routeMode,resolve:G.run.route.resolve,districts:G.route.map.districts.length};});
+  expect(before).toEqual({seed:before.seed,mode:'long',resolve:60,districts:7});
+  expect(after).toEqual(before);
+});
+
+test('a map version 8 save receives one retirement notice', async ({page}) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.removeItem('bb-route-run');
+    localStorage.setItem('bb-route-run', JSON.stringify({saveVersion:3,mapVersion:8,run:{seed:17}}));
+  });
+  await page.reload();
+  await expect(page.locator('#retiredNew')).toBeVisible();
+  await page.click('#retiredNew');
+  await expect(page.locator('#modeLong')).toBeVisible();
+  await page.reload();
+  await expect(page.locator('#inNew')).toBeVisible();
+  await expect(page.locator('#retiredNew')).toHaveCount(0);
+});
+
 test('resume mid-fight restarts the same fight from the same seed', async ({page}) => {
   await freshRoute(page);
   const seed = await startFirstFight(page);
@@ -230,6 +256,45 @@ test('resume during the victory recap settles the reward exactly once', async ({
   expect(after.phase).toBe('map');
   expect(after.path).toBe(before.path + 1);      /* the node completed once, not zero or twice */
   expect(after.gold).toBeGreaterThanOrEqual(before.gold + 2);   /* base monster gold (2/4/6) paid once */
+});
+
+test('duplicate unique settlement records and announces cash instead of a phantom offer', async ({page}) => {
+  await freshRoute(page);
+  const result=await page.evaluate(() => {
+    const G=window.BBDEV.g(),nodeId=window.BBDEV.frontier()[0];
+    G.board.push({id:'serpentcrown',iid:G.run.ids.nextItem++,rarity:0,size:2,ench:null});
+    const gold=G.gold;
+    G.route.combat={nodeId:nodeId,enteredGold:gold,pocketed:0,attempt:0};
+    window.BBDEV.settleRouteReward({nodeId:nodeId,monId:'shahmaran',gold:2,gilded:false});
+    const ev=G.run.metrics.events.filter(e=>e.type==='reward_settled').slice(-1)[0];
+    return {data:ev&&ev.data,toast:document.querySelector('#toast').textContent,
+      crownOffers:G.shop.filter(o=>o.id==='serpentcrown'&&!o.bought).length,goldDelta:G.gold-gold};
+  });
+  expect(result.data.items).toEqual([]);
+  expect(result.data.duplicateUniqueIds).toEqual(['serpentcrown']);
+  expect(result.data.duplicateUniqueGold).toBe(3);
+  expect(result.crownOffers).toBe(0);
+  expect(result.goldDelta).toBe(result.data.gold+result.data.duplicateUniqueGold);
+  expect(result.toast).toContain('3 gold instead of duplicate Serpent Crown');
+  expect(result.toast).not.toContain('waiting free');
+});
+
+test('presenting the map after a boss reward advances telemetry to the next district', async ({page}) => {
+  await freshRoute(page);
+  const result=await page.evaluate(() => {
+    const G=window.BBDEV.g(),boss=G.route.map.districts[0].boss;
+    G.run.route.path=[boss.id];G.run.route.pendingId=null;G.run.route.phase='map';
+    G.run.metrics.timing.cursor.phase='reward';G.run.metrics.timing.cursor.district=1;
+    G.run.metrics.timing.cursor.active=true;G.run.metrics.timing.cursor.lastAt=Date.now()-25;
+    window.BBDEV.presentAfterReward();
+    const t=G.run.metrics.timing;
+    return {uiPhase:G.phase,phase:t.cursor.phase,district:t.cursor.district,
+      priorRewardMs:t.districts['1']&&t.districts['1'].phases.reward||0};
+  });
+  expect(result.uiPhase).toBe('routeMap');
+  expect(result.phase).toBe('map');
+  expect(result.district).toBe(2);
+  expect(result.priorRewardMs).toBeGreaterThanOrEqual(20);
 });
 
 test('a finished run keeps one report and its debrief across reload', async ({page}) => {

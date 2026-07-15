@@ -22,6 +22,15 @@ test('newRun builds a v3 Quick aggregate with metrics and an id counter', () => 
   assert.equal(run.ids.nextItem, 1);
 });
 
+test('newRun binds Long mode to a sixty Resolve controller',()=>{
+  const run=newRun({seed:SEED,routeMode:'long'});
+  assert.equal(run.routeMode,'long');
+  assert.deepEqual(run.route,initRoute(SEED,'long'));
+  assert.equal(run.route.resolve,60);
+  assert.equal(run.route.resolveMax,60);
+  assert.ok(validRoute(run.route,genMap(SEED,'long')));
+});
+
 test('runId is derived from the seed and is stable for the same seed', () => {
   assert.equal(newRun({seed: SEED}).runId, newRun({seed: SEED}).runId);
   assert.notEqual(newRun({seed: SEED}).runId, newRun({seed: SEED + 1}).runId);

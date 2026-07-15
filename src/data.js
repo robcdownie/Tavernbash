@@ -448,7 +448,7 @@ export const MONSTERS={
 };
 export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc","simurgh","golem","nasnas"],4:["azhdaha","auctioneer","vizier"]};
 export const MONCHIP={1:2,2:4,3:6,4:8};
-/* The Long Bazaar route layer. Districts define the run's four stages: which
+/* The Long Bazaar route layer. District tables define each route stage: which
    monsters fill their normal and elite doors, the fixed boss, the map-depth to
    engine Threat mapping (fed to fightHP and stormAt), and the Slip Past cost in
    Resolve. This deliberately differs from the legacy MONBAND/band grouping; the
@@ -463,4 +463,25 @@ export const DISTRICTS=[
   normals:["nasnas","roc","simurgh"],elites:["shahmaran","marid","golem"]},
  {id:4,name:"The Dragon Gate",boss:"vizier",threatEarly:10,threatLate:11,threatBoss:12,slip:0,
   normals:[],elites:["azhdaha","auctioneer"]}
+];
+/* The extended route reuses the approved encounter sets as explicit reprises.
+   sourceId tells presentation which district art and monster pool the reprise
+   belongs to; id remains the unique route position. Late combats are forced
+   gilded, then power provides the smallest district-specific calibration that
+   keeps accumulated Long economy from turning the second act into a victory lap. */
+export const LONG_DISTRICTS=[
+ {id:1,sourceId:1,name:"Back Alleys",boss:"matron",threatEarly:1,threatLate:2,threatBoss:3,slip:3,lossChip:2,
+  normals:DISTRICTS[0].normals,elites:DISTRICTS[0].elites},
+ {id:2,sourceId:2,name:"The Souk",boss:"collector",threatEarly:4,threatLate:5,threatBoss:6,slip:5,lossChip:4,
+  normals:DISTRICTS[1].normals,elites:DISTRICTS[1].elites},
+ {id:3,sourceId:3,name:"Palace Quarter",boss:"ifrit",threatEarly:7,threatLate:8,threatBoss:9,slip:7,lossChip:6,
+  normals:DISTRICTS[2].normals,elites:DISTRICTS[2].elites},
+ {id:4,sourceId:1,name:"Back Alleys After Midnight",boss:"matron",threatEarly:10,threatLate:11,threatBoss:12,slip:8,lossChip:6,power:2.9,
+  normals:DISTRICTS[0].normals,elites:DISTRICTS[0].elites,forceGilded:true,reprise:true},
+ {id:5,sourceId:2,name:"The Souk After Midnight",boss:"collector",threatEarly:13,threatLate:14,threatBoss:15,slip:9,lossChip:7,power:1.6,
+  normals:DISTRICTS[1].normals,elites:DISTRICTS[1].elites,forceGilded:true,reprise:true},
+ {id:6,sourceId:3,name:"Palace Quarter After Midnight",boss:"ifrit",threatEarly:16,threatLate:17,threatBoss:18,slip:10,lossChip:8,power:2.05,
+  normals:DISTRICTS[2].normals,elites:DISTRICTS[2].elites,forceGilded:true,reprise:true},
+ {id:7,sourceId:4,name:"The Dragon Gate",boss:"vizier",threatEarly:19,threatLate:20,threatBoss:21,slip:0,lossChip:10,power:1.6,
+  normals:[],elites:DISTRICTS[3].elites,forceGilded:true}
 ];

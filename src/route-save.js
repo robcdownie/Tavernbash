@@ -68,7 +68,11 @@ export function readRouteSave(storage){
   try{
     let d=JSON.parse(storage.getItem(ROUTE_KEY)||'null');
     if(!d)return null;
-    if(d.mapVersion!==MAP_VERSION){storage.removeItem(ROUTE_KEY);return null;}
+    if(d.mapVersion!==MAP_VERSION){
+      storage.removeItem(ROUTE_KEY);
+      if(MAP_VERSION===9&&d.mapVersion===8)return {retired:true,reason:'map_updated',mapVersion:8};
+      return null;
+    }
     if(d.saveVersion===1){d=migrateV1toV2(d);}
     if(d.saveVersion===2){d=migrateV2toV3(d);}
     if(!d||d.saveVersion!==ROUTE_SAVE_VERSION){storage.removeItem(ROUTE_KEY);return null;}

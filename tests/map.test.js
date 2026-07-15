@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {genMap, districtPaths, isCombat, treasureWareIds} from '../src/map.js';
+import {createHash} from 'node:crypto';
+import {genMap, districtPaths, isCombat, treasureWareIds, MAP_VERSION} from '../src/map.js';
 import {DISTRICTS, MONSTERS, PERSONAS, ITEMS, ENCH} from '../src/data.js';
 
 /* a broad seed spread so the structural rules are proven, not sampled */
@@ -17,6 +18,84 @@ function mainDistricts(map){return map.districts.filter(d=>d.id!==4);}
 test('genMap is deterministic: same seed yields identical maps',()=>{
   for(const s of SEEDS.slice(0,20)){
     assert.deepEqual(genMap(s),genMap(s),'seed '+s+' not reproducible');
+  }
+});
+
+test('map version 9 preserves every Quick layout byte except the version stamp',()=>{
+  assert.equal(MAP_VERSION,9);
+  const ledger=new Map([
+    [0,'aa55830f3032bdaa11ceea703880a40b2943d83c15fcdee5788ea934ee7120ea'],
+    [1,'bc1e653b13a5d76b1cb2d580b54b555cb26f9ce555dcd9dddf9530d230886de7'],
+    [7,'54b1af17f15c993d9d83d1d09f9d9fae2131f77ff6153d1381592c03a0e941ce'],
+    [1234567,'ea45acb5f8c3f7701a60ea37d5a09c6a085858686fe678644f7708b44cd5c19b'],
+    [2654435769,'ec536f340384ca125f0724139ec6a0f5d22607415c6e77b22e23f57afd7b3c4b'],
+    [4294967295,'72b01a34f0bc005fe655b804bb29a39f2988b7cc8b66dbd1e0515f61f43d17f5']
+  ]);
+  for(const [seed,want] of ledger){
+    const map=genMap(seed,'quick');delete map.version;
+    const got=createHash('sha256').update(JSON.stringify(map)).digest('hex');
+    assert.equal(got,want,'Quick map drifted for seed '+seed);
+  }
+});
+
+test('Quick maps omit Long power calibration on districts and nodes',()=>{
+  for(const s of SEEDS.slice(0,40)){
+    const map=genMap(s,'quick');
+    for(const d of map.districts){
+      assert.equal(Object.hasOwn(d,'power'),false,'Quick district '+d.id+' gained power');
+      for(const n of allNodes({districts:[d]}))assert.equal(Object.hasOwn(n,'power'),false,'Quick node '+n.id+' gained power');
+    }
+  }
+});
+
+test('Long builds seven districts and forty selected nodes on the approved bands',()=>{
+  for(const s of SEEDS){
+    const map=genMap(s,'long');
+    assert.equal(map.mode,'long');
+    assert.deepEqual(map.districts.map(d=>d.sourceId),[1,2,3,1,2,3,4]);
+    assert.equal(map.districts.reduce((n,d)=>n+d.columns.length+1,0),40);
+    assert.deepEqual(map.districts.map(d=>d.slip),[3,5,7,8,9,10,0]);
+    assert.deepEqual(map.districts.map(d=>d.lossChip),[2,4,6,6,7,8,10]);
+    assert.deepEqual(map.districts.map(d=>d.boss.threat),[3,6,9,12,15,18,21]);
+    assert.deepEqual(map.districts.slice(3,6).map(d=>d.name),[
+      'Back Alleys After Midnight','The Souk After Midnight','Palace Quarter After Midnight'
+    ]);
+    for(let i=0;i<map.districts.length;i++){
+      const d=map.districts[i],lo=i*3+1,hi=i*3+3;
+      for(const n of allNodes({districts:[d]}))assert.ok(n.threat>=lo&&n.threat<=hi,n.id+' threat outside '+lo+' to '+hi);
+    }
+  }
+});
+
+test('Long forces every late combat gilded and carries its district power only on combats',()=>{
+  for(const s of SEEDS){
+    const map=genMap(s,'long');
+    assert.ok(map.districts.slice(3).every(d=>d.power>1),'late districts declare non-neutral power');
+    for(const d of map.districts.slice(3))for(const n of allNodes({districts:[d]})){
+      if(isCombat(n)){
+        assert.equal(n.gilded,true,n.id+' was not gilded');
+        assert.equal(n.power,d.power,n.id+' lost district power');
+      }else assert.equal(Object.hasOwn(n,'power'),false,n.id+' should not carry combat power');
+    }
+  }
+});
+
+test('Long places one shrine in each act and no more than one silver Treasure per act',()=>{
+  for(const s of SEEDS){
+    const map=genMap(s,'long');
+    assert.equal(map.shrineDistricts.length,2);
+    assert.ok(map.shrineDistricts[0]===2||map.shrineDistricts[0]===3);
+    assert.ok(map.shrineDistricts[1]===5||map.shrineDistricts[1]===6);
+    const shrines=[];
+    for(const n of allNodes(map))if(n.type==='shrine')shrines.push(n.district);
+    assert.deepEqual(shrines.sort(),map.shrineDistricts.slice().sort());
+    for(const act of [[1,2,3],[4,5,6]]){
+      let silver=0;
+      for(const n of allNodes(map))if(act.includes(n.district)&&n.type==='treasure'){
+        for(const o of n.reward.options)if(o.kind==='silver')silver++;
+      }
+      assert.ok(silver<=1,'seed '+s+' act '+act[0]+' offered '+silver+' silver upgrades');
+    }
   }
 });
 

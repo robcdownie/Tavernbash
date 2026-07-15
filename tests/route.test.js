@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {genMap} from '../src/map.js';
+import {genMap,isCombat} from '../src/map.js';
 import {initRoute,transition,frontier,fightSeed,lossDamage,validRoute,BASE_GOLD,currentDistrict,classifyEdges} from '../src/route.js';
 import {MONCHIP,DISTRICTS} from '../src/data.js';
 
@@ -9,9 +9,9 @@ for(let i=0;i<60;i++)SEEDS.push(((i*40503+7)^0x9e3779b9)>>>0);
 
 /* drive a run with a policy. policy.map returns an action for a map-phase turn (or
    'stop'); policy.fight returns 'a'/'b'; policy.gate returns a gate-camp action. */
-function run(seed,policy){
-  const map=genMap(seed);
-  let st=initRoute(seed);
+function run(seed,policy,mode='quick'){
+  const map=genMap(seed,mode);
+  let st=initRoute(seed,mode);
   const effects=[];let guard=0;
   while(st.phase!=='won'&&st.phase!=='lost'&&guard++<400){
     let act;
@@ -29,6 +29,112 @@ function run(seed,policy){
   }
   return {state:st,map,effects};
 }
+
+function stateBeforeNode(map,node,mode){
+  const st=initRoute(map.seed,mode);
+  if(node.col===0){
+    if(node.district>1)st.path=[map.districts[node.district-2].boss.id];
+    return st;
+  }
+  const d=map.districts[node.district-1];let pred=null;
+  for(const col of d.columns)for(const n of col)if((n.next||[]).includes(node.id)){pred=n;break;}
+  assert.ok(pred,'no predecessor for '+node.id);
+  st.path=[pred.id];
+  return st;
+}
+
+test('Quick fight effects use neutral power without changing the map payload',()=>{
+  for(const s of SEEDS.slice(0,10)){
+    const map=genMap(s,'quick');
+    for(const d of map.districts){
+      const nodes=d.columns.flat().concat([d.boss]).filter(isCombat);
+      for(const node of nodes){
+        assert.equal(Object.hasOwn(node,'power'),false);
+        const r=transition(stateBeforeNode(map,node,'quick'),map,{type:'commit',nodeId:node.id,choice:'challenge'});
+        assert.equal(r.effects[0].power,1,node.id+' Quick effect was not neutral');
+      }
+    }
+  }
+});
+
+test('every late Long fight effect and boss retry preserves district power',()=>{
+  for(const s of SEEDS.slice(0,10)){
+    const map=genMap(s,'long');
+    for(const d of map.districts.slice(3)){
+      const nodes=d.columns.flat().concat([d.boss]).filter(isCombat);
+      for(const node of nodes){
+        const r=transition(stateBeforeNode(map,node,'long'),map,{type:'commit',nodeId:node.id,choice:'challenge'});
+        assert.equal(r.effects[0].power,d.power,node.id+' commit lost power');
+      }
+      const camp=initRoute(s,'long');
+      camp.phase='gateCamp';camp.pendingId=d.boss.id;camp.resolution='challenge';
+      const retry=transition(camp,map,{type:'startBossRetry'}).effects[0];
+      assert.equal(retry.power,d.power,d.boss.id+' retry lost power');
+    }
+  }
+});
+
+test('Long flawless run visits forty nodes, beats seven bosses, and keeps sixty Resolve',()=>{
+  for(const s of SEEDS.slice(0,20)){
+    const {state}=run(s,{fight:()=>'a'},'long');
+    assert.equal(state.phase,'won','seed '+s+' did not win');
+    assert.equal(state.path.length,40);
+    for(let d=1;d<=7;d++)assert.ok(state.path.includes('d'+d+'boss'),'missed district '+d+' boss');
+    assert.equal(state.resolve,60);
+    assert.equal(state.resolveMax,60);
+    assert.equal(state.path[state.path.length-1],'d7boss');
+  }
+});
+
+test('Long uses map loss chips and slip costs in After Midnight districts',()=>{
+  const s=SEEDS[2],map=genMap(s,'long');
+  let st=initRoute(s,'long'),guard=0;
+  while(currentDistrict(st,map)<3&&guard++<200){
+    let action;
+    if(st.phase==='map'){const fr=frontier(st,map);action={type:'commit',nodeId:fr[0],choice:'challenge'};}
+    else if(st.phase==='encounter')action={type:'fightResult',winner:'a'};
+    else if(st.phase==='reward')action={type:'settleReward'};
+    else if(st.phase==='market')action={type:'leaveMarket'};
+    else if(st.phase==='event')action={type:'resolveEvent'};
+    ({state:st}=transition(st,map,action));
+  }
+  assert.equal(currentDistrict(st,map),3,'did not reach the first reprise');
+  const node=map.nodes[frontier(st,map)[0]];
+  assert.equal(node.type,'monster');
+  let r=transition(st,map,{type:'commit',nodeId:node.id,choice:'slip'});
+  assert.equal(r.state.resolve,52,'D4 Slip Past costs 8 Resolve');
+
+  st=Object.assign({},st,{path:st.path.slice()});
+  ({state:st}=transition(st,map,{type:'commit',nodeId:node.id,choice:'challenge'}));
+  r=transition(st,map,{type:'fightResult',winner:'b',survTier:0});
+  assert.equal(r.effects[0].damage,6,'D4 base loss chip is 6');
+  assert.equal(r.state.resolve,54);
+});
+
+test('a forced gilded reprise boss stays gilded on every retry',()=>{
+  const s=SEEDS[6],map=genMap(s,'long');
+  let st=initRoute(s,'long'),guard=0,firstFight=null,retry=null;
+  while(!retry&&guard++<500){
+    let r;
+    if(st.phase==='map')r=transition(st,map,{type:'commit',nodeId:frontier(st,map)[0],choice:'challenge'});
+    else if(st.phase==='encounter'){
+      const n=map.nodes[st.pendingId];
+      r=transition(st,map,{type:'fightResult',winner:n.id==='d4boss'?'b':'a'});
+    }else if(st.phase==='reward')r=transition(st,map,{type:'settleReward'});
+    else if(st.phase==='market')r=transition(st,map,{type:'leaveMarket'});
+    else if(st.phase==='event')r=transition(st,map,{type:'resolveEvent'});
+    else if(st.phase==='gateCamp'){
+      r=transition(st,map,{type:'startBossRetry'});retry=r.effects[0];
+    }
+    if(!firstFight&&r.effects[0]&&r.effects[0].nodeId==='d4boss'&&r.effects[0].type==='fight')firstFight=r.effects[0];
+    st=r.state;
+  }
+  assert.equal(firstFight.gilded,true);
+  assert.equal(retry.gilded,true);
+  assert.equal(firstFight.power,map.districts[3].power);
+  assert.equal(retry.power,map.districts[3].power);
+  assert.notEqual(firstFight.fightSeed,retry.fightSeed);
+});
 
 test('a flawless run visits 22 nodes, beats all four bosses, keeps full Resolve',()=>{
   for(const s of SEEDS){

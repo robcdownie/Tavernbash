@@ -1,22 +1,22 @@
 "use strict";
 /* The Long Bazaar route generator. Pure and deterministic: one run seed in, one
-   full map out. The route is a three lane horizontal braid across four districts.
-   Districts I to III each run five columns of chosen nodes plus a fixed boss; the
-   Dragon Gate is a short gauntlet (an elite choice, a preparation choice, the
-   Grand Vizier). The generator owns every placement and connection rule from the
+   full map out. Quick is the original four district braid. Long adds three
+   explicitly labelled After Midnight reprises before the Dragon Gate. Regular
+   districts each run five columns of chosen nodes plus a fixed boss; the Dragon
+   Gate is a short gauntlet (an elite choice, a preparation choice, the Grand
+   Vizier). The generator owns every placement and connection rule from the
    approved run-structure doc; it renders nothing and never touches the engine.
 
    Node types: monster, elite, boss (combats) and market, rest, treasure, shrine,
-   negotiation (noncombat). A run visits one node per column plus each boss, which
-   totals 22 selected nodes (5+boss thrice, then the Dragon Gate's elite + prep +
-   market + Vizier). The full map holds three nodes per grid column so the player
-   picks a lane as they move right. */
+   negotiation (noncombat). A run visits one node per column plus each boss.
+   Quick totals 22 selected nodes and Long totals 40. Regular map columns hold
+   three nodes so the player picks a lane as they move right. */
 import {mulberry, gateOK} from './engine.js';
-import {DISTRICTS, PERSONAS, ITEMS, ENCH} from './data.js';
+import {DISTRICTS, LONG_DISTRICTS, PERSONAS, ITEMS, ENCH} from './data.js';
 
 /* bump when the generator's output shape or rules change, so a saved run that
    regenerates its map from the seed can reject a stale layout */
-export const MAP_VERSION=8;
+export const MAP_VERSION=9;
 
 export const COMBAT=new Set(['monster','elite','boss']);
 export function isCombat(n){return COMBAT.has(n.type);}
@@ -107,11 +107,12 @@ function tryDistrict(rng,D,allowShrine){
   const mk=(col,lane,type)=>{
     const n={id:'d'+D.id+'c'+(col+1)+'l'+lane,type:type,district:D.id,col:col,lane:lane,
       threat:col<=1?D.threatEarly:D.threatLate,next:[]};
+    if(D.power!=null&&COMBAT.has(type))n.power=D.power;
     if(type==='monster'){n.monId=norm[ni++];}
-    else if(type==='elite'){n.monId=elite[ei++];n.gilded=chance(rng,0.12);}
+    else if(type==='elite'){n.monId=elite[ei++];n.gilded=D.forceGilded?true:chance(rng,0.12);}
     else if(type==='treasure'){n.reward=rollTreasure(rng,D.id);}
     else if(type==='negotiation'){n.persona=Math.floor(rng()*PERSONAS.length);}
-    if(type==='monster'){n.gilded=chance(rng,0.12);}
+    if(type==='monster'){n.gilded=D.forceGilded?true:chance(rng,0.12);}
     cols[col][lane]=n;
     return n;
   };
@@ -142,10 +143,16 @@ function tryDistrict(rng,D,allowShrine){
 
   /* wire columns, then every last-column node into the boss */
   for(let c=0;c<4;c++)wire(rng,cols[c],cols[c+1]);
-  const boss={id:'d'+D.id+'boss',type:'boss',district:D.id,col:5,lane:1,threat:D.threatBoss,monId:D.boss,gilded:false,next:[]};
+  const boss={id:'d'+D.id+'boss',type:'boss',district:D.id,col:5,lane:1,threat:D.threatBoss,monId:D.boss,gilded:!!D.forceGilded,next:[]};
+  if(D.power!=null)boss.power=D.power;
   for(const n of cols[4])n.next.push(boss.id);
 
   const d={id:D.id,name:D.name,slip:D.slip,threatBoss:D.threatBoss,columns:cols,boss:boss};
+  if(D.sourceId!=null)d.sourceId=D.sourceId;
+  if(D.lossChip!=null)d.lossChip=D.lossChip;
+  if(D.reprise)d.reprise=true;
+  if(D.forceGilded)d.forceGilded=true;
+  if(D.power!=null)d.power=D.power;
   return validate(d,allowShrine)?d:null;
 }
 
@@ -199,20 +206,28 @@ function genDistrict(rng,D,allowShrine){
    Treasure stranded every late reward with no shop before the Vizier). No monster
    doors, no shrine, no slipping past. */
 function genDragonGate(rng,D){
+  const id=D.id;
   const elites=[
-    {id:'d4c1l0',type:'elite',district:4,col:0,lane:0,threat:D.threatEarly,monId:D.elites[0],gilded:chance(rng,0.12),next:[]},
-    {id:'d4c1l2',type:'elite',district:4,col:0,lane:2,threat:D.threatLate,monId:D.elites[1],gilded:chance(rng,0.12),next:[]}
+    {id:'d'+id+'c1l0',type:'elite',district:id,col:0,lane:0,threat:D.threatEarly,monId:D.elites[0],gilded:D.forceGilded?true:chance(rng,0.12),next:[]},
+    {id:'d'+id+'c1l2',type:'elite',district:id,col:0,lane:2,threat:D.threatLate,monId:D.elites[1],gilded:D.forceGilded?true:chance(rng,0.12),next:[]}
   ];
+  if(D.power!=null)for(const e of elites)e.power=D.power;
   const prep=[
-    {id:'d4c2l0',type:'rest',district:4,col:1,lane:0,threat:D.threatLate,next:[]},
-    {id:'d4c2l2',type:'treasure',district:4,col:1,lane:2,threat:D.threatLate,reward:rollTreasure(rng,D.id),next:[]}
+    {id:'d'+id+'c2l0',type:'rest',district:id,col:1,lane:0,threat:D.threatLate,next:[]},
+    {id:'d'+id+'c2l2',type:'treasure',district:id,col:1,lane:2,threat:D.threatLate,reward:rollTreasure(rng,D.id),next:[]}
   ];
-  const market={id:'d4c3l1',type:'market',district:4,col:2,lane:1,threat:D.threatLate,next:[]};
-  const boss={id:'d4boss',type:'boss',district:4,col:3,lane:1,threat:D.threatBoss,monId:D.boss,gilded:false,next:[]};
+  const market={id:'d'+id+'c3l1',type:'market',district:id,col:2,lane:1,threat:D.threatLate,next:[]};
+  const boss={id:'d'+id+'boss',type:'boss',district:id,col:3,lane:1,threat:D.threatBoss,monId:D.boss,gilded:!!D.forceGilded,next:[]};
+  if(D.power!=null)boss.power=D.power;
   for(const e of elites)for(const p of prep)e.next.push(p.id);
   for(const p of prep)p.next.push(market.id);
   market.next.push(boss.id);
-  return {id:4,name:D.name,slip:D.slip,threatBoss:D.threatBoss,columns:[elites,prep,[market]],boss:boss};
+  const d={id:id,name:D.name,slip:D.slip,threatBoss:D.threatBoss,columns:[elites,prep,[market]],boss:boss};
+  if(D.sourceId!=null)d.sourceId=D.sourceId;
+  if(D.lossChip!=null)d.lossChip=D.lossChip;
+  if(D.forceGilded)d.forceGilded=true;
+  if(D.power!=null)d.power=D.power;
+  return d;
 }
 
 /* the rare bronze to silver treasure upgrade: at most once per run. Fold it into
@@ -226,7 +241,14 @@ function injectSilver(rng,districts){
   t.reward.options[Math.floor(rng()*t.reward.options.length)]={kind:'silver'};
 }
 
-export function genMap(runSeed){
+function finishMap(runSeed,shrineDistrict,districts,extra){
+  const nodes={};
+  for(const d of districts){for(const col of d.columns)for(const n of col)nodes[n.id]=n;nodes[d.boss.id]=d.boss;}
+  return Object.assign({version:MAP_VERSION,seed:runSeed>>>0,shrineDistrict:shrineDistrict,
+    districts:districts,nodes:nodes,start:districts[0].columns[0].map(n=>n.id)},extra||{});
+}
+
+function genQuick(runSeed){
   const rng=mulberry(runSeed>>>0);
   const shrineDistrict=chance(rng,0.5)?2:3;
   const districts=[];
@@ -235,7 +257,23 @@ export function genMap(runSeed){
     else districts.push(genDistrict(rng,D,D.id===shrineDistrict));
   }
   injectSilver(rng,districts);
-  const nodes={};
-  for(const d of districts){for(const col of d.columns)for(const n of col)nodes[n.id]=n;nodes[d.boss.id]=d.boss;}
-  return {version:MAP_VERSION,seed:runSeed>>>0,shrineDistrict:shrineDistrict,districts:districts,nodes:nodes,start:districts[0].columns[0].map(n=>n.id)};
+  return finishMap(runSeed,shrineDistrict,districts);
+}
+
+function genLong(runSeed){
+  const rng=mulberry(runSeed>>>0);
+  const firstShrine=chance(rng,0.5)?2:3;
+  const secondShrine=chance(rng,0.5)?5:6;
+  const districts=[];
+  for(const D of LONG_DISTRICTS){
+    if(D.sourceId===4)districts.push(genDragonGate(rng,D));
+    else districts.push(genDistrict(rng,D,D.id===firstShrine||D.id===secondShrine));
+  }
+  injectSilver(rng,districts.slice(0,3));
+  injectSilver(rng,districts.slice(3,6));
+  return finishMap(runSeed,firstShrine,districts,{mode:'long',shrineDistricts:[firstShrine,secondShrine]});
+}
+
+export function genMap(runSeed,mode='quick'){
+  return mode==='long'?genLong(runSeed):genQuick(runSeed);
 }

@@ -12,7 +12,7 @@
    callbacks keep their current behavior exactly (the "callbacks only dispatch"
    ideal, and moving persistence out of render, stay later audited changes). */
 import {G,RM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
-import {ITEMS,RNAME,ENCH,MONSTERS,DISTRICTS,PERSONAS,CATN,TRINKETS} from './data.js';
+import {ITEMS,RNAME,ENCH,MONSTERS,PERSONAS,CATN,TRINKETS} from './data.js';
 import {mulberry,gateOK,monsterSide,fightHP} from './engine.js';
 import {genMap,isCombat} from './map.js';
 import {frontier,currentDistrict,visitedSet,validRoute,classifyEdges,fightSeed} from './route.js';
@@ -110,12 +110,15 @@ const NODELABEL={market:'Market',rest:'Rest',treasure:'Treasure',shrine:'Quqnus 
 const NODEGLYPH={market:'g-route_market',rest:'g-route_rest',treasure:'g-route_treasure',shrine:'g-route_shrine',negotiation:'g-route_negotiation'};
 function nodeGlyph(n){return isCombat(n)?MONSTERS[n.monId].glyph:(NODEGLYPH[n.type]||'g-route_treasure');}
 const DBG={1:'back_alleys',2:'souk',3:'palace',4:'dragon_gate'};
+const DISTRICT_SOURCE_NAME={1:'Back Alleys',2:'The Souk',3:'Palace Quarter',4:'The Dragon Gate'};
+function districtSource(D){return D&&((D.sourceId!=null?D.sourceId:D.id));}
+function districtForNode(n){return routeMap().districts[n.district-1];}
 /* the % anchors for the positioned route plot (Codex geometry) */
-function nodeAnchor(n){
-  const d4=n.district===4;
+function nodeAnchor(n,D){
+  const gate=districtSource(D)===4;
   let x;
-  if(n.type==='boss')x=d4?88:91;
-  else if(d4)x=[14,42,70][n.col];   /* elite, prep, market columns before the Vizier */
+  if(n.type==='boss')x=gate?88:91;
+  else if(gate)x=[14,42,70][n.col];   /* elite, prep, market columns before the Vizier */
   else x=[7,23,39,55,71][n.col];
   return {x:x,y:[17,50,83][n.lane]};
 }
@@ -290,14 +293,14 @@ export function combatPreview(n){
   let hp=M.hp,items=[];
   try{
     const php=fightHP(n.threat,(G.T&&G.T.hpFlat)||0,G.A);
-    const side=monsterSide(n.monId,{gold:G.gold,round:n.threat,A:G.A,gilded:!!n.gilded,playerBoard:G.board,playerHp:php});
+    const side=monsterSide(n.monId,{gold:G.gold,round:n.threat,A:G.A,gilded:!!n.gilded,power:n.power||1,playerBoard:G.board,playerHp:php});
     hp=side.hp;items=side.items;
   }catch(e){}
-  const regen=Math.round((M.regen||0)*(n.gilded?1.5:1));
+  const regen=Math.round((M.regen||0)*(n.gilded?1.5:1)*(n.power||1));
   const board=items.map(function(fi){return '<div class="rmpw"><b>'+esc(fi.nm)+'</b> '+fightItemBrief(fi)+'</div>';}).join('');
   return '<div class="rmpi"><b>Health</b> '+hp+(M.special==='mirror'?' (mirrors your stall)':'')+(regen?' &middot; regen '+regen+'/s':'')+'</div>'
     +'<div class="rmpi"><b>Bounty</b> '+esc(routeBountyText(n))+'</div>'
-    +(n.gilded?'<div class="rmpi gild">Gilded: tougher board, double gold.</div>':'')
+    +(n.gilded?'<div class="rmpi gild">Gilded: tougher board; bonus gold bounties are doubled.</div>':'')
     +(board?'<div class="rmpboard">'+board+'</div>':'')
     +(n.type==='boss'?'<div class="rmpi">The district boss. No way past but through.</div>':'');
 }
@@ -311,10 +314,11 @@ function treasurePreview(n){
    node's map state: only a reachable node offers commit actions; a future node is
    scoutable (its info shows, but no action) and a cleared one just reads Cleared. */
 function routeNodePreviewHTML(n,state){
+  const D=districtForNode(n);
   let acts;
   if(state==='reach'){
     if(n.type==='monster')acts='<button class="btn gold" data-a="challenge">Challenge</button>'
-      +'<button class="btn" data-a="slip">Slip Past &middot; '+DISTRICTS[n.district-1].slip+' Resolve</button>';
+      +'<button class="btn" data-a="slip">Slip Past &middot; '+D.slip+' Resolve</button>';
     else if(n.type==='elite')acts='<button class="btn gold" data-a="challenge">Challenge the Elite</button>';
     else if(n.type==='boss')acts='<button class="btn gold" data-a="challenge">Face the Boss</button>';
     else if(n.type==='market')acts='<button class="btn gold" data-a="enter">Enter the Market</button>';
@@ -343,7 +347,7 @@ export function renderRouteMap(){
     /* every node is tappable to scout its preview; only a reachable node's preview
        offers commit actions. The state class still dims future/done nodes. */
     const state=stateOf(n.id);
-    const a=nodeAnchor(n);
+    const a=nodeAnchor(n,D);
     return '<button class="rmnode t-'+n.type+' '+state+(n.id===sel?' sel':'')+(n.gilded?' gild':'')+(n.type==='boss'?' boss':'')+'"'
       +' data-n="'+n.id+'" style="left:'+a.x+'%;top:'+a.y+'%" aria-label="'+esc(nodeLabel(n))+', Threat '+n.threat+'">'
       +'<span class="rmmed">'+ic(nodeGlyph(n),'rmg')+'</span>'
@@ -353,12 +357,14 @@ export function renderRouteMap(){
   let nodes='';
   D.columns.forEach(function(col){col.forEach(function(n){nodes+=nodeBtn(n);});});
   nodes+=nodeBtn(D.boss);
-  let pips='';for(let i=0;i<4;i++){pips+='<span class="rmpip'+(i<beaten?' on':'')+(i===di?' cur':'')+'"></span>';}
+  let pips='';for(let i=0;i<map.districts.length;i++){pips+='<span class="rmpip'+(i<beaten?' on':'')+(i===di?' cur':'')+'"></span>';}
   const prev=sel?routeNodePreviewHTML(map.nodes[sel],stateOf(sel)):'<div class="rmhint">Tap any node to scout it.</div>';
+  const source=districtSource(D);
+  const displayName=D.reprise?DISTRICT_SOURCE_NAME[source]:D.name;
   $('main').className='routemap';
   $('main').innerHTML='<div class="rmwrap">'
-    +'<div class="rmboard" style="background-image:linear-gradient(180deg,rgba(20,14,8,.28),rgba(14,9,5,.62)),url(art/bg/bg_route_'+DBG[D.id]+'.png)">'
-    +'<div class="rmhdr"><span class="rmdn">'+esc(D.name)+'</span><span class="rmpips">'+pips+'</span>'
+    +'<div class="rmboard source-'+source+'" style="background-image:linear-gradient(180deg,rgba(20,14,8,.28),rgba(14,9,5,.62)),url(art/bg/bg_route_'+DBG[source]+'.png)">'
+    +'<div class="rmhdr"><span class="rmdn">'+esc(displayName)+'</span>'+(D.reprise?'<span class="rmafter">After Midnight</span>':'')+'<span class="rmpips">'+pips+'</span>'
     +'<span class="rmdest">'+esc(MONSTERS[D.boss.monId].n)+' waits at the gate</span></div>'
     +'<div class="rmplot" id="rmplot"><svg class="rmedges" id="rmedges" preserveAspectRatio="none" aria-hidden="true"></svg>'+nodes+'</div>'
     +'</div>'
@@ -402,13 +408,15 @@ function ensureRouteObserver(){
 }
 export function routeEnd(cause){
   G.phase='routeEnd';music(null);
-  const result=cause==='won'?'win':'loss';
+  const longRun=G.run.routeMode==='long';
+  const result=cause==='won'?(longRun?'long_clear':'quick_clear'):'loss';
   const now=Date.now(),resumed=!!G.run.end;
   if(!resumed){
     B.metricSnapshot('end',{cause:cause,result:result});
     finishMetrics(G.run.metrics,now);
     G.run.end={cause:cause,result:result,endedAt:now,exported:false};
   }
+  G.run.end.result=result;
   const endedAt=G.run.end.endedAt||now;
   G.run.metrics.timing.cursor.phase='debrief';G.run.metrics.timing.cursor.district=currentDistrict(routeState(),routeMap())+1;
   activateMetrics(G.run.metrics,now);
@@ -431,12 +439,12 @@ export function routeEnd(cause){
   let o;
   if(cause==='won'){
     sting('fanfarewin');if(!RM)fxCoinRain();
-    o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">The Long Bazaar</div>'
+    o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">'+(longRun?'Long Bazaar Clear':'Quick Night Clear')+'</div>'
      +ic('g-crown','bigic')+'<h2 class="big">The Vizier Falls</h2>'
-     +'<p>You walked the whole road. The night market is yours.</p>'+debrief+endBtns+'</div>');
+     +'<p>'+(longRun?'You survived the full road and its After Midnight reprises. The night market is yours.':'You cleared the original road. This Quick Night stands as a complete victory.')+'</p>'+debrief+endBtns+'</div>');
   }else{
     sting('lament');
-    const st=routeState();const D=DISTRICTS[currentDistrict(st,routeMap())];
+    const st=routeState();const D=routeMap().districts[currentDistrict(st,routeMap())];
     o=ovOpen('<div class="card"><div class="rays red"></div><div class="kick">The Road Ends</div>'
      +ic('g-skull','bigic skullic')+'<h2 class="big bad">Resolve Spent</h2>'
      +'<p>Your caravan broke in '+esc(D.name)+' after '+st.path.length+' encounter'+(st.path.length===1?'':'s')+'.</p>'+debrief+endBtns+'</div>');
@@ -468,12 +476,13 @@ export function routeEnd(cause){
     B.clearRoute();ovClose(o);B.newRoute();};
 }
 export function openRouteContinue(d){
-  const map=genMap(d.run.seed);
+  const mode=d.run.routeMode||'quick';
+  const map=genMap(d.run.seed,mode);
   const di=validRoute(d.run.route,map)?currentDistrict(d.run.route,map):0;
   const o=ovOpen('<div class="card"><div class="rays"></div>'
    +'<div class="kick gold">The Lantern Still Burns</div>'+ic('g-lantern','bigic')
    +'<h2 class="big">The Road Waits</h2>'
-   +'<p>Your caravan rests in <b>'+esc(DISTRICTS[di].name)+'</b> with <b>'+Math.max(0,d.run.route.resolve)+'</b> Resolve.</p>'
+   +'<p>Your '+(mode==='long'?'Long Bazaar':'Quick Night')+' caravan rests in <b>'+esc(map.districts[di].name)+'</b> with <b>'+Math.max(0,d.run.route.resolve)+'</b> Resolve.</p>'
    +'<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
    +'<button class="btn gold" id="ctGo">Continue Run</button>'
    +'<button class="btn" id="ctNew">New Run</button></div></div>');

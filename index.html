@@ -935,6 +935,15 @@
     transition:transform .09s var(--e-out);}
   .stonebtn:active{transform:translateY(1px) scale(.98);}
   #intro .introexport{position:absolute;top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));font-size:9px;padding:7px 10px;}
+  .card.routepick{width:min(94vw,560px);max-width:560px;}
+  .routepickgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+  .routechoice{min-height:142px;padding:14px 12px;border:1px solid rgba(216,162,74,.35);border-radius:13px;
+    background:linear-gradient(180deg,rgba(47,33,19,.92),rgba(24,16,9,.96));color:var(--ink);text-align:left;cursor:pointer;}
+  .routechoice.primary{border-color:rgba(244,207,124,.78);box-shadow:0 0 22px rgba(216,162,74,.2),inset 0 1px rgba(255,255,255,.08);}
+  .routechoice .rct{display:block;font-family:"Rakkas",serif;font-size:21px;color:var(--brass-hi);}
+  .routechoice .rcsub{display:block;margin-top:5px;color:#e6c47b;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.7px;}
+  .routechoice .rcdesc{display:block;margin-top:9px;color:var(--dim);font-size:11px;line-height:1.4;}
+  @media (orientation:portrait){.routepickgrid{grid-template-columns:1fr}.routechoice{min-height:112px;}}
   /* portrait uses the tall painting with its baked nameplate; landscape
      uses the wide painting fit whole (dark vignette edges blend the
      letterbox), buttons dropped onto its painted plaques */
@@ -1107,7 +1116,9 @@
     box-shadow:inset 0 0 40px rgba(0,0,0,.55), 0 6px 18px rgba(0,0,0,.4);}
   .rmhdr{display:flex;align-items:center;gap:10px;flex:0 0 auto;height:26px;z-index:3;}
   .rmdn{font-family:"Rakkas",serif;font-size:16px;color:#f0d79a;text-shadow:0 1px 4px rgba(0,0,0,.8);}
-  .rmpips{display:flex;gap:5px;}
+  .rmpips{display:flex;gap:4px;}
+  .rmafter{padding:3px 6px;border:1px solid rgba(154,216,239,.45);border-radius:999px;color:#bdeaff;background:rgba(21,61,74,.55);
+    font-size:7.5px;font-weight:900;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap;}
   .rmpip{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.16);box-shadow:inset 0 0 0 1px rgba(0,0,0,.5);}
   .rmpip.on{background:#e7c058;box-shadow:0 0 6px rgba(231,192,88,.7);}
   .rmpip.cur{outline:1px solid #ffe6a8;outline-offset:1px;}

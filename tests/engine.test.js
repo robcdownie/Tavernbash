@@ -88,6 +88,37 @@ test('Ghul Matron knits 2 a second, 3 when gilded',()=>{
   assert.equal(monsterSide('matron',{round:5,gold:0,A:ANONE,gilded:true}).regen,3);
 });
 
+test('omitted monster power is byte-equivalent to power 1 and preserves prior gild values',()=>{
+  const stable=function(side){
+    const wire=JSON.parse(JSON.stringify(side));
+    wire.items.forEach(function(it){delete it.uid;});
+    return wire;
+  };
+  for(const gilded of [false,true]){
+    const ctx={round:12,gold:0,A:ANONE,gilded:gilded};
+    assert.deepEqual(stable(monsterSide('vizier',ctx)),stable(monsterSide('vizier',Object.assign({},ctx,{power:1}))));
+  }
+  const gilded=monsterSide('vizier',{round:12,gold:0,A:ANONE,gilded:true});
+  assert.equal(gilded.hp,1050);
+  assert.equal(gilded.items[0].integ,135);
+  assert.equal(gilded.items[1].fx.burn,18);
+  assert.equal(gilded.items[3].fx.heal,30);
+});
+
+test('monster power scales health, integrity, regen, and scalable item effects',()=>{
+  const base=monsterSide('vizier',{round:12,gold:0,A:ANONE,gilded:false,power:1});
+  const strong=monsterSide('vizier',{round:12,gold:0,A:ANONE,gilded:false,power:2});
+  assert.equal(strong.hp,base.hp*2);
+  strong.items.forEach(function(it,i){assert.equal(it.integ,base.items[i].integ*2,it.nm+' integrity');});
+  assert.equal(strong.items[1].fx.burn,base.items[1].fx.burn*2);
+  assert.equal(strong.items[3].fx.heal,base.items[3].fx.heal*2);
+  assert.equal(strong.items[2].fx.freeze,base.items[2].fx.freeze,'control duration does not scale');
+  const auction=monsterSide('auctioneer',{round:10,gold:0,A:ANONE,gilded:false,power:2});
+  assert.equal(auction.items[0].fx.dmg,24);
+  assert.equal(auction.items[0].printedDmg,24);
+  assert.equal(monsterSide('matron',{round:5,gold:0,A:ANONE,gilded:false,power:2}).regen,4);
+});
+
 test('freeze: pauses the item timer for exactly the stated seconds',()=>{
   const vent={nm:'Frost Vent',g:'g-tower',size:2,cd:6000,timer:0,alive:true,integ:220,maxI:220,
               fx:{freeze:3},bulwark:false,targeting:null,charge:null,pocket:0,flying:false,frozen:0,uid:901};

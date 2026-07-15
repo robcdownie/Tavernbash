@@ -10,6 +10,7 @@ async function toMap(page) {
   });
   await page.reload();
   await page.click('#inNew');
+  await page.click('#modeQuick');
   await page.click('#heroGo');
   await page.click('#rvGo');
   await page.click('#btnGo');
@@ -17,6 +18,53 @@ async function toMap(page) {
   await page.click('.rmnode.reach');           /* select one node so the preview populates */
   await page.waitForSelector('.rmpfoot .btn');
 }
+
+test('the mode picker emphasizes Long Bazaar and both routes remain selectable', async ({page}) => {
+  await page.goto('/');
+  await page.evaluate(() => { localStorage.removeItem('bb-route-run'); localStorage.removeItem('bb-run'); });
+  await page.reload();
+  await page.click('#inNew');
+  await expect(page.locator('#modeLong')).toContainText('7 districts');
+  await expect(page.locator('#modeQuick')).toContainText('4 districts');
+  await expect(page.locator('#modeLong')).toHaveClass(/primary/);
+  const fit=await page.evaluate(() => {
+    const card=document.querySelector('.routepick').getBoundingClientRect();
+    const picks=Array.from(document.querySelectorAll('.routechoice')).map(e=>e.getBoundingClientRect());
+    return {card:card.left>=-1&&card.right<=innerWidth+1&&card.top>=-1&&card.bottom<=innerHeight+1,
+      touch:picks.every(r=>r.height>=44),sideBySide:Math.abs(picks[0].top-picks[1].top)<2};
+  });
+  expect(fit.card).toBe(true);
+  expect(fit.touch).toBe(true);
+  expect(fit.sideBySide).toBe(page.viewportSize().width>page.viewportSize().height);
+});
+
+test('Long Bazaar starts with 60 Resolve and renders seven district pips', async ({page}) => {
+  await page.goto('/');
+  await page.evaluate(() => { localStorage.removeItem('bb-route-run'); localStorage.removeItem('bb-run'); });
+  await page.reload();
+  await page.click('#inNew');
+  await page.click('#modeLong');
+  await page.click('#heroGo');
+  await expect(page.locator('.reveal')).toContainText('Seven districts. Sixty Resolve.');
+  await page.click('#rvGo');
+  await page.click('#btnGo');
+  await page.waitForSelector('.rmplot');
+  await expect(page.locator('.rmpip')).toHaveCount(7);
+  const mode=await page.evaluate(() => ({mode:window.BBDEV.g().run.routeMode,resolve:window.BBDEV.routeState().resolve,districts:window.BBDEV.g().route.map.districts.length}));
+  expect(mode).toEqual({mode:'long',resolve:60,districts:7});
+  await page.evaluate(() => {
+    const G=window.BBDEV.g();
+    G.run.route.path=[G.route.map.districts[2].boss.id];
+    G.run.route.phase='map';
+    window.BBDEV.renderAll();
+  });
+  await expect(page.locator('.rmafter')).toHaveText('After Midnight');
+  const headerFits=await page.$eval('.rmhdr', e => e.scrollWidth<=e.clientWidth+1);
+  expect(headerFits, 'After Midnight header stays inside the map').toBe(true);
+  await page.evaluate(() => window.BBDEV.routeEnd('won'));
+  await expect(page.getByText('Long Bazaar Clear',{exact:true})).toBeVisible();
+  expect(await page.evaluate(() => window.BBDEV.g().run.end.result)).toBe('long_clear');
+});
 
 test('the page never scrolls past the viewport', async ({page}) => {
   await toMap(page);
@@ -86,6 +134,7 @@ test('the run debrief and export controls fit the end overlay', async ({page}) =
   await toMap(page);
   await page.evaluate(() => window.BBDEV.routeEnd('won'));
   await page.waitForSelector('#reGo');
+  expect(await page.evaluate(() => window.BBDEV.g().run.end.result)).toBe('quick_clear');
   const fit = await page.evaluate(() => {
     const vp = {w: document.documentElement.clientWidth, h: document.documentElement.clientHeight};
     const card = document.querySelector('.ov .card').getBoundingClientRect();

@@ -8,6 +8,8 @@
    Run:
      node scripts/route-sim.js            detailed baseline readout
      node scripts/route-sim.js ab         A/B tuning comparison table
+     node scripts/route-sim.js long       seven-district Long readout
+     node scripts/route-sim.js long ab 50 Long A/B with 50 seeds per variant
      node scripts/route-sim.js 1200       set the seed count
 
    The player is modelled, not hand-played: a FUSION-AWARE board is rebuilt at each
@@ -29,19 +31,22 @@
    genRival board already always has damage, so the sim cannot see that change. */
 import {genMap} from '../src/map.js';
 import {initRoute, transition, frontier, nodeOf, currentDistrict, BASE_GOLD} from '../src/route.js';
-import {createFight, runHeadless, monsterSide, playerFightItems, makeItem, usedCells, gateOK, fuseScan, fightHP, stormAt, mulberry} from '../src/engine.js';
-import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, ANONE, COST, TIERCOST, RSTAT} from '../src/data.js';
+import {createFight, runHeadless, monsterSide, playerFightItems, makeItem, usedCells, gateOK, fightHP, stormAt, mulberry} from '../src/engine.js';
+import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, ANONE, COST, TIERCOST} from '../src/data.js';
 import {planReward} from '../src/route-rewards.js';
+import {beginCombatTally, recordCombatDiagnostic} from '../src/route-metrics.js';
+import {pathToFileURL} from 'node:url';
 
-const args = process.argv.slice(2);
-const AB = args.includes('ab');
-const RUNS = +(args.find(a => /^\d+$/.test(a)) || (AB ? 1200 : 600));
+export function parseSimArgs(argv){
+  const args=(argv||[]).map(String),ab=args.includes('ab');
+  return {ab:ab,mode:args.includes('long')?'long':'quick',runs:+(args.find(a=>/^\d+$/.test(a))||(ab?1200:600))};
+}
 const A = ANONE;                       /* baseline: no anomaly, to isolate the route economy */
 
-const DEFAULT_CFG = { startResolve: 40, bossLossAdj: 0, treasureCash: 6, negoCash: 6, rewardGoldAdj: 0 };
-/* the district bosses and the two Dragon Gate elites, reported by name */
-const KEYMONS = [['matron', 'Matron (D1)'], ['collector', 'Collector (D2)'], ['ifrit', 'Ifrit (D3)'],
-                 ['azhdaha', 'Azhdaha (D4 elite)'], ['auctioneer', 'Auctioneer (D4 elite)'], ['vizier', 'Vizier (D4)']];
+const DEFAULT_CFG = { startResolve: null, bossLossAdj: 0, treasureCash: 6, negoCash: 6, rewardGoldAdj: 0,
+  reprisePower:1, reprisePowers:null };
+const ROUTE_GUARD=400;
+const DAMAGE_CHANNELS=['weapon','poison','burn','hook','other'];
 
 /* ---- readout helpers ---- */
 const sortNum = a => a.slice().sort((x, y) => x - y);
@@ -99,40 +104,73 @@ function tierCost(nextTier, cfg) { return (nextTier === 6 ? (cfg.tier6Cost || TI
 function topRarity(board) { return board.board.reduce((m, w) => Math.max(m, w.rarity), 0); }
 
 /* ---- one fight, headless, with FRESH fight items (as the game rebuilds them) ---- */
-function simFight(board, node, gold, seed) {
+function applyEnemyPower(side,power){
+  if(!(power>1))return side;
+  side.hp=Math.round(side.hp*power);side.regen=Math.round((side.regen||0)*power);
+  side.items.forEach(function(it){
+    it.integ=Math.round(it.integ*power);it.maxI=it.integ;
+    for(const k of ['dmg','poison','burn','shield','heal'])if(it.fx&&it.fx[k])it.fx[k]=Math.round(it.fx[k]*power);
+    if(it.printedDmg)it.printedDmg=Math.round(it.printedDmg*power);
+  });
+  return side;
+}
+function simFight(board, node, gold, seed, cfg, mode) {
   const M = MONSTERS[node.monId];
   const php = fightHP(node.threat, 0, A);
-  const foe = monsterSide(node.monId, { gold: gold, round: node.threat, A: A, gilded: !!node.gilded, playerBoard: board.board, playerHp: php });
-  const me = { nm: 'You', portrait: 'p-0', hp: php, items: playerFightItems(board.board, {}, A, 1), lifesteal: 0, regen: 0 };
-  const F = createFight({ a: me, b: foe, stormAt: M.stormAt ? M.stormAt * 1000 : stormAt(node.threat), seed: seed >>> 0, playerIs: 'a' });
+  const foe = monsterSide(node.monId, { gold: gold, round: node.threat, A: A, gilded: !!node.gilded,
+    power:node.power||1, playerBoard: board.board, playerHp: php });
+  if(mode==='long'&&node.district>=4){
+    const power=cfg.reprisePowers&&cfg.reprisePowers[node.district]||cfg.reprisePower||1;
+    applyEnemyPower(foe,power);
+  }
+  const playerItems=playerFightItems(board.board, {}, A, 1);
+  const me = { nm: 'You', portrait: 'p-0', hp: php, items: playerItems, lifesteal: 0, regen: 0 };
+  const metricBoard=board.board.map(function(w){return Object.assign({iid:w.uid},w);});
+  const tally=beginCombatTally({district:node.district,nodeId:node.id,monId:node.monId},metricBoard,playerItems,foe.items);
+  const F = createFight({ a: me, b: foe, stormAt: M.stormAt ? M.stormAt * 1000 : stormAt(node.threat), seed: seed >>> 0, playerIs: 'a',
+    diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);} });
   runHeadless(F);
-  return { winner: F.winner, survTier: F.survTiers('b'), t: F.t / 1000, meHp: Math.max(0, F.a.hp), foeHp: Math.max(0, F.b.hp) };
+  return { winner: F.done?F.winner:'b', survTier: F.survTiers('b'), t: F.t / 1000,
+    meHp: Math.max(0, F.a.hp), foeHp: Math.max(0, F.b.hp),timeout:!F.done,
+    guardTrips:F.diagnostics.guardTrips,guardCounts:Object.assign({},F.diagnostics.guardCounts),
+    pendingActions:F.diagnostics.pendingActions||0,
+    wares:Object.keys(tally.rows).map(function(k){return tally.rows[k];}) };
 }
 
 /* ---- one full run under a tuning cfg ---- */
-function simRun(seed, cfg) {
-  const map = genMap(seed);
+export function simRun(seed, cfg, mode) {
+  mode=mode||'quick';
+  const map = genMap(seed,mode);
   const rng = mulberry((seed ^ 0x5f3759df) >>> 0);
   const persona = PERSONAS[seed % PERSONAS.length];
-  let st = initRoute(seed);
-  if (cfg.startResolve !== 40) { st.resolve = cfg.startResolve; st.resolveMax = cfg.startResolve; }
+  let st = initRoute(seed,mode);
+  if (cfg.startResolve!=null&&cfg.startResolve!==st.resolveMax) { st.resolve = cfg.startResolve; st.resolveMax = cfg.startResolve; }
   let gold = 6, invested = 0, tier = 1, lastReserveUsed = false, mendGate = null, mendUsed = false;
+  const ownedUniques=new Set();
   invested += 6; gold = 0;             /* opening stall: the six starting gold */
   let board = buildBoard(tier, invested, rng, persona);
-  const m = { fights: [], retries: 0, goldEarned: 0, goldSpent: 6, minResolve: st.resolveMax, tierMax: 1 };
+  const m = { mode:mode,districtCount:map.districts.length,fights: [], retries: 0, goldEarned: 0, goldSpent: 6,
+    resolveStart:st.resolveMax,minResolve: st.resolveMax, tierMax: 1,guardTrips:0,guardCounts:{},fightTimeouts:0,
+    combatPendingActions:0,routeGuardExits:0,pendingActions:[],duplicateUniqueCash:0 };
 
   let guard = 0;
-  while (st.phase !== 'won' && st.phase !== 'lost' && guard++ < 400) {
+  while (st.phase !== 'won' && st.phase !== 'lost' && guard<ROUTE_GUARD) {
+    guard++;
     if (st.resolve < m.minResolve) m.minResolve = st.resolve;
     if (st.phase === 'map') {
-      const fr = frontier(st, map); if (!fr.length) break;
+      const fr = frontier(st, map); if (!fr.length) {m.pendingActions.push('empty_frontier');break;}
       const node = nodeOf(map, fr[Math.floor(rng() * fr.length)]);   /* seeded-random path: samples both D4 elites and varied lanes */
       st = transition(st, map, { type: 'commit', nodeId: node.id, choice: 'challenge' }).state;
     } else if (st.phase === 'encounter') {
       const node = nodeOf(map, st.pendingId);
       const first = !st.attempts[node.id];
-      const r = simFight(board, node, gold, st.fightSeed);
-      m.fights.push({ threat: node.threat, band: node.district, type: node.type, mon: node.monId, won: r.winner === 'a', t: r.t, margin: r.winner === 'a' ? r.meHp : r.foeHp, first: first });
+      const r = simFight(board, node, gold, st.fightSeed,cfg,mode);
+      m.fights.push({ threat: node.threat, band: node.district, type: node.type, mon: node.monId,
+        won: r.winner === 'a', t: r.t, margin: r.winner === 'a' ? r.meHp : r.foeHp, first: first,
+        wares:r.wares,guardTrips:r.guardTrips,timeout:r.timeout });
+      m.guardTrips+=r.guardTrips;if(r.timeout)m.fightTimeouts++;
+      m.combatPendingActions+=r.pendingActions;
+      Object.keys(r.guardCounts).forEach(function(k){m.guardCounts[k]=(m.guardCounts[k]||0)+r.guardCounts[k];});
       const bossLoss = node.type === 'boss' && r.winner === 'b';
       st = transition(st, map, { type: 'fightResult', winner: r.winner, survTier: r.survTier }).state;
       if (cfg.bossLossAdj && bossLoss) {
@@ -143,7 +181,17 @@ function simRun(seed, cfg) {
       const node = nodeOf(map, st.pendingId);
       const plan = planReward(MONSTERS[node.monId].bounty || {}, { baseGold: Math.max(0, BASE_GOLD[node.type] + cfg.rewardGoldAdj), gilded: !!node.gilded, enteredGold: gold, pocketed: 0, minGold: 0, board: board.board });
       gold += plan.gold; m.goldEarned += plan.gold;
-      if (plan.items && plan.items.length) { plan.items.forEach(id => { invested += COST[ITEMS[id].size] || 2; }); board = buildBoard(tier, invested, rng, persona); }
+      if (plan.items && plan.items.length) {
+        plan.items.forEach(function(id){
+          if(ITEMS[id]&&ITEMS[id].unique&&ownedUniques.has(id)){
+            gold+=3;m.goldEarned+=3;m.duplicateUniqueCash+=3;
+          }else{
+            if(ITEMS[id]&&ITEMS[id].unique)ownedUniques.add(id);
+            invested += ITEMS[id]?(COST[ITEMS[id].size]||2):2;
+          }
+        });
+        board = buildBoard(tier, invested, rng, persona);
+      }
       st = transition(st, map, { type: 'settleReward' }).state;
     } else if (st.phase === 'market') {
       /* fusion-first: tier up only toward a district-appropriate cap (players win
@@ -170,7 +218,13 @@ function simRun(seed, cfg) {
       const spend = Math.max(0, gold - 1); gold -= spend; invested += spend; m.goldSpent += spend;
       board = buildBoard(tier, invested, rng, persona);
       st = transition(st, map, { type: 'startBossRetry' }).state;
-    } else break;
+    } else {m.pendingActions.push('unhandled_'+st.phase);break;}
+  }
+
+  if(st.phase!=='won'&&st.phase!=='lost'){
+    m.routeGuardExits++;
+    if(guard>=ROUTE_GUARD)m.pendingActions.push('route_guard');
+    if(st.pendingId)m.pendingActions.push('pending_'+st.phase);
   }
 
   m.result = st.phase;
@@ -180,14 +234,16 @@ function simRun(seed, cfg) {
   m.goldHeld = gold;
   m.tierEnd = tier;
   m.topRarity = topRarity(board);
+  m.valid=m.fightTimeouts===0&&m.routeGuardExits===0&&m.guardTrips===0&&m.combatPendingActions===0;
   return m;
 }
 const RARITY_NAME = ['Bronze', 'Silver', 'Gold', 'Diamond'];
 
-function runBatch(cfg) {
+export function runBatch(cfg, options) {
+  options=options||{};const runsN=options.runs||600,mode=options.mode||'quick';
   const c = Object.assign({}, DEFAULT_CFG, cfg);
   const runs = [];
-  for (let i = 0; i < RUNS; i++) runs.push(simRun(((i * 2654435761) ^ 0x9e3779b9) >>> 0, c));
+  for (let i = 0; i < runsN; i++) runs.push(simRun(((i * 2654435761) ^ 0x9e3779b9) >>> 0, c,mode));
   return runs;
 }
 
@@ -196,40 +252,119 @@ function bandWin(runs, band) {
   const fs = runs.flatMap(r => r.fights).filter(f => f.band === band && f.first);
   return fs.length ? fs.filter(f => f.won).length / fs.length : 0;
 }
-function keyWin(runs, mon) {
-  const fs = runs.flatMap(r => r.fights).filter(f => f.mon === mon && f.first);
+export function encounterWin(runs, district, mon) {
+  const fs = runs.flatMap(r => r.fights).filter(f => f.band === district && f.mon === mon && f.first);
   return { rate: fs.length ? fs.filter(f => f.won).length / fs.length : 0, n: fs.length };
 }
 
+export function encounterRows(runs){
+  const rows={};
+  runs.flatMap(r=>r.fights).filter(f=>f.first&&(f.type==='elite'||f.type==='boss')).forEach(function(f){
+    const key=f.band+':'+f.mon,row=rows[key]||(rows[key]={district:f.band,mon:f.mon,type:f.type,wins:0,fights:0});
+    row.fights++;if(f.won)row.wins++;
+  });
+  return Object.values(rows).sort(function(a,b){return a.district-b.district||a.type.localeCompare(b.type)||a.mon.localeCompare(b.mon);});
+}
+
+function shopWare(id){const d=ITEMS[id];return !!(d&&!d.unique&&!d.inc&&d.acquisition!=='treasure');}
+export function damageShareRows(runs){
+  const rows={};let total=0;
+  runs.forEach(function(run){
+    const seen=new Set();
+    (run.fights||[]).forEach(function(f){
+      const fightSeen=new Set();
+      (f.wares||[]).forEach(function(w){
+        if(!shopWare(w.id))return;
+        const row=rows[w.id]||(rows[w.id]={id:w.id,name:ITEMS[w.id].n,appearances:0,fights:0,damage:{weapon:0,poison:0,burn:0,hook:0,other:0},total:0,share:0});
+        fightSeen.add(w.id);seen.add(w.id);
+        DAMAGE_CHANNELS.forEach(function(ch){const n=w.damage&&w.damage[ch]||0;row.damage[ch]+=n;row.total+=n;total+=n;});
+      });
+      fightSeen.forEach(function(id){rows[id].fights++;});
+    });
+    seen.forEach(function(id){rows[id].appearances++;});
+  });
+  return Object.values(rows).map(function(row){row.share=total?row.total/total:0;return row;})
+    .sort(function(a,b){return b.share-a.share||b.fights-a.fights||a.id.localeCompare(b.id);});
+}
+
+export function batchValidity(runs){
+  const guardCounts={contacts:0,catchup:0,depth:0,root:0,step:0,hook:0};
+  runs.forEach(function(r){Object.keys(guardCounts).forEach(function(k){guardCounts[k]+=r.guardCounts&&r.guardCounts[k]||0;});});
+  return {invalid:runs.filter(r=>!r.valid).length,guardTrips:runs.reduce((s,r)=>s+(r.guardTrips||0),0),guardCounts:guardCounts,
+    fightTimeouts:runs.reduce((s,r)=>s+(r.fightTimeouts||0),0),
+    routeGuardExits:runs.reduce((s,r)=>s+(r.routeGuardExits||0),0),
+    pendingActions:runs.reduce((s,r)=>s+(r.combatPendingActions||0)+(r.pendingActions||[]).length,0)};
+}
+
+function modeDistricts(runs){
+  const count=runs[0]&&runs[0].districtCount||DISTRICTS.length;
+  if(count===DISTRICTS.length)return DISTRICTS;
+  const names={1:'Back Alleys',2:'The Souk',3:'Palace Quarter',4:'Back Alleys After Midnight',
+    5:'The Souk After Midnight',6:'Palace Quarter After Midnight',7:'The Dragon Gate'};
+  return Array.from({length:count},function(_,i){return {id:i+1,name:names[i+1]||('District '+(i+1))};});
+}
+
+function printDamageShares(runs){
+  const rows=damageShareRows(runs),core=rows.filter(r=>r.id==='vial'||r.id==='torch').reduce((s,r)=>s+r.share,0);
+  console.log('\nSHOP WARE ATTRIBUTED DAMAGE SHARE');
+  console.log('  excludes storm and unattributed damage; appearances = runs, fights = fight boards');
+  console.log('  Toxin Vial + Oil Torch combined  '+pct(core));
+  console.log('  '+pad('ware',24)+pad('share',8)+pad('runs',8)+pad('fights',8)+'weapon  poison  burn  hook  other');
+  rows.slice(0,16).forEach(function(r){
+    console.log('  '+pad(r.name,24)+pad(pct(r.share),8)+pad(r.appearances,8)+pad(r.fights,8)
+      +DAMAGE_CHANNELS.map(ch=>pad(Math.round(r.damage[ch]),8)).join(''));
+  });
+  const treasureN=Object.keys(ITEMS).filter(id=>ITEMS[id].unique&&ITEMS[id].acquisition==='treasure').length;
+  console.log('  Treasure uniques abstracted: '+treasureN+' are outside the fusion-board policy and have no contribution estimate.');
+}
+
+function printValidity(runs){
+  const v=batchValidity(runs);
+  console.log('\nSAFETY VALIDITY');
+  console.log('  invalid runs '+v.invalid+'   combat guard trips '+v.guardTrips+'   fight timeouts '+v.fightTimeouts);
+  console.log('  guard counts contacts '+v.guardCounts.contacts+'   catchup '+v.guardCounts.catchup+'   depth '+v.guardCounts.depth
+    +'   root '+v.guardCounts.root+'   step '+v.guardCounts.step+'   hook '+v.guardCounts.hook);
+  console.log('  route guard exits '+v.routeGuardExits+'   pending actions '+v.pendingActions);
+  return v;
+}
+
 /* ---- detailed single-config readout ---- */
-function detailed(runs) {
+export function detailed(runs) {
+  const runN=runs.length,districts=modeDistricts(runs),mode=runs[0]&&runs[0].mode||'quick';
   const wins = runs.filter(r => r.result === 'won');
-  console.log('== ROUTE SIM (' + RUNS + ' seeds, competent-baseline policy, no anomaly) ==\n');
+  console.log('== ROUTE SIM (' + runN + ' seeds, '+mode+' mode, competent-baseline policy, no anomaly) ==\n');
   console.log('COMPLETION');
-  console.log('  clear rate            ' + pct(wins.length / RUNS));
-  const byDist = [0, 0, 0, 0];
+  console.log('  clear rate            ' + pct(wins.length / runN));
+  const byDist = Array(districts.length).fill(0);
   runs.forEach(r => { if (r.result === 'lost') byDist[r.district]++; });
-  console.log('  died in district      ' + DISTRICTS.map((d, i) => 'D' + d.id + ' ' + pct(byDist[i] / RUNS)).join('   '));
+  console.log('  died in district      ' + districts.map((d, i) => 'D' + d.id + ' ' + pct(byDist[i] / runN)).join('   '));
   console.log('  nodes visited         median ' + med(runs.map(r => r.path)) + '   fights/run median ' + med(runs.map(r => r.fights.length)));
-  console.log('\nRESOLVE (' + med(runs.map(r => r.resolveEnd + 0)) + ' end on clears; 40 start)');
+  console.log('\nRESOLVE (' + med(runs.map(r => r.resolveEnd + 0)) + ' end on clears; '+med(runs.map(r=>r.resolveStart))+' start)');
   console.log('  final on a clear      median ' + med(wins.map(r => r.resolveEnd)) + '   min-ever median ' + med(wins.map(r => r.minResolve)));
   console.log('  at death              median ' + med(runs.filter(r => r.result === 'lost').map(r => r.minResolve)));
   console.log('\nGOLD + TIER + FUSION');
   console.log('  earned median ' + med(runs.map(r => r.goldEarned)) + '   spent median ' + med(runs.map(r => r.goldSpent)) + '   held median ' + med(runs.map(r => r.goldHeld)));
-  console.log('  end tier median ' + med(runs.map(r => r.tierEnd)) + '   distribution ' + [1, 2, 3, 4, 5, 6].map(t => 't' + t + ' ' + pct(runs.filter(r => r.tierEnd === t).length / RUNS)).join(' '));
-  console.log('  best rarity on the final board ' + RARITY_NAME.map((n, r) => n + ' ' + pct(runs.filter(x => x.topRarity === r).length / RUNS)).join('  '));
+  console.log('  end tier median ' + med(runs.map(r => r.tierEnd)) + '   distribution ' + [1, 2, 3, 4, 5, 6].map(t => 't' + t + ' ' + pct(runs.filter(r => r.tierEnd === t).length / runN)).join(' '));
+  console.log('  best rarity on the final board ' + RARITY_NAME.map((n, r) => n + ' ' + pct(runs.filter(x => x.topRarity === r).length / runN)).join('  '));
   console.log('\nFIRST-ATTEMPT WIN RATE by band');
-  for (const d of DISTRICTS) console.log('  ' + pad(d.name, 16) + pct(bandWin(runs, d.id)));
+  for (const d of districts) console.log('  ' + pad(d.name, 30) + pct(bandWin(runs, d.id)));
   console.log('\nFIRST-ATTEMPT WIN RATE by key encounter');
-  for (const [mon, label] of KEYMONS) { const k = keyWin(runs, mon); console.log('  ' + pad(label, 22) + pad(pct(k.rate), 9) + 'n=' + k.n); }
+  for (const row of encounterRows(runs)) {
+    const k=encounterWin(runs,row.district,row.mon),label=(MONSTERS[row.mon]&&MONSTERS[row.mon].n||row.mon)+' (D'+row.district+' '+row.type+')';
+    console.log('  ' + pad(label, 34) + pad(pct(k.rate), 9) + 'n=' + k.n);
+  }
   console.log('\nRETRIES + FIGHTS');
   console.log('  boss retries/run      median ' + med(runs.map(r => r.retries)) + '   mean ' + f1(mean(runs.map(r => r.retries))));
   const allF = runs.flatMap(r => r.fights);
   console.log('  fight seconds         median ' + med(allF.map(f => f.t)) + '   p90 ' + qtile(allF.map(f => f.t), 0.9) + '   win margin (HP) median ' + med(allF.filter(f => f.won).map(f => f.margin)));
+  console.log('  duplicate unique fallback gold '+runs.reduce((s,r)=>s+(r.duplicateUniqueCash||0),0));
+  printDamageShares(runs);
+  return printValidity(runs);
 }
 
 /* ---- A/B tuning comparison ---- */
-function abTable() {
+export function abTable(options) {
+  options=options||{};const runN=options.runs||1200,mode=options.mode||'quick';
   /* baseline is the current game, which already ships the boss-loss 4->2 change
      (0.68.20). bossLossAdj:2 here therefore models a FURTHER softening to 0. */
   /* economy levers. The baseline now SHIPS reward gold 2/4/6 (0.68.24), so
@@ -241,22 +376,31 @@ function abTable() {
     { name: 'event cash 6->4', cfg: { treasureCash: 4, negoCash: 4 } },
     { name: 'reward gold -1 more', cfg: { rewardGoldAdj: -1 } }
   ];
-  console.log('== ROUTE SIM A/B (' + RUNS + ' seeds each, no anomaly, fresh items, sampled paths) ==\n');
-  console.log(pad('variant', 20) + pad('clear', 8) + pad('D4-death', 10) + pad('Matron', 8) + pad('Azhdaha', 9) + pad('Vizier', 8) + pad('tier', 6) + pad('retries', 8));
+  const finalDistrict=mode==='long'?7:4,allRuns=[];let baseline=null;
+  console.log('== ROUTE SIM A/B (' + runN + ' seeds each, '+mode+' mode, no anomaly, fresh items, sampled paths) ==\n');
+  console.log(pad('variant', 20) + pad('clear', 8) + pad('D'+finalDistrict+'-death', 10) + pad('Matron', 8) + pad('Azhdaha', 9) + pad('Vizier', 8) + pad('tier', 6) + pad('retries', 8));
   for (const v of variants) {
-    const runs = runBatch(v.cfg);
-    const clr = runs.filter(r => r.result === 'won').length / RUNS;
-    const d4death = runs.filter(r => r.result === 'lost' && r.district === 3).length / RUNS;
+    const runs = runBatch(v.cfg,{runs:runN,mode:mode});allRuns.push.apply(allRuns,runs);if(!baseline)baseline=runs;
+    const clr = runs.filter(r => r.result === 'won').length / runN;
+    const finalDeath = runs.filter(r => r.result === 'lost' && r.district === finalDistrict-1).length / runN;
     console.log(pad(v.name, 20)
-      + pad(pct(clr), 8) + pad(pct(d4death), 10)
-      + pad(pct(keyWin(runs, 'matron').rate), 8)
-      + pad(pct(keyWin(runs, 'azhdaha').rate), 9)
-      + pad(pct(keyWin(runs, 'vizier').rate), 8)
+      + pad(pct(clr), 8) + pad(pct(finalDeath), 10)
+      + pad(pct(encounterWin(runs,1,'matron').rate), 8)
+      + pad(pct(encounterWin(runs,finalDistrict,'azhdaha').rate), 9)
+      + pad(pct(encounterWin(runs,finalDistrict,'vizier').rate), 8)
       + pad(med(runs.map(r => r.tierMax)), 6)
       + pad(f1(mean(runs.map(r => r.retries))), 8));
   }
-  console.log('\nD4-death = share of runs ending in the Dragon Gate. Matron/Azhdaha/Vizier = first-attempt');
-  console.log('win rate. Both D4 elites are now sampled, so Azhdaha and Vizier are reported apart.');
+  console.log('\nD'+finalDistrict+'-death = share of runs ending in the Dragon Gate. Matron/Azhdaha/Vizier = first-attempt');
+  console.log('win rate. Dragon Gate elites are sampled and reported apart.');
+  printDamageShares(baseline);
+  return printValidity(allRuns);
 }
 
-if (AB) abTable(); else detailed(runBatch({}));
+export function main(argv){
+  const o=parseSimArgs(argv),validity=o.ab?abTable(o):detailed(runBatch({},{runs:o.runs,mode:o.mode}));
+  if(validity.invalid)process.exitCode=1;
+  return validity;
+}
+
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)main(process.argv.slice(2));

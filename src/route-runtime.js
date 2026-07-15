@@ -73,14 +73,22 @@ export function settleFixed(run, plan, key, options){
       if(run.route.resolve<=0){run.route.phase='lost';}
     }
   }
-  plan.items.forEach(function(id){ E.shop.push(makeOffer(run, id)); });
+  const grantedItemIds=[],duplicateUniqueIds=[];
+  let duplicateUniqueGold=0;
+  plan.items.forEach(function(id){
+    const item=ITEMS[id];
+    const available=!item||!item.unique||uniqueOptions(E.board,E.vault,E.shop).indexOf(id)>=0;
+    if(available){E.shop.push(makeOffer(run,id));grantedItemIds.push(id);}
+    else{E.gold+=3;duplicateUniqueGold+=3;duplicateUniqueIds.push(id);}
+  });
   if(plan.relic) E.relicIncome += 1;
   if(plan.mote){
     if(plan.mote.item) E.shop.push(makeOffer(run, plan.mote.item));
     else E.gold += plan.mote.gold;
   }
   const receipt = {fixedApplied: true, choiceRequired: !!plan.choice, choiceApplied: false, choiceKind: plan.choice || null,
-    debtPaid:debtPaid,debtDamage:debtDamage};
+    debtPaid:debtPaid,debtDamage:debtDamage,grantedItemIds:grantedItemIds,
+    duplicateUniqueIds:duplicateUniqueIds,duplicateUniqueGold:duplicateUniqueGold};
   run.receipts[key] = receipt;
   if(plan.choice){
     const opts = plan.choice === 'gild'
