@@ -165,6 +165,10 @@ test('the self-scaling mirror is in D2 and the fixed Nasnas check is in D3',()=>
   assert.ok(!DISTRICTS[2].normals.includes('qareen'));
 });
 
+test('Ifrit carries the strengthened D3 boss health',()=>{
+  assert.equal(MONSTERS.ifrit.hp,500);
+});
+
 test('no monster id repeats within a run, and every monster is legal for its role',()=>{
   const normals=new Set(),elites=new Set();
   for(const D of DISTRICTS){D.normals.forEach(m=>normals.add(m));D.elites.forEach(m=>elites.add(m));}

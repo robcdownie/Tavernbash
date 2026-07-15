@@ -390,7 +390,7 @@ export const MONSTERS={
  collector:{n:"The Debt Collector",band:2,hp:110,tag:"util",glyph:"m-debt",fl:"He feeds on the gold in your pocket.",
    bounty:{gold:10,relic:true},special:"gold",
    board:[{nm:"Ledger Blade",g:"g-sword",size:2,cd:5,integ:24,fx:{dmg:6}}]},
- ifrit:{n:"Ifrit of the Kiln",band:3,hp:340,tag:"burn",glyph:"m-ifrit",fl:"The bellows never rest.",
+ ifrit:{n:"Ifrit of the Kiln",band:3,hp:500,tag:"burn",glyph:"m-ifrit",fl:"The bellows never rest.",
    bounty:{items:["magma"]},
    board:[{nm:"Kiln Heart",g:"g-magma",size:3,cd:7,integ:34,fx:{burn:8}},{nm:"Bellows",g:"g-hourglass",size:2,cd:5,integ:22,fx:{},charge:{t:0,s:2}}]},
  qareen:{n:"Qareen",band:3,hp:0,tag:"util",glyph:"m-qareen",fl:"It wears your face at four fifths strength.",

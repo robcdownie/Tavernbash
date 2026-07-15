@@ -36,6 +36,11 @@ const REBALANCED_ITEMS={
 const RENAMED_MONSTERS={
   rats:{n:"Souk Rats"},
 };
+/* 0.80.0 corrects the Palace Quarter boss outlier. At 340 HP Ifrit lost
+   99 percent of first attempts, making D3 easier than D2. */
+const REBALANCED_MONSTERS={
+  ifrit:{hp:500},
+};
 const RENAMED_TRINKETS={
   venomancer:{n:"Poisonmonger"},
   /* 0.77.0 restores the approved route Charm checkpoints. The old round
@@ -125,7 +130,7 @@ test('parity: data tables identical to the original outside the rebalance ledger
   /* Phase 5 adds monsters the original never shipped; every monster the
      original did ship must stay byte-identical outside the rename ledger */
   for(const k of Object.keys(ORIG.MONSTERS)){
-    const expected=Object.assign(j(ORIG.MONSTERS[k]),j(RENAMED_MONSTERS[k]||{}));
+    const expected=Object.assign(j(ORIG.MONSTERS[k]),j(RENAMED_MONSTERS[k]||{}),j(REBALANCED_MONSTERS[k]||{}));
     assert.deepEqual(j(MONSTERS[k]),expected,'monster '+k);
   }
   for(const ot of ORIG.TRINKETS){
