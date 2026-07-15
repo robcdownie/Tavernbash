@@ -158,6 +158,13 @@ test('bosses are the doc-fixed monsters and never gilded',()=>{
   }
 });
 
+test('the self-scaling mirror is in D2 and the fixed Nasnas check is in D3',()=>{
+  assert.ok(DISTRICTS[1].normals.includes('qareen'));
+  assert.ok(!DISTRICTS[1].normals.includes('nasnas'));
+  assert.ok(DISTRICTS[2].normals.includes('nasnas'));
+  assert.ok(!DISTRICTS[2].normals.includes('qareen'));
+});
+
 test('no monster id repeats within a run, and every monster is legal for its role',()=>{
   const normals=new Set(),elites=new Set();
   for(const D of DISTRICTS){D.normals.forEach(m=>normals.add(m));D.elites.forEach(m=>elites.add(m));}

@@ -458,9 +458,9 @@ export const DISTRICTS=[
  {id:1,name:"Back Alleys",boss:"matron",threatEarly:1,threatLate:2,threatBoss:3,slip:3,
   normals:["imp","rats","samovar","sandling","monkey"],elites:["ghul"]},
  {id:2,name:"The Souk",boss:"collector",threatEarly:4,threatLate:5,threatBoss:6,slip:5,
-  normals:["lamassu","icebox","peri","nasnas"],elites:["kark"]},
+  normals:["lamassu","icebox","peri","qareen"],elites:["kark"]},
  {id:3,name:"Palace Quarter",boss:"ifrit",threatEarly:7,threatLate:8,threatBoss:9,slip:7,
-  normals:["qareen","roc","simurgh"],elites:["shahmaran","marid","golem"]},
+  normals:["nasnas","roc","simurgh"],elites:["shahmaran","marid","golem"]},
  {id:4,name:"The Dragon Gate",boss:"vizier",threatEarly:10,threatLate:11,threatBoss:12,slip:0,
   normals:[],elites:["azhdaha","auctioneer"]}
 ];
