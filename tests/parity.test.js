@@ -38,6 +38,9 @@ const RENAMED_MONSTERS={
 };
 const RENAMED_TRINKETS={
   venomancer:{n:"Poisonmonger"},
+  /* 0.77.0 restores the approved route Charm checkpoints. The old round
+     income modifier keeps its value and lands after each combat victory. */
+  prince:{d:"After each combat victory, gain +3 gold."},
 };
 /* R8 adds hook-driven unique wares without placing them in the legacy shop or
    rival pools. This ledger pins every approved addition to its version and its

@@ -12,12 +12,12 @@
    callbacks keep their current behavior exactly (the "callbacks only dispatch"
    ideal, and moving persistence out of render, stay later audited changes). */
 import {G,RM,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
-import {ITEMS,RNAME,ENCH,MONSTERS,DISTRICTS,PERSONAS,CATN} from './data.js';
+import {ITEMS,RNAME,ENCH,MONSTERS,DISTRICTS,PERSONAS,CATN,TRINKETS} from './data.js';
 import {mulberry,gateOK,monsterSide,fightHP} from './engine.js';
 import {genMap,isCombat} from './map.js';
 import {frontier,currentDistrict,visitedSet,validRoute,classifyEdges,fightSeed} from './route.js';
 import {ic} from './art.js';
-import {chooseGild as runtimeChooseGild,chooseUnique as runtimeChooseUnique} from './route-runtime.js';
+import {chooseGild as runtimeChooseGild,chooseUnique as runtimeChooseUnique,chooseCharm as runtimeChooseCharm} from './route-runtime.js';
 import {fxCoinRain} from './fx.js';
 import {music,sting} from './music.js';
 import pkg from '../package.json';
@@ -35,7 +35,9 @@ export function routeState(){return G.run.route;}
 /* ============ REWARD-CHOICE PRESENTERS ============ */
 export function openRewardChoice(pc){
   B.renderAll();
-  if(pc.kind==='gild'){openRewardGild(pc);}else{openRewardUnique(pc);}
+  if(pc.kind==='gild'){openRewardGild(pc);}
+  else if(pc.kind==='charm'){openRewardCharm(pc);}
+  else{openRewardUnique(pc);}
 }
 /* gild presenter: renders the serialized board-iid options and dispatches the
    choice; the runtime applies it, then we run the fusion cascade, checkpoint,
@@ -73,6 +75,25 @@ function chooseRewardUnique(o,id){
   const res=runtimeChooseUnique(G.run,id);
   if(!res.ok){return;}
   toast(ITEMS[id].n+' waits in the market, free.');
+  ovClose(o);B.criticalSave(B.presentAfterReward);
+}
+
+function openRewardCharm(pc){
+  const o=ovOpen('<div class="card"><div class="rays"></div>'
+   +'<div class="kick gold">Boss Caravan</div>'
+   +'<h2 class="big" style="font-size:23px">Choose a Charm</h2>'
+   +'<p>A permanent boon. These offers lean toward your stall.</p>'
+   +'<div class="picks">'+pc.options.map(function(id){
+      const charm=TRINKETS.find(function(t){return t.id===id;});if(!charm)return '';
+      return '<div class="pick" data-c="'+id+'"><div class="ph2">'+ic(charm.g,'','width:30px;height:30px')+'</div><div class="pn">'+charm.n+'</div><div class="pd">'+charm.d+'</div></div>';
+    }).join('')+'</div></div>');
+  o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){chooseRewardCharm(o,p.dataset.c);};});
+}
+function chooseRewardCharm(o,id){
+  const res=runtimeChooseCharm(G.run,id);
+  if(!res.ok)return;
+  B.computeT();
+  toast('Charm: '+res.charm.n);
   ovClose(o);B.criticalSave(B.presentAfterReward);
 }
 

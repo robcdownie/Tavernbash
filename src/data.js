@@ -340,7 +340,7 @@ export const TRINKETS=[
  {id:"medic",n:"Field Medic",tag:"heal",g:"g-salve",d:"Your healing is half again as strong.",mod:{healMul:1.5}},
  {id:"vamp",n:"Vampiric Trade",tag:"heal",g:"g-chalice",d:"Weapon damage heals you for 15% of it.",mod:{lifesteal:0.15}},
  {id:"quick",n:"Quickhands",tag:"neutral",g:"g-hourglass",d:"Your cooldowns run 12% faster.",mod:{cdMul:0.88}},
- {id:"prince",n:"Merchant Prince",tag:"neutral",g:"g-ledger",d:"+3 gold income each round.",mod:{income:3}}
+ {id:"prince",n:"Merchant Prince",tag:"neutral",g:"g-ledger",d:"After each combat victory, gain +3 gold.",mod:{income:3}}
 ];
 /* ============ ANOMALIES ============ */
 export const ANOMALIES=[

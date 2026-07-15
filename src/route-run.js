@@ -60,7 +60,7 @@ export function newRun(setup){
     route: initRoute(seed),
     economy: newEconomy(),
     /* reward settlement bookkeeping (R4 commit 4): receipts make a node's fixed
-       reward and its gild/unique choice each apply exactly once across a reload;
+       reward and its gild, unique, or Charm choice each apply exactly once across a reload;
        pendingChoice holds an owed, interrupted choice so resume reopens it. */
     receipts: {},
     pendingChoice: null,

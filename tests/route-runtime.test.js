@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {ITEMS} from '../src/data.js';
+import {ITEMS,TRINKETS} from '../src/data.js';
 import {newRun, serializeRun, reviveRun} from '../src/route-run.js';
-import {rewardKey, gildOptions, uniqueOptions, settleFixed, chooseGild, chooseUnique, refreshPendingChoice, nextPresentation} from '../src/route-runtime.js';
+import {rewardKey, gildOptions, uniqueOptions, charmChoiceOptions, settleFixed, chooseGild, chooseUnique, chooseCharm, refreshPendingChoice, nextPresentation} from '../src/route-runtime.js';
 
 const SEED = 1234567;
 const someUnique = Object.keys(ITEMS).find(id => ITEMS[id].unique);
@@ -100,6 +100,27 @@ test('a unique bounty with every unique already owned pays the 10 gold fallback'
   assert.equal(run.economy.gold, 10);
 });
 
+test('a Charm checkpoint pends four offers and awards one exactly once', () => {
+  const run=newRun({seed:SEED});
+  const key=rewardKey(run.runId,'d1boss',0);
+  const offers=['quick','prince','smith','pyro'];
+  settleFixed(run,plan({choice:'charm',choiceOptions:offers}),key);
+  assert.deepEqual(run.pendingChoice.options,offers);
+  assert.equal(run.receipts[key].choiceApplied,false);
+  const chosen=chooseCharm(run,'quick');
+  assert.equal(chosen.ok,true);
+  assert.equal(chosen.charm.id,'quick');
+  assert.deepEqual(run.economy.trinkets.map(t=>t.id),['quick']);
+  assert.equal(run.receipts[key].selectedId,'quick');
+  assert.equal(run.pendingChoice,null);
+  assert.equal(chooseCharm(run,'quick').ok,false,'the consumed choice cannot award twice');
+});
+
+test('Charm choice options reject unknown, duplicate, and already-owned ids', () => {
+  const quick=TRINKETS.find(t=>t.id==='quick');
+  assert.deepEqual(charmChoiceOptions([quick],['quick','smith','smith','missing']),['smith']);
+});
+
 test('refreshPendingChoice drops stale gild targets and falls back when none remain', () => {
   const run = newRun({seed: SEED});
   run.economy.gold = 0;
@@ -116,6 +137,19 @@ test('refreshPendingChoice drops stale gild targets and falls back when none rem
   assert.equal(run.economy.gold, 5, 'fallback paid');
   assert.equal(run.receipts[key].choiceApplied, true, 'receipt closed by the fallback');
   assert.equal(run.receipts[key].fallbackApplied, true);
+});
+
+test('refreshPendingChoice preserves only unowned Charm offers and closes without gold when empty', () => {
+  const run=newRun({seed:SEED});
+  const key=rewardKey(run.runId,'d1boss',0);
+  settleFixed(run,plan({choice:'charm',choiceOptions:['quick','prince']}),key);
+  run.economy.trinkets.push(TRINKETS.find(t=>t.id==='quick'));
+  assert.deepEqual(refreshPendingChoice(run).options,['prince']);
+  run.economy.trinkets.push(TRINKETS.find(t=>t.id==='prince'));
+  const gold=run.economy.gold;
+  assert.equal(refreshPendingChoice(run),null);
+  assert.equal(run.economy.gold,gold,'a missing Charm has no economy fallback');
+  assert.equal(run.receipts[key].choiceApplied,true);
 });
 
 test('nextPresentation puts an owed choice first, then a finished run, else the map', () => {

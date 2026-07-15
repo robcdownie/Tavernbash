@@ -10,6 +10,7 @@ import {genMap,MAP_VERSION} from './map.js';
 import {frontier,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
 import {planReward,boardVictoryIncome} from './route-rewards.js';
+import {attachCharmCheckpoint,charmVictoryIncome} from './route-charms.js';
 import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy,allocId,ensureIdFloor,
         campEnsure,campMend,campLastReserve,campExpireCredit,campClear,CAMP_MEND,CAMP_LAST_RESERVE} from './route-run.js';
 import {rewardKey,settleFixed,refreshPendingChoice,nextPresentation} from './route-runtime.js';
@@ -875,7 +876,7 @@ function startFight(me,foe,opts){
 }
 /* monster reward settlement (R4 commit 4b). The fixed payout (gold, bounty
    offers, relic, mote) applies exactly once behind a receipt keyed on run, node,
-   and attempt; an owed gild/unique choice is serialized into run.pendingChoice.
+   and attempt; an owed gild, unique, or Charm choice is serialized into run.pendingChoice.
    Ordering is crash-safe: apply fixed -> set receipt + pendingChoice -> one
    checkpoint -> only then open the overlay or present the map. A reload reopens
    an interrupted choice rather than re-paying. The event gild path (Treasure,
@@ -886,9 +887,11 @@ function settleRouteReward(e){
   const H=heroOf();
   const key=rewardKey(G.run.runId,e.nodeId,c.attempt||0);
   const already=!!(G.run.receipts[key]&&G.run.receipts[key].fixedApplied);
-  const income=adjustedVictoryIncome(boardVictoryIncome(G.board)+(G.relicIncome||0),G.A);
+  const income=adjustedVictoryIncome(boardVictoryIncome(G.board)+(G.relicIncome||0)+charmVictoryIncome(G.trinkets),G.A);
   const plan=planReward(M.bounty||{},{baseGold:e.gold,incomeGold:income,gilded:e.gilded,
     enteredGold:c.enteredGold||0,pocketed:c.pocketed||0,minGold:0,board:G.board});
+  const node=nodeOf(routeMap(),e.nodeId);
+  attachCharmCheckpoint(plan,node,G.run.seed,G.board,G.trinkets);
   /* the final boss dies as the run is won (settleReward sets phase 'won' before this
      reward), so its choice reward (the Vizier's pick-any-unique) would drop a ware
      into a market that never opens and stall the victory behind a moot overlay. Drop
@@ -1287,7 +1290,7 @@ export function boot(){
      this is the one-way bridge. All targets are hoisted function declarations. */
   wireRouteUI({dispatchRoute:dispatchRoute,renderAll:renderAll,checkpointActiveRun:checkpointActiveRun,
     criticalSave:criticalSave,presentAfterReward:presentAfterReward,fuseStamp:fuseStamp,fuseWithVault:fuseWithVault,
-    mkOffer:mkOffer,heroOf:heroOf,newRoute:newRoute,restoreRoute:restoreRoute,clearRoute:clearRoute});
+    computeT:computeT,mkOffer:mkOffer,heroOf:heroOf,newRoute:newRoute,restoreRoute:restoreRoute,clearRoute:clearRoute});
   initDebug();
   const mb=$('muteBtn');
   if(mb){

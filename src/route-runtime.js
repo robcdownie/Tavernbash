@@ -6,14 +6,14 @@
 
    The fixed part (gold, free offers, relic, mote) applies exactly once per node,
    guarded by a receipt keyed on the run, node, and attempt. An owed gild or
-   unique choice is serialized into run.pendingChoice so a reload reopens it; the
+   unique or Charm choice is serialized into run.pendingChoice so a reload reopens it; the
    choice also applies exactly once. Every function here is pure over the run
    object (no DOM, no timers), so the whole flow is unit-testable. The caller
    (ui.js, commit 4b) checkpoints AFTER each transaction and only then presents.
 
    Ordering the caller must honor: apply fixed -> set receipt + pendingChoice ->
    checkpoint -> open overlay or present. Nothing visible before the checkpoint. */
-import {ITEMS} from './data.js';
+import {ITEMS,TRINKETS} from './data.js';
 import {allocId} from './route-run.js';
 
 /* one receipt per reward; the pendingChoice references this key */
@@ -42,7 +42,17 @@ export function uniqueOptions(board, vault, shop){
   return Object.keys(ITEMS).filter(function(id){ return ITEMS[id].unique && !owned[id]; });
 }
 
-function choiceFallbackGold(kind){ return kind === 'gild' ? 5 : 10; }
+function choiceFallbackGold(kind){ return kind === 'gild' ? 5 : (kind === 'pickUnique' ? 10 : 0); }
+
+function charmIds(charms){
+  return (charms||[]).map(function(charm){return typeof charm==='string'?charm:charm&&charm.id;}).filter(Boolean);
+}
+
+export function charmChoiceOptions(charms,offered){
+  const held=new Set(charmIds(charms));
+  const valid=new Set(TRINKETS.map(function(charm){return charm.id;}));
+  return (offered||[]).filter(function(id,i,list){return valid.has(id)&&!held.has(id)&&list.indexOf(id)===i;});
+}
 
 /* apply the fixed reward exactly once and derive any owed choice. Idempotent by
    key: a second call (after a reload that re-enters settlement) is a no-op on the
@@ -75,7 +85,9 @@ export function settleFixed(run, plan, key, options){
   if(plan.choice){
     const opts = plan.choice === 'gild'
       ? gildOptions(E.board)
-      : uniqueOptions(E.board, E.vault, E.shop);
+      : plan.choice === 'charm'
+        ? charmChoiceOptions(E.trinkets,plan.choiceOptions)
+        : uniqueOptions(E.board, E.vault, E.shop);
     if(opts.length){
       run.pendingChoice = {key: key, kind: plan.choice, options: opts, fallbackGold: choiceFallbackGold(plan.choice)};
     }else{
@@ -123,6 +135,22 @@ export function chooseUnique(run, uid){
   return {ok: true};
 }
 
+/* apply one of the serialized Charm offers. The live economy stores the data
+   object, while the save codec reduces it to its id and revives it on load. */
+export function chooseCharm(run,id){
+  const pc=run.pendingChoice;
+  if(!pc||pc.kind!=='charm')return {ok:false,reason:'no charm pending'};
+  if(pc.options.indexOf(id)<0)return {ok:false,reason:'not offered'};
+  if(charmChoiceOptions(run.economy.trinkets,[id]).length===0)return {ok:false,reason:'already owned'};
+  const charm=TRINKETS.find(function(t){return t.id===id;});
+  if(!charm)return {ok:false,reason:'unknown charm'};
+  run.economy.trinkets.push(charm);
+  const receipt=run.receipts[pc.key];
+  if(receipt){receipt.choiceApplied=true;receipt.selectedId=id;}
+  run.pendingChoice=null;
+  return {ok:true,charm:charm};
+}
+
 /* re-validate a resumed pendingChoice against the current aggregate: drop stale
    options, never add new ones, and if nothing valid remains pay the fallback and
    close the choice. Returns the still-open choice, or null once resolved. */
@@ -134,12 +162,14 @@ export function refreshPendingChoice(run){
     const live = {};
     gildOptions(run.economy.board).forEach(function(o){ live[o.iid] = true; });
     opts = pc.options.filter(function(o){ return live[o.iid]; });
+  }else if(pc.kind === 'charm'){
+    opts=charmChoiceOptions(run.economy.trinkets,pc.options);
   }else{
     const valid = uniqueOptions(run.economy.board, run.economy.vault, run.economy.shop);
     opts = pc.options.filter(function(id){ return valid.indexOf(id) >= 0; });
   }
   if(opts.length){ pc.options = opts; return pc; }
-  run.economy.gold += pc.fallbackGold;
+  run.economy.gold += pc.fallbackGold||0;
   const receipt = run.receipts[pc.key];
   if(receipt){ receipt.choiceApplied = true; receipt.fallbackApplied = true; }
   run.pendingChoice = null;

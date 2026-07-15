@@ -170,6 +170,28 @@ test('choosing a gild reward then reloading does not re-offer or double-apply it
   expect(after.overlay).toBe(false);
 });
 
+test('an interrupted Charm checkpoint reopens and awards one Charm exactly once', async ({page}) => {
+  await freshRoute(page);
+  const before=await page.evaluate(()=>{
+    const G=window.BBDEV.g();
+    window.BBDEV.settleFixed({gold:0,drained:0,items:[],relic:false,mote:null,choice:'charm',
+      choiceOptions:['quick','prince','smith','pyro']},'testcharm');
+    window.BBDEV.checkpoint();
+    return {pending:G.run.pendingChoice&&G.run.pendingChoice.kind,charms:G.trinkets.length};
+  });
+  expect(before).toEqual({pending:'charm',charms:0});
+  await reloadAndContinue(page);
+  await page.waitForSelector('.pick[data-c="quick"]');
+  await page.click('.pick[data-c="quick"]');
+  await page.waitForSelector('.rmplot');
+  const chosen=await page.evaluate(()=>{const G=window.BBDEV.g();return {pending:!!G.run.pendingChoice,charms:G.trinkets.map(t=>t.id)};});
+  expect(chosen).toEqual({pending:false,charms:['quick']});
+  await reloadAndContinue(page);
+  await page.waitForSelector('.rmplot');
+  const after=await page.evaluate(()=>{const G=window.BBDEV.g();return {pending:!!G.run.pendingChoice,charms:G.trinkets.map(t=>t.id),overlay:!!document.querySelector('.pick[data-c]')};});
+  expect(after).toEqual({pending:false,charms:['quick'],overlay:false});
+});
+
 test('resume at the map preserves gold, Resolve, and progress', async ({page}) => {
   await freshRoute(page);
   const snap = () => page.evaluate(() => { const G = window.BBDEV.g(); const s = window.BBDEV.routeState(); return {phase: s.phase, gold: G.gold, resolve: s.resolve, path: s.path.length}; });
