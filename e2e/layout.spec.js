@@ -81,3 +81,22 @@ test('the rotate curtain never covers the route', async ({page}) => {
   const disp = await page.$eval('#rotate', el => getComputedStyle(el).display);
   expect(disp, 'rotate curtain hidden in route mode').toBe('none');
 });
+
+test('the run debrief and export controls fit the end overlay', async ({page}) => {
+  await toMap(page);
+  await page.evaluate(() => window.BBDEV.routeEnd('won'));
+  await page.waitForSelector('#reGo');
+  const fit = await page.evaluate(() => {
+    const vp = {w: document.documentElement.clientWidth, h: document.documentElement.clientHeight};
+    const card = document.querySelector('.ov .card').getBoundingClientRect();
+    const buttons = Array.from(document.querySelectorAll('.rendbtns .btn')).map(b => b.getBoundingClientRect());
+    const debrief = document.querySelector('.rdebrief');
+    return {
+      cardFitsWidth: card.left >= -1 && card.right <= vp.w + 1,
+      overlayScrolls: document.querySelector('.ov').scrollHeight <= vp.h + 1 || getComputedStyle(document.querySelector('.ov')).overflowY === 'auto',
+      buttonsTall: buttons.every(b => b.height >= 44),
+      debriefVisible: !!debrief && debrief.getBoundingClientRect().width > 0
+    };
+  });
+  expect(fit).toEqual({cardFitsWidth: true, overlayScrolls: true, buttonsTall: true, debriefVisible: true});
+});

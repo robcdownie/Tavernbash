@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {ROUTE_SAVE_VERSION, ROUTE_KEY, readRouteSave, writeRouteSave, clearRouteSave, migrateV1toV2} from '../src/route-save.js';
+import {ROUTE_SAVE_VERSION, ROUTE_KEY, readRouteSave, writeRouteSave, clearRouteSave, migrateV1toV2, migrateV2toV3} from '../src/route-save.js';
 import {genMap, MAP_VERSION} from '../src/map.js';
 import {initRoute, transition, validRoute} from '../src/route.js';
 
@@ -12,14 +12,14 @@ function fakeStorage(){
   return {getItem:k=>(k in m ? m[k] : null), setItem:(k,v)=>{m[k]=String(v);}, removeItem:k=>{delete m[k];}, _map:m};
 }
 
-/* the v2 envelope the writer produces: the run aggregate is the durable truth,
+/* the v3 envelope the writer produces: the run aggregate is the durable truth,
    setup + session live alongside it */
 function v2env(routeState, extra){
   return Object.assign({
     saveVersion: ROUTE_SAVE_VERSION,
     mapVersion: MAP_VERSION,
     run: {
-      schemaVersion: 2, runId: 'r-test', revision: 3, seed: routeState.seed,
+      schemaVersion: 3, runId: 'r-test', revision: 3, seed: routeState.seed,routeMode:'quick',
       route: routeState,
       economy: {gold: 6, tier: 1, tierCost: 5, relicIncome: 0, freeReroll: false, frozen: false,
         board: [{id:'torch',rarity:0,size:1,ench:null,iid:1}], vault: [],
@@ -50,7 +50,7 @@ function v1env(routeState, extra){
   }, extra || {});
 }
 
-test('write then read round-trips a v2 envelope', () => {
+test('write then read round-trips a v3 envelope', () => {
   const s = fakeStorage();
   const env = v2env(initRoute(SEED));
   writeRouteSave(s, env);
@@ -128,12 +128,26 @@ test('migrateV1toV2 honors ids already present and never reissues one', () => {
   assert.ok(v2.run.ids.nextItem > Math.max(...all), 'counter stays above every id');
 });
 
-test('readRouteSave migrates a stored v1 save to v2 on load', () => {
+test('migrateV2toV3 preserves the run and adds partial Quick telemetry',()=>{
+  const v2=migrateV1toV2(v1env(initRoute(SEED)));
+  const v3=migrateV2toV3(v2);
+  assert.equal(v3.saveVersion,3);
+  assert.equal(v3.run.schemaVersion,3);
+  assert.equal(v3.run.routeMode,'quick');
+  assert.equal(v3.run.metrics.partial,true);
+  assert.deepEqual(v3.run.route,v2.run.route);
+  assert.equal(v3.run.metrics.timing.startedAt,null,'migration does not invent elapsed time');
+});
+
+test('readRouteSave chains a stored v1 save through v3 on load', () => {
   const s = fakeStorage();
   writeRouteSave(s, v1env(initRoute(SEED)));
   const loaded = readRouteSave(s);
   assert.ok(loaded, 'a v1 save loads');
-  assert.equal(loaded.saveVersion, 2, 'as v2');
+  assert.equal(loaded.saveVersion, 3, 'as v3');
+  assert.equal(loaded.run.schemaVersion,3);
+  assert.equal(loaded.run.routeMode,'quick');
+  assert.equal(loaded.run.metrics.partial,true);
   assert.ok(validRoute(loaded.run.route, genMap(SEED)), 'the migrated route revalidates');
   assert.equal(loaded.run.economy.board.length, 2);
   assert.ok(loaded.run.economy.board.every(w => Number.isInteger(w.iid)), 'wares stamped');
@@ -146,7 +160,7 @@ test('a v1 save from a stale generator is dropped, not migrated', () => {
   assert.equal(s.getItem(ROUTE_KEY), null, 'and removed');
 });
 
-test('a v2 envelope for every route phase round-trips and revalidates', () => {
+test('a v3 envelope for every route phase round-trips and revalidates', () => {
   const map = genMap(SEED);
   const allNodes = [];
   for (const d of map.districts){ for (const col of d.columns) for (const n of col) allNodes.push(n); allNodes.push(d.boss); }

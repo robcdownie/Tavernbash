@@ -8,14 +8,16 @@ import {ITEMS} from '../src/data.js';
 
 const SEED = 1234567;
 
-test('newRun builds a v2 aggregate with the controller state and an id counter', () => {
-  const run = newRun({seed: SEED});
+test('newRun builds a v3 Quick aggregate with metrics and an id counter', () => {
+  const run = newRun({seed: SEED, now:1000});
   assert.equal(run.schemaVersion, SCHEMA_VERSION);
-  assert.equal(run.schemaVersion, 2);
+  assert.equal(run.schemaVersion, 3);
   assert.equal(typeof run.runId, 'string');
   assert.ok(run.runId.length > 0);
   assert.equal(run.revision, 0);
   assert.equal(run.seed, SEED);
+  assert.equal(run.routeMode, 'quick');
+  assert.equal(run.metrics.timing.startedAt,1000);
   assert.deepEqual(run.route, initRoute(SEED), 'route is a fresh controller state');
   assert.equal(run.ids.nextItem, 1);
 });
@@ -48,6 +50,7 @@ test('serialize then revive round-trips the durable fields', () => {
   const c1 = map.districts[0].columns[0][0].id;
   advance(run, map, {type: 'commit', nodeId: c1, choice: 'challenge'});
   run.ids.nextItem = 7;
+  run.end = {cause:'won',result:'win',endedAt:1234,exported:false};
 
   const revived = reviveRun(serializeRun(run));
   assert.deepEqual(revived, run, 'the whole durable aggregate survives');
@@ -57,7 +60,7 @@ test('serialize then revive round-trips the durable fields', () => {
 test('serialize keeps only durable fields (no map, no transients)', () => {
   const run = newRun({seed: SEED});
   const wire = serializeRun(run);
-  assert.deepEqual(Object.keys(wire).sort(), ['camp', 'economy', 'ids', 'lastReserveUsed', 'pendingChoice', 'receipts', 'revision', 'route', 'runId', 'schemaVersion', 'seed']);
+  assert.deepEqual(Object.keys(wire).sort(), ['camp', 'economy', 'end', 'ids', 'lastReserveUsed', 'metrics', 'pendingChoice', 'receipts', 'revision', 'route', 'routeMode', 'runId', 'schemaVersion', 'seed']);
 });
 
 test('newEconomy carries the starting defaults', () => {
@@ -147,7 +150,9 @@ test('ensureIdFloor leaves an already-correct counter alone', () => {
 
 test('revive fills defaults for an older save that omits identity or the id counter', () => {
   const revived = reviveRun({seed: SEED, route: initRoute(SEED)});
-  assert.equal(revived.schemaVersion, 2);
+  assert.equal(revived.schemaVersion, 3);
+  assert.equal(revived.routeMode,'quick');
+  assert.equal(revived.metrics.partial,true);
   assert.equal(revived.revision, 0);
   assert.equal(revived.ids.nextItem, 1);
   assert.equal(typeof revived.runId, 'string');

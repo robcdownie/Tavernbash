@@ -14,6 +14,8 @@ import {attachCharmCheckpoint,charmVictoryIncome} from './route-charms.js';
 import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy,allocId,ensureIdFloor,
         campEnsure,campMend,campLastReserve,campExpireCredit,campClear,CAMP_MEND,CAMP_LAST_RESERVE} from './route-run.js';
 import {rewardKey,settleFixed,refreshPendingChoice,nextPresentation} from './route-runtime.js';
+import {resumeMetrics,activateMetrics,pauseMetrics,setMetricPhase,touchMetrics,serializeMetrics,recordMetric,
+        captureBoardSnapshot,beginCombatTally,recordCombatDiagnostic,commitCombatTally,metricPhaseTotals} from './route-metrics.js';
 import {ic} from './art.js';
 import {effChips,wareDetailHTML} from './cards.js';
 import {ART} from './art-manifest.js';
@@ -23,7 +25,8 @@ import {initMusic,music,musicMute,sting,musicNow} from './music.js';
 import pkg from '../package.json';
 import {G,setG,RM,setRM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
 import {wireRouteUI,routeMap,routeState,renderRouteMap,combatPreview,showFightRecap,
-        routeEventCard,openRewardChoice,routeEnd,openRouteContinue,openUniquePick} from './route-ui.js';
+        routeEventCard,openRewardChoice,routeEnd,openRouteContinue,openUniquePick,
+        unexportedRunCount,copyUnexportedRuns} from './route-ui.js';
 /* ============ SESSION + UI PRIMITIVES ============ */
 /* G (the game aggregate) and RM (reduced-motion) are the shared live singletons
    from ui-core; ui.js is the only writer, via setG/setRM below. */
@@ -43,10 +46,27 @@ function mkOffer(o){o.offerId=allocId(G.run);return o;}
 /* revive a saved shop offer: copy an existing offerId (a future v2 save) or
    stamp a fresh one (a pre-id save), keeping the offer's other fields */
 function reviveOffer(o){const c=Object.assign({},o);if(c.offerId==null)c.offerId=allocId(G.run);return c;}
-function fuseStamp(board){const forged=fuseScan(board);forged.forEach(function(f){f.iid=allocId(G.run);});return forged;}
+function fuseStamp(board){const forged=fuseScan(board);forged.forEach(function(f){f.iid=allocId(G.run);
+  metricEvent('fusion',{id:f.id,rarity:f.rarity,iid:f.iid});});return forged;}
 function shuffle(a,rng){for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;}
 function shake(){if(RM)return;const a=$('app');a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake');}
 function flashScr(){if(RM)return;const f=$('flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');}
+
+function metricDistrict(){
+  if(!G||!G.run||!G.route)return 1;const st=G.run.route;
+  const id=st.pendingId||(st.path&&st.path[st.path.length-1]);const n=id&&G.route.map&&G.route.map.nodes[id];
+  return n?n.district:1;
+}
+function metricPhase(name){if(G&&G.run&&G.run.metrics)setMetricPhase(G.run.metrics,name,metricDistrict(),Date.now());}
+function metricEvent(type,data){if(G&&G.run&&G.run.metrics)recordMetric(G.run.metrics,type,data,Date.now());}
+function metricSnapshot(label,context){if(G&&G.run&&G.run.metrics)return captureBoardSnapshot(G.run.metrics,label,context,G.board,G.vault,G.run.economy,Date.now());}
+let metricVisibilityBound=false;
+function bindMetricVisibility(){
+  if(metricVisibilityBound||typeof document==='undefined')return;metricVisibilityBound=true;
+  document.addEventListener('visibilitychange',function(){if(!G||!G.run||!G.run.metrics)return;
+    if(document.hidden)pauseMetrics(G.run.metrics,Date.now());else activateMetrics(G.run.metrics,Date.now());});
+  if(typeof window!=='undefined')window.addEventListener('pagehide',function(){if(G&&G.run&&G.run.metrics)pauseMetrics(G.run.metrics,Date.now());});
+}
 /* ============ STAT DISPLAY HELPERS ============ */
 function primDraft(it){const d=ITEMS[it.id];const rs=RSTAT[it.rarity];const f=d.fx||{};
  if(f.dmg)return['',Math.round(f.dmg*rs)];
@@ -166,6 +186,7 @@ function renderVaultSheet(sh){
   const O=$('vOut');if(O)O.onclick=function(){
     if(usedNow(G.board)+slotCost(it.size)>slotsNow())return;
     G.vault.splice(G.vsel,1);G.vsel=null;G.board.push(it);
+    metricEvent('vault_out',{id:it.id,iid:it.iid});
     const forged=fuseStamp(G.board);
     if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();sting('forgesting');}
     else{toast(ITEMS[it.id].n+' returns to the stall');}
@@ -181,6 +202,7 @@ function renderVaultSheet(sh){
     const cell=document.querySelector('#vlt .cell.it[data-v="'+G.vsel+'"]');
     const from=cell?cell.getBoundingClientRect():null;
     const value=sellValue(it.size);G.gold+=value;G.vault.splice(G.vsel,1);G.vsel=null;recordMarketSale();
+    metricEvent('shop_sell',{id:it.id,iid:it.iid,value:value,from:'vault'});
     toast('Sold from the vault for '+value+' gold');renderAll();
     if(from){flyCoins(from,3+value);}
   };
@@ -190,6 +212,7 @@ function vaultSwap(i){
   if(!inIt||!outIt){G.swapV=null;renderDraft();return;}
   if(usedNow(G.board)-slotCost(outIt.size)+slotCost(inIt.size)>slotsNow()){toast('No room for that trade');return;}
   G.vault[vi]=outIt;G.board[i]=inIt;G.swapV=null;G.sel=null;
+  metricEvent('vault_swap',{outId:outIt.id,outIid:outIt.iid,inId:inIt.id,inIid:inIt.iid});
   const forged=fuseStamp(G.board);
   if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();sting('forgesting');}
   else{toast(ITEMS[outIt.id].n+' rests in the vault. '+ITEMS[inIt.id].n+' takes the stall.');}
@@ -206,18 +229,22 @@ function renderSheet(){
    +'<button class="btn" id="mvR"'+(G.sel>=G.board.length-1?' disabled':'')+'>Move &#9654;</button>'
    +'<button class="btn" id="vtI"'+(G.vault.length>=3?' disabled':'')+'>Vault</button>'
    +'<button class="btn sell" id="slI">Sell +'+sellValue(it.size)+'</button></div></div>';
-  const L=$('mvL');if(L)L.onclick=function(){if(G.sel>0){const t=G.board[G.sel];G.board[G.sel]=G.board[G.sel-1];G.board[G.sel-1]=t;G.sel--;renderDraft();}};
-  const R=$('mvR');if(R)R.onclick=function(){if(G.sel<G.board.length-1){const t=G.board[G.sel];G.board[G.sel]=G.board[G.sel+1];G.board[G.sel+1]=t;G.sel++;renderDraft();}};
+  const L=$('mvL');if(L)L.onclick=function(){if(G.sel>0){const t=G.board[G.sel];G.board[G.sel]=G.board[G.sel-1];G.board[G.sel-1]=t;G.sel--;
+    metricEvent('board_reorder',{iid:t.iid,direction:'left',index:G.sel});renderDraft();}};
+  const R=$('mvR');if(R)R.onclick=function(){if(G.sel<G.board.length-1){const t=G.board[G.sel];G.board[G.sel]=G.board[G.sel+1];G.board[G.sel+1]=t;G.sel++;
+    metricEvent('board_reorder',{iid:t.iid,direction:'right',index:G.sel});renderDraft();}};
   const S=$('slI');if(S)S.onclick=function(){
     const cell=document.querySelector('#bd .cell.it[data-i="'+G.sel+'"]');
     const from=cell?cell.getBoundingClientRect():null;
     const value=sellValue(it.size);G.gold+=value;G.board.splice(G.sel,1);G.sel=null;recordMarketSale();
+    metricEvent('shop_sell',{id:it.id,iid:it.iid,value:value,from:'board'});
     toast('Sold for '+value+' gold');renderAll();
     if(from){flyCoins(from,3+value);}
   };
   const V=$('vtI');if(V)V.onclick=function(){
     if(G.vault.length>=3)return;
     G.vault.push(it);G.board.splice(G.sel,1);G.sel=null;
+    metricEvent('vault_in',{id:it.id,iid:it.iid});
     toast(ITEMS[it.id].n+' stored in the vault');renderAll();
   };
 }
@@ -359,7 +386,8 @@ function campBuy(i){
   const credit=camp.credit||0;const fromCredit=Math.min(credit,cost);const fromGold=cost-fromCredit;
   if(!canSpend(fromGold)){toast('Not enough gold');return;}
   camp.credit=credit-fromCredit;G.gold-=fromGold;o.bought=true;sCoin();
-  G.board.push(mkWare(o.id,0));
+  const bought=mkWare(o.id,0);G.board.push(bought);
+  metricEvent('shop_buy',{id:o.id,iid:bought.iid,cost:fromGold,credit:fromCredit,free:false,source:'gate_camp'});
   const forged=fuseStamp(G.board);fuseWithVault();
   if(forged.length){forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});sForge();sting('forgesting');}
   else{toast(d.n+' joins your stall.');}
@@ -531,7 +559,9 @@ function buyWare(i){
   const wEl=document.querySelector('.ware[data-w="'+i+'"]');
   const fromRect=wEl?wEl.getBoundingClientRect():null;
   G.gold-=cost;w.bought=true;sCoin();
-  G.board.push(mkWare(w.id,0,w.ench));
+  const bought=mkWare(w.id,0,w.ench);G.board.push(bought);
+  metricEvent('shop_buy',{id:w.id,iid:bought.iid,offerId:w.offerId,cost:cost,free:!!w.free,ench:w.ench||null,
+    source:G.route&&G.route.opening?'opening':(G.route&&G.route.market&&G.route.market.nodeId)});
   const forged=fuseStamp(G.board);
   fuseWithVault();
   renderAll();
@@ -558,8 +588,9 @@ function buyWare(i){
 function tierUp(){
   if(G.tier>=6||!canSpend(G.tierCost))return;
   const beforeSlots=slotsNow();
-  G.gold-=G.tierCost;G.tier++;sFanfare();
+  const paid=G.tierCost;G.gold-=paid;G.tier++;sFanfare();
   G.tierCost=TIERCOST[G.tier+1]||0;
+  metricEvent('tier_up',{tier:G.tier,cost:paid});
   toast('Tier '+G.tier+': '+(slotsNow()>beforeSlots?'new slot and ':'')+'richer wares');
   renderAll();
   const dk=document.querySelector('.dock');
@@ -574,6 +605,7 @@ function reroll(){
   const free=G.mode==='route'&&G.freeReroll;
   if(free){G.freeReroll=false;toast('A free reroll, courtesy of Refit.');}
   else{const price=currentRerollCost();if(G.gold<price)return;G.gold-=price;}
+  metricEvent('shop_reroll',{free:free,cost:free?0:currentRerollCost(),nodeId:G.route&&G.route.market&&G.route.market.nodeId});
   G.shopSel=null;
   /* route markets re-seed from a keyed, serializable stream so a reload replays
      the same reroll sequence rather than the lobby rng's hidden position */
@@ -619,6 +651,9 @@ function rollShop(){
   }
   G.shop=frozenKeep.concat(out).concat(freeKeep);
   G.shopFresh=true;
+  metricEvent('shop_roll',{nodeId:G.route&&G.route.market&&G.route.market.nodeId,
+    rollIndex:G.route&&G.route.market?G.route.market.rollIndex:0,gold:G.gold,
+    offers:G.shop.filter(function(w){return !w.bought;}).map(function(w){return {offerId:w.offerId,id:w.id,ench:w.ench||null,free:!!w.free,hold:w.hold||0};})});
 }
 function toggleFreeze(){
   const held=(G.shop||[]).some(function(w){return (w.hold||0)>0;});
@@ -629,6 +664,7 @@ function toggleFreeze(){
     setFrozenOffers(G.shop,duration);
     toast('The shop holds through '+duration+' market roll'+(duration===1?'':'s')+'.');
   }
+  metricEvent('shop_freeze',{active:!!G.frozen,nodeId:G.route&&G.route.market&&G.route.market.nodeId});
   renderDraft();
 }
 /* ============ FIGHT UI ============ */
@@ -786,15 +822,17 @@ function openFightInspect(side,i){
   if(!G.F)return;
   const S=side==='a'?G.F.a:G.F.b;const fi=S.items[i];if(!fi)return;
   G.fpaused=true;
+  metricPhase('combat_inspect');
   const o=ovOpen('<div class="card inspectcard"><div class="kick gold">'+(side==='a'?'Your ware':'Enemy ware')+'</div>'
    +'<div class="sheet">'+fightDetailHTML(fi)+'</div>'
    +'<button class="btn gold" id="fiResume" style="width:100%;margin-top:12px">Resume fight</button></div>');
-  const done=function(){G.fpaused=false;ovClose(o);};
+  const done=function(){G.fpaused=false;ovClose(o);metricPhase('combat_'+FSPD+'x');};
   const r=o.querySelector('#fiResume');if(r)r.onclick=done;
   o.onclick=function(ev){if(ev.target===o)done();};
 }
 function startFight(me,foe,opts){
   G.phase='fight';G.fpaused=false;G.sel=null;music((opts&&opts.boss)?'boss':'battle');
+  metricPhase('combat_'+FSPD+'x');
   document.body.classList.add('fight');
   if(!RM){
     const dk=document.createElement('div');dk.className='dusk';
@@ -804,7 +842,8 @@ function startFight(me,foe,opts){
   }
   const fseed=(opts&&opts.seed!=null)?(opts.seed>>>0):((G.seed+G.round*7919+(++G.fightN)*104729)>>>0);
   const baseStorm=(opts&&opts.stormAt)||stormAt((opts&&opts.threat!=null)?opts.threat:runThreat());
-  const F=createFight({a:me,b:foe,stormAt:adjustedStormAt(baseStorm,G.A),seed:fseed,playerIs:'a'});
+  const F=createFight({a:me,b:foe,stormAt:adjustedStormAt(baseStorm,G.A),seed:fseed,playerIs:'a',
+    diagnosticTap:opts&&opts.diagnosticTap});
   G.F=F;
   G.recap={a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
   function pad(items){const u=items.reduce(function(s,x){return s+(x.slotSize||x.size);},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
@@ -823,6 +862,7 @@ function startFight(me,foe,opts){
   const sb=$('spdB');
   if(sb)sb.onclick=function(){
     FSPD=FSPD===1?2:1;sb.textContent=FSPD+'x';
+    metricPhase('combat_'+FSPD+'x');
     try{window.localStorage.setItem('bb-speed',String(FSPD));}catch(e){}
   };
   paintFight(F);
@@ -900,6 +940,8 @@ function settleRouteReward(e){
   if(routeState().phase==='won')plan.choice=null;
   const receipt=settleFixed(G.run,plan,key,H&&H.mod&&H.mod.debtLobbyDamage?{debtLobbyDamage:H.mod.debtLobbyDamage}:null);
   if(!already){
+    metricEvent('reward_settled',{nodeId:e.nodeId,monsterId:e.monId,gold:plan.gold,items:plan.items.slice(),
+      relic:!!plan.relic,mote:plan.mote||null,choice:plan.choice||null,drained:plan.drained||0});
     if(receipt.debtPaid){toast(receipt.debtPaid+' gold repaid your debt before the reward landed.');}
     if(receipt.debtDamage){toast('Unpaid debt cost '+receipt.debtDamage+' Resolve and was cleared.');}
     if(plan.drained>0){toast('The monkey kept '+plan.drained+' gold of the bounty.');}
@@ -953,6 +995,7 @@ function presentAfterReward(){
 /* ---- route saves (independent of the lobby save) ---- */
 function snapshotRoute(){
   const s=store();if(!s||!G||G.mode!=='route'||!G.run)return;
+  touchMetrics(G.run.metrics,Date.now());
   /* v2 envelope: the run aggregate is the durable truth (controller state +
      economy + ids all nested), read straight from G.run rather than through the
      G accessors. Wares keep their iid, offers their offerId, so ids are stable
@@ -963,11 +1006,13 @@ function snapshotRoute(){
   const R=G.route,E=G.run.economy;
   const d={saveVersion:ROUTE_SAVE_VERSION,mapVersion:MAP_VERSION,
     run:{schemaVersion:G.run.schemaVersion,runId:G.run.runId,revision:G.run.revision,seed:G.run.seed,
+      routeMode:G.run.routeMode||'quick',
       route:G.run.route,
       economy:{gold:E.gold,tier:E.tier,tierCost:E.tierCost,relicIncome:E.relicIncome,freeReroll:!!E.freeReroll,frozen:!!E.frozen,
         board:E.board.map(item),vault:E.vault.map(item),
         shop:E.shop.map(function(w){return {id:w.id,free:!!w.free,bought:!!w.bought,ench:w.ench||null,offerId:w.offerId,hold:w.hold||0};}),
         trinkets:E.trinkets.map(function(t){return t.id;})},
+      metrics:serializeMetrics(G.run.metrics),end:G.run.end||null,
       receipts:G.run.receipts||{},pendingChoice:G.run.pendingChoice||null,
       camp:G.run.camp||null,lastReserveUsed:!!G.run.lastReserveUsed,
       ids:{nextItem:G.run.ids.nextItem}},
@@ -988,6 +1033,7 @@ function checkpointActiveRun(){return snapshotRoute();}
 
 /* ---- run construction ---- */
 function newRoute(){
+  const now=Date.now();
   const seed=((Date.now()>>>0)^0x9e3779b9)>>>0;
   const rng=mulberry(seed);
   const anomPool=ANOMALIES;
@@ -997,8 +1043,9 @@ function newRoute(){
      T:null,hero:null,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
-     run:newRun({seed:seed}),
-     route:{map:genMap(seed),selectedId:null,market:null,combat:null,opening:false}});
+      run:newRun({seed:seed,routeMode:'quick',now:now}),
+      route:{map:genMap(seed),selectedId:null,market:null,combat:null,opening:false}});
+  G.run.metrics=resumeMetrics(G.run.metrics,now,false);
   bindEconomy(G);   /* gold/tier/board/shop/... now delegate to G.run.economy */
   computeT();
   renderAno();renderTrow();
@@ -1028,22 +1075,22 @@ function runEffects(effects,i,ctx){
     const e=effects[i];
     if(e.type==='fight'){G.route.combat={nodeId:e.nodeId,enteredGold:G.gold,threat:e.threat,pocketed:0,attempt:(routeState().attempts[e.nodeId]||0)};checkpointActiveRun();startRouteFight(e);return;}
     else if(e.type==='wonFight'){const node=nodeOf(routeMap(),e.nodeId);checkpointActiveRun();
-      showFightRecap(true,MONSTERS[node.monId].n,function(){dispatchRoute({type:'settleReward'},ctx);});return;}
+      metricPhase('recap');showFightRecap(true,MONSTERS[node.monId].n,function(){dispatchRoute({type:'settleReward'},ctx);});return;}
     else if(e.type==='lostFight'){const node=nodeOf(routeMap(),e.nodeId);const rest=effects,ni=i+1;checkpointActiveRun();
-      showFightRecap(false,MONSTERS[node.monId].n,function(){runEffects(rest,ni,ctx);});return;}
-    else if(e.type==='reward'){settleRouteReward(e);return;}
+      metricPhase('recap');showFightRecap(false,MONSTERS[node.monId].n,function(){runEffects(rest,ni,ctx);});return;}
+    else if(e.type==='reward'){metricPhase('reward');settleRouteReward(e);return;}
     else if(e.type==='slip'){toast('You slip past. Lost '+e.cost+' Resolve.');checkpointActiveRun();}
     else if(e.type==='market'){enterRouteMarket(e.nodeId);return;}
-    else if(e.type==='marketDone'){G.route.market=null;G.phase='routeMap';checkpointActiveRun();}
-    else if(e.type==='event'){checkpointActiveRun();routeEventCard(e);return;}
-    else if(e.type==='eventDone'){G.phase='routeMap';checkpointActiveRun();}
-    else if(e.type==='gateCamp'){G.phase='gateCamp';checkpointActiveRun();renderAll();return;}
+    else if(e.type==='marketDone'){G.route.market=null;G.phase='routeMap';metricPhase('map');checkpointActiveRun();}
+    else if(e.type==='event'){metricPhase('event');checkpointActiveRun();routeEventCard(e);return;}
+    else if(e.type==='eventDone'){G.phase='routeMap';metricPhase('map');checkpointActiveRun();}
+    else if(e.type==='gateCamp'){G.phase='gateCamp';metricPhase('gate_camp');checkpointActiveRun();renderAll();return;}
     else if(e.type==='end'){routeEnd(e.cause);return;}
   }
   /* every pausing effect returns above, so reaching here means the queue
      resolved back to the road (a slip, a settled reward, a left market, or a
      finished event); the prior screen may still be the fight, so force the map */
-  G.phase='routeMap';renderAll();
+  G.phase='routeMap';metricPhase('map');renderAll();
 }
 
 /* ---- combat adapter: reuse startFight, feed it a route-built foe ---- */
@@ -1052,15 +1099,34 @@ function startRouteFight(e){
   const H=heroOf();
   const php=fightHP(e.threat,G.T.hpFlat,G.A);
   const foe=monsterSide(e.monId,{gold:G.gold,round:e.threat,A:G.A,gilded:!!e.gilded,playerBoard:G.board,playerHp:php});
-  const me={nm:'You',portrait:G.you.p,hp:php,items:playerFightItems(G.board,G.T,G.A,1),
+  const playerItems=playerFightItems(G.board,G.T,G.A,1);
+  const me={nm:'You',portrait:G.you.p,hp:php,items:playerItems,
     lifesteal:G.A.healingDisabled?0:(G.T.lifesteal||0),regen:G.A.healingDisabled?0:boardRegen(G.board),
     rules:Object.assign({},G.A,H?H.mod:{})};
+  const node=nodeOf(routeMap(),e.nodeId);
+  metricSnapshot(node.type==='boss'?'boss_pre_fight':'pre_fight',{nodeId:e.nodeId,district:node.district,
+    monsterId:e.monId,threat:e.threat,attempt:(routeState().attempts[e.nodeId]||0)});
+  const tally=beginCombatTally({nodeId:e.nodeId,district:node.district,encounter:node.type,monsterId:e.monId,
+    threat:e.threat,attempt:(routeState().attempts[e.nodeId]||0),gilded:!!e.gilded,playerStartHp:php,enemyStartHp:foe.hp},
+    G.board,playerItems,foe.items);
+  tally.phaseBaseline=metricPhaseTotals(G.run.metrics,['combat_1x','combat_2x','combat_inspect']);
+  G.route.fightTelemetry=tally;
   startFight(me,foe,{seed:e.fightSeed,threat:e.threat,caption:'Threat '+e.threat,boss:!!e.boss,
-    stormAt:M.stormAt?M.stormAt*1000:stormAt(e.threat),onEnd:function(F){endRouteFight(F,e);}});
+    stormAt:M.stormAt?M.stormAt*1000:stormAt(e.threat),diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);},
+    onEnd:function(F){endRouteFight(F,e);}});
 }
 function endRouteFight(F,e){
-  if(F.lotPaid){G.gold+=F.lotPaid;toast('The Auctioneer paid you '+F.lotPaid+' gold.');}
+  if(F.lotPaid){G.gold+=F.lotPaid;metricEvent('auction_payout',{gold:F.lotPaid,nodeId:e.nodeId});toast('The Auctioneer paid you '+F.lotPaid+' gold.');}
   if(G.route.combat)G.route.combat.pocketed=F.pocketed||0;
+  const tally=G.route.fightTelemetry;
+  if(tally){touchMetrics(G.run.metrics,Date.now());const totals=metricPhaseTotals(G.run.metrics,['combat_1x','combat_2x','combat_inspect']);
+    const base=tally.phaseBaseline||{};
+    commitCombatTally(G.run.metrics,tally,{winner:F.winner,simMs:F.t,stormAt:F.stormAt,
+      playerEndHp:F.a.hp,enemyEndHp:F.b.hp,playerShield:F.a.shield,enemyShield:F.b.shield,
+      speedMs:{x1:(totals.combat_1x||0)-(base.combat_1x||0),x2:(totals.combat_2x||0)-(base.combat_2x||0),
+        inspect:(totals.combat_inspect||0)-(base.combat_inspect||0)},
+      guardTrips:F.diagnostics.guardTrips,guardCounts:Object.assign({},F.diagnostics.guardCounts)},Date.now());
+    G.route.fightTelemetry=null;}
   /* the enemy's surviving item tiers, from the engine (fight items carry .tier,
      not .id, so the old ITEMS[it.id] lookup counted every survivor as tier 1) */
   dispatchRoute({type:'fightResult',winner:F.winner,survTier:F.survTiers('b')});
@@ -1091,11 +1157,11 @@ function enterOpeningMarket(){
   G.rng=mulberry(fightSeed(G.seed,'__opening__',0));
   G.frozen=false;G.shopSel=null;G.sel=null;G.vsel=null;G.swapV=null;G.dockV=false;
   rollShop();ensureOpeningOffense();
-  G.phase='draft';checkpointActiveRun();renderAll();
+  G.phase='draft';metricPhase('market');checkpointActiveRun();renderAll();
 }
 function leaveOpeningMarket(){
   G.route.opening=false;G.route.market=null;
-  G.phase='routeMap';checkpointActiveRun();renderAll();
+  G.phase='routeMap';metricPhase('map');checkpointActiveRun();renderAll();
 }
 /* ---- market node: reuse the draft, deterministic keyed stock ---- */
 function enterRouteMarket(nodeId){
@@ -1103,7 +1169,7 @@ function enterRouteMarket(nodeId){
   G.rng=mulberry(fightSeed(G.seed,nodeId,0));
   G.shopSel=null;G.sel=null;G.vsel=null;G.swapV=null;G.dockV=false;
   rollShop();
-  G.phase='draft';checkpointActiveRun();renderAll();
+  G.phase='draft';metricPhase('market');checkpointActiveRun();renderAll();
 }
 
 /* resume a saved route at whatever phase it stopped */
@@ -1117,7 +1183,8 @@ function restoreRoute(d){
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:d.fightN||0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
      run:reviveRun(d.run),
-     route:{map:map,selectedId:null,market:d.market||null,combat:d.combat||null,opening:!!d.opening}});
+      route:{map:map,selectedId:null,market:d.market||null,combat:d.combat||null,opening:!!d.opening}});
+  G.run.metrics=resumeMetrics(G.run.metrics,Date.now(),true);
   /* revive the economy into live objects. Presence checks, not `||`: tierCost 0,
      frozen false, and empty arrays are all valid saved values. reviveItem/
      reviveOffer copy the saved iid/offerId (stable across reload); the id floor
@@ -1136,7 +1203,7 @@ function restoreRoute(d){
 }
 function resumeRoutePhase(){
   const st=routeState();
-  if(G.route.opening){G.phase='draft';renderAll();return;}   /* the opening stall */
+  if(G.route.opening){G.phase='draft';metricPhase('market');renderAll();return;}   /* the opening stall */
   /* an owed reward choice wins over the controller phase: its fixed part is
      already applied (receipt), so reopen the choice rather than re-settle. If
      the choice's targets are gone, the fallback resolves it and we present on. */
@@ -1147,13 +1214,13 @@ function resumeRoutePhase(){
   if(st.phase==='encounter'&&st.pendingId){
     const n=nodeOf(routeMap(),st.pendingId);
     startRouteFight({nodeId:n.id,monId:n.monId,threat:n.threat,gilded:n.gilded,boss:n.type==='boss',fightSeed:st.fightSeed});
-  }else if(st.phase==='reward'){dispatchRoute({type:'settleReward'});}   /* fixed not saved: re-settle, receipt makes it once */
-  else if(st.phase==='market'){G.phase='draft';renderAll();}
-  else if(st.phase==='event'){const n=nodeOf(routeMap(),st.pendingId);routeEventCard({node:n});}
-  else if(st.phase==='gateCamp'){G.phase='gateCamp';renderAll();}
+  }else if(st.phase==='reward'){metricPhase('reward');dispatchRoute({type:'settleReward'});}   /* fixed not saved: re-settle, receipt makes it once */
+  else if(st.phase==='market'){G.phase='draft';metricPhase('market');renderAll();}
+  else if(st.phase==='event'){metricPhase('event');const n=nodeOf(routeMap(),st.pendingId);routeEventCard({node:n});}
+  else if(st.phase==='gateCamp'){G.phase='gateCamp';metricPhase('gate_camp');renderAll();}
   else if(st.phase==='won'){routeEnd('won');}   /* a finished run resumes to its end screen, not the map */
   else if(st.phase==='lost'){routeEnd('resolve');}
-  else{G.phase='routeMap';renderAll();}
+  else{G.phase='routeMap';metricPhase('map');renderAll();}
 }
 function heroOf(){return G&&G.hero?HEROES.filter(function(h){return h.id===G.hero;})[0]:null;}
 function computeT(){
@@ -1253,13 +1320,14 @@ function openIntro(){
   if(!ART['bg-intro']){newRoute();return;}
   const o=document.createElement('div');o.id='intro';
   o.innerHTML='<div class="ititle">Tavern Bash</div>'
-   +'<div class="ibtns">'
-   +'<button class="stonebtn" id="inNew">New Game</button>'
-   +'<button class="stonebtn" id="inTut">Tutorial</button>'
-  +'</div>';
+    +'<div class="ibtns">'
+    +'<button class="stonebtn" id="inNew">New Game</button>'
+    +'<button class="stonebtn" id="inTut">Tutorial</button>'
+   +'</div>'+(unexportedRunCount()?'<button class="btn introexport" id="inExport">Copy Unexported Runs ('+unexportedRunCount()+')</button>':'');
   document.body.appendChild(o);
   o.querySelector('#inNew').onclick=function(){o.remove();newRoute();};
   o.querySelector('#inTut').onclick=function(){o.remove();newRoute();};
+  const ex=o.querySelector('#inExport');if(ex)ex.onclick=function(){copyUnexportedRuns(ex);};
 }
 /* the debug strip: ?debug in the URL (or bb-debug=1 in storage) pins a
    tiny readout to the corner: build tag, PWA vs browser tab, viewport,
@@ -1290,7 +1358,9 @@ export function boot(){
      this is the one-way bridge. All targets are hoisted function declarations. */
   wireRouteUI({dispatchRoute:dispatchRoute,renderAll:renderAll,checkpointActiveRun:checkpointActiveRun,
     criticalSave:criticalSave,presentAfterReward:presentAfterReward,fuseStamp:fuseStamp,fuseWithVault:fuseWithVault,
-    computeT:computeT,mkOffer:mkOffer,heroOf:heroOf,newRoute:newRoute,restoreRoute:restoreRoute,clearRoute:clearRoute});
+    computeT:computeT,mkOffer:mkOffer,heroOf:heroOf,newRoute:newRoute,restoreRoute:restoreRoute,clearRoute:clearRoute,
+    metricPhase:metricPhase,metricEvent:metricEvent,metricSnapshot:metricSnapshot});
+  bindMetricVisibility();
   initDebug();
   const mb=$('muteBtn');
   if(mb){
@@ -1313,6 +1383,6 @@ export function boot(){
       /* reward-flow hooks so the resume e2e can exercise the gild/unique choice
          branch without walking deep into the route to a choice-bounty monster */
       settleFixed:function(plan,nodeId){var key=rewardKey(G.run.runId,nodeId||'test',0);settleFixed(G.run,plan,key);return key;},
-      presentAfterReward:presentAfterReward,checkpoint:checkpointActiveRun};
+      presentAfterReward:presentAfterReward,checkpoint:checkpointActiveRun,routeEnd:routeEnd};
   }
 }

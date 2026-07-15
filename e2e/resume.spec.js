@@ -66,7 +66,7 @@ test('every ware and offer carries a unique durable id, disjoint across the pool
   expect(r.nextAboveMax).toBe(true);
 });
 
-test('durable ids are stable across a reload (v2 save persistence)', async ({page}) => {
+test('durable ids are stable across a reload (v3 save persistence)', async ({page}) => {
   await freshRoute(page);
   const before = await page.evaluate(() => {
     const G = window.BBDEV.g();
@@ -78,29 +78,29 @@ test('durable ids are stable across a reload (v2 save persistence)', async ({pag
     const G = window.BBDEV.g();
     return {board: G.board.map(w => w.iid), gold: G.gold, schemaV: G.run.schemaVersion};
   });
-  expect(after.schemaV).toBe(2);
+  expect(after.schemaV).toBe(3);
   expect(after.board).toEqual(before.board);   /* same iids, not renumbered */
   expect(after.gold).toBe(before.gold);
 });
 
-test('a legacy v1 save migrates to v2 and continues on load', async ({page}) => {
+test('a legacy v1 save migrates to v3 and continues on load', async ({page}) => {
   await freshRoute(page);
-  /* craft a faithful v1 save from the live v2 one (strip the durable ids and
+  /* craft a faithful v1 save from the live v3 one (strip the durable ids and
      flatten the shape) so the migration path is exercised end to end */
   await page.evaluate(() => {
-    const v2 = JSON.parse(localStorage.getItem('bb-route-run'));
-    const e = v2.run.economy;
+    const v3 = JSON.parse(localStorage.getItem('bb-route-run'));
+    const e = v3.run.economy;
     const plainW = w => ({id: w.id, rarity: w.rarity, size: w.size, ench: w.ench});
     const v1 = {
-      saveVersion: 1, mapVersion: v2.mapVersion,
-      routeState: v2.run.route, phase: 'routeMap',
-      run: {seed: v2.run.seed, hero: v2.setup.hero, anom: v2.setup.anom, tags: v2.setup.tags,
+      saveVersion: 1, mapVersion: v3.mapVersion,
+      routeState: v3.run.route, phase: 'routeMap',
+      run: {seed: v3.run.seed, hero: v3.setup.hero, anom: v3.setup.anom, tags: v3.setup.tags,
         gold: e.gold, tier: e.tier, tierCost: e.tierCost, relicIncome: e.relicIncome,
-        frozen: e.frozen, freeReroll: e.freeReroll, fightN: v2.fightN,
+        frozen: e.frozen, freeReroll: e.freeReroll, fightN: v3.fightN,
         board: e.board.map(plainW), vault: e.vault.map(plainW),
         shop: e.shop.map(o => ({id: o.id, free: o.free, bought: o.bought, ench: o.ench})),
         trinkets: e.trinkets},
-      market: v2.market, opening: v2.opening, combat: v2.combat
+      market: v3.market, opening: v3.opening, combat: v3.combat
     };
     localStorage.setItem('bb-route-run', JSON.stringify(v1));
   });
@@ -116,7 +116,7 @@ test('a legacy v1 save migrates to v2 and continues on load', async ({page}) => 
       gold: G.gold
     };
   });
-  expect(after.schemaV).toBe(2);           /* migrated */
+  expect(after.schemaV).toBe(3);           /* migrated */
   expect(after.allStamped).toBe(true);     /* wares got ids */
   expect(after.nextAboveMax).toBe(true);
 });
@@ -230,4 +230,24 @@ test('resume during the victory recap settles the reward exactly once', async ({
   expect(after.phase).toBe('map');
   expect(after.path).toBe(before.path + 1);      /* the node completed once, not zero or twice */
   expect(after.gold).toBeGreaterThanOrEqual(before.gold + 2);   /* base monster gold (2/4/6) paid once */
+});
+
+test('a finished run keeps one report and its debrief across reload', async ({page}) => {
+  await freshRoute(page);
+  const before = await page.evaluate(() => {
+    window.BBDEV.g().run.route.phase='won';
+    window.BBDEV.routeEnd('won');
+    document.querySelector('[data-db="pace"][data-v="fast"]').click();
+    const rows=JSON.parse(localStorage.getItem('bb-route-reports')||'[]');
+    const active=JSON.parse(localStorage.getItem('bb-route-run'));
+    return {count:rows.length,id:rows[0].reportId,pace:rows[0].debrief.pace,endId:active.run.end.endedAt};
+  });
+  await reloadAndContinue(page);
+  await page.waitForSelector('#reGo');
+  const after = await page.evaluate(() => {
+    const rows=JSON.parse(localStorage.getItem('bb-route-reports')||'[]');
+    const active=JSON.parse(localStorage.getItem('bb-route-run'));
+    return {count:rows.length,id:rows[0].reportId,pace:rows[0].debrief.pace,endId:active.run.end.endedAt};
+  });
+  expect(after).toEqual(before);
 });

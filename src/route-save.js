@@ -5,8 +5,9 @@
    market/opening/combat) is the v1 payload; R4's later commits add the v2
    aggregate and a v1 to v2 migration behind this same module. */
 import {MAP_VERSION} from './map.js';
+import {newMetrics,serializeMetrics} from './route-metrics.js';
 
-export const ROUTE_SAVE_VERSION = 2;
+export const ROUTE_SAVE_VERSION = 3;
 export const ROUTE_KEY = 'bb-route-run';
 
 function highestId(list,key){
@@ -48,6 +49,16 @@ export function migrateV1toV2(d){
   };
 }
 
+/* v2 -> v3 adds the explicit route mode and observational telemetry. Existing
+   runs are Quick because v2 had only the original four-district route. Their
+   metrics are marked partial since elapsed play before this version is unknowable. */
+export function migrateV2toV3(d){
+  const legacy=newMetrics(null);legacy.partial=true;
+  return Object.assign({},d,{saveVersion:3,run:Object.assign({},d.run||{},
+    {schemaVersion:3,routeMode:(d.run&&d.run.routeMode)||'quick',
+      metrics:(d.run&&d.run.metrics)||serializeMetrics(legacy)})});
+}
+
 /* read, migrate, then version-gate. A save from a stale generator (mapVersion)
    is dropped regardless of format. A v1 save is migrated to v2 in memory. Any
    failure (bad JSON, a migration throw) falls back to null so restore starts a
@@ -59,6 +70,7 @@ export function readRouteSave(storage){
     if(!d)return null;
     if(d.mapVersion!==MAP_VERSION){storage.removeItem(ROUTE_KEY);return null;}
     if(d.saveVersion===1){d=migrateV1toV2(d);}
+    if(d.saveVersion===2){d=migrateV2toV3(d);}
     if(!d||d.saveVersion!==ROUTE_SAVE_VERSION){storage.removeItem(ROUTE_KEY);return null;}
     return d;
   }catch(e){return null;}

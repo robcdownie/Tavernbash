@@ -11,8 +11,9 @@
 import {initRoute, transition, fightSeed} from './route.js';
 import {TIERCOST, ITEMS} from './data.js';
 import {mulberry, gateOK} from './engine.js';
+import {newMetrics,reviveMetrics,serializeMetrics,recordMetric} from './route-metrics.js';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /* the ten durable economy fields. run.economy is their single truth; G exposes
    them through accessors (bindEconomy) so the old direct call sites and in-place
@@ -57,8 +58,11 @@ export function newRun(setup){
     runId: runIdFor(seed),
     revision: 0,
     seed: seed,
+    routeMode: setup.routeMode || 'quick',
     route: initRoute(seed),
     economy: newEconomy(),
+    metrics: newMetrics(setup.now),
+    end: null,
     /* reward settlement bookkeeping (R4 commit 4): receipts make a node's fixed
        reward and its gild, unique, or Charm choice each apply exactly once across a reload;
        pendingChoice holds an owed, interrupted choice so resume reopens it. */
@@ -119,6 +123,7 @@ export function campMend(run,creditLimit){
   run.economy.gold -= CAMP_MEND.cost;
   run.route.resolve = Math.min(run.route.resolveMax, run.route.resolve + CAMP_MEND.gain);
   c.mendUsed = true;
+  recordMetric(run.metrics,'camp_mend',{nodeId:c.nodeId,gold:-CAMP_MEND.cost,resolve:CAMP_MEND.gain});
   return {ok:true};
 }
 /* spend permanent survival buffer for one-time camp credit, once per run. Refused
@@ -131,6 +136,8 @@ export function campLastReserve(run){
   run.route.resolveMax -= CAMP_LAST_RESERVE.maxCut;
   run.camp.credit += CAMP_LAST_RESERVE.credit;
   run.lastReserveUsed = true;
+  recordMetric(run.metrics,'camp_last_reserve',{nodeId:run.camp.nodeId,resolve:-CAMP_LAST_RESERVE.resolve,
+    resolveMax:-CAMP_LAST_RESERVE.maxCut,credit:CAMP_LAST_RESERVE.credit});
   return {ok:true};
 }
 
@@ -161,9 +168,13 @@ export function ensureIdFloor(run){
 /* the ONLY place the navigation controller advances. Mutates run.route in
    place, bumps the revision, and hands the caller the effects to run. */
 export function advance(run, map, action){
+  const beforeResolve=run.route.resolve,beforePath=run.route.path.length;
   const r = transition(run.route, map, action);
   run.route = r.state;
   run.revision++;
+  const nodeId=action.nodeId||run.route.pendingId||null;
+  recordMetric(run.metrics,'route_'+action.type,{nodeId:nodeId,choice:action.choice||null,winner:action.winner||null,
+    resolveDelta:run.route.resolve-beforeResolve,pathDelta:run.route.path.length-beforePath,phase:run.route.phase});
   return r.effects;
 }
 
@@ -176,8 +187,11 @@ export function serializeRun(run){
     runId: run.runId,
     revision: run.revision || 0,
     seed: run.seed >>> 0,
+    routeMode: run.routeMode || 'quick',
     route: run.route,
     economy: run.economy,
+    metrics: serializeMetrics(run.metrics),
+    end: run.end || null,
     receipts: run.receipts || {},
     pendingChoice: run.pendingChoice || null,
     camp: run.camp || null,
@@ -193,11 +207,14 @@ export function reviveRun(d){
     runId: d.runId || runIdFor(seed),
     revision: d.revision || 0,
     seed: seed,
+    routeMode: d.routeMode || 'quick',
     route: d.route,
     /* economy is opaque here; the item-wire reduction (board -> {id,rarity,size,
        ench}) and v1->v2 migration land in 3c2 when the save switches to this
        codec. Callers that revive from the legacy envelope set economy after. */
     economy: d.economy || newEconomy(),
+    metrics: reviveMetrics(d.metrics),
+    end: d.end || null,
     receipts: d.receipts || {},
     pendingChoice: d.pendingChoice || null,
     camp: d.camp || null,

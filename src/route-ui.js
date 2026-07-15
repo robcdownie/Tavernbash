@@ -11,7 +11,7 @@
    remain in ui.js through a bridge injected once at boot via wireRouteUI. DOM
    callbacks keep their current behavior exactly (the "callbacks only dispatch"
    ideal, and moving persistence out of render, stay later audited changes). */
-import {G,RM,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
+import {G,RM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
 import {ITEMS,RNAME,ENCH,MONSTERS,DISTRICTS,PERSONAS,CATN,TRINKETS} from './data.js';
 import {mulberry,gateOK,monsterSide,fightHP} from './engine.js';
 import {genMap,isCombat} from './map.js';
@@ -21,6 +21,9 @@ import {chooseGild as runtimeChooseGild,chooseUnique as runtimeChooseUnique,choo
 import {fxCoinRain} from './fx.js';
 import {music,sting} from './music.js';
 import pkg from '../package.json';
+import {finishMetrics,activateMetrics,touchMetrics,serializeMetrics} from './route-metrics.js';
+import {buildRunRecord,formatRunSummary,formatRunFullData,formatRunBatch} from './route-report.js';
+import {saveReport,updateReport,unexportedReports,markReportsExported} from './route-report-store.js';
 
 /* the flow bridge: functions that stay in ui.js (dispatch, render, persistence,
    economy, run lifecycle) and are wired in once at boot. */
@@ -34,6 +37,7 @@ export function routeState(){return G.run.route;}
 
 /* ============ REWARD-CHOICE PRESENTERS ============ */
 export function openRewardChoice(pc){
+  B.metricPhase('reward_choice');
   B.renderAll();
   if(pc.kind==='gild'){openRewardGild(pc);}
   else if(pc.kind==='charm'){openRewardCharm(pc);}
@@ -57,6 +61,7 @@ function chooseRewardGild(o,iid){
   const res=runtimeChooseGild(G.run,iid);
   if(!res.ok){return;}   /* a stale click on a vanished target is rejected, not misapplied */
   toast('Gilded: '+RNAME[res.ware.rarity]+' '+ITEMS[res.ware.id].n);
+  B.metricEvent('reward_choice',{kind:'gild',iid:iid,id:res.ware.id,rarity:res.ware.rarity});
   B.fuseStamp(G.board);B.fuseWithVault();
   ovClose(o);B.criticalSave(B.presentAfterReward);
 }
@@ -75,6 +80,7 @@ function chooseRewardUnique(o,id){
   const res=runtimeChooseUnique(G.run,id);
   if(!res.ok){return;}
   toast(ITEMS[id].n+' waits in the market, free.');
+  B.metricEvent('reward_choice',{kind:'unique',id:id});
   ovClose(o);B.criticalSave(B.presentAfterReward);
 }
 
@@ -93,6 +99,7 @@ function chooseRewardCharm(o,id){
   const res=runtimeChooseCharm(G.run,id);
   if(!res.ok)return;
   B.computeT();
+  B.metricEvent('reward_choice',{kind:'charm',id:id});
   toast('Charm: '+res.charm.n);
   ovClose(o);B.criticalSave(B.presentAfterReward);
 }
@@ -162,6 +169,7 @@ function grantEnchantKit(rng,fixedEnch){
   G.gold+=4;toast((fixedEnch?'No ware fits '+ENCH[fixedEnch].n+'. ':'No ware to enchant. ')+'4 gold instead.');
 }
 function applyTreasure(opt,cont,nodeId){
+  B.metricEvent('event_choice',{nodeId:nodeId,kind:'treasure',choice:Object.assign({},opt)});
   if(opt.kind==='ware'){grantFreeWare(eventRng(nodeId,'tware'),opt.id);cont();}
   else if(opt.kind==='enchant'){grantEnchantKit(eventRng(nodeId,'tench'),opt.ench);cont();}
   else if(opt.kind==='silver'){openGild('Raise one ware a rarity step.',cont);}
@@ -200,7 +208,8 @@ function pickWare(msg,onPick){
   o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){const i=+p.dataset.i;ovClose(o);onPick(i);};});
   return true;
 }
-function completeEvent(t,delta){B.dispatchRoute({type:'resolveEvent',resolveDelta:delta||0,outcome:t});}
+function completeEvent(t,delta){B.metricEvent('event_choice',{nodeId:routeState().pendingId,kind:t,resolveDelta:delta||0});
+  B.dispatchRoute({type:'resolveEvent',resolveDelta:delta||0,outcome:t});}
 function routeRestCard(node){
   choiceCard('Rest',nodeLabel(node),'Choose one.',[
     {label:'Mend',desc:'Restore 8 Resolve.',onPick:function(){toast('You make camp. +8 Resolve.');completeEvent('mend',8);}},
@@ -392,26 +401,71 @@ function ensureRouteObserver(){
   _rmObs.observe(plot);
 }
 export function routeEnd(cause){
-  G.phase='routeEnd';B.clearRoute();music(null);
+  G.phase='routeEnd';music(null);
   const result=cause==='won'?'win':'loss';
-  const endBtns='<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
-   +'<button class="btn" id="reRpt">Copy Run Report</button>'
+  const now=Date.now(),resumed=!!G.run.end;
+  if(!resumed){
+    B.metricSnapshot('end',{cause:cause,result:result});
+    finishMetrics(G.run.metrics,now);
+    G.run.end={cause:cause,result:result,endedAt:now,exported:false};
+  }
+  const endedAt=G.run.end.endedAt||now;
+  G.run.metrics.timing.cursor.phase='debrief';G.run.metrics.timing.cursor.district=currentDistrict(routeState(),routeMap())+1;
+  activateMetrics(G.run.metrics,now);
+  let report=buildRunRecord({run:G.run,map:routeMap(),setup:{hero:G.hero,anom:G.anom.id,tags:G.tags},
+    result:result,version:pkg.version,endedAt:endedAt});
+  const archived=saveReport(store(),report);
+  B.checkpointActiveRun();
+  let archiveWarned=false;
+  function archiveWarning(){if(archiveWarned)return;archiveWarned=true;toast('Report archive could not update. Copy Full Data before leaving.');}
+  if(!archived)archiveWarning();
+  const endBtns='<div class="rendbtns">'
+   +'<button class="btn" id="reSummary">Copy Summary</button>'
+   +'<button class="btn" id="reFull">Copy Full Data</button>'
    +'<button class="btn gold" id="reGo">New Run</button></div>';
+  const debrief='<div class="rdebrief"><div class="kick gold">Optional Playtest Debrief</div>'
+   +'<div class="dbq"><span>Pace</span><button data-db="pace" data-v="slow">Slow</button><button data-db="pace" data-v="right">Right</button><button data-db="pace" data-v="fast">Fast</button></div>'
+   +'<div class="dbq"><span>Difficulty</span><button data-db="difficulty" data-v="easy">Easy</button><button data-db="difficulty" data-v="right">Right</button><button data-db="difficulty" data-v="hard">Hard</button></div>'
+   +'<div class="dbq"><span>Build agency</span><button data-db="agency" data-v="low">Low</button><button data-db="agency" data-v="right">Right</button><button data-db="agency" data-v="high">High</button></div>'
+   +'<textarea id="reNote" maxlength="500" placeholder="Optional note"></textarea></div>';
   let o;
   if(cause==='won'){
     sting('fanfarewin');if(!RM)fxCoinRain();
     o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">The Long Bazaar</div>'
      +ic('g-crown','bigic')+'<h2 class="big">The Vizier Falls</h2>'
-     +'<p>You walked the whole road. The night market is yours.</p>'+endBtns+'</div>');
+     +'<p>You walked the whole road. The night market is yours.</p>'+debrief+endBtns+'</div>');
   }else{
     sting('lament');
     const st=routeState();const D=DISTRICTS[currentDistrict(st,routeMap())];
     o=ovOpen('<div class="card"><div class="rays red"></div><div class="kick">The Road Ends</div>'
      +ic('g-skull','bigic skullic')+'<h2 class="big bad">Resolve Spent</h2>'
-     +'<p>Your caravan broke in '+esc(D.name)+' after '+st.path.length+' encounter'+(st.path.length===1?'':'s')+'.</p>'+endBtns+'</div>');
+     +'<p>Your caravan broke in '+esc(D.name)+' after '+st.path.length+' encounter'+(st.path.length===1?'':'s')+'.</p>'+debrief+endBtns+'</div>');
   }
-  o.querySelector('#reRpt').onclick=function(){copyText(routeRunReport(result),o.querySelector('#reRpt'));};
-  o.querySelector('#reGo').onclick=function(){ovClose(o);B.newRoute();};
+  function syncReport(){
+    const now=Date.now();touchMetrics(G.run.metrics,now);
+    G.run.metrics.timing.calendarMs=G.run.metrics.timing.startedAt==null?0:Math.max(0,now-G.run.metrics.timing.startedAt);
+    const m=serializeMetrics(G.run.metrics),debrief=m.debrief||{};
+    report.metrics=m;report.debrief=JSON.parse(JSON.stringify(debrief));
+    report.timing.activeMs=m.timing.activeMs;report.timing.debriefMs=(m.timing.phases||{}).debrief||0;
+    report.timing.gameplayMs=Math.max(0,report.timing.activeMs-report.timing.debriefMs);
+    report.timing.calendarMs=m.timing.calendarMs;report.timing.phases=m.timing.phases;report.timing.districts=m.timing.districts;
+    const ok=updateReport(store(),report);B.checkpointActiveRun();
+    if(ok)archiveWarned=false;else archiveWarning();
+    return ok;
+  }
+  function drawDebrief(){o.querySelectorAll('[data-db]').forEach(function(b){b.classList.toggle('on',G.run.metrics.debrief[b.dataset.db]===b.dataset.v);});}
+  o.querySelectorAll('[data-db]').forEach(function(b){b.onclick=function(){G.run.metrics.debrief[b.dataset.db]=b.dataset.v;drawDebrief();syncReport();};});
+  const note=o.querySelector('#reNote');note.value=G.run.metrics.debrief.note||'';
+  note.onchange=function(){G.run.metrics.debrief.note=note.value.trim();syncReport();};
+  drawDebrief();
+  o.querySelector('#reSummary').onclick=function(){syncReport();copyText(formatRunSummary(report),o.querySelector('#reSummary'));};
+  o.querySelector('#reFull').onclick=function(){syncReport();copyText(formatRunFullData(report),o.querySelector('#reFull'),function(){
+    report.exported=true;G.run.end.exported=true;
+    if(!updateReport(store(),report))archiveWarning();B.checkpointActiveRun();});};
+  o.querySelector('#reGo').onclick=function(){G.run.metrics.debrief.note=note.value.trim();finishMetrics(G.run.metrics,Date.now());
+    const saved=syncReport();
+    if(!saved&&!G.run.end.exported){activateMetrics(G.run.metrics,Date.now());return;}
+    B.clearRoute();ovClose(o);B.newRoute();};
 }
 export function openRouteContinue(d){
   const map=genMap(d.run.seed);
@@ -516,8 +570,8 @@ function showReport(txt){
 }
 /* copy any report text to the clipboard, falling back to execCommand and then
    to a selectable panel when the clipboard is refused (iOS standalone) */
-function copyText(txt,btn){
-  const done=function(ok){if(ok){if(btn)btn.textContent='Copied';}else{showReport(txt);}};
+function copyText(txt,btn,onSuccess){
+  const done=function(ok){if(ok){if(btn)btn.textContent='Copied';if(onSuccess)onSuccess();}else{showReport(txt);}};
   const fallback=function(){
     const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
     document.body.appendChild(ta);ta.focus();ta.select();
@@ -529,45 +583,9 @@ function copyText(txt,btn){
     else{fallback();}
   }catch(e){fallback();}
 }
-/* the route run report: real Obsidian YAML frontmatter so a pasted note is
-   queryable in a vault, for tracking balance results across runs */
-function routeRunReport(result){
-  const st=routeState(),map=routeMap(),H=B.heroOf();
-  const di=currentDistrict(st,map);
-  const bosses=st.path.filter(function(id){return /boss$/.test(id);}).length;
-  /* retries = boss re-attempts spent at gate camps; the seed + path make a result
-     reproducible (seed regenerates the map, path is the exact route walked) */
-  const retries=Object.keys(st.attempts||{}).reduce(function(s,k){return s+(st.attempts[k]||0);},0);
-  const item=function(it){return RNAME[it.rarity]+' '+(it.ench?ENCH[it.ench].n+' ':'')+ITEMS[it.id].n;};
-  const yList=function(arr,fn){return arr.length?arr.map(function(x){return '\n  - '+fn(x);}).join(''):' []';};
-  const L=[
-   '---',
-   'game: Tavern Bash',
-   'mode: The Long Bazaar',
-   'version: '+pkg.version,
-   'date: '+new Date().toISOString().slice(0,16).replace('T',' '),
-   'seed: '+(G.seed>>>0),
-   'result: '+result,
-   'hero: '+(H?H.n:'none'),
-   'omen: '+G.anom.n,
-   'featured: '+CATN[G.tags[0]]+', '+CATN[G.tags[1]],
-   'district_reached: '+DISTRICTS[di].name,
-   'bosses_beaten: '+bosses,
-   'nodes_visited: '+st.path.length,
-   'boss_retries: '+retries,
-   'resolve: '+Math.max(0,st.resolve),
-   'resolve_max: '+st.resolveMax,
-   'gold: '+G.gold,
-   'tier: '+G.tier,
-   'path: '+(st.path.length?'['+st.path.join(', ')+']':'[]'),
-   'board:'+yList(G.board,item),
-   'vault:'+yList(G.vault,item),
-   'charms:'+yList(G.trinkets,function(t){return t.n;}),
-   '---',
-   '',
-   (result==='win'
-     ?'Cleared the Long Bazaar and felled the Grand Vizier.'
-     :'The caravan broke in '+DISTRICTS[di].name+' after '+st.path.length+' encounter'+(st.path.length===1?'':'s')+'.')
-  ];
-  return L.join('\n');
+
+export function unexportedRunCount(){return unexportedReports(store()).length;}
+export function copyUnexportedRuns(btn){
+  const rows=unexportedReports(store());if(!rows.length){if(btn)btn.textContent='No Unexported Runs';return;}
+  copyText(formatRunBatch(rows),btn,function(){markReportsExported(store(),rows.map(function(r){return r.reportId;}));});
 }
