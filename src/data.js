@@ -59,8 +59,8 @@ export const ITEMS={
    d:"Boss bounty. When it shatters, the rest of your stall rages."},
  gavel:{n:"The Gavel",size:2,tier:3,cat:"dmg",cd:5,fx:{dmg:12,disable:true},unique:true,
    d:"Boss bounty. Sold: the finest enemy ware, out of the fight."},
- /* R8 weapon and item-destruction bridges. Each ware is unique so the
-    original shop, rival generation, and combat parity remain untouched. */
+ /* R8 weapon and item-destruction bridges. Tier-2 combat glue joins the
+    normal shop and fusion economy; higher-tier engines stay Treasure-only. */
  viperverdict:{n:"Viper's Verdict",size:2,tier:3,cat:"dmg",cd:4.5,fx:{dmg:16},unique:true,acquisition:"treasure",
    hooks:[{on:"beforeHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"item"}],
      actions:[{op:"modifyContact",add:{from:"status",side:"enemy",status:"pois",divide:4,floor:true,max:8}}]}],
@@ -80,11 +80,11 @@ export const ITEMS={
         capPerRoot:15,capKey:"reclaimerShield"}
      ]}],
    d:"Deal 30. Item overkill becomes 50% shield, up to 15 per activation."},
- surgeonhook:{n:"Surgeon's Hook",size:1,tier:2,cat:"dmg",cd:3.5,fx:{dmg:7},unique:true,acquisition:"treasure",
+ surgeonhook:{n:"Surgeon's Hook",size:1,tier:2,cat:"dmg",cd:3.5,fx:{dmg:7},acquisition:"shop",
    hooks:[{on:"afterActivate",when:[{test:"actorIsSource"},{test:"healedWithin",side:"enemy",ms:3000}],
      actions:[{op:"timedDebuff",side:"enemy",id:"wound",duration:4,modifiers:{healReceivedMul:0.75}}]}],
    d:"Deal 7. A foe healed in the last 3 seconds is Wounded for 4 seconds and receives 25% less healing."},
- sapperspick:{n:"Sapper's Pick",size:1,tier:2,cat:"dmg",cd:3,fx:{dmg:6},unique:true,acquisition:"treasure",
+ sapperspick:{n:"Sapper's Pick",size:1,tier:2,cat:"dmg",cd:3,fx:{dmg:6},acquisition:"shop",
    hooks:[
      {on:"beforeHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"merchant"}],
       actions:[{op:"modifyContact",shieldPierce:0.5}]},
@@ -118,7 +118,7 @@ export const ITEMS={
      ]}
    ],
    d:"Apply 3 poison, plus poison the enemy cleansed since this last activated, up to 4."},
- venomsiphon:{n:"Venom Siphon",size:1,tier:2,cat:"poison",cd:4,fx:{poison:2},unique:true,acquisition:"treasure",
+ venomsiphon:{n:"Venom Siphon",size:1,tier:2,cat:"poison",cd:4,fx:{poison:2},acquisition:"shop",
    hooks:[{on:"afterActivate",when:[{test:"actorIsSource"},{test:"statusAtLeast",side:"enemy",status:"pois",value:6}],actions:[
      {op:"heal",side:"owner",amount:{from:"status",side:"enemy",status:"pois",divide:6,floor:true,max:5},quiet:false}
    ]}],
@@ -144,7 +144,7 @@ export const ITEMS={
      ]}
    ],
    d:"Destroy up to 8 enemy shield. Apply 3 burn, plus 1 per 4 shield destroyed, up to 2."},
- kilnchain:{n:"Kiln Chain",size:1,tier:2,cat:"burn",cd:3.5,fx:{burn:2},unique:true,acquisition:"treasure",
+ kilnchain:{n:"Kiln Chain",size:1,tier:2,cat:"burn",cd:3.5,fx:{burn:2},acquisition:"shop",
    hooks:[
      {on:"afterActivate",when:{test:"actorIsSource"},actions:[
        {op:"itemStateSet",targets:{side:"owner",category:"dmg",adjacentToSelf:true},key:"ignited",
@@ -184,7 +184,7 @@ export const ITEMS={
      {op:"haste",target:{side:"owner",active:true,position:"rightmost"},amount:0.35}
    ]}],
    d:"Gain 24 shield. Once per second, shield absorption charges your rightmost active ware 0.35 seconds."},
- saltward:{n:"Salt Ward",size:1,tier:2,cat:"shield",cd:4,fx:{shield:8},unique:true,acquisition:"treasure",
+ saltward:{n:"Salt Ward",size:1,tier:2,cat:"shield",cd:4,fx:{shield:8},acquisition:"shop",
    hooks:[
      {on:"beforeActivate",when:{test:"actorIsSource"},actions:[
        {op:"cleanseStatus",side:"owner",status:"pois",amount:2,store:"poisonCleansed"}
@@ -211,12 +211,12 @@ export const ITEMS={
      ]}
    ],
    d:"Gain 14 shield. Remove up to 2 own burn and gain 4 more shield for each removed."},
- rosewaterpump:{n:"Rosewater Pump",size:2,tier:2,cat:"heal",cd:4.5,fx:{heal:12},unique:true,acquisition:"treasure",
+ rosewaterpump:{n:"Rosewater Pump",size:2,tier:2,cat:"heal",cd:4.5,fx:{heal:12},acquisition:"shop",
    hooks:[{on:"afterActivate",when:{test:"actorIsSource"},actions:[
      {op:"haste",target:{side:"owner",category:"dmg",active:true},amount:0.75}
    ]}],
    d:"Heal 12 and charge your leftmost living weapon 0.75 seconds."},
- chirurgeonsscissors:{n:"Chirurgeon's Scissors",size:1,tier:2,cat:"heal",cd:3.5,fx:{heal:7},cleanseTotal:2,unique:true,acquisition:"treasure",
+ chirurgeonsscissors:{n:"Chirurgeon's Scissors",size:1,tier:2,cat:"heal",cd:3.5,fx:{heal:7},cleanseTotal:2,acquisition:"shop",
    hooks:[
      {on:"afterCleanse",when:[{test:"actorIsSource"},{test:"contextAtLeast",key:"cleansedTotal",value:1}],actions:[
        {op:"stateSet",key:"nextOtherHeal",value:{from:"sourceRarity",values:[3,5,7,10]}}

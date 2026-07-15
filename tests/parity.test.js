@@ -42,29 +42,28 @@ const RENAMED_TRINKETS={
      income modifier keeps its value and lands after each combat victory. */
   prince:{d:"After each combat victory, gain +3 gold."},
 };
-/* R8 adds hook-driven unique wares without placing them in the legacy shop or
-   rival pools. This ledger pins every approved addition to its version and its
-   concrete route acquisition path. */
-const R8_UNIQUE_WARES={
+/* R8 ware acquisition is explicit. Tier-2 combat glue enters the shop and
+   fusion economy; the higher-tier engines remain unique Treasure rewards. */
+const R8_WARES={
   viperverdict:{version:"0.69.0",batch:"weapons",acquisition:"treasure"},
   cinderhook:{version:"0.69.0",batch:"weapons",acquisition:"treasure"},
   brassreclaimer:{version:"0.69.0",batch:"weapons",acquisition:"treasure"},
-  surgeonhook:{version:"0.69.0",batch:"weapons",acquisition:"treasure"},
-  sapperspick:{version:"0.69.0",batch:"weapons",acquisition:"treasure"},
+  surgeonhook:{version:"0.69.0",batch:"weapons",acquisition:"shop"},
+  sapperspick:{version:"0.69.0",batch:"weapons",acquisition:"shop"},
   blacklotuspress:{version:"0.70.0",batch:"poison",acquisition:"treasure"},
   serpentsdue:{version:"0.70.0",batch:"poison",acquisition:"treasure"},
   antidotethief:{version:"0.70.0",batch:"poison",acquisition:"treasure"},
-  venomsiphon:{version:"0.70.0",batch:"poison",acquisition:"treasure"},
+  venomsiphon:{version:"0.70.0",batch:"poison",acquisition:"shop"},
   funeralbrazier:{version:"0.71.0",batch:"burn",acquisition:"treasure"},
   ashencenser:{version:"0.71.0",batch:"burn",acquisition:"treasure"},
-  kilnchain:{version:"0.71.0",batch:"burn",acquisition:"treasure"},
+  kilnchain:{version:"0.71.0",batch:"burn",acquisition:"shop"},
   phoenixbell:{version:"0.71.0",batch:"burn",acquisition:"treasure"},
   coinplatedram:{version:"0.72.0",batch:"shield",acquisition:"treasure"},
   mirrorbastion:{version:"0.72.0",batch:"shield",acquisition:"treasure"},
-  saltward:{version:"0.72.0",batch:"shield",acquisition:"treasure"},
+  saltward:{version:"0.72.0",batch:"shield",acquisition:"shop"},
   breakwaterbuckler:{version:"0.72.0",batch:"shield",acquisition:"treasure"},
-  rosewaterpump:{version:"0.73.0",batch:"healing",acquisition:"treasure"},
-  chirurgeonsscissors:{version:"0.73.0",batch:"healing",acquisition:"treasure"},
+  rosewaterpump:{version:"0.73.0",batch:"healing",acquisition:"shop"},
+  chirurgeonsscissors:{version:"0.73.0",batch:"healing",acquisition:"shop"},
   bloodpricechalice:{version:"0.73.0",batch:"healing",acquisition:"treasure"},
   mendersbell:{version:"0.73.0",batch:"healing",acquisition:"treasure"},
   smoketaxstamp:{version:"0.74.0",batch:"utility",acquisition:"treasure"},
@@ -103,20 +102,25 @@ test('parity: data tables identical to the original outside the rebalance ledger
   const j=x=>JSON.parse(JSON.stringify(x));
   assert.deepEqual(j(RSTAT),j(ORIG.RSTAT));
   assert.deepEqual(j(RINTEG),j(ORIG.RINTEG));
-  /* Phase 5 adds unique wares the original never sold; every item the
-     original did ship must stay byte-identical unless the ledger records
-     an approved retune, in which case it must match the ledger exactly */
+  /* Every original item stays byte-identical unless the ledger records an
+     approved retune. Only the exact R8 shop allowlist may be non-unique. */
   for(const k of Object.keys(ORIG.ITEMS)){
     const expected=Object.assign(j(ORIG.ITEMS[k]),j(REBALANCED_ITEMS[k]||{}));
     assert.deepEqual(j(ITEMS[k]),expected,'item '+k);
   }
-  for(const k of Object.keys(ITEMS)){if(!(k in ORIG.ITEMS))assert.ok(ITEMS[k].unique,'new item '+k+' must be flagged unique');}
-  for(const [id,entry] of Object.entries(R8_UNIQUE_WARES)){
-    assert.ok(ITEMS[id],'R8 ware '+id+' exists');
-    assert.equal(ITEMS[id].unique,true,'R8 ware '+id+' is unique');
-    assert.equal(ITEMS[id].acquisition,entry.acquisition,'R8 ware '+id+' acquisition');
+  for(const k of Object.keys(ITEMS)){
+    if(k in ORIG.ITEMS)continue;
+    if(R8_WARES[k]&&R8_WARES[k].acquisition==='shop')assert.equal(ITEMS[k].unique,undefined,'shop ware '+k+' must fuse');
+    else assert.ok(ITEMS[k].unique,'new item '+k+' must be flagged unique or explicitly shop-ledgered');
   }
-  assert.deepEqual(Object.keys(ITEMS).filter(id=>ITEMS[id].acquisition==='treasure').sort(),Object.keys(R8_UNIQUE_WARES).sort(),
+  for(const [id,entry] of Object.entries(R8_WARES)){
+    assert.ok(ITEMS[id],'R8 ware '+id+' exists');
+    assert.equal(ITEMS[id].acquisition,entry.acquisition,'R8 ware '+id+' acquisition');
+    if(entry.acquisition==='treasure')assert.equal(ITEMS[id].unique,true,'Treasure ware '+id+' is unique');
+    else assert.equal(ITEMS[id].unique,undefined,'shop ware '+id+' is non-unique');
+  }
+  assert.deepEqual(Object.keys(ITEMS).filter(id=>ITEMS[id].acquisition==='treasure').sort(),
+    Object.keys(R8_WARES).filter(id=>R8_WARES[id].acquisition==='treasure').sort(),
     'every Treasure-only R8 ware has a parity-ledger entry');
   /* Phase 5 adds monsters the original never shipped; every monster the
      original did ship must stay byte-identical outside the rename ledger */

@@ -21,7 +21,7 @@ function fight(a,b){
   return createFight({a:side(a),b:side(b),seed:1,stormAt:999000,playerIs:'a'});
 }
 
-test('R8 weapon bridge data is unique and matches the approved base cards',()=>{
+test('R8 weapon bridge data matches the approved base cards',()=>{
   const expected={
     viperverdict:[2,3,'dmg',4.5,16],
     cinderhook:[2,3,'dmg',4,14],
@@ -31,7 +31,6 @@ test('R8 weapon bridge data is unique and matches the approved base cards',()=>{
   };
   for(const [id,row] of Object.entries(expected)){
     const def=ITEMS[id];
-    assert.ok(def.unique,id+' is unique');
     assert.deepEqual([def.size,def.tier,def.cat,def.cd,def.fx.dmg],row,id+' base card');
     assert.ok(Array.isArray(def.hooks)&&def.hooks.length>0,id+' rides combat hooks');
   }

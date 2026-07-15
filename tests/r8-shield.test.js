@@ -21,7 +21,7 @@ function fight(a,b){
   return F;
 }
 
-test('R8 shield data is unique, Treasure-backed, and matches the approved base cards',()=>{
+test('R8 shield data matches the approved base cards',()=>{
   const expected={
     coinplatedram:[3,3,'shield',5,18],
     mirrorbastion:[3,4,'shield',6,24],
@@ -30,8 +30,6 @@ test('R8 shield data is unique, Treasure-backed, and matches the approved base c
   };
   for(const [id,row] of Object.entries(expected)){
     const def=ITEMS[id];
-    assert.ok(def.unique,id+' is unique');
-    assert.equal(def.acquisition,'treasure',id+' has a route acquisition path');
     assert.deepEqual([def.size,def.tier,def.cat,def.cd,def.fx.shield],row,id+' base card');
     assert.ok(Array.isArray(def.hooks)&&def.hooks.length>0,id+' rides combat hooks');
   }

@@ -22,7 +22,7 @@ function fight(a,b){
   return F;
 }
 
-test('R8 utility data is unique, Treasure-backed, and matches the approved base cards',()=>{
+test('R8 utility data matches the approved base cards',()=>{
   const expected={
     smoketaxstamp:[1,2,'util',0],
     peacebinderchain:[2,3,'util',5],
@@ -31,8 +31,6 @@ test('R8 utility data is unique, Treasure-backed, and matches the approved base 
   };
   for(const [id,row] of Object.entries(expected)){
     const def=ITEMS[id];
-    assert.ok(def.unique,id+' is unique');
-    assert.equal(def.acquisition,'treasure',id+' has a route acquisition path');
     assert.deepEqual([def.size,def.tier,def.cat,def.cd],row,id+' base card');
     assert.ok(Array.isArray(def.hooks)&&def.hooks.length>0,id+' rides combat hooks');
   }
