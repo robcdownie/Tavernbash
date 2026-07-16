@@ -326,13 +326,14 @@ function fightItemBrief(fi){
    scaled by gild/omen, so the preview matches the fight) plus keywords and bounty */
 export function combatPreview(n){
   const M=MONSTERS[n.monId];
-  let hp=M.hp,items=[];
+  /* the fallback line mirrors monsterSide's math for the M.hp path only; the
+     built side's own regen is authoritative (Codex note: recomputing drifts) */
+  let hp=M.hp,items=[],regen=Math.round((M.regen||0)*(n.gilded?1.5:1)*(n.power||1));
   try{
     const foe=buildFoe(n.monId,{threat:n.threat,hpFlat:(G.T&&G.T.hpFlat)||0,A:G.A,gold:G.gold,
       gilded:n.gilded,power:n.power,board:G.board,nodeType:n.type});
-    hp=foe.side.hp;items=foe.side.items;
+    hp=foe.side.hp;items=foe.side.items;regen=foe.side.regen||0;
   }catch(e){}
-  const regen=Math.round((M.regen||0)*(n.gilded?1.5:1)*(n.power||1));
   const board=items.map(function(fi){return '<div class="rmpw"><b>'+esc(fi.nm)+'</b> '+fightItemBrief(fi)+'</div>';}).join('');
   return '<div class="rmpi"><b>Health</b> '+hp+(M.special==='mirror'?' (mirrors your stall)':'')+(regen?' &middot; regen '+regen+'/s':'')+'</div>'
     +'<div class="rmpi"><b>Bounty</b> '+esc(routeBountyText(n))+'</div>'

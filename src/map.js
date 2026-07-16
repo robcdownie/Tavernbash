@@ -12,7 +12,7 @@
    Quick totals 22 selected nodes and Long totals 40. Regular map columns hold
    three nodes so the player picks a lane as they move right. */
 import {mulberry, gateOK} from './engine.js';
-import {DISTRICTS, LONG_DISTRICTS, PERSONAS, ITEMS, ENCH} from './data.js';
+import {DISTRICTS, LONG_DISTRICTS, PERSONAS, ITEMS, ENCH, LANTERN} from './data.js';
 
 /* bump when the generator's output shape or rules change, so a saved run that
    regenerates its map from the seed can reject a stale layout */
@@ -99,23 +99,27 @@ function rollTreasure(rng,districtId){
 }
 
 /* one attempt at a District I to III layout; returns the district or null if it
-   breaks a route rule, in which case genDistrict re-rolls with fresh randomness. */
-function tryDistrict(rng,D,allowShrine){
+   breaks a route rule, in which case genDistrict re-rolls with fresh randomness.
+   The lantern only moves gilding booleans (L7 forces elites, L8 raises the
+   monster-door threshold on the SAME single draw), so one seed yields the same
+   structure, ids, and draw count at every level; the Dragon Gate never sees it. */
+function tryDistrict(rng,D,allowShrine,lantern){
   const cols=[[],[],[],[],[]];
   const norm=shuffleIn(rng,D.normals.slice());
   const elite=shuffleIn(rng,D.elites.slice());
   let budget=D.normals.length-LANES;      /* monster doors beyond column 1 */
   let ni=0,ei=0;
+  const gildP=lantern>=8?LANTERN.find(function(r){return r.lv===8;}).monsterGildChance:0.12;
 
   const mk=(col,lane,type)=>{
     const n={id:'d'+D.id+'c'+(col+1)+'l'+lane,type:type,district:D.id,col:col,lane:lane,
       threat:col<=1?D.threatEarly:D.threatLate,next:[]};
     if(D.power!=null&&COMBAT.has(type))n.power=D.power;
     if(type==='monster'){n.monId=norm[ni++];}
-    else if(type==='elite'){n.monId=elite[ei++];n.gilded=D.forceGilded?true:chance(rng,0.12);}
+    else if(type==='elite'){n.monId=elite[ei++];n.gilded=D.forceGilded?true:(chance(rng,0.12)||lantern>=7);}
     else if(type==='treasure'){n.reward=rollTreasure(rng,D.id);}
     else if(type==='negotiation'){n.persona=Math.floor(rng()*PERSONAS.length);}
-    if(type==='monster'){n.gilded=D.forceGilded?true:chance(rng,0.12);}
+    if(type==='monster'){n.gilded=D.forceGilded?true:chance(rng,gildP);}
     cols[col][lane]=n;
     return n;
   };
@@ -205,9 +209,9 @@ function validate(d,allowShrine){
   return true;
 }
 
-function genDistrict(rng,D,allowShrine){
+function genDistrict(rng,D,allowShrine,lantern){
   for(let a=0;a<6000;a++){
-    const d=tryDistrict(rng,D,allowShrine);
+    const d=tryDistrict(rng,D,allowShrine,lantern);
     if(d)return d;
   }
   throw new Error('map: district '+D.id+' failed to generate');
@@ -262,32 +266,34 @@ function finishMap(runSeed,shrineDistrict,districts,extra){
     districts:districts,nodes:nodes,start:districts[0].columns[0].map(n=>n.id)},extra||{});
 }
 
-function genQuick(runSeed){
+function genQuick(runSeed,lantern){
   const rng=mulberry(runSeed>>>0);
   const shrineDistrict=chance(rng,0.5)?2:3;
   const districts=[];
   for(const D of DISTRICTS){
     if(D.id===4)districts.push(genDragonGate(rng,D));
-    else districts.push(genDistrict(rng,D,D.id===shrineDistrict));
+    else districts.push(genDistrict(rng,D,D.id===shrineDistrict,lantern));
   }
   injectSilver(rng,districts);
-  return finishMap(runSeed,shrineDistrict,districts);
+  return finishMap(runSeed,shrineDistrict,districts,lantern?{lantern:lantern}:null);
 }
 
-function genLong(runSeed){
+function genLong(runSeed,lantern){
   const rng=mulberry(runSeed>>>0);
   const firstShrine=chance(rng,0.5)?2:3;
   const secondShrine=chance(rng,0.5)?5:6;
   const districts=[];
   for(const D of LONG_DISTRICTS){
     if(D.sourceId===4)districts.push(genDragonGate(rng,D));
-    else districts.push(genDistrict(rng,D,D.id===firstShrine||D.id===secondShrine));
+    else districts.push(genDistrict(rng,D,D.id===firstShrine||D.id===secondShrine,lantern));
   }
   injectSilver(rng,districts.slice(0,3));
   injectSilver(rng,districts.slice(3,6));
-  return finishMap(runSeed,firstShrine,districts,{mode:'long',shrineDistricts:[firstShrine,secondShrine]});
+  return finishMap(runSeed,firstShrine,districts,Object.assign({mode:'long',shrineDistricts:[firstShrine,secondShrine]},lantern?{lantern:lantern}:null));
 }
 
-export function genMap(runSeed,mode='quick'){
-  return mode==='long'?genLong(runSeed):genQuick(runSeed);
+/* lantern 0 (or absent) is byte-identical to the pre-Lantern generator: no
+   stamp, no threshold change, so the pinned Quick hash ledger holds */
+export function genMap(runSeed,mode='quick',lantern=0){
+  return mode==='long'?genLong(runSeed,lantern):genQuick(runSeed,lantern);
 }

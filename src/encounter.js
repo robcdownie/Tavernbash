@@ -5,24 +5,31 @@
    requirement). Pure: the caller passes everything, G stays outside, so the
    sim and the tests can drive it headless.
 
-   ctx: {threat, hpFlat, A, gold, gilded, power, board, nodeType, lantern}
+   ctx: {threat, hpFlat, A, gold, gilded, power, board, nodeType, gate, lantern}
    Returns {php, side}: the player fight health that fed the mirror, and the
    monster side. At lantern 0 this reproduces the exact pre-0.88.1 call sites
-   byte for byte; the Lantern's L1 door power lands in effectivePower when
-   0.89 ships. */
+   byte for byte. */
 import {fightHP,monsterSide} from './engine.js';
+import {MONSTERS} from './data.js';
 
-/* L1 Trimmed Wick hook point: monster and elite doors only, never bosses,
-   never the Dragon Gate, mirror exempt (the exemption lives in data: the
-   mirror special ignores power by the Qareen ruling once 0.89 wires it).
-   Inert until a nonzero lantern arrives. */
-function effectivePower(ctx){
-  return ctx.power||1;
+/* L1 Trimmed Wick: monster and elite doors fight 10 percent stronger. Never
+   bosses, never the Dragon Gate (ctx.gate), and the Qareen mirror is exempt
+   by ruling: it already scales off the player's own board, so multiplying it
+   is a pure stat check. */
+function effectivePower(monId,ctx){
+  const base=ctx.power||1;
+  if((ctx.lantern||0)>=1
+     &&(ctx.nodeType==='monster'||ctx.nodeType==='elite')
+     &&!ctx.gate
+     &&MONSTERS[monId].special!=='mirror'){
+    return base*1.10;
+  }
+  return base;
 }
 
 export function buildFoe(monId,ctx){
   const php=fightHP(ctx.threat,ctx.hpFlat||0,ctx.A);
   const side=monsterSide(monId,{gold:ctx.gold||0,round:ctx.threat,A:ctx.A,gilded:!!ctx.gilded,
-    power:effectivePower(ctx),playerBoard:ctx.board,playerHp:php});
+    power:effectivePower(monId,ctx),playerBoard:ctx.board,playerHp:php});
   return {php:php,side:side};
 }

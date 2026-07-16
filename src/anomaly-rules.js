@@ -4,16 +4,15 @@
    capacity, and preview text cannot disagree. */
 import {COST,SELLV,ENCH_PREMIUM,LANTERN} from './data.js';
 
-/* Omen plus Lantern composition (design-lantern-0.89.md). Returns runA (market
-   and storm math) and enemyA (the encounter builder's copy; identical today
-   since no shipped level carries an enemy-only field, but the seam is the
-   contract). At level 0 both are the plain Omen object itself: zero added
-   keys, zero materialized defaults, so a Lantern-0 run is byte-identical to a
-   pre-Lantern run. Anomaly identity arrives explicitly (omenId) because the
-   Silent Bazaar frost exemption must never be inferred from incidental
-   fields. */
+/* Omen plus Lantern composition (design-lantern-0.89.md, Codex ruling 3:
+   runA only; a separate enemy object arrives when a shipped rule first needs
+   an enemy-only field). At level 0 the plain effective Omen object returns
+   untouched: zero added keys, zero materialized defaults, so a Lantern-0 run
+   is byte-identical to a pre-Lantern run. Anomaly identity arrives explicitly
+   (omenId) because the Silent Bazaar frost exemption must never be inferred
+   from incidental fields. */
 export function composeLantern(omenId,omenA,level){
-  if(!level)return {runA:omenA,enemyA:omenA};
+  if(!level)return omenA;
   const runA=Object.assign({},omenA);
   for(const rule of LANTERN){
     if(rule.lv>level)continue;
@@ -22,7 +21,7 @@ export function composeLantern(omenId,omenA,level){
     if(rule.directEventGoldFlat)runA.directEventGoldFlat=(runA.directEventGoldFlat||0)+rule.directEventGoldFlat;
     if(rule.freezeDisabled&&omenId!=='silent')runA.freezeDisabled=true;
   }
-  return {runA:runA,enemyA:runA};
+  return runA;
 }
 /* the active Lantern rows for plaque and drawer rendering */
 export function lanternRules(level){return LANTERN.filter(function(r){return r.lv<=(level||0);});}

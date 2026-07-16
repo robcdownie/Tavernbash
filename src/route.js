@@ -39,12 +39,22 @@ export function slipCost(map,node){
   return d&&typeof d.slip==='number'?d.slip:DISTRICTS[node.district-1].slip;
 }
 
+/* the Dragon Gate by identity: Long reprises carry sourceId 4, Quick's own
+   Gate is district 4 with no sourceId. The Lantern's Gate contract keys off
+   this, never off position. */
+export function isGateDistrict(d){
+  return !!d&&(d.sourceId===4||(d.sourceId==null&&d.id===4));
+}
+
 /* the Resolve a loss costs: district chip, encounter bonus, and a capped share of
-   the enemy's surviving item tiers (passed in from the finished fight) */
+   the enemy's surviving item tiers (passed in from the finished fight). The
+   Lantern's Toll (L3) rides the map stamp so this stays blind to the run; the
+   Gate exacts only its usual toll at every level. */
 export function lossDamage(node,survTier,map){
   const d=districtOf(map,node);
   const chip=d&&typeof d.lossChip==='number'?d.lossChip:MONCHIP[node.district];
-  return chip+LOSS_BONUS[node.type]+Math.min(4,Math.ceil((survTier||0)/3));
+  const toll=(map&&map.lantern>=3&&!isGateDistrict(d))?2:0;
+  return chip+toll+LOSS_BONUS[node.type]+Math.min(4,Math.ceil((survTier||0)/3));
 }
 
 /* the choosable nodes right now: nothing mid-encounter, the district entrance at a
@@ -90,8 +100,10 @@ export function currentDistrict(state,map){
   return last.district-1;
 }
 
-export function initRoute(seed,mode='quick'){
-  const resolve=mode==='long'?60:40;
+export function initRoute(seed,mode='quick',lantern=0){
+  /* L10 The Last Drop of Oil: 34/50 instead of 40/60; draft values per the
+     approved spec, tuned last by the cumulative ladder */
+  const resolve=lantern>=10?(mode==='long'?50:34):(mode==='long'?60:40);
   return {seed:seed>>>0,version:MAP_VERSION,path:[],pendingId:null,resolution:null,
     phase:'map',resolve:resolve,resolveMax:resolve,attempts:{},fightSeed:null};
 }
