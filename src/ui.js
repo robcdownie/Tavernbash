@@ -30,6 +30,7 @@ import {G,setG,RM,setRM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
 import {wireRouteUI,routeMap,routeState,renderRouteMap,combatPreview,showFightRecap,
         routeEventCard,openRewardChoice,routeEnd,openRouteContinue,openUniquePick,
         openRunHistory} from './route-ui.js';
+import {initCloudLedger} from './cloud-ledger.js';
 /* ============ SESSION + UI PRIMITIVES ============ */
 /* G (the game aggregate) and RM (reduced-motion) are the shared live singletons
    from ui-core; ui.js is the only writer, via setG/setRM below. */
@@ -1513,6 +1514,7 @@ function initDebug(){
 }
 export function boot(){
   setRM((typeof matchMedia!=='undefined')&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+  initCloudLedger(store());
   /* hand the route presenters the flow callbacks that stay in ui.js (dispatch,
      render, persistence, economy, run lifecycle). route-ui never imports ui.js;
      this is the one-way bridge. All targets are hoisted function declarations. */

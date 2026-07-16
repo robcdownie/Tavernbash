@@ -1,7 +1,7 @@
 {
   "name": "bazaar-brawler",
   "private": true,
-  "version": "0.90.0",
+  "version": "0.91.0",
   "type": "module",
   "scripts": {
     "art": "node scripts/make-art-manifest.js",
@@ -11,6 +11,7 @@
     "prebuild": "node scripts/make-art-manifest.js",
     "build": "vite build",
     "preview": "vite preview",
+    "reports": "node scripts/query-runs.js",
     "pretest": "node scripts/make-art-manifest.js",
     "test": "node --test \"tests/*.test.js\"",
     "test:layout": "playwright test",
@@ -22,6 +23,7 @@
     "vite": "^6.0.0"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "pixi.js": "^8.19.0"
   }
 }

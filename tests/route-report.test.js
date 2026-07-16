@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {newRun} from '../src/route-run.js';
 import {genMap} from '../src/map.js';
 import {buildRunRecord,formatRunSummary,formatRunFullData,RUN_REPORT_SCHEMA} from '../src/route-report.js';
-import {saveReport,readReportState,readReportArchive,unexportedReports,markReportsExported,
+import {saveReport,mergeReports,readReportState,readReportArchive,unexportedReports,markReportsExported,
   ROUTE_REPORT_KEY,ROUTE_REPORT_LIMIT,ROUTE_HISTORY_RECENT_LIMIT,
   ROUTE_REPORT_ARCHIVE_SCHEMA} from '../src/route-report-store.js';
 
@@ -119,4 +119,16 @@ test('archive failures return false and preserve immediate report data',()=>{
   const bad={getItem:()=>null,setItem:()=>{throw new Error('quota');}};const r=report(2,2000);
   assert.equal(saveReport(bad,r),false);assert.equal(r.archive_saved,false);
   assert.equal(JSON.parse(formatRunFullData(r)).seed,2);
+});
+
+test('cloud report merges are exact once and keep local archive limits',()=>{
+  const s=storage(),local=report(1,1001),remote=report(2,1002);
+  assert.ok(saveReport(s,local));
+  assert.ok(mergeReports(s,[remote,remote]));
+  assert.deepEqual(readReportState(s).history.totals,{runs:2,clears:0});
+  remote.debrief.note='cloud update';
+  assert.ok(mergeReports(s,[remote]));
+  const state=readReportState(s);
+  assert.equal(state.history.totals.runs,2);
+  assert.equal(state.reports.find(r=>r.reportId===remote.reportId).debrief.note,'cloud update');
 });

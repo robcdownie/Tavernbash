@@ -209,6 +209,10 @@ test('run history renders recent runs, mastery, discovery, and exact seed setup'
   });
   expect(fit).toEqual({card:true,controls:true,small:[],docW:true,docH:true});
 
+  await page.click('[data-ht="cloud"]');
+  await expect(page.locator('.cloudpanel')).toContainText(
+    process.env.VITE_SUPABASE_URL&&process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+      ?'Back up your finished runs':'History stays on this device');
   await page.click('[data-ht="mastery"]');
   await expect(page.locator('.masterygrid')).toContainText('Lantern 3');
   await expect(page.locator('.masterygrid')).toContainText('Lantern 1');
@@ -226,6 +230,31 @@ test('run history renders recent runs, mastery, discovery, and exact seed setup'
     return {seed:G.seed,mode:G.run.routeMode,hero:G.hero,lantern:G.run.lantern,omen:G.anom.id,tags:G.tags};
   });
   expect(replayed).toEqual({seed:123456,mode:'quick',hero:'kiln',lantern:3,omen:'wildfire',tags:['burn','dmg']});
+});
+
+test('configured cloud backup offers account linking without hiding local history', async ({page}) => {
+  test.skip(!process.env.VITE_SUPABASE_URL||!process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    'requires public Supabase browser configuration');
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.removeItem('bb-route-run');
+    localStorage.removeItem('bb-cloud-auth');
+  });
+  await page.reload();
+  await page.click('#inHistory');
+  await page.click('[data-ht="cloud"]');
+  await expect(page.locator('.cloudpanel')).toContainText('Back up your finished runs');
+  await expect(page.locator('#cloudLink')).toHaveText('Email Sign-in Link');
+  const fit=await page.evaluate(() => {
+    const vp={w:document.documentElement.clientWidth,h:document.documentElement.clientHeight};
+    const card=document.querySelector('.historycard').getBoundingClientRect();
+    const email=document.querySelector('#cloudEmail').getBoundingClientRect();
+    const link=document.querySelector('#cloudLink').getBoundingClientRect();
+    return {card:card.left>=-1&&card.right<=vp.w+1&&card.top>=-1&&card.bottom<=vp.h+1,
+      email:email.width>=44&&email.height>=44,link:link.width>=44&&link.height>=44,
+      docW:document.documentElement.scrollWidth<=vp.w+1,docH:document.documentElement.scrollHeight<=vp.h+1};
+  });
+  expect(fit).toEqual({card:true,email:true,link:true,docW:true,docH:true});
 });
 
 test('the Midpoint Treasure offer fits and states where the free ware goes', async ({page}) => {

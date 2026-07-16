@@ -70,6 +70,17 @@ export function readReportState(storage){
 export function readReportArchive(storage){
   return readReportState(storage).reports;
 }
+export function mergeReports(storage,records){
+  if(!storage)return false;
+  const state=readReportState(storage);
+  newest(records).slice().reverse().forEach(function(record){
+    const compact=compactRunRecord(record);if(!compact)return;
+    state.reports=[record].concat(state.reports.filter(function(r){return r.reportId!==record.reportId;}));
+    state.recent=[compact].concat(state.recent.filter(function(r){return r.reportId!==record.reportId;}));
+    state.history=indexHistory(state.history,record);
+  });
+  return writeState(storage,state);
+}
 export function saveReport(storage,record){
   if(!storage||!record||typeof record.reportId!=='string')return false;
   const state=readReportState(storage),compact=compactRunRecord(record);

@@ -2,9 +2,16 @@ node_modules/
 dist/
 .netlify/
 
+# Local cloud credentials and Vite overrides
+.env
+.env.*
+!.env.example
+!.env.analytics.example
+
 # Playwright layout tests
 test-results/
 playwright-report/
+debug.log
 
 # Codex working files, never committed (per the R7 handoff)
 .agents/

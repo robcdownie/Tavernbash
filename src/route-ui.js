@@ -27,6 +27,8 @@ import {finishMetrics,activateMetrics,touchMetrics,serializeMetrics} from './rou
 import {buildRunRecord,formatRunSummary,formatRunFullData,formatRunBatch} from './route-report.js';
 import {readReportState,saveReport,updateReport,unexportedReports,markReportsExported} from './route-report-store.js';
 import {replaySetup,isClearResult} from './route-history.js';
+import {cloudSnapshot,onCloudChange,sendCloudMagicLink,syncCloudReports,
+        setCloudSharing,deleteCloudReports,signOutCloud} from './cloud-ledger.js';
 
 /* the flow bridge: functions that stay in ui.js (dispatch, render, persistence,
    economy, run lifecycle) and are wired in once at boot. */
@@ -469,6 +471,7 @@ export function routeEnd(cause){
   let report=buildRunRecord({run:G.run,map:routeMap(),setup:{hero:G.hero,anom:G.anom.id,tags:G.tags},
     result:result,version:pkg.version,endedAt:endedAt});
   const archived=saveReport(store(),report);
+  if(archived)syncCloudReports();
   B.checkpointActiveRun();
   let archiveWarned=false;
   function archiveWarning(){if(archiveWarned)return;archiveWarned=true;toast('Report archive could not update. Copy Full Data before leaving.');}
@@ -483,6 +486,13 @@ export function routeEnd(cause){
    +'<div class="dbq"><span>Difficulty</span><button data-db="difficulty" data-v="easy">Easy</button><button data-db="difficulty" data-v="right">Right</button><button data-db="difficulty" data-v="hard">Hard</button></div>'
    +'<div class="dbq"><span>Build agency</span><button data-db="agency" data-v="low">Low</button><button data-db="agency" data-v="right">Right</button><button data-db="agency" data-v="high">High</button></div>'
    +'<textarea id="reNote" maxlength="500" placeholder="Optional note"></textarea></div>';
+  const cloud=cloudSnapshot();
+  const cloudPrompt=cloud.configured
+    ?'<div class="cloudprompt '+(cloud.signedIn?'on':'')+'">'+ic('g-ledger','mi')
+      +'<div><b>'+(cloud.signedIn?'Cloud history connected':'Keep this history across devices')+'</b>'
+      +'<span>'+(cloud.signedIn?'This finished run will sync in the background.':'Sign in only when you want backup. Play never requires an account.')+'</span></div>'
+      +(cloud.signedIn?'':'<button class="btn" id="reCloud">Back Up History</button>')+'</div>'
+    :'';
   let o;
   if(cause==='won'){
     /* the Lantern mastery write: monotonic and idempotent, and routeEnd runs
@@ -494,13 +504,13 @@ export function routeEnd(cause){
     sting('fanfarewin');if(!RM)fxCoinRain();
     o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">'+(longRun?'Long Bazaar Clear':'Quick Night Clear')+(lv>0?' &middot; Lantern '+lv:'')+'</div>'
      +ic('g-crown','bigic')+'<h2 class="big">The Vizier Falls</h2>'
-     +'<p>'+(longRun?'You survived the full road and its After Midnight reprises. The night market is yours.':'You cleared the original road. This Quick Night stands as a complete victory.')+' '+lampLine+nextLine+'</p>'+debrief+endBtns+'</div>');
+     +'<p>'+(longRun?'You survived the full road and its After Midnight reprises. The night market is yours.':'You cleared the original road. This Quick Night stands as a complete victory.')+' '+lampLine+nextLine+'</p>'+debrief+cloudPrompt+endBtns+'</div>');
   }else{
     sting('lament');
     const st=routeState();const D=routeMap().districts[currentDistrict(st,routeMap())];
     o=ovOpen('<div class="card"><div class="rays red"></div><div class="kick">The Road Ends</div>'
      +ic('g-skull','bigic skullic')+'<h2 class="big bad">Resolve Spent</h2>'
-     +'<p>Your caravan broke in '+esc(D.name)+' after '+st.path.length+' encounter'+(st.path.length===1?'':'s')+'.</p>'+debrief+endBtns+'</div>');
+     +'<p>Your caravan broke in '+esc(D.name)+' after '+st.path.length+' encounter'+(st.path.length===1?'':'s')+'.</p>'+debrief+cloudPrompt+endBtns+'</div>');
   }
   function syncReport(){
     const now=Date.now();touchMetrics(G.run.metrics,now);
@@ -512,6 +522,7 @@ export function routeEnd(cause){
     report.timing.gameplayMs=Math.max(0,report.timing.activeMs-report.timing.debriefMs);
     report.timing.calendarMs=m.timing.calendarMs;report.timing.phases=m.timing.phases;report.timing.districts=m.timing.districts;
     const ok=updateReport(store(),report);B.checkpointActiveRun();
+    if(ok)syncCloudReports();
     if(ok)archiveWarned=false;else archiveWarning();
     return ok;
   }
@@ -525,6 +536,7 @@ export function routeEnd(cause){
     report.exported=true;G.run.end.exported=true;
     if(!updateReport(store(),report))archiveWarning();B.checkpointActiveRun();});};
   o.querySelector('#reHistory').onclick=function(){syncReport();openRunHistory();};
+  const reCloud=o.querySelector('#reCloud');if(reCloud)reCloud.onclick=function(){syncReport();openRunHistory('cloud');};
   o.querySelector('#reGo').onclick=function(){G.run.metrics.debrief.note=note.value.trim();finishMetrics(G.run.metrics,Date.now());
     const saved=syncReport();
     if(!saved&&!G.run.end.exported){activateMetrics(G.run.metrics,Date.now());return;}
@@ -722,32 +734,40 @@ function historyFactLantern(v){
   return v&&typeof v==='object'&&v.lantern!=null?v.lantern:null;
 }
 
-export function openRunHistory(){
+export function openRunHistory(startTab){
   const opener=document.activeElement;
-  const state=readReportState(store()),history=state.history||{},recent=state.recent||[];
-  let tab='runs',discovery='heroes',selected=recent[0]&&recent[0].reportId;
+  let state=readReportState(store()),history=state.history||{},recent=state.recent||[];
+  let tab=startTab==='cloud'?'cloud':'runs',discovery='heroes',selected=recent[0]&&recent[0].reportId;
   const o=ovOpen('<div class="card historycard"><div class="rays"></div>'
-   +'<div class="historyhead"><div class="historytitle"><div class="kick gold">Local and Account Free</div>'
+   +'<div class="historyhead"><div class="historytitle"><div class="kick gold" id="historyKicker">Saved on This Device</div>'
    +'<h2 class="big" id="historyTitle">Run History</h2></div>'
    +'<button class="historyclose" id="historyClose" aria-label="Close run history">&times;</button></div>'
    +'<div class="historystats"><span><b id="historyRuns">0</b> recorded runs</span>'
    +'<span><b id="historyClears">0</b> clears</span><span><b id="historyFound">0</b> discoveries</span></div>'
    +'<div class="historytabs" role="tablist" aria-label="Run history sections">'
    +'<button data-ht="runs" role="tab">Runs</button><button data-ht="mastery" role="tab">Mastery</button>'
-   +'<button data-ht="discovery" role="tab">Discovery</button></div>'
+   +'<button data-ht="discovery" role="tab">Discovery</button><button data-ht="cloud" role="tab">Cloud</button></div>'
    +'<div class="historybody" id="historyBody"></div></div>');
   o.classList.add('historyov');o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');
   o.setAttribute('aria-labelledby','historyTitle');
   const body=o.querySelector('#historyBody');
-  const seenCount=['heroes','omens','wares','monsters'].reduce(function(n,k){
-    const rows=history.discoveries&&history.discoveries[k];
-    return n+(Array.isArray(rows)?rows.length:Object.keys(rows||{}).length);
-  },0);
-  o.querySelector('#historyRuns').textContent=historyTotal(history,'runs');
-  o.querySelector('#historyClears').textContent=historyTotal(history,'clears');
-  o.querySelector('#historyFound').textContent=seenCount;
+  let unsubscribeCloud=function(){};
+
+  function refreshState(){
+    state=readReportState(store());history=state.history||{};recent=state.recent||[];
+    const seenCount=['heroes','omens','wares','monsters'].reduce(function(n,k){
+      const rows=history.discoveries&&history.discoveries[k];
+      return n+(Array.isArray(rows)?rows.length:Object.keys(rows||{}).length);
+    },0);
+    o.querySelector('#historyRuns').textContent=historyTotal(history,'runs');
+    o.querySelector('#historyClears').textContent=historyTotal(history,'clears');
+    o.querySelector('#historyFound').textContent=seenCount;
+    const cloud=cloudSnapshot();
+    o.querySelector('#historyKicker').textContent=cloud.signedIn?'Cloud Backup Connected':'Saved on This Device';
+  }
 
   function closeHistory(restore){
+    unsubscribeCloud();
     ovClose(o);
     if(restore!==false&&opener&&opener.isConnected&&opener.focus)opener.focus();
   }
@@ -837,6 +857,65 @@ export function openRunHistory(){
      }).join('')+'</div>';
     body.querySelectorAll('[data-hd]').forEach(function(b){b.onclick=function(){discovery=b.dataset.hd;draw();};});
   }
+  function cloudRows(){
+    const cloud=cloudSnapshot();
+    if(!cloud.configured){
+      body.innerHTML='<div class="cloudpanel"><div class="cloudmark">'+ic('g-ledger','bigic')+'</div>'
+       +'<h3>History stays on this device</h3><p>Cloud backup is not connected in this build. Runs, mastery, and discovery still work offline.</p></div>';
+      return;
+    }
+    if(!cloud.ready){
+      body.innerHTML='<div class="cloudpanel"><div class="cloudspinner"></div><h3>Connecting the ledger</h3>'
+       +'<p>Your local history remains available while the cloud account is checked.</p></div>';
+      return;
+    }
+    if(!cloud.signedIn){
+      body.innerHTML='<div class="cloudpanel"><div class="cloudmark">'+ic('g-ledger','bigic')+'</div>'
+       +'<h3>Back up your finished runs</h3>'
+       +'<p>Enter an email to receive a secure sign-in link. New games and offline play never require an account.</p>'
+       +'<label class="cloudemail"><span>Email</span><input id="cloudEmail" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="you@example.com"></label>'
+       +'<button class="btn gold cloudprimary" id="cloudLink">Email Sign-in Link</button>'
+       +(cloud.linkSent?'<div class="cloudnotice good">Link sent. Open it on this device to connect the ledger.</div>':'')
+       +(cloud.error?'<div class="cloudnotice bad">'+esc(cloud.error)+'</div>':'')
+       +'<p class="cloudfine">Signing in uploads the full reports currently saved on this device. Personal backup is private unless you later enable balance sharing.</p></div>';
+      const link=body.querySelector('#cloudLink');
+      link.onclick=async function(){
+        const email=body.querySelector('#cloudEmail').value.trim();
+        link.disabled=true;link.textContent='Sending';
+        try{await sendCloudMagicLink(email);}
+        catch(e){link.disabled=false;link.textContent='Email Sign-in Link';}
+      };
+      return;
+    }
+    const syncText=cloud.syncing?'Syncing now':(cloud.lastSyncAt?'Last synced '+historyDate({endedAtIso:cloud.lastSyncAt}):'Ready to sync');
+    body.innerHTML='<div class="cloudpanel signed"><div class="cloudaccount"><div class="cloudmark">'+ic('g-ledger','bigic')+'</div>'
+     +'<div><span>Connected account</span><b>'+esc(cloud.email||'Signed in')+'</b><small>'+esc(syncText)+'</small></div></div>'
+     +'<div class="cloudfacts"><span><b>'+cloud.cloudRunCount+(cloud.cloudRunCount>=50?'+':'')+'</b> cloud runs loaded</span>'
+     +'<span><b>'+historyTotal(history,'runs')+'</b> runs indexed here</span></div>'
+     +'<button class="cloudshare '+(cloud.sharing?'on':'')+'" id="cloudShare" aria-pressed="'+String(cloud.sharing)+'">'
+     +'<span><b>Share balance data</b><small>Let the developer inspect full runs. Your email is never included.</small></span>'
+     +'<i>'+(cloud.sharing?'On':'Off')+'</i></button>'
+     +(cloud.error?'<div class="cloudnotice bad">'+esc(cloud.error)+'</div>':'')
+     +'<div class="cloudactions"><button class="btn gold" id="cloudSync"'+(cloud.syncing?' disabled':'')+'>'
+     +(cloud.syncing?'Syncing':'Sync Now')+'</button><button class="btn" id="cloudSignOut">Sign Out</button>'
+     +'<button class="btn badbtn" id="cloudDelete">Remove Cloud Runs</button></div>'
+     +'<p class="cloudfine">Signing out does not erase local history. Removing cloud runs signs this device out so they do not immediately upload again.</p></div>';
+    body.querySelector('#cloudShare').onclick=async function(){try{await setCloudSharing(!cloud.sharing);}catch(e){}};
+    body.querySelector('#cloudSync').onclick=function(){syncCloudReports();};
+    body.querySelector('#cloudSignOut').onclick=async function(){try{await signOutCloud();}catch(e){}};
+    body.querySelector('#cloudDelete').onclick=function(){
+      const c=ovOpen('<div class="card"><div class="rays red"></div><div class="kick">Remove Cloud Runs</div>'
+       +ic('g-ledger','bigic')+'<h2 class="big bad" style="font-size:24px">Erase the online copies?</h2>'
+       +'<p>Your runs stay on this device, and the cloud account signs out. Signing in again will upload the local copies.</p>'
+       +'<div class="historyactions"><button class="btn" id="cloudDeleteCancel">Cancel</button>'
+       +'<button class="btn badbtn" id="cloudDeleteGo">Remove Cloud Copies</button></div></div>');
+      c.classList.add('replayov');
+      c.querySelector('#cloudDeleteCancel').onclick=function(){ovClose(c);};
+      c.querySelector('#cloudDeleteGo').onclick=async function(){
+        try{await deleteCloudReports();await signOutCloud();ovClose(c);}catch(e){}
+      };
+    };
+  }
   function confirmReplay(record){
     const spec=replaySetup(record);if(!spec){toast('This old report has no replayable setup.');return;}
     const active=B.hasActiveRoute&&B.hasActiveRoute();
@@ -856,13 +935,16 @@ export function openRunHistory(){
     c.querySelector('#replayGo').onclick=function(){ovClose(c);closeHistory(false);B.replayHistoryRun(spec);};
   }
   function draw(){
+    refreshState();
     tabState();
     if(tab==='runs')runRows();
     else if(tab==='mastery')masteryRows();
-    else discoveryRows();
+    else if(tab==='discovery')discoveryRows();
+    else cloudRows();
   }
   o.querySelectorAll('[data-ht]').forEach(function(b){b.onclick=function(){tab=b.dataset.ht;draw();};});
   o.querySelector('#historyClose').onclick=function(){closeHistory(true);};
   o.onkeydown=function(e){if(e.key==='Escape'){e.preventDefault();closeHistory(true);}};
+  unsubscribeCloud=onCloudChange(function(){if(o.isConnected)draw();});
   draw();o.querySelector('#historyClose').focus();
 }
