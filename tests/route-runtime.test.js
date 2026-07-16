@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {ITEMS,TRINKETS} from '../src/data.js';
 import {newRun, serializeRun, reviveRun} from '../src/route-run.js';
 import {rewardKey, midpointTreasureKey, midpointTreasureOptions, ensureMidpointTreasure, MIDPOINT_FALLBACK_GOLD,
-  gildOptions, uniqueOptions, charmChoiceOptions, settleFixed, chooseGild, chooseUnique, chooseCharm,
+  gildOptions, uniqueOptions, grantFreeOffer, charmChoiceOptions, settleFixed, chooseGild, chooseUnique, chooseCharm,
   refreshPendingChoice, nextPresentation} from '../src/route-runtime.js';
 
 const SEED = 1234567;
@@ -33,6 +33,32 @@ test('uniqueOptions excludes uniques owned on board, in vault, or unbought in sh
   assert.ok(!uniqueOptions([], [{id:someUnique}], []).includes(someUnique), 'vault excludes (the old bug)');
   assert.ok(!uniqueOptions([], [], [{id:someUnique, bought:false}]).includes(someUnique), 'unbought shop excludes');
   assert.ok(uniqueOptions([], [], [{id:someUnique, bought:true}]).includes(someUnique), 'a bought offer does not exclude');
+});
+
+test('a stale fixed Treasure unique pays 3 gold instead of granting a duplicate',()=>{
+  const id=Object.keys(ITEMS).find(uid=>ITEMS[uid].unique&&ITEMS[uid].acquisition==='treasure');
+  const surfaces=[
+    run=>{run.economy.board.push({id:id,iid:1,rarity:0});},
+    run=>{run.economy.vault.push({id:id,iid:1,rarity:0});},
+    run=>{run.economy.shop.push({id:id,offerId:1,free:true,bought:false});}
+  ];
+  for(const own of surfaces){
+    const run=newRun({seed:SEED});run.economy.gold=0;own(run);
+    const before=run.economy.shop.length,next=run.ids.nextItem;
+    assert.deepEqual(grantFreeOffer(run,id),{ok:false,reason:'duplicate unique',duplicateGold:3,id:id});
+    assert.equal(run.economy.gold,3);
+    assert.equal(run.economy.shop.length,before,'no duplicate offer is added');
+    assert.equal(run.ids.nextItem,next,'a rejected grant consumes no durable id');
+  }
+});
+
+test('a fixed Treasure ware grants one stamped free offer when it is available',()=>{
+  const id=Object.keys(ITEMS).find(uid=>ITEMS[uid].unique&&ITEMS[uid].acquisition==='treasure');
+  const run=newRun({seed:SEED}),result=grantFreeOffer(run,id);
+  assert.equal(result.ok,true);
+  assert.deepEqual(result.offer,{id:id,free:true,bought:false,offerId:1});
+  assert.equal(run.economy.shop[0],result.offer);
+  assert.equal(run.ids.nextItem,2);
 });
 
 test('settleFixed applies gold, offers, relic, and mote once, and is idempotent', () => {

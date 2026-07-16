@@ -17,7 +17,8 @@ import {mulberry,gateOK,monsterSide,fightHP} from './engine.js';
 import {genMap,isCombat} from './map.js';
 import {frontier,currentDistrict,visitedSet,validRoute,classifyEdges,fightSeed} from './route.js';
 import {ic} from './art.js';
-import {chooseGild as runtimeChooseGild,chooseUnique as runtimeChooseUnique,chooseCharm as runtimeChooseCharm} from './route-runtime.js';
+import {chooseGild as runtimeChooseGild,chooseUnique as runtimeChooseUnique,chooseCharm as runtimeChooseCharm,
+        grantFreeOffer as runtimeGrantFreeOffer} from './route-runtime.js';
 import {fxCoinRain} from './fx.js';
 import {music,sting} from './music.js';
 import pkg from '../package.json';
@@ -179,8 +180,15 @@ function grantFreeWare(rng,fixedId){
     if(!ids.length){G.gold+=4;toast('No ware fits. 4 gold instead.');return;}
     id=ids[Math.floor(rng()*ids.length)];
   }
-  G.shop.push(B.mkOffer({id:id,free:true,bought:false}));
+  const result=runtimeGrantFreeOffer(G.run,id);
+  if(!result.ok&&result.reason==='duplicate unique'){
+    B.metricEvent('treasure_duplicate_unique',{id:id,gold:result.duplicateGold});
+    toast('You already own '+ITEMS[id].n+'. '+result.duplicateGold+' gold instead.');
+    return result;
+  }
+  if(!result.ok)return result;
   toast('A free '+ITEMS[id].n+' waits at the next market.');
+  return result;
 }
 /* etch an enchant onto the first compatible unenchanted ware. A fixedEnch (from a
    face-up Treasure) only lands on a ware that satisfies its keyword need, else the

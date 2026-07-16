@@ -53,6 +53,22 @@ export function uniqueOptions(board, vault, shop){
   return Object.keys(ITEMS).filter(function(id){ return ITEMS[id].unique && !owned[id]; });
 }
 
+/* Grant one fixed free ware after rechecking the live ownership surfaces. Map
+   Treasure is rolled earlier, so a unique can become stale before the player
+   reaches it. A stale unique pays the same 3 gold used by duplicate bounties
+   instead of creating an illegal second copy. */
+export function grantFreeOffer(run,id){
+  const item=ITEMS[id],E=run&&run.economy;
+  if(!item||!E)return {ok:false,reason:'unknown ware'};
+  if(item.unique&&uniqueOptions(E.board,E.vault,E.shop).indexOf(id)<0){
+    E.gold+=3;
+    return {ok:false,reason:'duplicate unique',duplicateGold:3,id:id};
+  }
+  const offer=makeOffer(run,id);
+  E.shop.push(offer);
+  return {ok:true,offer:offer};
+}
+
 function midpointPool(run){
   return uniqueOptions(run.economy.board,run.economy.vault,run.economy.shop)
     .filter(function(id){return ITEMS[id].acquisition==='treasure';})
