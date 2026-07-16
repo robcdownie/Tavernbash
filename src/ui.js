@@ -3,7 +3,8 @@ import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,TIERCOST,CATN,CATC,ANONE,
         ITEMS,TRINKETS,ANOMALIES,MONSTERS,ENCH,ENCH_CHANCE,HEROES,
         shopTagWeight,canSpendGold,heroCreditLimit} from './data.js';
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,
-        playerFightItems,monsterSide,createFight,boardRegen} from './engine.js';
+        playerFightItems,createFight,boardRegen} from './engine.js';
+import {buildFoe} from './encounter.js';
 import {wareSlotCost,boardUsedCells,boardSlotCount,warePurchaseCost,wareSaleValue,rerollPrice,
         adjustedStormAt,adjustedVictoryIncome,advanceFrozenOffers,setFrozenOffers,thawOffers} from './anomaly-rules.js';
 import {genMap,MAP_VERSION} from './map.js';
@@ -1136,8 +1137,9 @@ function runEffects(effects,i,ctx){
 function startRouteFight(e){
   const M=MONSTERS[e.monId];
   const H=heroOf();
-  const php=fightHP(e.threat,G.T.hpFlat,G.A);
-  const foe=monsterSide(e.monId,{gold:G.gold,round:e.threat,A:G.A,gilded:!!e.gilded,power:e.power||1,playerBoard:G.board,playerHp:php});
+  const built=buildFoe(e.monId,{threat:e.threat,hpFlat:G.T.hpFlat,A:G.A,gold:G.gold,
+    gilded:e.gilded,power:e.power,board:G.board,nodeType:e.boss?'boss':null});
+  const php=built.php,foe=built.side;
   const playerItems=playerFightItems(G.board,G.T,G.A,1);
   const me={nm:'You',portrait:G.you.p,hp:php,items:playerItems,
     lifesteal:G.A.healingDisabled?0:(G.T.lifesteal||0),regen:G.A.healingDisabled?0:boardRegen(G.board),

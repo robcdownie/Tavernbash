@@ -13,7 +13,8 @@
    ideal, and moving persistence out of render, stay later audited changes). */
 import {G,RM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
 import {ITEMS,RNAME,ENCH,MONSTERS,PERSONAS,CATN,TRINKETS} from './data.js';
-import {mulberry,gateOK,monsterSide,fightHP} from './engine.js';
+import {mulberry,gateOK} from './engine.js';
+import {buildFoe} from './encounter.js';
 import {genMap,isCombat} from './map.js';
 import {frontier,currentDistrict,visitedSet,validRoute,classifyEdges,fightSeed} from './route.js';
 import {ic} from './art.js';
@@ -327,9 +328,9 @@ export function combatPreview(n){
   const M=MONSTERS[n.monId];
   let hp=M.hp,items=[];
   try{
-    const php=fightHP(n.threat,(G.T&&G.T.hpFlat)||0,G.A);
-    const side=monsterSide(n.monId,{gold:G.gold,round:n.threat,A:G.A,gilded:!!n.gilded,power:n.power||1,playerBoard:G.board,playerHp:php});
-    hp=side.hp;items=side.items;
+    const foe=buildFoe(n.monId,{threat:n.threat,hpFlat:(G.T&&G.T.hpFlat)||0,A:G.A,gold:G.gold,
+      gilded:n.gilded,power:n.power,board:G.board,nodeType:n.type});
+    hp=foe.side.hp;items=foe.side.items;
   }catch(e){}
   const regen=Math.round((M.regen||0)*(n.gilded?1.5:1)*(n.power||1));
   const board=items.map(function(fi){return '<div class="rmpw"><b>'+esc(fi.nm)+'</b> '+fightItemBrief(fi)+'</div>';}).join('');

@@ -357,6 +357,23 @@ export const ANOMALIES=[
  {id:"silent",n:"Silent Bazaar",g:"g-peacebinderchain",d:"Rerolls are disabled. Markets show six wares, and frozen wares remain through two market rolls.",m:{shopN:6,rerollDisabled:true,freezeDurationRounds:2}},
  {id:"auctionbell",n:"The Auction Bell",g:"g-gavel",d:"Wares sell for full base cost, but each sale raises reroll cost by 1 for the rest of that market.",m:{sellReturnsBaseCost:true,rerollCostPerSaleThisMarket:1}}
 ];
+/* ============ THE LANTERN ============ */
+/* The post-clear difficulty ladder (design-lantern-0.89.md). Cumulative: at
+   level N every entry lv <= N is active. Config only; the engine never reads
+   this table. L8 monsterGildChance and L9 vaultSlots are draft values pending
+   the Codex second look. */
+export const LANTERN=[
+ {lv:1,n:"Trimmed Wick",d:"Every monster and elite door fights at 10 percent greater strength. Bosses and the Dragon Gate hold their old fire.",doorPowerMul:1.10},
+ {lv:2,n:"Thin Oil",d:"Bargains that pay out gold on the spot pay 2 less.",directEventGoldFlat:-2},
+ {lv:3,n:"The Toll Lantern",d:"Every lost fight in the districts costs 2 more Resolve. The Dragon Gate exacts only its usual toll.",lossChipFlat:2},
+ {lv:4,n:"Oil on the Wind",d:"The simoom rises 2 seconds earlier in every fight outside the Dragon Gate.",stormStartOffsetMs:-2000},
+ {lv:5,n:"Shadow Souk",d:"Every market shows one fewer ware.",shopNFlat:-1},
+ {lv:6,n:"No Frost Tonight",d:"The market frost fails: wares left on the shelf are lost to the next roll. Under a Silent Bazaar Omen the frost holds.",freezeDisabled:true},
+ {lv:7,n:"Gilded Teeth",d:"Every elite in the districts stands gilded. The Dragon Gate keeps its own counsel.",eliteGilded:true},
+ {lv:8,n:"Gilded Streets",d:"Gold runs through every alley: nearly half the monster doors stand gilded.",monsterGildChance:0.45},
+ {lv:9,n:"The Locked Shelf",d:"The Vault's third shelf is locked for the night: it holds two wares, not three.",vaultSlots:2},
+ {lv:10,n:"The Last Drop of Oil",d:"You begin the night with the last of the oil: 34 Resolve on Quick Night, 50 on The Long Bazaar.",startResolve:{quick:34,long:50}}
+];
 /* ============ RIVAL PERSONAS ============ */
 export const PERSONAS=[
  {n:"Old Farrokh",p:"p-1",arch:"shield"},
