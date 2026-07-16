@@ -30,6 +30,19 @@ test('raw metric cap drops events while shop aggregates keep counting',()=>{
   assert.equal(m.wares.dagger.exposures,METRIC_EVENT_LIMIT+9);
 });
 
+test('event choices keep durable aggregate outcomes beyond the raw event stream',()=>{
+  const m=resumeMetrics(newMetrics(0),0,false);
+  recordMetric(m,'event_choice',{kind:'nego',outcome:'quick_sale'},1);
+  recordMetric(m,'event_choice',{kind:'nego',outcome:'fresh_stock'},2);
+  recordMetric(m,'event_choice',{kind:'nego',outcome:'walk_away'},3);
+  recordMetric(m,'event_choice',{kind:'nego',outcome:'quick_sale'},4);
+  recordMetric(m,'event_choice',{kind:'treasure',choice:{kind:'gold'}},5);
+  assert.deepEqual(m.choices,{
+    'nego:quick_sale':2,'nego:fresh_stock':1,'nego:walk_away':1,'treasure:gold':1
+  });
+  assert.deepEqual(serializeMetrics(m).choices,m.choices);
+});
+
 test('board snapshots keep durable ware identity and economy context',()=>{
   const m=resumeMetrics(newMetrics(0),0,false);
   const board=[{iid:7,id:'torch',rarity:2,ench:'blazing',size:1}];

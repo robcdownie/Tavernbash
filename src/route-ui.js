@@ -243,7 +243,10 @@ function pickWare(msg,onPick){
   o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){const i=+p.dataset.i;ovClose(o);onPick(i);};});
   return true;
 }
-function completeEvent(t,delta){B.metricEvent('event_choice',{nodeId:routeState().pendingId,kind:t,resolveDelta:delta||0});
+function completeEvent(t,delta,outcome){
+  const data={nodeId:routeState().pendingId,kind:t,resolveDelta:delta||0};
+  if(outcome)data.outcome=outcome;
+  B.metricEvent('event_choice',data);
   B.dispatchRoute({type:'resolveEvent',resolveDelta:delta||0,outcome:t});}
 function routeRestCard(node){
   choiceCard('Rest',nodeLabel(node),'Choose one.',[
@@ -270,13 +273,13 @@ function routeShrineCard(node){
 function routeNegotiationCard(node){
   const per=PERSONAS[node.persona]||PERSONAS[0];
   choiceCard(per.n,'A Merchant Bargains','Accept one offer, or walk away.',[
-    {label:'Quick Sale',desc:'Take 6 gold on the spot.',onPick:function(){G.gold+=6;toast('+6 gold.');completeEvent('nego');}},
+    {label:'Quick Sale',desc:'Take 6 gold on the spot.',onPick:function(){G.gold+=6;toast('+6 gold.');completeEvent('nego',0,'quick_sale');}},
     {label:'Fresh Stock',desc:'Pay 3 gold for a free ware at the next market.',onPick:function(){
       /* cannot afford: do not consume the merchant node, re-show so Quick Sale or
          Walk Away stay reachable instead of burning the node for nothing */
       if(G.gold<3){toast('Not enough gold for that.');routeNegotiationCard(node);return;}
-      G.gold-=3;grantFreeWare(eventRng(node.id,'fresh'));completeEvent('nego');}},
-    {label:'Walk Away',desc:'Keep your coin and your wares.',onPick:function(){completeEvent('nego');}}
+      G.gold-=3;grantFreeWare(eventRng(node.id,'fresh'));completeEvent('nego',0,'fresh_stock');}},
+    {label:'Walk Away',desc:'Keep your coin and your wares.',onPick:function(){completeEvent('nego',0,'walk_away');}}
   ]);
 }
 export function routeEventCard(e){

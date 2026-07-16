@@ -3,7 +3,7 @@
    arithmetic. Callers supply the clock and combat diagnostic facts, so tests do
    not depend on Date.now and the combat engine never imports the route layer. */
 
-export const METRICS_VERSION=1;
+export const METRICS_VERSION=2;
 export const METRIC_EVENT_LIMIT=1024;
 
 function blankTiming(startedAt){
@@ -14,7 +14,7 @@ function blankTiming(startedAt){
 
 export function newMetrics(startedAt){
   return {version:METRICS_VERSION,partial:false,timing:blankTiming(startedAt),events:[],droppedEvents:0,
-    counts:{},shops:{rolls:0,rerolls:0,freezes:0,buys:0,sells:0,goldSpent:0,goldEarned:0},
+    counts:{},choices:{},shops:{rolls:0,rerolls:0,freezes:0,buys:0,sells:0,goldSpent:0,goldEarned:0},
     wares:{},fights:[],snapshots:[],debrief:{pace:null,difficulty:null,agency:null,note:""}};
 }
 
@@ -42,6 +42,7 @@ export function reviveMetrics(raw){
   m.events=Array.isArray(raw.events)?raw.events.slice(0,METRIC_EVENT_LIMIT):[];
   m.droppedEvents=(raw.droppedEvents||0)+Math.max(0,(raw.events||[]).length-METRIC_EVENT_LIMIT);
   m.counts=copyMap(raw.counts);
+  m.choices=copyMap(raw.choices);
   m.shops=Object.assign(m.shops,raw.shops||{});
   m.wares=JSON.parse(JSON.stringify(raw.wares||{}));
   m.fights=Array.isArray(raw.fights)?JSON.parse(JSON.stringify(raw.fights)):[];
@@ -132,6 +133,11 @@ export function recordMetric(metrics,type,data,now){
     metrics.shops.sells++;metrics.shops.goldEarned+=data.value||0;
     if(data.id)wareRow(metrics,data.id).sells++;
   }else if(type==="fusion"&&data.id){wareRow(metrics,data.id).fusions++;}
+  else if(type==="event_choice"){
+    const outcome=data.outcome||(data.choice&&data.choice.kind)||data.kind||"unknown";
+    const key=(data.kind||"event")+":"+outcome;
+    metrics.choices[key]=(metrics.choices[key]||0)+1;
+  }
 }
 
 function wireWare(it){return {iid:it.iid,id:it.id,rarity:it.rarity||0,ench:it.ench||null,size:it.size};}
