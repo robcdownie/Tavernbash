@@ -37,7 +37,8 @@ export function buildRunRecord(input){
   const A=ANOMALIES.find(function(a){return a.id===input.setup.anom;});
   const districtId=districtReached(run.route,map),district=map.districts[districtId-1]||map.districts[0];
   const endedMs=input.endedAt;
-  const report={schema:RUN_REPORT_SCHEMA,reportId:run.runId+':'+String(endedMs),archive_saved:false,exported:false,
+  const report={schema:RUN_REPORT_SCHEMA,reportId:run.runId+':'+String(endedMs),archive_saved:false,
+    exported:!!(run.end&&run.end.exported),
     game:'Tavern Bash',version:input.version,mapVersion:map.version,routeMode:run.routeMode||'quick',
     lantern:run.lantern||0,
     startedAt:metrics.timing.startedAt,endedAt:endedMs,endedAtIso:new Date(endedMs).toISOString(),

@@ -934,7 +934,9 @@
     background:url('/art/ui/btn_stone.png') center/100% 100% no-repeat;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));
     transition:transform .09s var(--e-out);}
   .stonebtn:active{transform:translateY(1px) scale(.98);}
-  #intro .introexport{position:absolute;top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));font-size:9px;padding:7px 10px;}
+  #intro .introhistory{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));
+    min-height:44px;padding:8px 12px;display:flex;align-items:center;gap:6px;font-size:10px;}
+  #intro .introhistory svg{width:17px;height:17px;}
   .card.routepick{width:min(94vw,560px);max-width:560px;}
   .routepickgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
   .routechoice{min-height:142px;padding:14px 12px;border:1px solid rgba(216,162,74,.35);border-radius:13px;
@@ -973,6 +975,79 @@
   /* L9: the locked third vault shelf */
   .cell.locked{opacity:.5;background:rgba(12,8,4,.7);display:flex;align-items:center;justify-content:center;}
   .cell.locked .lockmark{color:var(--dim);font-size:19px;opacity:.8;}
+  /* the run ledger: ten full reports stay available for export, while a
+     compact fifty-run index and monotonic mastery survive archive rollover */
+  .ov.historyov{z-index:75;padding:8px max(8px,env(safe-area-inset-right)) 8px max(8px,env(safe-area-inset-left));}
+  .ov.replayov{z-index:80;}
+  .card.historycard{width:min(96vw,760px);max-width:760px;height:calc(100vh - 16px);height:calc(100dvh - 16px);
+    max-height:700px;padding:14px 16px;display:flex;flex-direction:column;overflow:hidden;text-align:left;animation:none;}
+  .replayov .card{animation:none;}
+  .historyhead{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+  .historytitle{min-width:0;flex:1;}
+  .historytitle .kick{margin:0 0 2px;}
+  .historytitle .big{font-size:26px;line-height:1;margin:0;}
+  .historyclose{width:45px;height:45px;flex:0 0 45px;border:1px solid var(--line);border-radius:12px;
+    background:rgba(0,0,0,.28);color:var(--brass-hi);font-size:24px;cursor:pointer;}
+  .historystats{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px;color:var(--dim);font-size:10px;}
+  .historystats b{color:var(--brass-hi);}
+  .historytabs,.historysubtabs{display:flex;gap:6px;flex:0 0 auto;margin-top:8px;}
+  .historytabs button,.historysubtabs button{min-height:45px;flex:1;border:1px solid var(--line);border-radius:10px;
+    background:rgba(0,0,0,.24);color:var(--dim);font-size:10px;font-weight:900;cursor:pointer;}
+  .historytabs button.on,.historysubtabs button.on{color:var(--brass-hi);border-color:rgba(244,207,124,.62);
+    background:rgba(216,162,74,.16);}
+  .historybody{min-height:0;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:8px;padding-right:2px;}
+  .historyempty{height:100%;min-height:150px;display:flex;align-items:center;justify-content:center;text-align:center;
+    border:1px dashed rgba(216,162,74,.26);border-radius:13px;color:var(--dim);font-size:12px;line-height:1.5;padding:20px;}
+  .historyruns{height:100%;min-height:0;display:grid;grid-template-columns:minmax(210px,.8fr) minmax(0,1.45fr);gap:8px;}
+  .historylist,.historydetail{min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .historylist{display:flex;flex-direction:column;gap:6px;padding-right:2px;}
+  .historyrow{width:100%;min-height:58px;border:1px solid var(--line-s);border-radius:11px;padding:8px 9px;
+    background:rgba(0,0,0,.22);color:var(--ink);text-align:left;cursor:pointer;}
+  .historyrow.on{border-color:rgba(244,207,124,.65);background:rgba(216,162,74,.13);}
+  .historyrowtop{display:flex;gap:6px;align-items:center;font-size:11px;font-weight:900;}
+  .historyrowtop .win{color:#7fe0c0;}.historyrowtop .loss{color:#ff8d76;}
+  .historyrowtop time{margin-left:auto;color:var(--dim);font-size:8.5px;font-weight:700;}
+  .historyrowmeta{margin-top:3px;color:var(--dim);font-size:9.5px;line-height:1.35;}
+  .historydetail{border:1px solid rgba(216,162,74,.24);border-radius:13px;padding:11px;background:rgba(0,0,0,.2);}
+  .historydetail h3{margin:0;color:var(--brass-hi);font-family:"Rakkas",serif;font-size:21px;font-weight:400;}
+  .historymeta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:7px;}
+  .historymeta span{padding:5px 7px;border-radius:8px;background:rgba(255,255,255,.035);color:var(--dim);font-size:9.5px;}
+  .historymeta b{display:block;color:var(--ink);font-size:10.5px;margin-top:1px;overflow-wrap:anywhere;}
+  .historylabel{margin-top:9px;color:var(--brass);font-size:8px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;}
+  .historybuild{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;}
+  .historyware{display:flex;align-items:center;gap:4px;min-height:34px;max-width:145px;padding:4px 7px;border:1px solid var(--line-s);
+    border-radius:9px;background:rgba(0,0,0,.24);color:var(--ink);font-size:9px;}
+  .historyware svg{width:24px;height:24px;flex:0 0 24px;}
+  .historyware span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .historyactions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+  .historyactions .btn{min-height:45px;flex:1 1 120px;padding:8px;font-size:10px;}
+  .historyexport{margin-top:8px;width:100%;min-height:45px;}
+  .masterygrid{display:grid;grid-template-columns:minmax(125px,1.15fr) repeat(2,minmax(105px,1fr));gap:5px;align-items:stretch;}
+  .masterygrid .mh{color:var(--brass);font-size:9px;font-weight:900;text-align:center;padding:5px;}
+  .masteryhero,.masterycell{min-height:52px;border:1px solid var(--line-s);border-radius:10px;background:rgba(0,0,0,.2);padding:7px;}
+  .masteryhero{display:flex;align-items:center;gap:7px;color:var(--ink);font-size:10px;font-weight:900;}
+  .masteryhero svg{width:34px;height:34px;flex:0 0 34px;}
+  .masterycell{text-align:center;color:var(--dim);font-size:8.5px;line-height:1.35;}
+  .masterycell b{display:block;color:var(--brass-hi);font-size:11px;margin-bottom:2px;}
+  .masterycell.empty b{color:var(--dim);}
+  .discoveryhead{display:flex;align-items:center;gap:8px;margin:2px 0 7px;color:var(--dim);font-size:10px;}
+  .discoveryhead b{color:var(--brass-hi);}
+  .discoverygrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;}
+  .discoverytile{min-height:82px;border:1px solid var(--line-s);border-radius:11px;background:rgba(0,0,0,.2);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:7px;text-align:center;}
+  .discoverytile svg{width:38px;height:38px;}
+  .discoverytile span{color:var(--ink);font-size:8.5px;line-height:1.15;}
+  .discoverytile.locked{opacity:.43;filter:grayscale(1);}
+  .discoverytile.locked .unknown{width:38px;height:38px;border:1px solid var(--line);border-radius:50%;display:flex;
+    align-items:center;justify-content:center;color:var(--dim);font-size:19px;font-weight:900;}
+  .replaynote{padding:8px;border-radius:9px;background:rgba(216,162,74,.1);color:var(--dim);font-size:10px;line-height:1.45;}
+  @media (orientation:portrait){
+    .historyruns{display:flex;flex-direction:column;}
+    .historylist{max-height:190px;flex:0 0 auto;}
+    .historydetail{overflow:visible;flex:0 0 auto;}
+    .discoverygrid{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .masterygrid{grid-template-columns:minmax(105px,1.05fr) repeat(2,minmax(82px,1fr));}
+  }
   @media (orientation:portrait){.routepickgrid{grid-template-columns:1fr}.routechoice{min-height:112px;}}
   /* portrait uses the tall painting with its baked nameplate; landscape
      uses the wide painting fit whole (dark vignette edges blend the

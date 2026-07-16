@@ -8,7 +8,7 @@ import {buildFoe} from './encounter.js';
 import {wareSlotCost,boardUsedCells,boardSlotCount,warePurchaseCost,wareSaleValue,rerollPrice,
         adjustedStormAt,adjustedVictoryIncome,advanceFrozenOffers,setFrozenOffers,thawOffers,
         composeLantern,lanternRules} from './anomaly-rules.js';
-import {lanternMaxPick,recordLanternClear} from './lantern-profile.js';
+import {lanternHighest,lanternMaxPick,recordLanternClear} from './lantern-profile.js';
 import {genMap,MAP_VERSION} from './map.js';
 import {frontier,currentDistrict,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,isGateDistrict} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
@@ -29,7 +29,7 @@ import pkg from '../package.json';
 import {G,setG,RM,setRM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
 import {wireRouteUI,routeMap,routeState,renderRouteMap,combatPreview,showFightRecap,
         routeEventCard,openRewardChoice,routeEnd,openRouteContinue,openUniquePick,
-        unexportedRunCount,copyUnexportedRuns} from './route-ui.js';
+        openRunHistory} from './route-ui.js';
 /* ============ SESSION + UI PRIMITIVES ============ */
 /* G (the game aggregate) and RM (reduced-motion) are the shared live singletons
    from ui-core; ui.js is the only writer, via setG/setRM below. */
@@ -1126,18 +1126,22 @@ function openLanternPlaque(level,maxSel){
    +'<p style="opacity:.7">Tap anywhere to close</p></div>');
   o.onclick=function(){ovClose(o);};
 }
-function newRoute(mode,heroId,lantern){
+function newRoute(mode,heroId,lantern,replay){
   if(mode!=='quick'&&mode!=='long'){openHeroPick(function(hid){openRouteModePick(hid);});return;}
   if(!heroId){openHeroPick(function(hid){newRoute(mode,hid,lantern||0);});return;}
   lantern=Math.max(0,Math.min(10,lantern||0));
   const now=Date.now();
-  const seed=((Date.now()>>>0)^0x9e3779b9)>>>0;
+  const seed=replay&&replay.seed!=null?(replay.seed>>>0):(((Date.now()>>>0)^0x9e3779b9)>>>0);
   const rng=mulberry(seed);
   const anomPool=ANOMALIES;
-  const anom=anomPool[Math.floor(rng()*anomPool.length)];
+  const rolledAnom=anomPool[Math.floor(rng()*anomPool.length)];
   const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
+  const replayAnom=replay&&anomPool.filter(function(a){return a.id===replay.omenId;})[0];
+  const replayTags=replay&&Array.isArray(replay.tags)?replay.tags.filter(function(t){return CATN[t];}).slice(0,2):[];
+  const anom=replayAnom||rolledAnom;
+  const tags=replayTags.length===2?replayTags:[cats[0],cats[1]];
   const omenA=Object.assign({},ANONE,anom.m);
-  setG({mode:'route',seed:seed,rng:rng,round:0,anom:anom,A:composeLantern(anom.id,omenA,lantern),A0:omenA,tags:[cats[0],cats[1]],
+  setG({mode:'route',seed:seed,rng:rng,round:0,anom:anom,A:composeLantern(anom.id,omenA,lantern),A0:omenA,tags:tags,
      T:null,hero:null,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
@@ -1156,6 +1160,19 @@ function newRoute(mode,heroId,lantern){
   renderAno();renderTrow();
   $('ribbon').innerHTML='';$('main').innerHTML='';
   openRouteReveal();
+}
+/* A history replay is a fresh run under current rules. It carries only the
+   recorded setup tuple, never the old board, route state, rewards, or metrics. */
+function replayHistoryRun(spec){
+  if(!spec)return;
+  clearRoute();
+  document.querySelectorAll('.ov').forEach(function(o){o.remove();});
+  const intro=$('intro');if(intro)intro.remove();
+  newRoute(spec.mode,spec.heroId,spec.lantern,spec);
+}
+function hasActiveRoute(){
+  const d=loadRoute();
+  return !!(d&&!d.retired);
 }
 /* the composed truth line: when the Lantern moves a value the Omen card
    printed, say the effective number so the headline never lies (Codex ruling
@@ -1454,14 +1471,15 @@ function openIntro(){
   if(!ART['bg-intro']){newRoute();return;}
   const o=document.createElement('div');o.id='intro';
   o.innerHTML='<div class="ititle">Tavern Bash</div>'
+    +'<button class="btn introhistory" id="inHistory">'+ic('g-ledger','mi')+' Run History</button>'
     +'<div class="ibtns">'
     +'<button class="stonebtn" id="inNew">New Game</button>'
     +'<button class="stonebtn" id="inTut">Tutorial</button>'
-   +'</div>'+(unexportedRunCount()?'<button class="btn introexport" id="inExport">Copy Unexported Runs ('+unexportedRunCount()+')</button>':'');
+   +'</div>';
   document.body.appendChild(o);
   o.querySelector('#inNew').onclick=function(){o.remove();newRoute();};
   o.querySelector('#inTut').onclick=function(){o.remove();newRoute('quick');};
-  const ex=o.querySelector('#inExport');if(ex)ex.onclick=function(){copyUnexportedRuns(ex);};
+  o.querySelector('#inHistory').onclick=function(){openRunHistory();};
 }
 function openRetiredRouteNotice(d){
   const oldVersion=d.fromMapVersion||d.mapVersion||8;
@@ -1501,6 +1519,8 @@ export function boot(){
   wireRouteUI({dispatchRoute:dispatchRoute,renderAll:renderAll,checkpointActiveRun:checkpointActiveRun,
     criticalSave:criticalSave,presentAfterReward:presentAfterReward,fuseStamp:fuseStamp,fuseWithVault:fuseWithVault,
     computeT:computeT,mkOffer:mkOffer,heroOf:heroOf,newRoute:newRoute,restoreRoute:restoreRoute,clearRoute:clearRoute,
+    replayHistoryRun:replayHistoryRun,hasActiveRoute:hasActiveRoute,
+    lanternHighest:function(mode,heroId){return lanternHighest(store(),mode,heroId);},
     metricPhase:metricPhase,metricEvent:metricEvent,metricSnapshot:metricSnapshot,
     recordLanternClear:function(){return recordLanternClear(store(),G.run.routeMode||'quick',G.hero,G.run.lantern||0);}});
   bindMetricVisibility();

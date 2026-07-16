@@ -12,10 +12,10 @@
    callbacks keep their current behavior exactly (the "callbacks only dispatch"
    ideal, and moving persistence out of render, stay later audited changes). */
 import {G,RM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
-import {ITEMS,RNAME,ENCH,MONSTERS,PERSONAS,CATN,TRINKETS} from './data.js';
+import {ITEMS,RNAME,ENCH,MONSTERS,PERSONAS,CATN,TRINKETS,HEROES,ANOMALIES} from './data.js';
 import {mulberry,gateOK} from './engine.js';
 import {buildFoe} from './encounter.js';
-import {genMap,isCombat} from './map.js';
+import {genMap,isCombat,MAP_VERSION} from './map.js';
 import {frontier,currentDistrict,visitedSet,validRoute,classifyEdges,fightSeed,isGateDistrict} from './route.js';
 import {ic} from './art.js';
 import {chooseGild as runtimeChooseGild,chooseUnique as runtimeChooseUnique,chooseCharm as runtimeChooseCharm,
@@ -25,7 +25,8 @@ import {music,sting} from './music.js';
 import pkg from '../package.json';
 import {finishMetrics,activateMetrics,touchMetrics,serializeMetrics} from './route-metrics.js';
 import {buildRunRecord,formatRunSummary,formatRunFullData,formatRunBatch} from './route-report.js';
-import {saveReport,updateReport,unexportedReports,markReportsExported} from './route-report-store.js';
+import {readReportState,saveReport,updateReport,unexportedReports,markReportsExported} from './route-report-store.js';
+import {replaySetup,isClearResult} from './route-history.js';
 
 /* the flow bridge: functions that stay in ui.js (dispatch, render, persistence,
    economy, run lifecycle) and are wired in once at boot. */
@@ -206,8 +207,9 @@ function grantEnchantKit(rng,fixedEnch){
   }
   G.gold+=4;toast((fixedEnch?'No ware fits '+ENCH[fixedEnch].n+'. ':'No ware to enchant. ')+'4 gold instead.');
 }
-function applyTreasure(opt,cont,nodeId){
-  B.metricEvent('event_choice',{nodeId:nodeId,kind:'treasure',choice:Object.assign({},opt)});
+function applyTreasure(opt,cont,nodeId,offers){
+  B.metricEvent('event_choice',{nodeId:nodeId,kind:'treasure',choice:Object.assign({},opt),
+    offers:(offers||[]).map(function(o){return Object.assign({},o);})});
   if(opt.kind==='ware'){grantFreeWare(eventRng(nodeId,'tware'),opt.id);cont();}
   else if(opt.kind==='enchant'){grantEnchantKit(eventRng(nodeId,'tench'),opt.ench);cont();}
   else if(opt.kind==='silver'){openGild('Raise one ware a rarity step.',cont);}
@@ -222,7 +224,7 @@ function routeTreasureCard(node){
     }).join('')+'</div></div>');
   o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){
     const opt=opts[+p.dataset.t];ovClose(o);
-    applyTreasure(opt,function(){B.dispatchRoute({type:'resolveEvent',outcome:'treasure'});},node.id);
+    applyTreasure(opt,function(){B.dispatchRoute({type:'resolveEvent',outcome:'treasure'});},node.id,opts);
   };});
 }
 /* a generic pick-one card for route events; each choice runs its own effect and
@@ -474,6 +476,7 @@ export function routeEnd(cause){
   const endBtns='<div class="rendbtns">'
    +'<button class="btn" id="reSummary">Copy Summary</button>'
    +'<button class="btn" id="reFull">Copy Full Data</button>'
+   +'<button class="btn" id="reHistory">Run History</button>'
    +'<button class="btn gold" id="reGo">New Run</button></div>';
   const debrief='<div class="rdebrief"><div class="kick gold">Optional Playtest Debrief</div>'
    +'<div class="dbq"><span>Pace</span><button data-db="pace" data-v="slow">Slow</button><button data-db="pace" data-v="right">Right</button><button data-db="pace" data-v="fast">Fast</button></div>'
@@ -503,6 +506,7 @@ export function routeEnd(cause){
     const now=Date.now();touchMetrics(G.run.metrics,now);
     G.run.metrics.timing.calendarMs=G.run.metrics.timing.startedAt==null?0:Math.max(0,now-G.run.metrics.timing.startedAt);
     const m=serializeMetrics(G.run.metrics),debrief=m.debrief||{};
+    report.exported=!!(G.run.end&&G.run.end.exported);
     report.metrics=m;report.debrief=JSON.parse(JSON.stringify(debrief));
     report.timing.activeMs=m.timing.activeMs;report.timing.debriefMs=(m.timing.phases||{}).debrief||0;
     report.timing.gameplayMs=Math.max(0,report.timing.activeMs-report.timing.debriefMs);
@@ -520,6 +524,7 @@ export function routeEnd(cause){
   o.querySelector('#reFull').onclick=function(){syncReport();copyText(formatRunFullData(report),o.querySelector('#reFull'),function(){
     report.exported=true;G.run.end.exported=true;
     if(!updateReport(store(),report))archiveWarning();B.checkpointActiveRun();});};
+  o.querySelector('#reHistory').onclick=function(){syncReport();openRunHistory();};
   o.querySelector('#reGo').onclick=function(){G.run.metrics.debrief.note=note.value.trim();finishMetrics(G.run.metrics,Date.now());
     const saved=syncReport();
     if(!saved&&!G.run.end.exported){activateMetrics(G.run.metrics,Date.now());return;}
@@ -535,8 +540,10 @@ export function openRouteContinue(d){
    +'<p>Your '+(mode==='long'?'Long Bazaar':'Quick Night')+' caravan rests in <b>'+esc(map.districts[di].name)+'</b> with <b>'+Math.max(0,d.run.route.resolve)+'</b> Resolve.</p>'
    +'<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">'
    +'<button class="btn gold" id="ctGo">Continue Run</button>'
+   +'<button class="btn" id="ctHistory">Run History</button>'
    +'<button class="btn" id="ctNew">New Run</button></div></div>');
   o.querySelector('#ctGo').onclick=function(){ovClose(o);B.restoreRoute(d);};
+  o.querySelector('#ctHistory').onclick=function(){openRunHistory();};
   o.querySelector('#ctNew').onclick=function(){ovClose(o);B.clearRoute();B.newRoute();};
 }
 
@@ -646,5 +653,216 @@ function copyText(txt,btn,onSuccess){
 export function unexportedRunCount(){return unexportedReports(store()).length;}
 export function copyUnexportedRuns(btn){
   const rows=unexportedReports(store());if(!rows.length){if(btn)btn.textContent='No Unexported Runs';return;}
-  copyText(formatRunBatch(rows),btn,function(){markReportsExported(store(),rows.map(function(r){return r.reportId;}));});
+  const ids=rows.map(function(r){return r.reportId;});
+  copyText(formatRunBatch(rows),btn,function(){
+    if(!markReportsExported(store(),ids))return;
+    const current=G&&G.run&&G.run.end?G.run.runId+':'+String(G.run.end.endedAt):null;
+    if(current&&ids.indexOf(current)>=0){
+      G.run.end.exported=true;
+      if(B&&B.checkpointActiveRun)B.checkpointActiveRun();
+    }
+  });
+}
+
+/* ============ PLAYER HISTORY ============ */
+function historyMode(r){return r&&((r.routeMode||r.mode)==='long'?'long':'quick');}
+function historyHero(r){return r&&r.setup&&(r.setup.hero||r.setup.heroId)||'Unknown merchant';}
+function historyOmen(r){return r&&r.setup&&(r.setup.omen||r.setup.omenId)||'Unknown Omen';}
+function historyDate(r){
+  const iso=r&&r.endedAtIso;
+  if(iso)return iso.slice(0,10);
+  const n=r&&r.endedAt;
+  if(!n)return 'Unknown date';
+  try{return new Date(n).toISOString().slice(0,10);}catch(e){return 'Unknown date';}
+}
+function historyMinutes(ms){
+  if(!(ms>0))return 'Time unavailable';
+  return (ms/60000).toFixed(ms<600000?1:0)+' min';
+}
+function historyResult(r){
+  if(isClearResult(r&&r.result))return historyMode(r)==='long'?'Long Clear':'Quick Clear';
+  const d=r&&r.progress&&r.progress.district;
+  return d?'Loss in '+d:'Loss';
+}
+function historyRoute(r){return (historyMode(r)==='long'?'Long Bazaar':'Quick Night')+' · '+((r&&r.lantern)>0?'Lantern '+r.lantern:'Plain');}
+function historyBoard(r,key){return r&&r.economy&&Array.isArray(r.economy[key])?r.economy[key]:[];}
+function historyWare(w){
+  const d=w&&ITEMS[w.id],name=(w&&w.name)||(d&&d.n)||'Unknown ware';
+  const rarity=RNAME[(w&&w.rarity)||0]||RNAME[0];
+  const ench=w&&w.ench&&ENCH[w.ench]?ENCH[w.ench].n+' ':'';
+  return '<span class="historyware" title="'+esc(rarity+' '+ench+name)+'">'+(d?ic('g-'+w.id):'')
+    +'<span>'+esc(rarity+' '+ench+name)+'</span></span>';
+}
+function historyBuild(r,key){
+  const rows=historyBoard(r,key);
+  return rows.length?rows.map(historyWare).join(''):'<span style="color:var(--dim);font-size:10px">None</span>';
+}
+function historyLookupFull(state,id){
+  return (state.reports||[]).filter(function(r){return r&&r.reportId===id;})[0]||null;
+}
+function historySeen(history,kind,id){
+  const rows=history&&history.discoveries&&history.discoveries[kind];
+  if(Array.isArray(rows))return rows.indexOf(id)>=0;
+  return !!(rows&&rows[id]);
+}
+function historyTotal(history,key){
+  if(!history)return 0;
+  if(typeof history[key]==='number')return history[key];
+  return history.totals&&typeof history.totals[key]==='number'?history.totals[key]:0;
+}
+function historyFactValue(v,key){
+  if(v==null)return null;
+  if(typeof v==='number')return v;
+  if(v[key]!=null)return v[key];
+  if(v.timing&&v.timing[key]!=null)return v.timing[key];
+  if(v.progress&&v.progress[key]!=null)return v.progress[key];
+  return null;
+}
+function historyFactLantern(v){
+  return v&&typeof v==='object'&&v.lantern!=null?v.lantern:null;
+}
+
+export function openRunHistory(){
+  const opener=document.activeElement;
+  const state=readReportState(store()),history=state.history||{},recent=state.recent||[];
+  let tab='runs',discovery='heroes',selected=recent[0]&&recent[0].reportId;
+  const o=ovOpen('<div class="card historycard"><div class="rays"></div>'
+   +'<div class="historyhead"><div class="historytitle"><div class="kick gold">Local and Account Free</div>'
+   +'<h2 class="big" id="historyTitle">Run History</h2></div>'
+   +'<button class="historyclose" id="historyClose" aria-label="Close run history">&times;</button></div>'
+   +'<div class="historystats"><span><b id="historyRuns">0</b> recorded runs</span>'
+   +'<span><b id="historyClears">0</b> clears</span><span><b id="historyFound">0</b> discoveries</span></div>'
+   +'<div class="historytabs" role="tablist" aria-label="Run history sections">'
+   +'<button data-ht="runs" role="tab">Runs</button><button data-ht="mastery" role="tab">Mastery</button>'
+   +'<button data-ht="discovery" role="tab">Discovery</button></div>'
+   +'<div class="historybody" id="historyBody"></div></div>');
+  o.classList.add('historyov');o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');
+  o.setAttribute('aria-labelledby','historyTitle');
+  const body=o.querySelector('#historyBody');
+  const seenCount=['heroes','omens','wares','monsters'].reduce(function(n,k){
+    const rows=history.discoveries&&history.discoveries[k];
+    return n+(Array.isArray(rows)?rows.length:Object.keys(rows||{}).length);
+  },0);
+  o.querySelector('#historyRuns').textContent=historyTotal(history,'runs');
+  o.querySelector('#historyClears').textContent=historyTotal(history,'clears');
+  o.querySelector('#historyFound').textContent=seenCount;
+
+  function closeHistory(restore){
+    ovClose(o);
+    if(restore!==false&&opener&&opener.isConnected&&opener.focus)opener.focus();
+  }
+  function tabState(){
+    o.querySelectorAll('[data-ht]').forEach(function(b){
+      const on=b.dataset.ht===tab;b.classList.toggle('on',on);b.setAttribute('aria-selected',String(on));
+    });
+  }
+  function runRows(){
+    if(!recent.length){
+      body.innerHTML='<div class="historyempty">No finished runs yet. Clear a road or spend your Resolve to record one.</div>';
+      return;
+    }
+    if(!recent.some(function(r){return r.reportId===selected;}))selected=recent[0].reportId;
+    const picked=recent.filter(function(r){return r.reportId===selected;})[0]||recent[0];
+    const full=historyLookupFull(state,picked.reportId);
+    const replay=replaySetup(picked);
+    const isWin=isClearResult(picked.result);
+    const list=recent.map(function(r){
+      const on=r.reportId===picked.reportId;
+      return '<button class="historyrow'+(on?' on':'')+'" data-hr="'+esc(r.reportId)+'" aria-selected="'+String(on)+'">'
+       +'<span class="historyrowtop"><span class="'+(isClearResult(r.result)?'win':'loss')+'">'+esc(historyResult(r))+'</span>'
+       +'<time>'+historyDate(r)+'</time></span>'
+       +'<span class="historyrowmeta">'+esc(historyHero(r))+' · '+esc(historyRoute(r))+'<br>'+esc(historyOmen(r))
+       +' · '+esc(historyMinutes(r.timing&&r.timing.gameplayMs))+'</span></button>';
+    }).join('');
+    const actions=(full?'<button class="btn" id="historyCopy">Copy Summary</button>':'')
+      +(replay?'<button class="btn gold" id="historyReplay">Play Seed Again</button>':'');
+    const unexported=unexportedReports(store()).length;
+    body.innerHTML='<div class="historyruns"><div class="historylist">'+list+'</div>'
+     +'<div class="historydetail"><h3 class="'+(isWin?'':'bad')+'">'+esc(historyResult(picked))+'</h3>'
+     +'<div class="historymeta"><span>Merchant<b>'+esc(historyHero(picked))+'</b></span>'
+     +'<span>Road<b>'+esc(historyRoute(picked))+'</b></span><span>Omen<b>'+esc(historyOmen(picked))+'</b></span>'
+     +'<span>Active time<b>'+esc(historyMinutes(picked.timing&&picked.timing.gameplayMs))+'</b></span>'
+     +'<span>Seed<b>'+esc(picked.seed==null?'Unavailable':picked.seed)+'</b></span>'
+     +'<span>Resolve<b>'+esc(picked.progress&&picked.progress.resolve!=null?picked.progress.resolve:'Unavailable')+'</b></span>'
+     +'<span>Bosses beaten<b>'+esc(picked.progress&&picked.progress.bossesBeaten!=null?picked.progress.bossesBeaten:'Unavailable')+'</b></span>'
+     +'<span>Build<b>v'+esc(picked.version||'?')+' · map '+esc(picked.mapVersion==null?'?':picked.mapVersion)+'</b></span></div>'
+     +'<div class="historylabel">Final Stall</div><div class="historybuild">'+historyBuild(picked,'board')+'</div>'
+     +'<div class="historylabel">Vault</div><div class="historybuild">'+historyBuild(picked,'vault')+'</div>'
+     +(actions?'<div class="historyactions">'+actions+'</div>':'')
+     +'<button class="btn historyexport" id="historyExport"'+(unexported?'':' disabled')+'>'
+     +(unexported?'Copy Unexported Runs ('+unexported+')':'No Unexported Runs')+'</button></div></div>';
+    body.querySelectorAll('[data-hr]').forEach(function(b){b.onclick=function(){selected=b.dataset.hr;draw();};});
+    const cp=body.querySelector('#historyCopy');if(cp)cp.onclick=function(){copyText(formatRunSummary(full),cp);};
+    const rp=body.querySelector('#historyReplay');if(rp)rp.onclick=function(){confirmReplay(picked);};
+    const ex=body.querySelector('#historyExport');if(ex&&unexported)ex.onclick=function(){copyUnexportedRuns(ex);};
+  }
+  function masteryCell(hero,mode){
+    const highest=B.lanternHighest?B.lanternHighest(mode,hero.id):-1;
+    const row=history.byHeroRoute&&history.byHeroRoute[hero.id]&&history.byHeroRoute[hero.id][mode];
+    if(highest<0)return '<div class="masterycell empty"><b>Unplayed</b>Clear this road to set a best.</div>';
+    const title=highest===0?'Plain Clear':'Lantern '+highest;
+    const fast=row&&row.fastestClear,best=row&&row.bestResolveClear;
+    const fastMs=historyFactValue(fast,'gameplayMs'),bestResolve=historyFactValue(best,'resolve');
+    let detail='';
+    if(historyFactLantern(fast)===highest&&fastMs>0)detail+='Fastest '+historyMinutes(fastMs);
+    if(historyFactLantern(best)===highest&&bestResolve!=null)detail+=(detail?' · ':'')+'Best '+bestResolve+' Resolve';
+    if(!detail)detail='Details unavailable';
+    if(row&&row.clears)detail+=(detail?' · ':'')+row.clears+' clear'+(row.clears===1?'':'s');
+    return '<div class="masterycell"><b>'+title+'</b>'+esc(detail||'Clear recorded')+'</div>';
+  }
+  function masteryRows(){
+    body.innerHTML='<div class="masterygrid"><div></div><div class="mh">Quick Night</div><div class="mh">Long Bazaar</div>'
+     +HEROES.map(function(h){
+       return '<div class="masteryhero">'+ic(h.g)+'<span>'+esc(h.n)+'</span></div>'+masteryCell(h,'quick')+masteryCell(h,'long');
+     }).join('')+'</div>';
+  }
+  function discoveryCatalog(){
+    if(discovery==='heroes')return HEROES.map(function(x){return {id:x.id,n:x.n,g:x.g};});
+    if(discovery==='omens')return ANOMALIES.map(function(x){return {id:x.id,n:x.n,g:x.g};});
+    if(discovery==='wares')return Object.keys(ITEMS).filter(function(id){return !ITEMS[id].inc;})
+      .map(function(id){return {id:id,n:ITEMS[id].n,g:'g-'+id};});
+    return Object.keys(MONSTERS).map(function(id){return {id:id,n:MONSTERS[id].n,g:MONSTERS[id].glyph};});
+  }
+  function discoveryRows(){
+    const labels={heroes:'Heroes',omens:'Omens',wares:'Wares',monsters:'Monsters'};
+    const rows=discoveryCatalog(),found=rows.filter(function(x){return historySeen(history,discovery,x.id);}).length;
+    body.innerHTML='<div class="historysubtabs" role="tablist" aria-label="Discovery category">'
+     +Object.keys(labels).map(function(k){return '<button data-hd="'+k+'" role="tab" class="'+(k===discovery?'on':'')
+       +'" aria-selected="'+String(k===discovery)+'">'+labels[k]+'</button>';}).join('')+'</div>'
+     +'<div class="discoveryhead"><b>'+found+' of '+rows.length+'</b> discovered in finished runs</div>'
+     +'<div class="discoverygrid">'+rows.map(function(x){
+       const seen=historySeen(history,discovery,x.id);
+       return '<div class="discoverytile'+(seen?'':' locked')+'" data-discovery="'+x.id+'">'
+        +(seen?ic(x.g):'<span class="unknown">?</span>')+'<span>'+(seen?esc(x.n):'???')+'</span></div>';
+     }).join('')+'</div>';
+    body.querySelectorAll('[data-hd]').forEach(function(b){b.onclick=function(){discovery=b.dataset.hd;draw();};});
+  }
+  function confirmReplay(record){
+    const spec=replaySetup(record);if(!spec){toast('This old report has no replayable setup.');return;}
+    const active=B.hasActiveRoute&&B.hasActiveRoute();
+    const changed=(spec.sourceMapVersion!=null&&spec.sourceMapVersion!==MAP_VERSION)
+      ||(spec.sourceVersion&&spec.sourceVersion!==pkg.version);
+    const c=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">Play Seed Again</div>'
+     +ic('g-ledger','bigic')+'<h2 class="big" style="font-size:25px">Fresh Road, Same Seed</h2>'
+     +'<p>Start a fresh '+(spec.mode==='long'?'Long Bazaar':'Quick Night')+' run as '+esc(historyHero(record))
+     +' at '+(spec.lantern?'Lantern '+spec.lantern:'Lantern 0')+' under '+esc(historyOmen(record))+'.</p>'
+     +'<div class="replaynote">The old build is not restored. The seed and recorded setup return under current rules.'
+     +(changed?' This report came from an older build or map, so the road may differ.':'')+'</div>'
+     +(active?'<p style="color:#ffab61;margin-top:9px">Starting it will replace the saved run waiting beneath this ledger.</p>':'')
+     +'<div class="historyactions"><button class="btn" id="replayCancel">Cancel</button>'
+     +'<button class="btn gold" id="replayGo">Start Fresh Run</button></div></div>');
+    c.classList.add('replayov');
+    c.querySelector('#replayCancel').onclick=function(){ovClose(c);};
+    c.querySelector('#replayGo').onclick=function(){ovClose(c);closeHistory(false);B.replayHistoryRun(spec);};
+  }
+  function draw(){
+    tabState();
+    if(tab==='runs')runRows();
+    else if(tab==='mastery')masteryRows();
+    else discoveryRows();
+  }
+  o.querySelectorAll('[data-ht]').forEach(function(b){b.onclick=function(){tab=b.dataset.ht;draw();};});
+  o.querySelector('#historyClose').onclick=function(){closeHistory(true);};
+  o.onkeydown=function(e){if(e.key==='Escape'){e.preventDefault();closeHistory(true);}};
+  draw();o.querySelector('#historyClose').focus();
 }

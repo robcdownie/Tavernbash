@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {newRun} from '../src/route-run.js';
 import {genMap} from '../src/map.js';
 import {buildRunRecord,formatRunSummary,formatRunFullData,RUN_REPORT_SCHEMA} from '../src/route-report.js';
-import {saveReport,readReportArchive,unexportedReports,markReportsExported,ROUTE_REPORT_LIMIT} from '../src/route-report-store.js';
+import {saveReport,readReportState,readReportArchive,unexportedReports,markReportsExported,
+  ROUTE_REPORT_KEY,ROUTE_REPORT_LIMIT,ROUTE_HISTORY_RECENT_LIMIT,
+  ROUTE_REPORT_ARCHIVE_SCHEMA} from '../src/route-report-store.js';
 
 function storage(){const m={};return {getItem:k=>m[k]||null,setItem:(k,v)=>{m[k]=String(v);},removeItem:k=>delete m[k]};}
 function report(seed,endedAt){const run=newRun({seed:seed,routeMode:'quick',now:1000});run.economy.board=[{iid:1,id:'dagger',rarity:1,size:1,ench:null}];
@@ -52,6 +54,65 @@ test('report archive upserts, keeps ten, and marks only confirmed ids exported',
   const ids=unexportedReports(s).slice(0,2).map(r=>r.reportId);
   assert.ok(markReportsExported(s,ids));
   assert.equal(unexportedReports(s).length,ROUTE_REPORT_LIMIT-2);
+});
+
+test('a raw report array migrates into one versioned envelope without losing flags',()=>{
+  const s=storage(),old=report(1,1001),middle=report(2,1002),fresh=report(3,1003);
+  old.exported=true;
+  s.setItem(ROUTE_REPORT_KEY,JSON.stringify([middle,old]));
+  const before=readReportState(s);
+  assert.deepEqual(before.reports.map(r=>r.reportId),[middle.reportId,old.reportId]);
+  assert.equal(before.recent.length,2);
+  assert.equal(before.history.totals.runs,2);
+  assert.equal(before.reports[1].exported,true);
+  assert.ok(saveReport(s,fresh));
+  const wire=JSON.parse(s.getItem(ROUTE_REPORT_KEY));
+  assert.equal(wire.schema,ROUTE_REPORT_ARCHIVE_SCHEMA);
+  assert.equal(wire.reports.length,3);
+  assert.equal(wire.history.totals.runs,3);
+  assert.equal(wire.reports.find(r=>r.reportId===old.reportId).exported,true);
+});
+
+test('full reports keep ten, compact recents keep fifty, and lifetime history keeps every run',()=>{
+  const s=storage();
+  for(let i=1;i<=60;i++)assert.ok(saveReport(s,report(i,1000+i)));
+  const state=readReportState(s);
+  assert.equal(state.reports.length,ROUTE_REPORT_LIMIT);
+  assert.equal(state.recent.length,ROUTE_HISTORY_RECENT_LIMIT);
+  assert.equal(state.history.totals.runs,60);
+  assert.equal(state.history.indexedReportIds.length,60);
+  assert.equal(state.reports[0].seed,60);
+  assert.equal(state.recent[0].seed,60);
+  assert.equal(state.reports[state.reports.length-1].seed,51);
+  assert.equal(state.recent[state.recent.length-1].seed,11);
+});
+
+test('same-id updates never double-index history and export writes preserve the envelope',()=>{
+  const s=storage(),a=report(9,5000);
+  assert.ok(saveReport(s,a));
+  a.debrief.note='later';
+  assert.ok(saveReport(s,a));
+  let state=readReportState(s);
+  assert.equal(state.reports.length,1);
+  assert.equal(state.recent.length,1);
+  assert.deepEqual(state.history.totals,{runs:1,clears:0});
+  assert.deepEqual(state.history.indexedReportIds,[a.reportId]);
+  const historyBefore=JSON.parse(JSON.stringify(state.history));
+  assert.ok(markReportsExported(s,[a.reportId]));
+  state=readReportState(s);
+  assert.equal(state.reports[0].exported,true);
+  assert.equal(state.recent[0].exported,true);
+  assert.deepEqual(state.history,historyBefore);
+  assert.equal(JSON.parse(s.getItem(ROUTE_REPORT_KEY)).schema,ROUTE_REPORT_ARCHIVE_SCHEMA);
+});
+
+test('an exported finished run rebuilds as exported after resume',()=>{
+  const run=newRun({seed:42,routeMode:'quick',now:1000});
+  run.end={cause:'won',result:'quick_clear',endedAt:5000,exported:true};
+  const rebuilt=buildRunRecord({run:run,map:genMap(42),
+    setup:{hero:'kiln',anom:'wild',tags:['dmg','burn']},
+    result:'quick_clear',version:'0.90.0',endedAt:5000});
+  assert.equal(rebuilt.exported,true);
 });
 
 test('archive failures return false and preserve immediate report data',()=>{

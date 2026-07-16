@@ -18,6 +18,7 @@ async function freshRoute(page, mode = 'quick') {
 async function reloadAndContinue(page) {
   await page.reload();
   await page.waitForSelector('#ctGo');
+  await expect(page.locator('#ctHistory')).toHaveText('Run History');
   await page.click('#ctGo');
 }
 /* commit the first frontier node (always a column-1 Monster Door) and start its fight */
@@ -381,14 +382,16 @@ test('a finished run keeps one report and its debrief across reload', async ({pa
     window.BBDEV.g().run.route.phase='won';
     window.BBDEV.routeEnd('won');
     document.querySelector('[data-db="pace"][data-v="fast"]').click();
-    const rows=JSON.parse(localStorage.getItem('bb-route-reports')||'[]');
+    const raw=JSON.parse(localStorage.getItem('bb-route-reports')||'[]');
+    const rows=Array.isArray(raw)?raw:(raw.reports||[]);
     const active=JSON.parse(localStorage.getItem('bb-route-run'));
     return {count:rows.length,id:rows[0].reportId,pace:rows[0].debrief.pace,endId:active.run.end.endedAt};
   });
   await reloadAndContinue(page);
   await page.waitForSelector('#reGo');
   const after = await page.evaluate(() => {
-    const rows=JSON.parse(localStorage.getItem('bb-route-reports')||'[]');
+    const raw=JSON.parse(localStorage.getItem('bb-route-reports')||'[]');
+    const rows=Array.isArray(raw)?raw:(raw.reports||[]);
     const active=JSON.parse(localStorage.getItem('bb-route-run'));
     return {count:rows.length,id:rows[0].reportId,pace:rows[0].debrief.pace,endId:active.run.end.endedAt};
   });

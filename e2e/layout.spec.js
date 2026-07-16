@@ -149,6 +149,83 @@ test('the run debrief and export controls fit the end overlay', async ({page}) =
     };
   });
   expect(fit).toEqual({cardFitsWidth: true, overlayScrolls: true, buttonsTall: true, debriefVisible: true});
+  await expect(page.locator('#reHistory')).toHaveText('Run History');
+});
+
+test('run history renders recent runs, mastery, discovery, and exact seed setup', async ({page}) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.removeItem('bb-route-run');
+    const records=[
+      {
+        schema:'tavern-bash-run/1',reportId:'seed-clear:1000',archive_saved:true,exported:false,
+        version:'0.89.0',mapVersion:11,routeMode:'quick',lantern:3,startedAt:1,endedAt:1000,
+        endedAtIso:'2026-07-16T10:00:00.000Z',result:'quick_clear',seed:123456,partial:false,
+        setup:{heroId:'kiln',hero:'The Kilnkeeper',omenId:'wildfire',omen:'Wildfire',
+          featured:[{id:'burn',name:'Burn'},{id:'dmg',name:'Weapons'}]},
+        progress:{districtId:4,district:'The Dragon Gate',bossesBeaten:4,nodesVisited:22,bossRetries:1,
+          resolve:18,resolveMax:40,path:['d1c1l0']},
+        economy:{gold:2,tier:4,relicIncome:0,
+          board:[{iid:1,id:'dagger',name:'Rusty Dagger',rarity:1,rarityName:'Silver',ench:'swift',enchantName:'Swift',size:1}],
+          vault:[{iid:2,id:'torch',name:'Oil Torch',rarity:0,rarityName:'Bronze',ench:null,enchantName:null,size:1}],charms:[]},
+        timing:{calendarMs:400000,activeMs:300000,gameplayMs:300000,debriefMs:0,sessions:1,reloads:0,phases:{},districts:{}},
+        midpointTreasure:null,debrief:{},metrics:{wares:{dagger:{exposures:1},torch:{fights:1}},
+          fights:[{monsterId:'imp'}],events:[],timing:{},debrief:{}}
+      },
+      {
+        schema:'tavern-bash-run/1',reportId:'seed-loss:900',archive_saved:true,exported:true,
+        version:'0.89.0',mapVersion:11,routeMode:'long',lantern:1,startedAt:1,endedAt:900,
+        endedAtIso:'2026-07-15T10:00:00.000Z',result:'loss',seed:98765,partial:false,
+        setup:{heroId:'apoth',hero:'The Apothecary',omenId:'fortified',omen:'Fortified',
+          featured:[{id:'heal',name:'Healing'},{id:'shield',name:'Shields'}]},
+        progress:{districtId:3,district:'Palace Quarter',bossesBeaten:2,nodesVisited:13,bossRetries:0,
+          resolve:0,resolveMax:60,path:['d1c1l0']},
+        economy:{gold:0,tier:3,relicIncome:0,board:[],vault:[],charms:[]},
+        timing:{calendarMs:500000,activeMs:420000,gameplayMs:420000,debriefMs:0,sessions:1,reloads:0,phases:{},districts:{}},
+        midpointTreasure:null,debrief:{},metrics:{wares:{salve:{exposures:1}},fights:[{monsterId:'lamassu'}],events:[],timing:{},debrief:{}}
+      }
+    ];
+    localStorage.setItem('bb-route-reports',JSON.stringify(records));
+    localStorage.setItem('bb-lantern',JSON.stringify({quick:{kiln:3},long:{apoth:1}}));
+  });
+  await page.reload();
+  await page.click('#inHistory');
+  await expect(page.locator('#historyTitle')).toHaveText('Run History');
+  await expect(page.locator('.historyrow')).toHaveCount(2);
+  await expect(page.locator('.historydetail')).toContainText('The Kilnkeeper');
+  await expect(page.locator('.historydetail')).toContainText('Wildfire');
+  await expect(page.locator('.historydetail')).toContainText('123456');
+  await expect(page.locator('.historydetail')).toContainText('Silver Swift Rusty Dagger');
+  const fit=await page.evaluate(() => {
+    const vp={w:document.documentElement.clientWidth,h:document.documentElement.clientHeight};
+    const card=document.querySelector('.historycard').getBoundingClientRect();
+    const controls=Array.from(document.querySelectorAll('.historycard button')).map(b=>{
+      const r=b.getBoundingClientRect();return {id:b.id||b.dataset.ht||b.dataset.hr||'',w:r.width,h:r.height};
+    });
+    return {card:card.left>=-1&&card.right<=vp.w+1&&card.top>=-1&&card.bottom<=vp.h+1,
+      controls:controls.every(r=>r.w>=44&&r.h>=44),
+      small:controls.filter(r=>r.w<44||r.h<44),
+      docW:document.documentElement.scrollWidth<=vp.w+1,docH:document.documentElement.scrollHeight<=vp.h+1};
+  });
+  expect(fit).toEqual({card:true,controls:true,small:[],docW:true,docH:true});
+
+  await page.click('[data-ht="mastery"]');
+  await expect(page.locator('.masterygrid')).toContainText('Lantern 3');
+  await expect(page.locator('.masterygrid')).toContainText('Lantern 1');
+  await page.click('[data-ht="discovery"]');
+  await expect(page.locator('.discoveryhead')).toContainText('2 of 8');
+  await page.click('[data-hd="omens"]');
+  await expect(page.locator('.discoveryhead')).toContainText('2 of 12');
+  await page.click('[data-ht="runs"]');
+  await page.click('#historyReplay');
+  await expect(page.getByText('Fresh Road, Same Seed',{exact:true})).toBeVisible();
+  await page.click('#replayGo');
+  await page.waitForSelector('#rvGo');
+  const replayed=await page.evaluate(() => {
+    const G=window.BBDEV.g();
+    return {seed:G.seed,mode:G.run.routeMode,hero:G.hero,lantern:G.run.lantern,omen:G.anom.id,tags:G.tags};
+  });
+  expect(replayed).toEqual({seed:123456,mode:'quick',hero:'kiln',lantern:3,omen:'wildfire',tags:['burn','dmg']});
 });
 
 test('the Midpoint Treasure offer fits and states where the free ware goes', async ({page}) => {
