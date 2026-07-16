@@ -480,10 +480,14 @@ test('fusion: two bronze do not forge, three still do',()=>{
 
 test('Debt Collector gains exactly +150 HP and +20 damage at 10 held gold',()=>{
   const base=monsterSide('collector',{round:5,gold:0,A:ANONE,gilded:false});
+  const debt=monsterSide('collector',{round:5,gold:-3,A:ANONE,gilded:false});
   const rich=monsterSide('collector',{round:5,gold:10,A:ANONE,gilded:false});
+  assert.equal(base.hp,200);
+  assert.equal(debt.hp,base.hp,'negative gold cannot weaken his baseline health');
+  assert.equal(debt.items[0].fx.dmg,base.items[0].fx.dmg,'negative gold cannot weaken his blade');
   assert.equal(rich.hp-base.hp,150);
   assert.equal(rich.items[0].fx.dmg-base.items[0].fx.dmg,20);
-  assert.equal(rich.hp,260);
+  assert.equal(rich.hp,350);
   assert.equal(rich.items[0].fx.dmg,26);
 });
 

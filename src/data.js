@@ -387,7 +387,7 @@ export const MONSTERS={
  kark:{n:"Karkadann",band:2,hp:160,tag:"dmg",glyph:"m-kark",fl:"One horn. One answer.",
    bounty:{items:["hammer"]},
    board:[{nm:"Gore Horn",g:"g-hammer",size:3,cd:11,integ:30,fx:{dmg:55}}]},
- collector:{n:"The Debt Collector",band:2,hp:110,tag:"util",glyph:"m-debt",fl:"He feeds on the gold in your pocket.",
+ collector:{n:"The Debt Collector",band:2,hp:200,tag:"util",glyph:"m-debt",fl:"He feeds on the gold in your pocket.",
    bounty:{gold:10,relic:true},special:"gold",
    board:[{nm:"Ledger Blade",g:"g-sword",size:2,cd:5,integ:24,fx:{dmg:6}}]},
  ifrit:{n:"Ifrit of the Kiln",band:3,hp:500,tag:"burn",glyph:"m-ifrit",fl:"The bellows never rest.",

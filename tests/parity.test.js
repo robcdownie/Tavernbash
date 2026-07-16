@@ -40,6 +40,9 @@ const RENAMED_MONSTERS={
    99 percent of first attempts, making D3 easier than D2. */
 const REBALANCED_MONSTERS={
   ifrit:{hp:500},
+  /* 0.87.0: live Long runs cleared both Debt Collector appearances in 6.8
+     to 16 seconds, so his printed baseline rises without changing scaling. */
+  collector:{hp:200},
 };
 const RENAMED_TRINKETS={
   venomancer:{n:"Poisonmonger"},

@@ -89,12 +89,13 @@ export function playerFightItems(board,T,A,scale){
 }
 export function monsterFightItems(mid,ctx){
   const M=MONSTERS[mid];const A=ctx.A||ANONE;const gild=(ctx.gilded?1.5:1)*(ctx.power||1);
+  const heldGold=Math.max(0,ctx.gold||0);
   if(M.special==="mirror"){
     return playerFightItems(ctx.playerBoard,{},A,0.85*gild);
   }
   return M.board.map(b=>{
     const fx={};
-    if(b.fx.dmg){let base=b.fx.dmg;if(M.special==="gold"){base+=2*(ctx.gold||0);}fx.dmg=Math.max(1,Math.round(base*gild*A.dmgMul));}
+    if(b.fx.dmg){let base=b.fx.dmg;if(M.special==="gold"){base+=2*heldGold;}fx.dmg=Math.max(1,Math.round(base*gild*A.dmgMul));}
     if(b.fx.burn){fx.burn=Math.max(1,Math.round(b.fx.burn*gild*A.burnMul));}
     if(b.fx.poison){fx.poison=Math.max(1,Math.round(b.fx.poison*gild*A.poisonMul));}
     if(b.fx.shield){fx.shield=Math.round(b.fx.shield*gild);}
@@ -116,9 +117,10 @@ export function monsterFightItems(mid,ctx){
 }
 export function monsterSide(mid,ctx){
   const M=MONSTERS[mid];const A=ctx.A||ANONE;const gild=(ctx.gilded?1.5:1)*(ctx.power||1);
+  const heldGold=Math.max(0,ctx.gold||0);
   let hp;
   if(M.special==="mirror"){hp=Math.round((ctx.playerHp||fightHP(ctx.round,0,A))*0.85*gild);}
-  else if(M.special==="gold"){hp=Math.round((M.hp+15*(ctx.gold||0))*gild*A.hpMul);}
+  else if(M.special==="gold"){hp=Math.round((M.hp+15*heldGold)*gild*A.hpMul);}
   else{hp=Math.round(M.hp*gild*A.hpMul);}
   return {nm:M.n,portrait:M.glyph,hp:hp,items:monsterFightItems(mid,ctx),lifesteal:0,
     regen:A.healingDisabled?0:Math.round((M.regen||0)*gild),rules:Object.assign({},A)};
