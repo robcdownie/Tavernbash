@@ -16,7 +16,7 @@ import {ITEMS,RNAME,ENCH,MONSTERS,PERSONAS,CATN,TRINKETS} from './data.js';
 import {mulberry,gateOK} from './engine.js';
 import {buildFoe} from './encounter.js';
 import {genMap,isCombat} from './map.js';
-import {frontier,currentDistrict,visitedSet,validRoute,classifyEdges,fightSeed} from './route.js';
+import {frontier,currentDistrict,visitedSet,validRoute,classifyEdges,fightSeed,isGateDistrict} from './route.js';
 import {ic} from './art.js';
 import {chooseGild as runtimeChooseGild,chooseUnique as runtimeChooseUnique,chooseCharm as runtimeChooseCharm,
         grantFreeOffer as runtimeGrantFreeOffer} from './route-runtime.js';
@@ -166,7 +166,9 @@ function treasureView(op){
   if(op.kind==='ware'&&op.id&&ITEMS[op.id])return {g:'g-'+op.id,t:'Free '+ITEMS[op.id].n,d:'This ware, free at the next market.'};
   if(op.kind==='enchant'&&op.ench&&ENCH[op.ench])return {g:'g-magma',t:ENCH[op.ench].n+' Kit',d:ENCH[op.ench].d};
   if(op.kind==='silver')return {g:'g-whetstone',t:'Gild a Ware',d:'Raise one ware to the next rarity.'};
-  return {g:'g-coin',t:'Six Gold',d:'Six gold, no strings.'};
+  const cash=6+((G.A&&G.A.directEventGoldFlat)||0);
+  const word={4:'Four',5:'Five',6:'Six'}[cash]||String(cash);
+  return {g:'g-coin',t:word+' Gold',d:word+' gold, no strings.'};
 }
 /* event rolls draw from a stream keyed to the node and choice, not the mutable
    G.rng, so a reload reproduces the same reward instead of inventing a new one */
@@ -209,7 +211,7 @@ function applyTreasure(opt,cont,nodeId){
   if(opt.kind==='ware'){grantFreeWare(eventRng(nodeId,'tware'),opt.id);cont();}
   else if(opt.kind==='enchant'){grantEnchantKit(eventRng(nodeId,'tench'),opt.ench);cont();}
   else if(opt.kind==='silver'){openGild('Raise one ware a rarity step.',cont);}
-  else{G.gold+=6;toast('Six gold.');cont();}
+  else{const cash=6+((G.A&&G.A.directEventGoldFlat)||0);G.gold+=cash;toast(cash+' gold.');cont();}
 }
 function routeTreasureCard(node){
   const opts=(node.reward&&node.reward.options)?node.reward.options:[{kind:'gold'}];
@@ -271,10 +273,14 @@ function routeShrineCard(node){
     }}
   ]);
 }
+/* L2 Thin Oil: every event option that pays gold on the spot reads this one
+   shared value, at grant time and in the card text, so they cannot disagree */
+function directEventGold(){return 6+((G.A&&G.A.directEventGoldFlat)||0);}
 function routeNegotiationCard(node){
   const per=PERSONAS[node.persona]||PERSONAS[0];
+  const cash=directEventGold();
   choiceCard(per.n,'A Merchant Bargains','Accept one offer, or walk away.',[
-    {label:'Quick Sale',desc:'Take 6 gold on the spot.',onPick:function(){G.gold+=6;toast('+6 gold.');completeEvent('nego',0,'quick_sale');}},
+    {label:'Quick Sale',desc:'Take '+cash+' gold on the spot.',onPick:function(){G.gold+=cash;toast('+'+cash+' gold.');completeEvent('nego',0,'quick_sale');}},
     {label:'Fresh Stock',desc:'Pay 3 gold for a free ware at the next market.',onPick:function(){
       /* cannot afford: do not consume the merchant node, re-show so Quick Sale or
          Walk Away stay reachable instead of burning the node for nothing */
@@ -331,7 +337,8 @@ export function combatPreview(n){
   let hp=M.hp,items=[],regen=Math.round((M.regen||0)*(n.gilded?1.5:1)*(n.power||1));
   try{
     const foe=buildFoe(n.monId,{threat:n.threat,hpFlat:(G.T&&G.T.hpFlat)||0,A:G.A,gold:G.gold,
-      gilded:n.gilded,power:n.power,board:G.board,nodeType:n.type});
+      gilded:n.gilded,power:n.power,board:G.board,nodeType:n.type,
+      gate:isGateDistrict(districtForNode(n)),lantern:(G.run&&G.run.lantern)||0});
     hp=foe.side.hp;items=foe.side.items;regen=foe.side.regen||0;
   }catch(e){}
   const board=items.map(function(fi){return '<div class="rmpw"><b>'+esc(fi.nm)+'</b> '+fightItemBrief(fi)+'</div>';}).join('');
@@ -475,10 +482,16 @@ export function routeEnd(cause){
    +'<textarea id="reNote" maxlength="500" placeholder="Optional note"></textarea></div>';
   let o;
   if(cause==='won'){
+    /* the Lantern mastery write: monotonic and idempotent, and routeEnd runs
+       again when a won run resumes to its ending, so this IS the retry */
+    const lv=G.run.lantern||0;
+    const lit=B.recordLanternClear?B.recordLanternClear():false;
+    const lampLine=lv>0?'You cleared it at Lantern '+lv+'.':'';
+    const nextLine=(lit&&lv<10)?' Lantern '+(lv+1)+' is lit for this road.':'';
     sting('fanfarewin');if(!RM)fxCoinRain();
-    o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">'+(longRun?'Long Bazaar Clear':'Quick Night Clear')+'</div>'
+    o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">'+(longRun?'Long Bazaar Clear':'Quick Night Clear')+(lv>0?' &middot; Lantern '+lv:'')+'</div>'
      +ic('g-crown','bigic')+'<h2 class="big">The Vizier Falls</h2>'
-     +'<p>'+(longRun?'You survived the full road and its After Midnight reprises. The night market is yours.':'You cleared the original road. This Quick Night stands as a complete victory.')+'</p>'+debrief+endBtns+'</div>');
+     +'<p>'+(longRun?'You survived the full road and its After Midnight reprises. The night market is yours.':'You cleared the original road. This Quick Night stands as a complete victory.')+' '+lampLine+nextLine+'</p>'+debrief+endBtns+'</div>');
   }else{
     sting('lament');
     const st=routeState();const D=routeMap().districts[currentDistrict(st,routeMap())];
@@ -514,7 +527,7 @@ export function routeEnd(cause){
 }
 export function openRouteContinue(d){
   const mode=d.run.routeMode||'quick';
-  const map=genMap(d.run.seed,mode);
+  const map=genMap(d.run.seed,mode,(d.run&&d.run.lantern)||0);
   const di=validRoute(d.run.route,map)?currentDistrict(d.run.route,map):0;
   const o=ovOpen('<div class="card"><div class="rays"></div>'
    +'<div class="kick gold">The Lantern Still Burns</div>'+ic('g-lantern','bigic')

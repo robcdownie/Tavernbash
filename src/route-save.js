@@ -8,7 +8,7 @@ import {MAP_VERSION} from './map.js';
 import {newMetrics,serializeMetrics} from './route-metrics.js';
 import {ensureMidpointTreasure,midpointTreasureKey} from './route-runtime.js';
 
-export const ROUTE_SAVE_VERSION = 4;
+export const ROUTE_SAVE_VERSION = 5;   /* v5: run.lantern */
 export const ROUTE_KEY = 'bb-route-run';
 
 function highestId(list,key){
@@ -80,6 +80,14 @@ export function migrateV3toV4(d){
   return v4;
 }
 
+/* v4 -> v5 stamps a Lantern level of 0 on the run. In practice a v4 save
+   carries map version 10 and retires at the gate above before this runs; the
+   transform exists so the chain stays complete and testable. */
+export function migrateV4toV5(d){
+  return Object.assign({},d,{saveVersion:5,run:Object.assign({},d.run||{},
+    {schemaVersion:5,lantern:(d.run&&d.run.lantern)||0})});
+}
+
 /* read, migrate, then version-gate. A save from a stale generator (mapVersion)
    is dropped regardless of format. A v1 save is migrated to v2 in memory. Any
    failure (bad JSON, a migration throw) falls back to null so restore starts a
@@ -99,6 +107,7 @@ export function readRouteSave(storage){
     if(d.saveVersion===1){d=migrateV1toV2(d);}
     if(d.saveVersion===2){d=migrateV2toV3(d);}
     if(d.saveVersion===3){d=migrateV3toV4(d);}
+    if(d.saveVersion===4){d=migrateV4toV5(d);}
     if(!d||d.saveVersion!==ROUTE_SAVE_VERSION){storage.removeItem(ROUTE_KEY);return null;}
     return d;
   }catch(e){return null;}

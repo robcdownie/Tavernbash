@@ -39,6 +39,7 @@ export function buildRunRecord(input){
   const endedMs=input.endedAt;
   const report={schema:RUN_REPORT_SCHEMA,reportId:run.runId+':'+String(endedMs),archive_saved:false,exported:false,
     game:'Tavern Bash',version:input.version,mapVersion:map.version,routeMode:run.routeMode||'quick',
+    lantern:run.lantern||0,
     startedAt:metrics.timing.startedAt,endedAt:endedMs,endedAtIso:new Date(endedMs).toISOString(),
     result:input.result,seed:run.seed>>>0,partial:!!metrics.partial,
     setup:{heroId:input.setup.hero||null,hero:H?H.n:'none',omenId:input.setup.anom,
@@ -68,7 +69,7 @@ function topDamage(record){
 
 export function formatRunSummary(record){
   const L=['---','game: Tavern Bash','schema: '+RUN_REPORT_SCHEMA,'version: '+record.version,
-    'mode: '+record.routeMode,'date: '+record.endedAtIso.slice(0,16).replace('T',' '),'seed: '+record.seed,
+    'mode: '+record.routeMode,'lantern: '+(record.lantern||0),'date: '+record.endedAtIso.slice(0,16).replace('T',' '),'seed: '+record.seed,
     'result: '+record.result,'hero: '+q(record.setup.hero),'omen: '+q(record.setup.omen),
     'district_reached: '+q(record.progress.district),'bosses_beaten: '+record.progress.bossesBeaten,
     'nodes_visited: '+record.progress.nodesVisited,'boss_retries: '+record.progress.bossRetries,

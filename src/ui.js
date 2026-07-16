@@ -1,14 +1,16 @@
 "use strict";
 import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,TIERCOST,CATN,CATC,ANONE,
-        ITEMS,TRINKETS,ANOMALIES,MONSTERS,ENCH,ENCH_CHANCE,HEROES,
+        ITEMS,TRINKETS,ANOMALIES,MONSTERS,ENCH,ENCH_CHANCE,HEROES,LANTERN,
         shopTagWeight,canSpendGold,heroCreditLimit} from './data.js';
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,
         playerFightItems,createFight,boardRegen} from './engine.js';
 import {buildFoe} from './encounter.js';
 import {wareSlotCost,boardUsedCells,boardSlotCount,warePurchaseCost,wareSaleValue,rerollPrice,
-        adjustedStormAt,adjustedVictoryIncome,advanceFrozenOffers,setFrozenOffers,thawOffers} from './anomaly-rules.js';
+        adjustedStormAt,adjustedVictoryIncome,advanceFrozenOffers,setFrozenOffers,thawOffers,
+        composeLantern,lanternRules} from './anomaly-rules.js';
+import {lanternMaxPick,recordLanternClear} from './lantern-profile.js';
 import {genMap,MAP_VERSION} from './map.js';
-import {frontier,currentDistrict,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD} from './route.js';
+import {frontier,currentDistrict,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,isGateDistrict} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
 import {planReward,boardVictoryIncome} from './route-rewards.js';
 import {attachCharmCheckpoint,charmVictoryIncome} from './route-charms.js';
@@ -139,9 +141,16 @@ function renderRibbon(){
   const cb=$('chipTrk');if(cb)cb.onclick=openTrkInfo;
 }
 function openAnoInfo(){
+  /* the Lantern's active rules live under the Omen so both run modifiers read
+     from one place; composed values so the text never lies at L5+ */
+  const lv=(G.run&&G.run.lantern)||0;
+  const lant=lv?'<div class="lantrules"><div class="kick gold" style="margin-top:8px">Lantern '+lv+'</div>'
+    +lanternRules(lv).map(function(r){return '<p class="lline"><b>'+esc(r.n)+'</b> '+esc(r.d)+'</p>';}).join('')
+    +(G.A0&&G.A.shopN!==G.A0.shopN?'<p class="lline lit">Markets show '+G.A.shopN+' wares tonight.</p>':'')+'</div>':'';
   const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick">Tonight\'s Omen</div>'
    +ic(G.anom.g,'bigic')+'<h2 class="big" style="font-size:25px">'+G.anom.n+'</h2>'
    +'<p>'+G.anom.d+'</p><p>Featured wares: <b>'+CATN[G.tags[0]]+' + '+CATN[G.tags[1]]+'</b></p>'
+   +lant
    +'<p style="opacity:.7">Tap anywhere to close</p></div>');
   o.onclick=function(){ovClose(o);};
 }
@@ -229,7 +238,7 @@ function renderSheet(){
   sh.innerHTML='<div class="sheet">'+wareDetailHTML(it,G.A)
    +'<div class="bs"><button class="btn" id="mvL"'+(G.sel===0?' disabled':'')+'>&#9664; Move</button>'
    +'<button class="btn" id="mvR"'+(G.sel>=G.board.length-1?' disabled':'')+'>Move &#9654;</button>'
-   +'<button class="btn" id="vtI"'+(G.vault.length>=3?' disabled':'')+'>Vault</button>'
+   +'<button class="btn" id="vtI"'+(G.vault.length>=vaultSlots()?' disabled':'')+'>Vault</button>'
    +'<button class="btn sell" id="slI">Sell +'+sellValue(it.size)+'</button></div></div>';
   const L=$('mvL');if(L)L.onclick=function(){if(G.sel>0){const t=G.board[G.sel];G.board[G.sel]=G.board[G.sel-1];G.board[G.sel-1]=t;G.sel--;
     metricEvent('board_reorder',{iid:t.iid,direction:'left',index:G.sel});renderDraft();}};
@@ -239,12 +248,13 @@ function renderSheet(){
     const cell=document.querySelector('#bd .cell.it[data-i="'+G.sel+'"]');
     const from=cell?cell.getBoundingClientRect():null;
     const value=sellValue(it.size);G.gold+=value;G.board.splice(G.sel,1);G.sel=null;recordMarketSale();
-    metricEvent('shop_sell',{id:it.id,iid:it.iid,value:value,from:'board'});
+    /* vaultFull marks a sell the player could not park instead (L9 telemetry) */
+    metricEvent('shop_sell',{id:it.id,iid:it.iid,value:value,from:'board',vaultFull:G.vault.length>=vaultSlots()});
     toast('Sold for '+value+' gold');renderAll();
     if(from){flyCoins(from,3+value);}
   };
   const V=$('vtI');if(V)V.onclick=function(){
-    if(G.vault.length>=3)return;
+    if(G.vault.length>=vaultSlots()){metricEvent('vault_full_reject',{id:it.id,iid:it.iid,slots:vaultSlots()});return;}
     G.vault.push(it);G.board.splice(G.sel,1);G.sel=null;
     metricEvent('vault_in',{id:it.id,iid:it.iid});
     toast(ITEMS[it.id].n+' stored in the vault');renderAll();
@@ -263,7 +273,7 @@ function renderDraft(){
     h+='<div class="controls">'
       +'<button class="btn" id="btnTier"'+((G.tier>=6||!canSpend(G.tierCost))?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':((slotsNow(G.tier+1)>slotsNow()?'+1 slot &middot; ':'')+'Tier '+(G.tier+1)+' &middot; '+G.tierCost+'g'))+'</button>'
       +'<button class="btn" id="btnRe"'+(rerollAllowed()?'':' disabled')+'>'+ic('g-coin','bi')+' '+(G.A.rerollDisabled?'Rerolls Closed':'Reroll '+currentRerollCost())+'</button>'
-      +'<button class="btn frz'+(G.frozen?' iceon':'')+'" id="btnFrz">'+ic('e-frost','bi')+' '+freezeButtonLabel()+'</button>'
+      +'<button class="btn frz'+(G.frozen?' iceon':'')+(G.A.freezeDisabled?' failed':'')+'" id="btnFrz"'+(G.A.freezeDisabled?' aria-disabled="true"':'')+'>'+ic('e-frost','bi')+' '+freezeButtonLabel()+'</button>'
     +'</div></div>';
   }
   h+='</div>';
@@ -281,7 +291,9 @@ function renderDraft(){
          +(it.ench?'<i class="edot" style="background:'+ENCH[it.ench].c+'"></i>':'')
          +(it.rarity>0?'<span class="fuse">'+RNAME[it.rarity].charAt(0)+'</span>':'')+'</div>';
       }).join('');
-    for(let v=G.vault.length;v<3;v++){h+='<div class="cell empty"></div>';}
+    for(let v=G.vault.length;v<vaultSlots();v++){h+='<div class="cell empty"></div>';}
+    /* L9 The Locked Shelf: the missing capacity is visible, not mysterious */
+    for(let v=vaultSlots();v<3;v++){h+='<div class="cell empty locked" title="The third shelf is locked for the night"><span class="lockmark">&#215;</span></div>';}
     h+='</div>';
   }else{
     h+=boardHTML(G.board,slots,G.sel);
@@ -489,6 +501,9 @@ function currentRerollCost(){return rerollPrice(G.A,currentMarketSales());}
 function recordMarketSale(){
   if(G.phase==='draft'&&G.route&&G.route.market&&G.A.rerollCostPerSaleThisMarket){G.route.market.sales=(G.route.market.sales||0)+1;}
 }
+/* L9 The Locked Shelf: two vault slots instead of three; lantern is fixed at
+   run start, so an L9 run can never hold a third ware */
+function vaultSlots(){return (G.run&&G.run.lantern>=9)?2:3;}
 function freezeButtonLabel(){
   const held=(G.shop||[]).reduce(function(max,w){return Math.max(max,w.hold||0);},0);
   if(G.frozen||held)return 'Frozen: '+Math.max(held,1)+' roll'+(Math.max(held,1)===1?'':'s');
@@ -658,6 +673,9 @@ function rollShop(){
     offers:G.shop.filter(function(w){return !w.bought;}).map(function(w){return {offerId:w.offerId,id:w.id,ench:w.ench||null,free:!!w.free,hold:w.hold||0};})});
 }
 function toggleFreeze(){
+  /* L6 No Frost Tonight: the tap still lands and still explains itself (a
+     silent dead button is not acceptable on a phone), it just never freezes */
+  if(G.A.freezeDisabled){toast('The frost fails tonight. Wares left on the shelf are lost to the next roll.');return;}
   const held=(G.shop||[]).some(function(w){return (w.hold||0)>0;});
   if(G.frozen||held){
     G.frozen=false;thawOffers(G.shop);toast('The shop thaws.');
@@ -844,7 +862,10 @@ function startFight(me,foe,opts){
   }
   const fseed=(opts&&opts.seed!=null)?(opts.seed>>>0):((G.seed+G.round*7919+(++G.fightN)*104729)>>>0);
   const baseStorm=(opts&&opts.stormAt)||stormAt((opts&&opts.threat!=null)?opts.threat:runThreat());
-  const F=createFight({a:me,b:foe,stormAt:adjustedStormAt(baseStorm,G.A),seed:fseed,playerIs:'a',
+  /* the Gate contract: a Dragon Gate fight takes the Lantern-0 storm offset
+     (the plain Omen, G.A0); every other fight takes the composed value */
+  const stormA=(opts&&opts.gate&&G.A0)?G.A0:G.A;
+  const F=createFight({a:me,b:foe,stormAt:adjustedStormAt(baseStorm,stormA),seed:fseed,playerIs:'a',
     diagnosticTap:opts&&opts.diagnosticTap});
   G.F=F;
   G.recap={a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
@@ -1034,6 +1055,7 @@ function snapshotRoute(){
   const d={saveVersion:ROUTE_SAVE_VERSION,mapVersion:MAP_VERSION,
     run:{schemaVersion:G.run.schemaVersion,runId:G.run.runId,revision:G.run.revision,seed:G.run.seed,
       routeMode:G.run.routeMode||'quick',
+      lantern:G.run.lantern||0,
       route:G.run.route,
       economy:{gold:E.gold,tier:E.tier,tierCost:E.tierCost,relicIncome:E.relicIncome,freeReroll:!!E.freeReroll,frozen:!!E.frozen,
         board:E.board.map(item),vault:E.vault.map(item),
@@ -1059,46 +1081,106 @@ function clearRoute(){clearRouteSave(store());}
 function checkpointActiveRun(){return snapshotRoute();}
 
 /* ---- run construction ---- */
-function openRouteModePick(){
+/* the approved 0.89 setup order (Codex review): hero first without a run,
+   then route plus Lantern for that hero, then the run and map, then the
+   hero's starting ware, then the Omen reveal */
+function openRouteModePick(heroId){
+  const maxQ=lanternMaxPick(store(),'quick',heroId);
+  const maxL=lanternMaxPick(store(),'long',heroId);
+  const pick={long:maxL,quick:maxQ};   /* default: highest unlocked */
+  const stepper=function(mode,max){
+    if(max<1)return '';
+    return '<div class="lantstep" data-m="'+mode+'">'
+     +'<button class="lstep" data-m="'+mode+'" data-d="-1" aria-label="Dim the lantern">&minus;</button>'
+     +'<button class="lamp" data-m="'+mode+'" aria-label="Lantern rules">'+ic('g-lantern','li')+'<b id="lampn-'+mode+'">'+pick[mode]+'</b></button>'
+     +'<button class="lstep" data-m="'+mode+'" data-d="1" aria-label="Raise the lantern">+</button></div>';
+  };
   const o=ovOpen('<div class="card routepick"><div class="rays"></div>'
    +'<div class="kick gold">Choose Your Road</div>'
    +'<h2 class="big">How Long Will You Roam?</h2>'
    +'<div class="routepickgrid">'
-   +'<button class="routechoice primary" id="modeLong"><span class="rct">Long Bazaar</span><span class="rcsub">7 districts &middot; 60 Resolve</span><span class="rcdesc">The full night, with After Midnight reprises and a final Dragon Gate.</span></button>'
-   +'<button class="routechoice" id="modeQuick"><span class="rct">Quick Night</span><span class="rcsub">4 districts &middot; 40 Resolve</span><span class="rcdesc">The original road to the Grand Vizier.</span></button>'
+   +'<div class="routewrap"><button class="routechoice primary" id="modeLong"><span class="rct">Long Bazaar</span><span class="rcsub">7 districts &middot; 60 Resolve</span><span class="rcdesc">The full night, with After Midnight reprises and a final Dragon Gate.</span></button>'+stepper('long',maxL)+'</div>'
+   +'<div class="routewrap"><button class="routechoice" id="modeQuick"><span class="rct">Quick Night</span><span class="rcsub">4 districts &middot; 40 Resolve</span><span class="rcdesc">The original road to the Grand Vizier.</span></button>'+stepper('quick',maxQ)+'</div>'
    +'</div></div>');
-  o.querySelector('#modeLong').onclick=function(){ovClose(o);newRoute('long');};
-  o.querySelector('#modeQuick').onclick=function(){ovClose(o);newRoute('quick');};
+  o.querySelectorAll('.lstep').forEach(function(b){b.onclick=function(){
+    const m=b.dataset.m,max=m==='long'?maxL:maxQ;
+    pick[m]=Math.max(0,Math.min(max,pick[m]+(+b.dataset.d)));
+    o.querySelector('#lampn-'+m).textContent=pick[m];
+  };});
+  o.querySelectorAll('.lamp').forEach(function(b){b.onclick=function(){
+    openLanternPlaque(pick[b.dataset.m],b.dataset.m==='long'?maxL:maxQ);
+  };});
+  o.querySelector('#modeLong').onclick=function(){ovClose(o);newRoute('long',heroId,pick.long);};
+  o.querySelector('#modeQuick').onclick=function(){ovClose(o);newRoute('quick',heroId,pick.quick);};
 }
-function newRoute(mode){
-  if(mode!=='quick'&&mode!=='long'){openRouteModePick();return;}
+/* the rules plaque: every level named, active rules lit, locked rules dark */
+function openLanternPlaque(level,maxSel){
+  const rows=LANTERN.map(function(r){
+    const cls=r.lv<=level?'lit':(r.lv<=maxSel?'':'lockd');
+    return '<div class="ldrow '+cls+'"><b>'+r.lv+' &middot; '+esc(r.n)+'</b><span>'+esc(r.d)+'</span></div>';
+  }).join('');
+  const o=ovOpen('<div class="card lplaque"><div class="rays"></div><div class="kick gold">The Lantern</div>'
+   +'<h2 class="big" style="font-size:22px">'+(level>0?'Burning at '+level:'Unlit')+'</h2>'
+   +'<p style="font-size:11px">Clear a road at a level to light the next. Rules stack.</p>'
+   +'<div class="ldrows">'+rows+'</div>'
+   +'<p style="opacity:.7">Tap anywhere to close</p></div>');
+  o.onclick=function(){ovClose(o);};
+}
+function newRoute(mode,heroId,lantern){
+  if(mode!=='quick'&&mode!=='long'){openHeroPick(function(hid){openRouteModePick(hid);});return;}
+  if(!heroId){openHeroPick(function(hid){newRoute(mode,hid,lantern||0);});return;}
+  lantern=Math.max(0,Math.min(10,lantern||0));
   const now=Date.now();
   const seed=((Date.now()>>>0)^0x9e3779b9)>>>0;
   const rng=mulberry(seed);
   const anomPool=ANOMALIES;
   const anom=anomPool[Math.floor(rng()*anomPool.length)];
   const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
-  setG({mode:'route',seed:seed,rng:rng,round:0,anom:anom,A:Object.assign({},ANONE,anom.m),tags:[cats[0],cats[1]],
+  const omenA=Object.assign({},ANONE,anom.m);
+  setG({mode:'route',seed:seed,rng:rng,round:0,anom:anom,A:composeLantern(anom.id,omenA,lantern),A0:omenA,tags:[cats[0],cats[1]],
      T:null,hero:null,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
-      run:newRun({seed:seed,routeMode:mode,now:now}),
-      route:{map:genMap(seed,mode),selectedId:null,market:null,combat:null,opening:false}});
+      run:newRun({seed:seed,routeMode:mode,now:now,lantern:lantern}),
+      route:{map:genMap(seed,mode,lantern),selectedId:null,market:null,combat:null,opening:false}});
   G.run.metrics=resumeMetrics(G.run.metrics,now,false);
   bindEconomy(G);   /* gold/tier/board/shop/... now delegate to G.run.economy */
+  /* the hero applies after construction (setup step 4) */
+  const h=HEROES.filter(function(x){return x.id===heroId;})[0];
+  if(h){
+    G.hero=h.id;G.you.p=h.g;
+    if(h.start){G.board.push(mkWare(h.start,0));}
+    toast(h.n+' opens the stall'+(lantern?' under Lantern '+lantern:''));
+  }
   computeT();
   renderAno();renderTrow();
   $('ribbon').innerHTML='';$('main').innerHTML='';
-  openHeroPick(function(){openRouteReveal();});
+  openRouteReveal();
+}
+/* the composed truth line: when the Lantern moves a value the Omen card
+   printed, say the effective number so the headline never lies (Codex ruling
+   2: composed values, not a footnote) */
+function lanternRevealLines(){
+  const lv=G.run.lantern||0;
+  if(!lv)return '';
+  const rules=lanternRules(lv);
+  const names=rules.map(function(r){return r.n;}).join(' &middot; ');
+  let composed='';
+  if(G.A0&&G.A.shopN!==G.A0.shopN)composed+='<br>Markets show '+G.A.shopN+' wares tonight.';
+  if(G.A.freezeDisabled)composed+='<br>The market frost fails tonight.';
+  if(G.A0&&(G.A.stormStartOffsetMs||0)!==(G.A0.stormStartOffsetMs||0))composed+='<br>The simoom rises '+(Math.abs((G.A.stormStartOffsetMs||0)-(G.A0.stormStartOffsetMs||0))/1000)+'s earlier outside the Gate.';
+  return '<p class="lantline">'+ic('g-lantern','mi')+' <b>Lantern '+lv+'</b>: '+names+composed+'</p>';
 }
 function openRouteReveal(){
   const isLong=G.run.routeMode==='long';
+  const startRes=routeState().resolveMax;
   const o=ovOpen('<div class="card reveal"><div class="rays"></div>'
    +'<div class="kick gold">The Road Ahead</div>'
    +ic(G.anom.g,'bigic')
    +'<h2 class="big">'+G.anom.n+'</h2><p>'+G.anom.d+'</p>'
    +'<p>Featured wares: <b style="color:var(--brass)">'+CATN[G.tags[0]]+'</b> and <b style="color:var(--brass)">'+CATN[G.tags[1]]+'</b></p>'
-   +'<p style="font-size:11px">'+(isLong?'Seven districts. Sixty Resolve. Survive After Midnight and reach the Grand Vizier.':'Four districts. Forty Resolve. Reach the Grand Vizier.')+'</p>'
+   +lanternRevealLines()
+   +'<p style="font-size:11px">'+(isLong?'Seven districts. ':'Four districts. ')+startRes+' Resolve. '+(isLong?'Survive After Midnight and reach the Grand Vizier.':'Reach the Grand Vizier.')+'</p>'
    +'<button class="btn gold" id="rvGo">Enter the Bazaar</button></div>');
   o.querySelector('#rvGo').onclick=function(){ovClose(o);enterOpeningMarket();};
 }
@@ -1137,14 +1219,15 @@ function runEffects(effects,i,ctx){
 function startRouteFight(e){
   const M=MONSTERS[e.monId];
   const H=heroOf();
+  const node=nodeOf(routeMap(),e.nodeId);
+  const gate=isGateDistrict(routeMap().districts.filter(function(x){return x.id===node.district;})[0]);
   const built=buildFoe(e.monId,{threat:e.threat,hpFlat:G.T.hpFlat,A:G.A,gold:G.gold,
-    gilded:e.gilded,power:e.power,board:G.board,nodeType:e.boss?'boss':null});
+    gilded:e.gilded,power:e.power,board:G.board,nodeType:node.type,gate:gate,lantern:G.run.lantern||0});
   const php=built.php,foe=built.side;
   const playerItems=playerFightItems(G.board,G.T,G.A,1);
   const me={nm:'You',portrait:G.you.p,hp:php,items:playerItems,
     lifesteal:G.A.healingDisabled?0:(G.T.lifesteal||0),regen:G.A.healingDisabled?0:boardRegen(G.board),
     rules:Object.assign({},G.A,H?H.mod:{})};
-  const node=nodeOf(routeMap(),e.nodeId);
   metricSnapshot(node.type==='boss'?'boss_pre_fight':'pre_fight',{nodeId:e.nodeId,district:node.district,
     monsterId:e.monId,threat:e.threat,attempt:(routeState().attempts[e.nodeId]||0)});
   const tally=beginCombatTally({nodeId:e.nodeId,district:node.district,encounter:node.type,monsterId:e.monId,
@@ -1152,7 +1235,7 @@ function startRouteFight(e){
     G.board,playerItems,foe.items);
   tally.phaseBaseline=metricPhaseTotals(G.run.metrics,['combat_1x','combat_2x','combat_inspect']);
   G.route.fightTelemetry=tally;
-  startFight(me,foe,{seed:e.fightSeed,threat:e.threat,caption:'Threat '+e.threat,boss:!!e.boss,
+  startFight(me,foe,{seed:e.fightSeed,threat:e.threat,caption:'Threat '+e.threat,boss:!!e.boss,gate:gate,
     stormAt:M.stormAt?M.stormAt*1000:stormAt(e.threat),diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);},
     onEnd:function(F){endRouteFight(F,e);}});
 }
@@ -1217,10 +1300,12 @@ function enterRouteMarket(nodeId){
 function restoreRoute(d){
   const anom=ANOMALIES.filter(function(a){return a.id===d.setup.anom;})[0]||ANOMALIES[0];
   const mode=d.run.routeMode||'quick';
-  const map=genMap(d.run.seed,mode);
+  const lantern=(d.run&&d.run.lantern)||0;
+  const map=genMap(d.run.seed,mode,lantern);
   if(!validRoute(d.run.route,map)){clearRoute();openIntro();return;}
+  const omenA=Object.assign({},ANONE,anom.m);
   setG({mode:'route',seed:d.run.seed,rng:mulberry((d.run.seed+(d.fightN||0)*2654435761+7)>>>0),round:0,
-     anom:anom,A:Object.assign({},ANONE,anom.m),tags:d.setup.tags,
+     anom:anom,A:composeLantern(anom.id,omenA,lantern),A0:omenA,tags:d.setup.tags,
      T:null,hero:d.setup.hero||null,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:d.fightN||0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
@@ -1340,12 +1425,9 @@ function openHeroPick(cont){
   }
   draw();
   o.querySelector('#heroGo').onclick=function(){
-    const h=HEROES.filter(function(x){return x.id===sel;})[0];
-    G.hero=h.id;G.you.p=h.g;
-    if(h.start){G.board.push(mkWare(h.start,0));}
-    computeT();
-    toast(h.n+' opens the stall');
-    ovClose(o);cont();
+    /* hand back the choice only; the run does not exist yet (0.89 hero-first
+       flow), so the hero and starting ware apply during construction */
+    ovClose(o);cont(sel);
   };
 }
 /* ============ BOOT ============ */
@@ -1419,7 +1501,8 @@ export function boot(){
   wireRouteUI({dispatchRoute:dispatchRoute,renderAll:renderAll,checkpointActiveRun:checkpointActiveRun,
     criticalSave:criticalSave,presentAfterReward:presentAfterReward,fuseStamp:fuseStamp,fuseWithVault:fuseWithVault,
     computeT:computeT,mkOffer:mkOffer,heroOf:heroOf,newRoute:newRoute,restoreRoute:restoreRoute,clearRoute:clearRoute,
-    metricPhase:metricPhase,metricEvent:metricEvent,metricSnapshot:metricSnapshot});
+    metricPhase:metricPhase,metricEvent:metricEvent,metricSnapshot:metricSnapshot,
+    recordLanternClear:function(){return recordLanternClear(store(),G.run.routeMode||'quick',G.hero,G.run.lantern||0);}});
   bindMetricVisibility();
   initDebug();
   const mb=$('muteBtn');

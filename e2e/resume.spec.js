@@ -9,8 +9,8 @@ async function freshRoute(page, mode = 'quick') {
   await page.evaluate(() => { try { localStorage.removeItem('bb-route-run'); localStorage.removeItem('bb-run'); } catch (e) {} });
   await page.reload();
   await page.click('#inNew');
+  await page.click('#heroGo');                 /* 0.89 hero-first flow */
   await page.click(mode === 'long' ? '#modeLong' : '#modeQuick');
-  await page.click('#heroGo');
   await page.click('#rvGo');
   await page.click('#btnGo');                 /* set out from the opening stall */
   await page.waitForSelector('.rmplot');
@@ -67,7 +67,7 @@ test('every ware and offer carries a unique durable id, disjoint across the pool
   expect(r.nextAboveMax).toBe(true);
 });
 
-test('durable ids are stable across a reload (v4 save persistence)', async ({page}) => {
+test('durable ids are stable across a reload (v5 save persistence)', async ({page}) => {
   await freshRoute(page);
   const before = await page.evaluate(() => {
     const G = window.BBDEV.g();
@@ -79,12 +79,12 @@ test('durable ids are stable across a reload (v4 save persistence)', async ({pag
     const G = window.BBDEV.g();
     return {board: G.board.map(w => w.iid), gold: G.gold, schemaV: G.run.schemaVersion};
   });
-  expect(after.schemaV).toBe(4);
+  expect(after.schemaV).toBe(5);
   expect(after.board).toEqual(before.board);   /* same iids, not renumbered */
   expect(after.gold).toBe(before.gold);
 });
 
-test('a legacy v1 save migrates to v4 and continues on load', async ({page}) => {
+test('a legacy v1 save migrates to v5 and continues on load', async ({page}) => {
   await freshRoute(page);
   /* craft a faithful v1 save from the live v4 one (strip the durable ids and
      flatten the shape) so the migration path is exercised end to end */
@@ -117,7 +117,7 @@ test('a legacy v1 save migrates to v4 and continues on load', async ({page}) => 
       gold: G.gold
     };
   });
-  expect(after.schemaV).toBe(4);           /* migrated */
+  expect(after.schemaV).toBe(5);           /* migrated */
   expect(after.allStamped).toBe(true);     /* wares got ids */
   expect(after.nextAboveMax).toBe(true);
 });
@@ -234,7 +234,7 @@ test('a stored v3 Long boundary save injects and checkpoints the midpoint withou
       offerEvents:G.run.metrics.events.filter(e=>e.type==='midpoint_treasure_offered').length,
       markerPersisted:Object.prototype.hasOwnProperty.call(saved,'midpointInjected')};
   });
-  expect(after).toEqual({schema:4,saveVersion:4,gold:before.gold,shop:before.shop,pending:'midpointTreasure',
+  expect(after).toEqual({schema:5,saveVersion:5,gold:before.gold,shop:before.shop,pending:'midpointTreasure',
     savedPending:'midpointTreasure',offers:3,rewardReceipts:0,offerEvents:1,markerPersisted:false});
 });
 
@@ -247,7 +247,8 @@ test('a map version 8 save receives one retirement notice', async ({page}) => {
   await page.reload();
   await expect(page.locator('#retiredNew')).toBeVisible();
   await page.click('#retiredNew');
-  await expect(page.locator('#modeLong')).toBeVisible();
+  /* 0.89 hero-first flow: the hero picker opens before the road choice */
+  await expect(page.locator('#heroGo')).toBeVisible();
   await page.reload();
   await expect(page.locator('#inNew')).toBeVisible();
   await expect(page.locator('#retiredNew')).toHaveCount(0);

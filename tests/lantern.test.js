@@ -5,7 +5,15 @@ import {buildFoe} from '../src/encounter.js';
 import {fightHP,monsterSide} from '../src/engine.js';
 import {genMap} from '../src/map.js';
 import {initRoute,lossDamage,isGateDistrict} from '../src/route.js';
+import {readLanternProfile,lanternHighest,lanternMaxPick,recordLanternClear} from '../src/lantern-profile.js';
+import {newRun,serializeRun,reviveRun} from '../src/route-run.js';
 import {ANOMALIES,ANONE,LANTERN,MONSTERS} from '../src/data.js';
+
+function fakeStorage(){
+  const m={};
+  return {getItem:function(k){return Object.prototype.hasOwnProperty.call(m,k)?m[k]:null;},
+          setItem:function(k,v){m[k]=String(v);},removeItem:function(k){delete m[k];}};
+}
 
 /* every Omen id to its EFFECTIVE A object, exactly as the run builds it
    (ui.js: Object.assign({},ANONE,anom.m)), plus the no-Omen baseline */
@@ -194,6 +202,53 @@ test('L10: the last drop of oil sets 34 and 50 Resolve; below it nothing moves',
   assert.equal(initRoute(1,'long',9).resolve,60);
   assert.equal(initRoute(1,'quick').resolve,40,'the default stays pre-Lantern');
   assert.equal(initRoute(1,'quick',10).resolveMax,34,'resolveMax follows');
+});
+
+/* ---- the mastery profile: monotonic, idempotent, clamped ---- */
+test('the lantern profile reads -1 when missing and unlocks one past the highest clear',()=>{
+  const s=fakeStorage();
+  assert.equal(lanternHighest(s,'quick','kiln'),-1);
+  assert.equal(lanternMaxPick(s,'quick','kiln'),0,'nothing unlocked before the first clear');
+  assert.equal(recordLanternClear(s,'quick','kiln',0),true);
+  assert.equal(lanternHighest(s,'quick','kiln'),0);
+  assert.equal(lanternMaxPick(s,'quick','kiln'),1,'a plain clear lights Lantern 1');
+  assert.equal(lanternHighest(s,'long','kiln'),-1,'routes are independent');
+  assert.equal(lanternHighest(s,'quick','venom'),-1,'heroes are independent');
+});
+
+test('clear writes are max(previous, N): repeats and lower clears never regress',()=>{
+  const s=fakeStorage();
+  recordLanternClear(s,'long','apoth',4);
+  assert.equal(lanternHighest(s,'long','apoth'),4);
+  assert.equal(recordLanternClear(s,'long','apoth',2),true,'a lower clear is a no-op success');
+  assert.equal(lanternHighest(s,'long','apoth'),4);
+  assert.equal(recordLanternClear(s,'long','apoth',4),true,'the resume retry is idempotent');
+  assert.equal(lanternHighest(s,'long','apoth'),4);
+  recordLanternClear(s,'long','apoth',10);
+  assert.equal(lanternMaxPick(s,'long','apoth'),10,'the pick never exceeds 10');
+});
+
+test('the profile survives garbage storage and rejects bad writes',()=>{
+  const s=fakeStorage();
+  s.setItem('bb-lantern','{not json');
+  assert.deepEqual(readLanternProfile(s),{});
+  assert.equal(recordLanternClear(s,'weird','kiln',3),false,'unknown route refused');
+  assert.equal(recordLanternClear(s,'quick',null,3),false,'no hero refused');
+  assert.equal(recordLanternClear(null,'quick','kiln',3),false,'no storage refused');
+});
+
+/* ---- the run carries its lantern through serialize and revive ---- */
+test('a Lantern run round-trips: level, route resolve, and defaults for old wires',()=>{
+  const run=newRun({seed:77,routeMode:'quick',now:0,lantern:10});
+  assert.equal(run.lantern,10);
+  assert.equal(run.route.resolve,34,'the run route carries the L10 oil');
+  const wire=serializeRun(run);
+  assert.equal(wire.lantern,10);
+  assert.equal(reviveRun(wire).lantern,10);
+  delete wire.lantern;
+  assert.equal(reviveRun(wire).lantern,0,'an old wire revives as a plain run');
+  assert.equal(newRun({seed:1,routeMode:'quick',now:0,lantern:99}).lantern,10,'clamped high');
+  assert.equal(newRun({seed:1,routeMode:'quick',now:0,lantern:-3}).lantern,0,'clamped low');
 });
 
 test('buildFoe scout parity: two builds of one node agree',()=>{

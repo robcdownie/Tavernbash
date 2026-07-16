@@ -10,8 +10,8 @@ async function toMap(page,mode='quick') {
   });
   await page.reload();
   await page.click('#inNew');
+  await page.click('#heroGo');                 /* 0.89 hero-first flow */
   await page.click(mode==='long'?'#modeLong':'#modeQuick');
-  await page.click('#heroGo');
   await page.click('#rvGo');
   await page.click('#btnGo');
   await page.waitForSelector('.rmplot');
@@ -24,6 +24,7 @@ test('the mode picker emphasizes Long Bazaar and both routes remain selectable',
   await page.evaluate(() => { localStorage.removeItem('bb-route-run'); localStorage.removeItem('bb-run'); });
   await page.reload();
   await page.click('#inNew');
+  await page.click('#heroGo');                 /* 0.89 hero-first flow */
   await expect(page.locator('#modeLong')).toContainText('7 districts');
   await expect(page.locator('#modeQuick')).toContainText('4 districts');
   await expect(page.locator('#modeLong')).toHaveClass(/primary/);
@@ -43,9 +44,9 @@ test('Long Bazaar starts with 60 Resolve and renders seven district pips', async
   await page.evaluate(() => { localStorage.removeItem('bb-route-run'); localStorage.removeItem('bb-run'); });
   await page.reload();
   await page.click('#inNew');
+  await page.click('#heroGo');                 /* 0.89 hero-first flow */
   await page.click('#modeLong');
-  await page.click('#heroGo');
-  await expect(page.locator('.reveal')).toContainText('Seven districts. Sixty Resolve.');
+  await expect(page.locator('.reveal')).toContainText('Seven districts. 60 Resolve.');
   await page.click('#rvGo');
   await page.click('#btnGo');
   await page.waitForSelector('.rmplot');

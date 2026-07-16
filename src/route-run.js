@@ -13,7 +13,7 @@ import {TIERCOST, ITEMS} from './data.js';
 import {mulberry, gateOK} from './engine.js';
 import {newMetrics,reviveMetrics,serializeMetrics,recordMetric} from './route-metrics.js';
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;   /* v5: the run carries its Lantern level */
 
 /* the ten durable economy fields. run.economy is their single truth; G exposes
    them through accessors (bindEconomy) so the old direct call sites and in-place
@@ -54,13 +54,17 @@ function runIdFor(seed){ return 'r' + (seed >>> 0).toString(36); }
 export function newRun(setup){
   const seed = setup.seed >>> 0;
   const routeMode=setup.routeMode || 'quick';
+  const lantern=Math.max(0,Math.min(10,setup.lantern||0));
   return {
     schemaVersion: SCHEMA_VERSION,
     runId: runIdFor(seed),
     revision: 0,
     seed: seed,
     routeMode: routeMode,
-    route: initRoute(seed,routeMode),
+    /* fixed at run start; canonical for every Lantern rule and stored in the
+       save so resume regenerates the same map and composed Omen */
+    lantern: lantern,
+    route: initRoute(seed,routeMode,lantern),
     economy: newEconomy(),
     metrics: newMetrics(setup.now),
     end: null,
@@ -189,6 +193,7 @@ export function serializeRun(run){
     revision: run.revision || 0,
     seed: run.seed >>> 0,
     routeMode: run.routeMode || 'quick',
+    lantern: run.lantern || 0,
     route: run.route,
     economy: run.economy,
     metrics: serializeMetrics(run.metrics),
@@ -209,6 +214,7 @@ export function reviveRun(d){
     revision: d.revision || 0,
     seed: seed,
     routeMode: d.routeMode || 'quick',
+    lantern: d.lantern || 0,
     route: d.route,
     /* economy is opaque here; the item-wire reduction (board -> {id,rarity,size,
        ench}) and v1->v2 migration land in 3c2 when the save switches to this

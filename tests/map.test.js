@@ -21,8 +21,10 @@ test('genMap is deterministic: same seed yields identical maps',()=>{
   }
 });
 
-test('map version 10 pins every Quick layout byte except the version stamp',()=>{
-  assert.equal(MAP_VERSION,10);
+test('the map ledger pins every Quick layout byte except the version stamp',()=>{
+  /* v11 changed the generator's signature, not its lantern-0 output, so the
+     v10 hashes stand: a version bump alone must never regenerate this ledger */
+  assert.equal(MAP_VERSION,11);
   const ledger=new Map([
     [0,'93e981cf2f14708f2fd0d8032f74fe0d31ff3141bf8fcf5c92437d3c389cef51'],
     [1,'ce0c3229f804741c92b6c65377ae4a9eb195b881f466debcdac87af98c872540'],

@@ -30,8 +30,10 @@
    guaranteed offensive opening offer is intentionally NOT modelled: the abstract
    genRival board already always has damage, so the sim cannot see that change. */
 import {genMap} from '../src/map.js';
-import {initRoute, transition, frontier, nodeOf, currentDistrict, BASE_GOLD} from '../src/route.js';
+import {initRoute, transition, frontier, nodeOf, currentDistrict, BASE_GOLD, isGateDistrict} from '../src/route.js';
 import {createFight, runHeadless, monsterSide, playerFightItems, makeItem, usedCells, gateOK, fightHP, stormAt, mulberry} from '../src/engine.js';
+import {buildFoe} from '../src/encounter.js';
+import {adjustedStormAt, composeLantern} from '../src/anomaly-rules.js';
 import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, ANONE, COST, TIERCOST} from '../src/data.js';
 import {planReward} from '../src/route-rewards.js';
 import {beginCombatTally, recordCombatDiagnostic} from '../src/route-metrics.js';
@@ -45,7 +47,7 @@ export function parseSimArgs(argv){
 const A = ANONE;                       /* baseline: no anomaly, to isolate the route economy */
 
 const DEFAULT_CFG = { startResolve: null, bossLossAdj: 0, treasureCash: 6, negoCash: 6, rewardGoldAdj: 0,
-  reprisePower:1, reprisePowers:null };
+  reprisePower:1, reprisePowers:null, lantern: 0 };
 const ROUTE_GUARD=400;
 const DAMAGE_CHANNELS=['weapon','poison','burn','hook','other'];
 
@@ -126,11 +128,14 @@ function applyEnemyPower(side,power){
   });
   return side;
 }
-function simFight(board, node, gold, seed, cfg, mode) {
+function simFight(board, node, gold, seed, cfg, mode, gate) {
   const M = MONSTERS[node.monId];
-  const php = fightHP(node.threat, 0, A);
-  const foe = monsterSide(node.monId, { gold: gold, round: node.threat, A: A, gilded: !!node.gilded,
-    power:node.power||1, playerBoard: board.board, playerHp: php });
+  /* the shared encounter builder: the sim sees the same L1 door power, the
+     same gilding, and the same mirror and Gate exemptions as the game */
+  const built = buildFoe(node.monId, { threat: node.threat, hpFlat: 0, A: A, gold: gold,
+    gilded: node.gilded, power: node.power, board: board.board,
+    nodeType: node.type, gate: gate, lantern: cfg.lantern || 0 });
+  const php = built.php, foe = built.side;
   if(mode==='long'&&node.district>=4){
     const power=cfg.reprisePowers&&cfg.reprisePowers[node.district]||cfg.reprisePower||1;
     applyEnemyPower(foe,power);
@@ -139,7 +144,10 @@ function simFight(board, node, gold, seed, cfg, mode) {
   const me = { nm: 'You', portrait: 'p-0', hp: php, items: playerItems, lifesteal: 0, regen: 0 };
   const metricBoard=board.board.map(function(w){return Object.assign({iid:w.uid},w);});
   const tally=beginCombatTally({district:node.district,nodeId:node.id,monId:node.monId},metricBoard,playerItems,foe.items);
-  const F = createFight({ a: me, b: foe, stormAt: M.stormAt ? M.stormAt * 1000 : stormAt(node.threat), seed: seed >>> 0, playerIs: 'a',
+  /* L4 through the composed offsets and the single existing floor; a Gate
+     fight takes the plain Omen per the Gate contract */
+  const stormA = gate ? A : composeLantern('none', A, cfg.lantern || 0);
+  const F = createFight({ a: me, b: foe, stormAt: adjustedStormAt(M.stormAt ? M.stormAt * 1000 : stormAt(node.threat), stormA), seed: seed >>> 0, playerIs: 'a',
     diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);} });
   runHeadless(F);
   return { winner: F.done?F.winner:'b', survTier: F.survTiers('b'), t: F.t / 1000,
@@ -152,11 +160,15 @@ function simFight(board, node, gold, seed, cfg, mode) {
 /* ---- one full run under a tuning cfg ---- */
 export function simRun(seed, cfg, mode) {
   mode=mode||'quick';
-  const map = genMap(seed,mode);
+  const lantern = cfg.lantern || 0;
+  const map = genMap(seed,mode,lantern);
   const rng = mulberry((seed ^ 0x5f3759df) >>> 0);
   const persona = PERSONAS[seed % PERSONAS.length];
-  let st = initRoute(seed,mode);
+  let st = initRoute(seed,mode,lantern);
   if (cfg.startResolve!=null&&cfg.startResolve!==st.resolveMax) { st.resolve = cfg.startResolve; st.resolveMax = cfg.startResolve; }
+  /* L2: the same shared delta the event cards read */
+  const evFlat = (composeLantern('none', A, lantern).directEventGoldFlat) || 0;
+  const gateOf = function(node){ return isGateDistrict(map.districts.filter(function(d){return d.id===node.district;})[0]); };
   let gold = 6, invested = 0, tier = 1, lastReserveUsed = false, mendGate = null, mendUsed = false;
   const ownedUniques=new Set();
   invested += 6; gold = 0;             /* opening stall: the six starting gold */
@@ -177,7 +189,7 @@ export function simRun(seed, cfg, mode) {
     } else if (st.phase === 'encounter') {
       const node = nodeOf(map, st.pendingId);
       const first = !st.attempts[node.id];
-      const r = simFight(board, node, gold, st.fightSeed,cfg,mode);
+      const r = simFight(board, node, gold, st.fightSeed,cfg,mode,gateOf(node));
       m.fights.push({ threat: node.threat, band: node.district, type: node.type, mon: node.monId,
         won: r.winner === 'a', t: r.t, margin: r.winner === 'a' ? r.meHp : r.foeHp, first: first,
         wares:r.wares,guardTrips:r.guardTrips,timeout:r.timeout });
@@ -223,10 +235,10 @@ export function simRun(seed, cfg, mode) {
       st = transition(st, map, { type: 'leaveMarket' }).state;
     } else if (st.phase === 'event') {
       const node = nodeOf(map, st.pendingId); let delta = 0;
-      if (node.type === 'treasure') { gold += cfg.treasureCash; m.goldEarned += cfg.treasureCash; }
+      if (node.type === 'treasure') { const c=cfg.treasureCash+evFlat; gold += c; m.goldEarned += c; }
       else if (node.type === 'rest') { delta = 8; }
       else if (node.type === 'shrine') { delta = 12; }
-      else if (node.type === 'negotiation') { gold += cfg.negoCash; m.goldEarned += cfg.negoCash; }
+      else if (node.type === 'negotiation') { const c=cfg.negoCash+evFlat; gold += c; m.goldEarned += c; }
       st = transition(st, map, { type: 'resolveEvent', resolveDelta: delta, outcome: node.type }).state;
     } else if (st.phase === 'gateCamp') {
       m.retries++;
