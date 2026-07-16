@@ -16,10 +16,13 @@ import {DISTRICTS, LONG_DISTRICTS, PERSONAS, ITEMS, ENCH} from './data.js';
 
 /* bump when the generator's output shape or rules change, so a saved run that
    regenerates its map from the seed can reject a stale layout */
-export const MAP_VERSION=9;
+export const MAP_VERSION=10;
 
 export const COMBAT=new Set(['monster','elite','boss']);
 export function isCombat(n){return COMBAT.has(n.type);}
+/* the choice events: nodes that open a pick-one card rather than a market or a
+   fight. The cadence rules below keep them from repeating along a walked path. */
+export const CHOICE_EVENTS=new Set(['treasure','negotiation','rest','shrine']);
 
 const LANES=3;
 
@@ -164,6 +167,17 @@ function validate(d,allowShrine){
     if(p.length!==6)return false;                          /* five columns plus boss */
     for(let i=0;i+3<=p.length;i++){                         /* never three combats in a row */
       if(isCombat(p[i])&&isCombat(p[i+1])&&isCombat(p[i+2]))return false;
+    }
+    /* event cadence (map version 10): the same choice event never twice running,
+       and never more than twice on one walked path, so a road cannot read as
+       three Treasures in a row or Treasure at every other step */
+    const evCount={};
+    for(let i=0;i<p.length;i++){
+      const t=p[i].type;
+      if(!CHOICE_EVENTS.has(t))continue;
+      if(i+1<p.length&&p[i+1].type===t)return false;
+      evCount[t]=(evCount[t]||0)+1;
+      if(evCount[t]>2)return false;
     }
   }
   /* boss preparation: every column 4 node can reach a Market or Rest in column 5 */

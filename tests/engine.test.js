@@ -101,7 +101,8 @@ test('omitted monster power is byte-equivalent to power 1 and preserves prior gi
   const gilded=monsterSide('vizier',{round:12,gold:0,A:ANONE,gilded:true});
   assert.equal(gilded.hp,1050);
   assert.equal(gilded.items[0].integ,135);
-  assert.equal(gilded.items[1].fx.burn,18);
+  assert.equal(gilded.items[1].fx.dmg,9);
+  assert.equal(gilded.items[1].fx.burn,15);
   assert.equal(gilded.items[3].fx.heal,30);
 });
 
@@ -235,6 +236,22 @@ test('Grand Vizier of Ash: the full kit boss falls to a gold round 12 board',()=
   const me={nm:'You',portrait:'p-0',hp:fightHP(12,0,ANONE),items:playerFightItems(board,{},ANONE,1),lifesteal:0};
   const F=runHeadless(createFight({a:me,b:foe,stormAt:stormAt(12),seed:41,playerIs:'a'}));
   assert.equal(F.winner,'a','a gold board takes the palace');
+});
+
+test('the Gavel finds a lawful lot on the Vizier board (0.88.0 Cinder Core hit)',()=>{
+  /* the reward earned from the Auctioneer must work in the fight it was earned
+     for: before 0.88.0 the Vizier board carried no fx.dmg ware, so the player's
+     Gavel disable silently never fired */
+  const foe=monsterSide('vizier',{round:12,gold:0,A:ANONE,gilded:false});
+  const board=[makeItem('gavel',0),makeItem('hammer',2),makeItem('aegis',2),makeItem('salve',2)];
+  const me={nm:'You',portrait:'p-0',hp:fightHP(12,0,ANONE),items:playerFightItems(board,{},ANONE,1),lifesteal:0};
+  const F=createFight({a:me,b:foe,stormAt:stormAt(12),seed:17,playerIs:'a'});
+  let lot=null,guard=0;
+  while(!F.done&&guard++<3600){for(const e of F.step(50)){
+    if(e.k==='lot'&&e.side==='b'&&!lot)lot=e;
+  }if(lot)break;}
+  assert.ok(lot,'the Gavel auctioned an enemy ware');
+  assert.equal(lot.nm,'Cinder Core','the burn heart is the only lawful lot');
 });
 
 test('Night Auctioneer: the auction disables the finest weapon and pays for it',()=>{

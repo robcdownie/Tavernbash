@@ -5,3 +5,8 @@ dist/
 # Playwright layout tests
 test-results/
 playwright-report/
+
+# Codex working files, never committed (per the R7 handoff)
+.agents/
+.tmp/
+AGENTS.md

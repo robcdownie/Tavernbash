@@ -442,7 +442,10 @@ export const MONSTERS={
  vizier:{n:"Grand Vizier of Ash",band:4,hp:700,tag:"burn",glyph:"m-vizier",fl:"The city burned. He kept the receipts.",
    bounty:{pickUnique:true},
    board:[{nm:"Ash Bulwark",g:"g-brassbuckler",size:3,cd:0,integ:90,fx:{},bulwark:true},
-          {nm:"Cinder Core",g:"g-magma",size:3,cd:4.5,integ:40,fx:{burn:12}},
+          /* 0.88.0: a small direct hit so the Gavel's auction has a lawful target
+             in the Vizier fight (disable wants fx.dmg); burn eased 12 to 10 so the
+             head-to-head stays where the harness had it */
+          {nm:"Cinder Core",g:"g-magma",size:3,cd:4.5,integ:40,fx:{dmg:6,burn:10}},
           {nm:"Frost Scepter",g:"g-tidewall",size:2,cd:7,integ:36,fx:{freeze:3}},
           {nm:"Ash Chalice",g:"g-chalice",size:2,cd:5,integ:36,fx:{heal:20}}]}
 };

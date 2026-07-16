@@ -21,15 +21,15 @@ test('genMap is deterministic: same seed yields identical maps',()=>{
   }
 });
 
-test('map version 9 preserves every Quick layout byte except the version stamp',()=>{
-  assert.equal(MAP_VERSION,9);
+test('map version 10 pins every Quick layout byte except the version stamp',()=>{
+  assert.equal(MAP_VERSION,10);
   const ledger=new Map([
-    [0,'aa55830f3032bdaa11ceea703880a40b2943d83c15fcdee5788ea934ee7120ea'],
-    [1,'bc1e653b13a5d76b1cb2d580b54b555cb26f9ce555dcd9dddf9530d230886de7'],
-    [7,'54b1af17f15c993d9d83d1d09f9d9fae2131f77ff6153d1381592c03a0e941ce'],
-    [1234567,'ea45acb5f8c3f7701a60ea37d5a09c6a085858686fe678644f7708b44cd5c19b'],
-    [2654435769,'ec536f340384ca125f0724139ec6a0f5d22607415c6e77b22e23f57afd7b3c4b'],
-    [4294967295,'72b01a34f0bc005fe655b804bb29a39f2988b7cc8b66dbd1e0515f61f43d17f5']
+    [0,'93e981cf2f14708f2fd0d8032f74fe0d31ff3141bf8fcf5c92437d3c389cef51'],
+    [1,'ce0c3229f804741c92b6c65377ae4a9eb195b881f466debcdac87af98c872540'],
+    [7,'930a6205cb9f2a367d8fb2ee769ceb34a405dcfd71fcff108d14ea335d9181c1'],
+    [1234567,'1b5ddf7aa44e2455b65c761b35616b8c31e7507548e39025a3eb4eda64815a5b'],
+    [2654435769,'6b3546ee27fce73d75064c70b24644bbb1e17b1c72173092ce65f681745028d7'],
+    [4294967295,'07045a7283115176134be1df5bc4fd12b5311eb4f9fc7f83a2f73ae03cd2cfb0']
   ]);
   for(const [seed,want] of ledger){
     const map=genMap(seed,'quick');delete map.version;
@@ -171,6 +171,30 @@ test('every path holds fewer than three combats in a row (the boss counts)',()=>
         for(let i=0;i+3<=p.length;i++){
           assert.ok(!(isCombat(p[i])&&isCombat(p[i+1])&&isCombat(p[i+2])),
             'district '+d.id+' path has three combats in a row');
+        }
+      }
+    }
+  }
+});
+
+test('event cadence: no choice event twice running, none more than twice per path',()=>{
+  const EVENTS=new Set(['treasure','negotiation','rest','shrine']);
+  for(const s of SEEDS){
+    for(const mode of ['quick','long']){
+      const map=genMap(s,mode);
+      for(const d of map.districts){
+        if(d.id===4&&mode==='quick')continue;              /* the Gate gauntlet is fixed */
+        if(d.columns.length!==5)continue;                  /* Long's Gate reprise too */
+        for(const p of districtPaths(d)){
+          const counts={};
+          for(let i=0;i<p.length;i++){
+            const t=p[i].type;
+            if(!EVENTS.has(t))continue;
+            assert.ok(!(i+1<p.length&&p[i+1].type===t),
+              'seed '+s+' '+mode+' district '+d.id+' repeats '+t+' twice running');
+            counts[t]=(counts[t]||0)+1;
+            assert.ok(counts[t]<=2,'seed '+s+' '+mode+' district '+d.id+' has '+t+' more than twice on a path');
+          }
         }
       }
     }

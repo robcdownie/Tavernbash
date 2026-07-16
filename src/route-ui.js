@@ -297,7 +297,7 @@ function routeBountyText(n){
   if(b.gold)parts.push((b.gold*(n.gilded?2:1))+' gold');
   if(b.items)parts.push(b.items.map(function(id){return ITEMS[id]?ITEMS[id].n:id;}).join(', '));
   if(b.relic)parts.push('income relic');
-  if(b.mote)parts.push('a free copy of your commonest ware');
+  if(b.mote)parts.push('a free copy of your commonest bronze ware');
   if(b.gild)parts.push('gild a ware');
   if(b.pickUnique)parts.push('pick any unique');
   return parts.length?parts.join(', '):'coin';

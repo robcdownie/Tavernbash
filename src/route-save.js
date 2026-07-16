@@ -91,7 +91,9 @@ export function readRouteSave(storage){
     if(!d)return null;
     if(d.mapVersion!==MAP_VERSION){
       storage.removeItem(ROUTE_KEY);
-      if(MAP_VERSION===9&&d.mapVersion===8)return {retired:true,reason:'map_updated',mapVersion:8};
+      /* an older map version retires the run with a notice; anything else
+         (missing, corrupt, or from the future) just clears */
+      if(typeof d.mapVersion==='number'&&d.mapVersion<MAP_VERSION)return {retired:true,reason:'map_updated',mapVersion:d.mapVersion};
       return null;
     }
     if(d.saveVersion===1){d=migrateV1toV2(d);}
