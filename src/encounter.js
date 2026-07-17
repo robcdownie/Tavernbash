@@ -11,6 +11,7 @@
    byte for byte. */
 import {fightHP,monsterSide} from './engine.js';
 import {MONSTERS} from './data.js';
+import {aspectMonId} from './aspects.js';
 
 /* L1 Trimmed Wick: monster and elite doors fight 10 percent stronger. Never
    bosses, never the Dragon Gate (ctx.gate), and the Qareen mirror is exempt
@@ -28,8 +29,14 @@ function effectivePower(monId,ctx){
 }
 
 export function buildFoe(monId,ctx){
+  /* resolve the board Aspect first, then build from the resolved id, so scout,
+     fight, and sim (the three callers) cannot disagree. With no seed/nodeId the
+     resolver returns monId and everything below is byte-identical to before. The
+     resolved def is returned so callers reading per-monster fields (the storm
+     override) read the board actually behind the door, not MONSTERS[base]. */
+  const rid=aspectMonId(monId,ctx.seed,ctx.nodeId);
   const php=fightHP(ctx.threat,ctx.hpFlat||0,ctx.A);
-  const side=monsterSide(monId,{gold:ctx.gold||0,round:ctx.threat,A:ctx.A,gilded:!!ctx.gilded,
-    power:effectivePower(monId,ctx),playerBoard:ctx.board,playerHp:php});
-  return {php:php,side:side};
+  const side=monsterSide(rid,{gold:ctx.gold||0,round:ctx.threat,A:ctx.A,gilded:!!ctx.gilded,
+    power:effectivePower(rid,ctx),playerBoard:ctx.board,playerHp:php});
+  return {php:php,side:side,def:MONSTERS[rid]};
 }

@@ -24,7 +24,9 @@ const LOSS_BONUS={monster:0,elite:2,boss:2};
 
 /* deterministic per-fight seed, independent of shop or animation rng so a boss
    retry replays the same on restart but differs on the next authorized attempt */
-function hash32(str){
+/* exported so the Aspect resolver (aspects.js) hashes with the identical FNV-1a
+   the fight seed uses, one shared implementation instead of two copies */
+export function hash32(str){
   let h=0x811c9dc5;
   for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193);}
   return h>>>0;
@@ -104,8 +106,11 @@ export function initRoute(seed,mode='quick',lantern=0){
   /* L10 The Last Drop of Oil: 34/50 instead of 40/60; draft values per the
      approved spec, tuned last by the cumulative ladder */
   const resolve=lantern>=10?(mode==='long'?50:34):(mode==='long'?60:40);
+  /* variety stamps the board-Aspect feature on for new runs; buildFoe reads it
+     to decide whether to thread the seed and node id into the Aspect pick.
+     Resumed pre-bump saves lack the field, so their fights stay byte-identical. */
   return {seed:seed>>>0,version:MAP_VERSION,path:[],pendingId:null,resolution:null,
-    phase:'map',resolve:resolve,resolveMax:resolve,attempts:{},fightSeed:null};
+    phase:'map',resolve:resolve,resolveMax:resolve,attempts:{},fightSeed:null,variety:1};
 }
 
 const PHASES=new Set(['map','encounter','reward','market','event','gateCamp','won','lost']);
@@ -137,7 +142,7 @@ export function validRoute(state,map){
 function clone(state){
   return {seed:state.seed,version:state.version,path:state.path.slice(),pendingId:state.pendingId,
     resolution:state.resolution,phase:state.phase,resolve:state.resolve,resolveMax:state.resolveMax,
-    attempts:Object.assign({},state.attempts),fightSeed:state.fightSeed};
+    attempts:Object.assign({},state.attempts),fightSeed:state.fightSeed,variety:state.variety};
 }
 function complete(ns,node){ns.path.push(node.id);ns.pendingId=null;ns.resolution=null;}
 

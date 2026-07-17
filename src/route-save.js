@@ -8,7 +8,7 @@ import {MAP_VERSION} from './map.js';
 import {newMetrics,serializeMetrics} from './route-metrics.js';
 import {ensureMidpointTreasure,midpointTreasureKey} from './route-runtime.js';
 
-export const ROUTE_SAVE_VERSION = 5;   /* v5: run.lantern */
+export const ROUTE_SAVE_VERSION = 6;   /* v6: the run route carries the variety stamp */
 export const ROUTE_KEY = 'bb-route-run';
 
 function highestId(list,key){
@@ -88,6 +88,16 @@ export function migrateV4toV5(d){
     {schemaVersion:5,lantern:(d.run&&d.run.lantern)||0})});
 }
 
+/* v5 -> v6 marks the board-variety epoch. It adds no field: a resumed pre-v6 run
+   deliberately lacks run.route.variety, so buildFoe threads no seed and every
+   fight stays byte-identical to what that run scouted. The bump exists so the
+   save schema tracks the new run.route stamp and stale shapes reject cleanly.
+   Like map version 11, a live v5 save retires at the map-version gate above
+   before this runs; the transform keeps the chain complete and testable. */
+export function migrateV5toV6(d){
+  return Object.assign({},d,{saveVersion:6,run:Object.assign({},d.run||{},{schemaVersion:6})});
+}
+
 /* read, migrate, then version-gate. A save from a stale generator (mapVersion)
    is dropped regardless of format. A v1 save is migrated to v2 in memory. Any
    failure (bad JSON, a migration throw) falls back to null so restore starts a
@@ -108,6 +118,7 @@ export function readRouteSave(storage){
     if(d.saveVersion===2){d=migrateV2toV3(d);}
     if(d.saveVersion===3){d=migrateV3toV4(d);}
     if(d.saveVersion===4){d=migrateV4toV5(d);}
+    if(d.saveVersion===5){d=migrateV5toV6(d);}
     if(!d||d.saveVersion!==ROUTE_SAVE_VERSION){storage.removeItem(ROUTE_KEY);return null;}
     return d;
   }catch(e){return null;}

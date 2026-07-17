@@ -1258,12 +1258,15 @@ function runEffects(effects,i,ctx){
 
 /* ---- combat adapter: reuse startFight, feed it a route-built foe ---- */
 function startRouteFight(e){
-  const M=MONSTERS[e.monId];
   const H=heroOf();
   const node=nodeOf(routeMap(),e.nodeId);
   const gate=isGateDistrict(routeMap().districts.filter(function(x){return x.id===node.district;})[0]);
+  /* the board Aspect pick threads the map seed and node id only when the run
+     carries the variety stamp; older runs pass neither and face the shipped board */
+  const vary=routeState().variety?1:0;
   const built=buildFoe(e.monId,{threat:e.threat,hpFlat:G.T.hpFlat,A:G.A,gold:G.gold,
-    gilded:e.gilded,power:e.power,board:G.board,nodeType:node.type,gate:gate,lantern:G.run.lantern||0});
+    gilded:e.gilded,power:e.power,board:G.board,nodeType:node.type,gate:gate,lantern:G.run.lantern||0,
+    seed:vary?routeMap().seed:null,nodeId:vary?e.nodeId:null});
   const php=built.php,foe=built.side;
   const playerItems=playerFightItems(G.board,G.T,G.A,1);
   const me={nm:'You',portrait:G.you.p,hp:php,items:playerItems,
@@ -1277,7 +1280,7 @@ function startRouteFight(e){
   tally.phaseBaseline=metricPhaseTotals(G.run.metrics,['combat_1x','combat_2x','combat_inspect']);
   G.route.fightTelemetry=tally;
   startFight(me,foe,{seed:e.fightSeed,threat:e.threat,caption:'Threat '+e.threat,boss:!!e.boss,gate:gate,
-    stormAt:M.stormAt?M.stormAt*1000:stormAt(e.threat),diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);},
+    stormAt:built.def.stormAt?built.def.stormAt*1000:stormAt(e.threat),diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);},
     onEnd:function(F){endRouteFight(F,e);}});
 }
 function endRouteFight(F,e){

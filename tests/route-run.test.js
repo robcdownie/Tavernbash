@@ -11,7 +11,7 @@ const SEED = 1234567;
 test('newRun builds a v5 Quick aggregate with metrics and an id counter', () => {
   const run = newRun({seed: SEED, now:1000});
   assert.equal(run.schemaVersion, SCHEMA_VERSION);
-  assert.equal(run.schemaVersion, 5);
+  assert.equal(run.schemaVersion, 6);
   assert.equal(typeof run.runId, 'string');
   assert.ok(run.runId.length > 0);
   assert.equal(run.revision, 0);
@@ -159,7 +159,7 @@ test('ensureIdFloor leaves an already-correct counter alone', () => {
 
 test('revive fills defaults for an older save that omits identity or the id counter', () => {
   const revived = reviveRun({seed: SEED, route: initRoute(SEED)});
-  assert.equal(revived.schemaVersion, 5);
+  assert.equal(revived.schemaVersion, 6);
   assert.equal(revived.routeMode,'quick');
   assert.equal(revived.metrics.partial,true);
   assert.equal(revived.revision, 0);

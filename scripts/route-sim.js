@@ -83,7 +83,7 @@ export function boardPool(tier, cfg) {
   const starter = cfg && cfg.warePool === 'starter' ? new Set(starterShopIds()) : null;
   return Object.keys(ITEMS).filter(id => gateOK(ITEMS[id].tier, tier) && !ITEMS[id].unique && !ITEMS[id].inc && (!starter || starter.has(id)));
 }
-function buildBoard(tier, budget, rng, persona, cfg) {
+export function buildBoard(tier, budget, rng, persona, cfg) {
   const slots = 4 + tier;
   const pool = boardPool(tier, cfg);
   if (!pool.length) return { items: [], board: [] };
@@ -140,9 +140,10 @@ function applyEnemyPower(side,power){
   return side;
 }
 function simFight(board, node, gold, seed, cfg, mode, gate) {
-  const M = MONSTERS[node.monId];
   /* the shared encounter builder: the sim sees the same L1 door power, the
-     same gilding, and the same mirror and Gate exemptions as the game */
+     same gilding, and the same mirror and Gate exemptions as the game. Aspects
+     are off by default here (no seed/nodeId), so the baseline faces the shipped
+     board; variant-verify.mjs forces a specific board by passing its id. */
   const built = buildFoe(node.monId, { threat: node.threat, hpFlat: 0, A: A, gold: gold,
     gilded: node.gilded, power: node.power, board: board.board,
     nodeType: node.type, gate: gate, lantern: cfg.lantern || 0 });
@@ -158,7 +159,7 @@ function simFight(board, node, gold, seed, cfg, mode, gate) {
   /* L4 through the composed offsets and the single existing floor; a Gate
      fight takes the plain Omen per the Gate contract */
   const stormA = gate ? A : composeLantern('none', A, cfg.lantern || 0);
-  const F = createFight({ a: me, b: foe, stormAt: adjustedStormAt(M.stormAt ? M.stormAt * 1000 : stormAt(node.threat), stormA), seed: seed >>> 0, playerIs: 'a',
+  const F = createFight({ a: me, b: foe, stormAt: adjustedStormAt(built.def.stormAt ? built.def.stormAt * 1000 : stormAt(node.threat), stormA), seed: seed >>> 0, playerIs: 'a',
     diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);} });
   runHeadless(F);
   return { winner: F.done?F.winner:'b', survTier: F.survTiers('b'), t: F.t / 1000,

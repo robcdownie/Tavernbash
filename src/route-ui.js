@@ -346,15 +346,25 @@ export function combatPreview(n){
   const M=MONSTERS[n.monId];
   /* the fallback line mirrors monsterSide's math for the M.hp path only; the
      built side's own regen is authoritative (Codex note: recomputing drifts) */
-  let hp=M.hp,items=[],regen=Math.round((M.regen||0)*(n.gilded?1.5:1)*(n.power||1));
+  let hp=M.hp,items=[],regen=Math.round((M.regen||0)*(n.gilded?1.5:1)*(n.power||1)),def=M;
   try{
+    /* the Aspect pick threads seed and node id only when variety is on, so the
+       preview shows the exact board the fight will build (face-up scouting) */
+    const vary=(G.run&&G.run.route&&G.run.route.variety)?1:0;
     const foe=buildFoe(n.monId,{threat:n.threat,hpFlat:(G.T&&G.T.hpFlat)||0,A:G.A,gold:G.gold,
       gilded:n.gilded,power:n.power,board:G.board,nodeType:n.type,
-      gate:isGateDistrict(districtForNode(n)),lantern:(G.run&&G.run.lantern)||0});
-    hp=foe.side.hp;items=foe.side.items;regen=foe.side.regen||0;
+      gate:isGateDistrict(districtForNode(n)),lantern:(G.run&&G.run.lantern)||0,
+      seed:vary?routeMap().seed:null,nodeId:vary?n.id:null});
+    hp=foe.side.hp;items=foe.side.items;regen=foe.side.regen||0;def=foe.def;
   }catch(e){}
   const board=items.map(function(fi){return '<div class="rmpw"><b>'+esc(fi.nm)+'</b> '+fightItemBrief(fi)+'</div>';}).join('');
+  /* an active Aspect names itself under Health; any door whose resolved board
+     races a simoom shows when it rises. Both read the resolved def, so they are
+     absent on the shipped board except sandling, which has always stormed. */
+  const vn=(def&&def.variantOf&&def.vn)?'<div class="rmpi vn"><b>'+esc(def.vn)+'</b></div>':'';
+  const storm=(def&&def.stormAt)?'<div class="rmpi">The simoom rises at '+def.stormAt+'s here.</div>':'';
   return '<div class="rmpi"><b>Health</b> '+hp+(M.special==='mirror'?' (mirrors your stall)':'')+(regen?' &middot; regen '+regen+'/s':'')+'</div>'
+    +vn+storm
     +'<div class="rmpi"><b>Bounty</b> '+esc(routeBountyText(n))+'</div>'
     +(n.gilded?'<div class="rmpi gild">Gilded: tougher board; bonus gold bounties are doubled.</div>':'')
     +(board?'<div class="rmpboard">'+board+'</div>':'')
@@ -914,7 +924,10 @@ export function openRunHistory(startTab){
     if(discovery==='omens')return ANOMALIES.map(function(x){return {id:x.id,n:x.n,g:x.g};});
     if(discovery==='wares')return Object.keys(ITEMS).filter(function(id){return !ITEMS[id].inc;})
       .map(function(id){return {id:id,n:ITEMS[id].n,g:'g-'+id};});
-    return Object.keys(MONSTERS).map(function(id){return {id:id,n:MONSTERS[id].n,g:MONSTERS[id].glyph};});
+    /* Aspects share their base creature's Almanac tile; filter them so the
+       monster catalog lists the 23 creatures, not their board variants */
+    return Object.keys(MONSTERS).filter(function(id){return !MONSTERS[id].variantOf;})
+      .map(function(id){return {id:id,n:MONSTERS[id].n,g:MONSTERS[id].glyph};});
   }
   /* the gold-framed hint plaque a locked Almanac tile opens on tap, same
      grammar as the Lantern rules plaque: a title, the trigger or channel copy,
