@@ -8,6 +8,10 @@ dist/
 !.env.example
 !.env.analytics.example
 
+# Full-resolution painted originals; the shipped copies in public/art are
+# the dieted WebP/quantized derivatives (scripts/art-diet.js)
+art-source/
+
 # Playwright layout tests
 test-results/
 playwright-report/

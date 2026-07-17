@@ -1,14 +1,18 @@
 "use strict";
 /* Scans public/art and writes src/art-manifest.js, a map from glyph id to
-   painted PNG path. The loader in src/art.js renders the PNG when an id is
-   present and falls back to the inline SVG symbol when it is not, so art can
-   land one batch at a time without breaking the build.
+   painted art path. The loader in src/art.js renders the painted file when
+   an id is present and falls back to the inline SVG symbol when it is not,
+   so art can land one batch at a time without breaking the build.
 
-   Filename conventions (the id is the filename without .png):
+   Filename conventions (the id is the filename without its extension):
      public/art/items/dagger.png     -> g-dagger
      public/art/monsters/debt.png    -> m-debt   (glyph suffix, so the Debt
                                                   Collector's file is debt.png)
      public/art/portraits/p0.png     -> p-0
+   Both .png and .webp are accepted (the asset diet ships WebP; ingest still
+   drops PNG). When both exist for one id the PNG wins, because a fresh
+   ingest drop is newer art than the dieted WebP beside it; running
+   scripts/art-diet.js again folds the new drop into the diet.
    frames, board, and bg are referenced from CSS when that art lands; they do
    not go through the glyph manifest.
 
@@ -35,8 +39,12 @@ export function scanArt(rootDir) {
     const p = join(rootDir, 'public', 'art', dir);
     if (!existsSync(p)) continue;
     for (const f of readdirSync(p).sort()) {
-      if (!f.endsWith('.png')) continue;
-      map[toId(f.slice(0, -4))] = 'art/' + dir + '/' + f;
+      const m = f.match(/^(.+)\.(png|webp)$/);
+      if (!m) continue;
+      const id = toId(m[1]);
+      /* .png beats .webp for one id: a fresh ingest drop outranks the diet */
+      if (map[id] && map[id].endsWith('.png') && m[2] === 'webp') continue;
+      map[id] = 'art/' + dir + '/' + f;
     }
   }
   const mus = join(rootDir, 'public', 'music');
