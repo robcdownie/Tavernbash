@@ -8,7 +8,8 @@ import {buildFoe} from './encounter.js';
 import {wareSlotCost,boardUsedCells,boardSlotCount,warePurchaseCost,wareSaleValue,rerollPrice,
         adjustedStormAt,adjustedVictoryIncome,advanceFrozenOffers,setFrozenOffers,thawOffers,
         composeLantern,lanternRules} from './anomaly-rules.js';
-import {lanternHighest,lanternMaxPick,recordLanternClear} from './lantern-profile.js';
+import {lanternHighest,lanternMaxPick,recordLanternClear,backfillLanternFromHistory} from './lantern-profile.js';
+import {readReportState} from './route-report-store.js';
 import {genMap,MAP_VERSION} from './map.js';
 import {frontier,currentDistrict,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,isGateDistrict} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
@@ -1515,6 +1516,9 @@ function initDebug(){
 export function boot(){
   setRM((typeof matchMedia!=='undefined')&&matchMedia('(prefers-reduced-motion: reduce)').matches);
   initCloudLedger(store());
+  /* light the Lantern stepper for roads a returning player cleared before 0.89;
+     runs at most once, seeds each cleared hero-and-road from the local archive */
+  try{backfillLanternFromHistory(store(),readReportState(store()).recent);}catch(e){}
   /* hand the route presenters the flow callbacks that stay in ui.js (dispatch,
      render, persistence, economy, run lifecycle). route-ui never imports ui.js;
      this is the one-way bridge. All targets are hoisted function declarations. */

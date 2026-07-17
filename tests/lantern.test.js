@@ -5,7 +5,7 @@ import {buildFoe} from '../src/encounter.js';
 import {fightHP,monsterSide} from '../src/engine.js';
 import {genMap} from '../src/map.js';
 import {initRoute,lossDamage,isGateDistrict} from '../src/route.js';
-import {readLanternProfile,lanternHighest,lanternMaxPick,recordLanternClear} from '../src/lantern-profile.js';
+import {readLanternProfile,lanternHighest,lanternMaxPick,recordLanternClear,backfillLanternFromHistory} from '../src/lantern-profile.js';
 import {newRun,serializeRun,reviveRun} from '../src/route-run.js';
 import {ANOMALIES,ANONE,LANTERN,MONSTERS} from '../src/data.js';
 
@@ -226,6 +226,25 @@ test('clear writes are max(previous, N): repeats and lower clears never regress'
   assert.equal(lanternHighest(s,'long','apoth'),4);
   recordLanternClear(s,'long','apoth',10);
   assert.equal(lanternMaxPick(s,'long','apoth'),10,'the pick never exceeds 10');
+});
+
+test('backfill seeds Lantern from pre-0.89 clears, once, lighting the stepper',()=>{
+  const s=fakeStorage();
+  const recent=[
+    {reportId:'a',result:'long_clear',routeMode:'long',lantern:0,setup:{heroId:'silkblade'}},
+    {reportId:'b',result:'quick_clear',routeMode:'quick',lantern:0,setup:{heroId:'kiln'}},
+    {reportId:'c',result:'loss',routeMode:'quick',lantern:0,setup:{heroId:'venom'}},
+    {reportId:'d',result:'win',routeMode:'quick',lantern:2,setup:{heroId:'kiln'}}
+  ];
+  const seeded=backfillLanternFromHistory(s,recent);
+  assert.equal(seeded,3,'three clears seeded, the loss skipped');
+  assert.equal(lanternMaxPick(s,'long','silkblade'),1,'a cleared road lights Lantern 1');
+  assert.equal(lanternHighest(s,'quick','kiln'),2,'the higher Lantern clear wins');
+  assert.equal(lanternHighest(s,'quick','venom'),-1,'a loss lights nothing');
+  assert.equal(backfillLanternFromHistory(s,recent),0,'runs at most once');
+  /* a fresh clear still raises past the backfilled floor */
+  recordLanternClear(s,'long','silkblade',1);
+  assert.equal(lanternHighest(s,'long','silkblade'),1);
 });
 
 test('the profile survives garbage storage and rejects bad writes',()=>{

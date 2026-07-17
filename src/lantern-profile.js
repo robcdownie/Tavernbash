@@ -38,3 +38,28 @@ export function recordLanternClear(storage,mode,heroId,level){
     return lanternHighest(storage,mode,heroId)===lv;
   }catch(e){return false;}
 }
+/* One-time reconciliation for players who cleared roads BEFORE the Lantern
+   shipped (0.89): those clears predate bb-lantern, so their steppers never
+   lit. Scan the local run archive once and seed each cleared hero-and-road at
+   the level it was played (Plain reads 0, which unlocks Lantern 1). Idempotent
+   by recordLanternClear and guarded by a stored flag so it runs at most once;
+   records are passed in so this stays storage-injected and headless-testable. */
+const BACKFILL_KEY='bb-lantern-backfill';
+export function backfillLanternFromHistory(storage,records){
+  if(!storage)return 0;
+  try{if(storage.getItem(BACKFILL_KEY)==='1')return 0;}catch(e){return 0;}
+  let seeded=0;
+  for(const r of (Array.isArray(records)?records:[])){
+    if(!r||!r.setup&&!r.result)continue;
+    const result=r.result,mode=r.routeMode==='long'?'long':'quick';
+    const heroId=(r.setup&&r.setup.heroId)||r.heroId||null;
+    const cleared=result==='win'||result==='quick_clear'||result==='long_clear'
+      ||(typeof result==='string'&&result.indexOf('_clear')>=0);
+    if(cleared&&heroId){
+      const lv=(typeof r.lantern==='number'&&r.lantern>=0)?r.lantern:0;
+      if(recordLanternClear(storage,mode,heroId,lv))seeded++;
+    }
+  }
+  try{storage.setItem(BACKFILL_KEY,'1');}catch(e){}
+  return seeded;
+}
