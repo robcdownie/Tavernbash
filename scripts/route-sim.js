@@ -11,6 +11,23 @@
      node scripts/route-sim.js long       seven-district Long readout
      node scripts/route-sim.js long ab 50 Long A/B with 50 seeds per variant
      node scripts/route-sim.js 1200       set the seed count
+     node scripts/route-sim.js hero=kiln omen=moon   one hero-Omen cell, detailed
+     node scripts/route-sim.js matrix 150 every hero x Omen x route clear table
+
+   HERO AND OMEN MODELLING (sim-hero-omen branch). A cell is (hero, Omen,
+   route). What is modelled faithfully: fight-side rules (the Omen A object
+   merged with the hero mod flags rides side.rules exactly as ui.js line 1249
+   builds them), fightHP hpMul via buildFoe, storm offsets through
+   composeLantern and adjustedStormAt with the Gate contract, board slots
+   (slotCountFlat, sizeCostOverride), ware copy cost (shopItemCostFlat), the
+   hero shop pull (tag-weighted buys, x2.2 as the real shop weighting), and
+   the Kilnkeeper's free starting Torch. What is NOT modelled, honestly:
+   shopN, reroll pricing and bans, the frost, and sell values (the abstract
+   budget policy has no shop roll to apply them to); goldMul (it scales
+   victory income from income wares, which the policy does not field);
+   the Moneylender's credit ledger (no debt state in the budget model).
+   Cells whose Omen lever is unmodelled read as their no-Omen baseline;
+   the matrix prints which columns are fight-live vs economy-only.
 
    The player is modelled, not hand-played: a FUSION-AWARE board is rebuilt at each
    market/camp from the gold invested so far - it commits to a few ware lines and
@@ -34,20 +51,38 @@ import {initRoute, transition, frontier, nodeOf, currentDistrict, BASE_GOLD, isG
 import {createFight, runHeadless, monsterSide, playerFightItems, makeItem, usedCells, gateOK, fightHP, stormAt, mulberry} from '../src/engine.js';
 import {buildFoe} from '../src/encounter.js';
 import {adjustedStormAt, composeLantern} from '../src/anomaly-rules.js';
-import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, ANONE, COST, TIERCOST} from '../src/data.js';
+import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, HEROES, ANOMALIES, ANONE, COST, TIERCOST} from '../src/data.js';
+import {boardSlotCount, boardUsedCells, wareSlotCost, warePurchaseCost} from '../src/anomaly-rules.js';
 import {planReward} from '../src/route-rewards.js';
 import {beginCombatTally, recordCombatDiagnostic} from '../src/route-metrics.js';
 import {midpointTreasureOptions, MIDPOINT_FALLBACK_GOLD} from '../src/route-runtime.js';
 import {pathToFileURL} from 'node:url';
 
 export function parseSimArgs(argv){
-  const args=(argv||[]).map(String),ab=args.includes('ab');
-  return {ab:ab,mode:args.includes('long')?'long':'quick',runs:+(args.find(a=>/^\d+$/.test(a))||(ab?1200:600))};
+  const args=(argv||[]).map(String),ab=args.includes('ab'),matrix=args.includes('matrix');
+  const kv=function(key){const hit=args.find(a=>a.startsWith(key+'='));return hit?hit.slice(key.length+1):null;};
+  return {ab:ab,matrix:matrix,mode:args.includes('long')?'long':'quick',
+    runs:+(args.find(a=>/^\d+$/.test(a))||(matrix?150:(ab?1200:600))),
+    heroId:kv('hero'),omenId:kv('omen')};
 }
-const A = ANONE;                       /* baseline: no anomaly, to isolate the route economy */
+
+/* the anomaly A object for a cell: the plain baseline, or the Omen's m
+   merged over ANONE exactly as ui.js line 1145 builds the run's G.A */
+export function omenA(omenId){
+  if(!omenId||omenId==='none')return ANONE;
+  const om=ANOMALIES.find(a=>a.id===omenId);
+  if(!om)throw new Error('unknown omen: '+omenId);
+  return Object.assign({},ANONE,om.m);
+}
+export function heroOfId(heroId){
+  if(!heroId||heroId==='none')return null;
+  const h=HEROES.find(x=>x.id===heroId);
+  if(!h)throw new Error('unknown hero: '+heroId);
+  return h;
+}
 
 const DEFAULT_CFG = { startResolve: null, bossLossAdj: 0, treasureCash: 6, negoCash: 6, rewardGoldAdj: 0,
-  reprisePower:1, reprisePowers:null, lantern: 0 };
+  reprisePower:1, reprisePowers:null, lantern: 0, heroId: null, omenId: 'none' };
 const ROUTE_GUARD=400;
 const DAMAGE_CHANNELS=['weapon','poison','burn','hook','other'];
 
@@ -72,18 +107,23 @@ const pad = (s, n) => (String(s) + ' '.repeat(n)).slice(0, n);
 /* bronze copies needed to hold a ware at rarity 0..3 (3 bronze -> silver, 2 silver
    -> gold, 2 gold -> diamond, per the engine's fuseNeed) */
 const COPIES_FOR = [1, 3, 6, 12];
-function buildBoard(tier, budget, rng, persona) {
-  const slots = 4 + tier;
+function buildBoard(tier, budget, rng, persona, hero, A) {
+  A = A || ANONE;
+  const slots = boardSlotCount(tier, A);
   const pool = Object.keys(ITEMS).filter(id => gateOK(ITEMS[id].tier, tier) && !ITEMS[id].unique && !ITEMS[id].inc);
   if (!pool.length) return { items: [], board: [] };
+  /* the hero's pull replaces the persona archetype: the real shop weights the
+     hero tag x2.2 (ui.js), where the persona proxy used 3.5 */
+  const arch = hero ? hero.tag : persona.arch;
+  const archW = hero ? 2.2 : 3.5;
   /* commit to a few LINES (a real build), persona-weighted, cheap size-1 wares
      favoured because they fuse readily. Then spend the budget the way fusing spends
      it: seed each line at Bronze, then greedily buy the cheapest rarity upgrade
      (fuseNeed copies), so gold concentrates into Silver/Gold/Diamond rather than a
      wide bronze board. makeItem(id, rarity) is the fused result, so no fuseScan. */
-  const wOf = id => { const d = ITEMS[id]; let w = d.tier === 1 ? 8 : (d.tier === 2 ? 7 : 6); if (d.cat === persona.arch) w *= 3.5; if (d.cat === 'util' && persona.arch !== 'util') w *= 0.3; if (d.size === 1) w *= 1.8; return w; };
+  const wOf = id => { const d = ITEMS[id]; let w = d.tier === 1 ? 8 : (d.tier === 2 ? 7 : 6); if (d.cat === arch) w *= archW; if (d.cat === 'util' && arch !== 'util') w *= 0.3; if (d.size === 1) w *= 1.8; return w; };
   const nLines = Math.min(slots, Math.max(3, 3 + Math.floor(tier / 2)));
-  const avail = pool.slice(), lines = [];
+  const avail = pool.filter(id => !(hero && id === hero.start)), lines = [];
   for (let k = 0; k < nLines && avail.length; k++) {
     let tot = 0; const ws = avail.map(id => { const w = wOf(id); tot += w; return w; });
     let roll = rng() * tot, idx = 0;
@@ -91,11 +131,13 @@ function buildBoard(tier, budget, rng, persona) {
     lines.push(avail[idx]); avail.splice(idx, 1);
   }
   const board = []; let b = budget;
-  for (const id of lines) { const sz = ITEMS[id].size; if (usedCells(board) + sz <= slots && b >= COST[sz]) { board.push(makeItem(id, 0)); b -= COST[sz]; } }
+  /* the hero's starting ware arrives free, exactly as a run opens */
+  if (hero && hero.start && ITEMS[hero.start]) board.push(makeItem(hero.start, 0));
+  for (const id of lines) { const sz = ITEMS[id].size; const c = warePurchaseCost(sz, false, A); if (boardUsedCells(board, A) + wareSlotCost(sz, A) <= slots && b >= c) { board.push(makeItem(id, 0)); b -= c; } }
   let guard = 0;
   while (guard++ < 300) {
     let best = null, bestCost = Infinity;
-    for (const w of board) { if (w.rarity >= 3) continue; const c = (COPIES_FOR[w.rarity + 1] - COPIES_FOR[w.rarity]) * COST[w.size]; if (c <= b && c < bestCost) { bestCost = c; best = w; } }
+    for (const w of board) { if (w.rarity >= 3) continue; const c = (COPIES_FOR[w.rarity + 1] - COPIES_FOR[w.rarity]) * warePurchaseCost(w.size, false, A); if (c <= b && c < bestCost) { bestCost = c; best = w; } }
     if (!best) break;
     best.rarity++; b -= bestCost;
   }
@@ -128,8 +170,9 @@ function applyEnemyPower(side,power){
   });
   return side;
 }
-function simFight(board, node, gold, seed, cfg, mode, gate) {
+function simFight(board, node, gold, seed, cfg, mode, gate, cell) {
   const M = MONSTERS[node.monId];
+  const A = cell.A, hero = cell.hero;
   /* the shared encounter builder: the sim sees the same L1 door power, the
      same gilding, and the same mirror and Gate exemptions as the game */
   const built = buildFoe(node.monId, { threat: node.threat, hpFlat: 0, A: A, gold: gold,
@@ -141,12 +184,15 @@ function simFight(board, node, gold, seed, cfg, mode, gate) {
     applyEnemyPower(foe,power);
   }
   const playerItems=playerFightItems(board.board, {}, A, 1);
-  const me = { nm: 'You', portrait: 'p-0', hp: php, items: playerItems, lifesteal: 0, regen: 0 };
+  /* the player side carries the Omen A merged with the hero mod flags,
+     byte-for-byte the ui.js construction (startRouteFight) */
+  const me = { nm: 'You', portrait: 'p-0', hp: php, items: playerItems, lifesteal: 0, regen: 0,
+    rules: Object.assign({}, A, hero ? hero.mod : {}) };
   const metricBoard=board.board.map(function(w){return Object.assign({iid:w.uid},w);});
   const tally=beginCombatTally({district:node.district,nodeId:node.id,monId:node.monId},metricBoard,playerItems,foe.items);
   /* L4 through the composed offsets and the single existing floor; a Gate
      fight takes the plain Omen per the Gate contract */
-  const stormA = gate ? A : composeLantern('none', A, cfg.lantern || 0);
+  const stormA = gate ? A : composeLantern(cell.omenId, A, cfg.lantern || 0);
   const F = createFight({ a: me, b: foe, stormAt: adjustedStormAt(M.stormAt ? M.stormAt * 1000 : stormAt(node.threat), stormA), seed: seed >>> 0, playerIs: 'a',
     diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);} });
   runHeadless(F);
@@ -161,19 +207,22 @@ function simFight(board, node, gold, seed, cfg, mode, gate) {
 export function simRun(seed, cfg, mode) {
   mode=mode||'quick';
   const lantern = cfg.lantern || 0;
+  const cell = { omenId: cfg.omenId || 'none', A: omenA(cfg.omenId), hero: heroOfId(cfg.heroId) };
   const map = genMap(seed,mode,lantern);
   const rng = mulberry((seed ^ 0x5f3759df) >>> 0);
   const persona = PERSONAS[seed % PERSONAS.length];
   let st = initRoute(seed,mode,lantern);
   if (cfg.startResolve!=null&&cfg.startResolve!==st.resolveMax) { st.resolve = cfg.startResolve; st.resolveMax = cfg.startResolve; }
   /* L2: the same shared delta the event cards read */
-  const evFlat = (composeLantern('none', A, lantern).directEventGoldFlat) || 0;
+  const evFlat = (composeLantern(cell.omenId, cell.A, lantern).directEventGoldFlat) || 0;
   const gateOf = function(node){ return isGateDistrict(map.districts.filter(function(d){return d.id===node.district;})[0]); };
   let gold = 6, invested = 0, tier = 1, lastReserveUsed = false, mendGate = null, mendUsed = false;
   const ownedUniques=new Set();
   invested += 6; gold = 0;             /* opening stall: the six starting gold */
-  let board = buildBoard(tier, invested, rng, persona);
-  const m = { mode:mode,districtCount:map.districts.length,fights: [], retries: 0, goldEarned: 0, goldSpent: 6,
+  const rebuild = function(){ return buildBoard(tier, invested, rng, persona, cell.hero, cell.A); };
+  let board = rebuild();
+  const m = { mode:mode,hero:cell.hero?cell.hero.id:'none',omen:cell.omenId,
+    districtCount:map.districts.length,fights: [], retries: 0, goldEarned: 0, goldSpent: 6,
     resolveStart:st.resolveMax,minResolve: st.resolveMax, tierMax: 1,guardTrips:0,guardCounts:{},fightTimeouts:0,
     combatPendingActions:0,routeGuardExits:0,pendingActions:[],duplicateUniqueCash:0,
     midpointTreasure:{reached:false,offered:[],selected:null,fallbackGold:0,contribution:'abstracted'} };
@@ -189,7 +238,7 @@ export function simRun(seed, cfg, mode) {
     } else if (st.phase === 'encounter') {
       const node = nodeOf(map, st.pendingId);
       const first = !st.attempts[node.id];
-      const r = simFight(board, node, gold, st.fightSeed,cfg,mode,gateOf(node));
+      const r = simFight(board, node, gold, st.fightSeed,cfg,mode,gateOf(node),cell);
       m.fights.push({ threat: node.threat, band: node.district, type: node.type, mon: node.monId,
         won: r.winner === 'a', t: r.t, margin: r.winner === 'a' ? r.meHp : r.foeHp, first: first,
         wares:r.wares,guardTrips:r.guardTrips,timeout:r.timeout });
@@ -215,7 +264,7 @@ export function simRun(seed, cfg, mode) {
             invested += ITEMS[id]?(COST[ITEMS[id].size]||2):2;
           }
         });
-        board = buildBoard(tier, invested, rng, persona);
+        board = rebuild();
       }
       st = transition(st, map, { type: 'settleReward' }).state;
       if(mode==='long'&&node.id==='d3boss'){
@@ -231,7 +280,7 @@ export function simRun(seed, cfg, mode) {
       while (tier < cap && gold >= tierCost(tier + 1, cfg) + 2) { const tc = tierCost(tier + 1, cfg); gold -= tc; m.goldSpent += tc; tier++; }
       const spend = Math.max(0, gold - 2); gold -= spend; invested += spend; m.goldSpent += spend;
       if (tier > m.tierMax) m.tierMax = tier;
-      board = buildBoard(tier, invested, rng, persona);
+      board = rebuild();
       st = transition(st, map, { type: 'leaveMarket' }).state;
     } else if (st.phase === 'event') {
       const node = nodeOf(map, st.pendingId); let delta = 0;
@@ -247,7 +296,7 @@ export function simRun(seed, cfg, mode) {
       if (!lastReserveUsed && st.resolve > 6 && st.resolve <= 16) { st.resolve -= 6; st.resolveMax -= 6; invested += 6; lastReserveUsed = true; }
       if (!mendUsed && gold >= 3 && st.resolve < st.resolveMax) { gold -= 3; m.goldSpent += 3; st.resolve = Math.min(st.resolveMax, st.resolve + 4); mendUsed = true; }
       const spend = Math.max(0, gold - 1); gold -= spend; invested += spend; m.goldSpent += spend;
-      board = buildBoard(tier, invested, rng, persona);
+      board = rebuild();
       st = transition(st, map, { type: 'startBossRetry' }).state;
     } else {m.pendingActions.push('unhandled_'+st.phase);break;}
   }
@@ -387,8 +436,9 @@ function printMidpointTreasure(runs){
 /* ---- detailed single-config readout ---- */
 export function detailed(runs) {
   const runN=runs.length,districts=modeDistricts(runs),mode=runs[0]&&runs[0].mode||'quick';
+  const hero=runs[0]&&runs[0].hero||'none',omen=runs[0]&&runs[0].omen||'none';
   const wins = runs.filter(r => r.result === 'won');
-  console.log('== ROUTE SIM (' + runN + ' seeds, '+mode+' mode, competent-baseline policy, no anomaly) ==\n');
+  console.log('== ROUTE SIM (' + runN + ' seeds, '+mode+' mode, competent-baseline policy, hero '+hero+', omen '+omen+') ==\n');
   console.log('COMPLETION');
   console.log('  clear rate            ' + pct(wins.length / runN));
   const byDist = Array(districts.length).fill(0);
@@ -455,8 +505,59 @@ export function abTable(options) {
   return printValidity(allRuns);
 }
 
+/* ---- the hero x Omen x route matrix ---- */
+const FIGHT_KEYS=['dmgMul','hpMul','burnMul','poisonMul','cdMul','itemIntegrityMul','healingDisabled',
+  'stormStartOffsetMs','activationSelfDamagePct','startFullyChargedIfBaseCdAtLeast','firstDeathrattleDouble',
+  'healClearsAllBurn','poisonDecayAfterTick'];
+const ECON_KEYS=['shopItemCostFlat','slotCountFlat','sizeCostOverride'];
+function omenLever(om){
+  if(om.id==='none')return 'baseline';
+  const keys=Object.keys(om.m||{});
+  const fight=keys.some(k=>FIGHT_KEYS.includes(k)&&(om.m[k]!==ANONE[k]));
+  const econ=keys.some(k=>ECON_KEYS.includes(k));
+  if(fight&&econ)return 'fight+econ';
+  if(fight)return 'fight';
+  if(econ)return 'econ';
+  return 'UNMODELLED';
+}
+
+export function matrixTable(options){
+  options=options||{};
+  const runsN=options.runs||150;
+  const heroes=[{id:'none',n:'(no hero)'}].concat(HEROES);
+  const omens=[{id:'none',n:'No Omen',m:{}}].concat(ANOMALIES);
+  const out={};
+  console.log('== HERO x OMEN x ROUTE MATRIX ('+runsN+' seeds per cell, competent-baseline policy) ==');
+  console.log('Cell = clear rate. Column levers: fight = combat rules modelled; econ = board cost/slots');
+  console.log('modelled; UNMODELLED = the Omen only touches shop mechanics the policy abstracts away,');
+  console.log('so its column reads as the baseline and says nothing about that Omen.\n');
+  const label=om=>pad(om.id,10);
+  for(const mode of ['quick','long']){
+    console.log('ROUTE: '+(mode==='long'?'The Long Bazaar':'Quick Night'));
+    console.log('  '+pad('lever',12)+omens.map(om=>pad(omenLever(om),10)).join(''));
+    console.log('  '+pad('hero',12)+omens.map(label).join(''));
+    for(const h of heroes){
+      const cells=[];
+      for(const om of omens){
+        const runs=runBatch({heroId:h.id==='none'?null:h.id,omenId:om.id},{runs:runsN,mode:mode});
+        const clr=runs.filter(r=>r.result==='won').length/runs.length;
+        const bad=batchValidity(runs);
+        out[mode+':'+h.id+':'+om.id]={clear:clr,invalid:bad.invalid};
+        cells.push(pad(pct(clr)+(bad.invalid?'!':''),10));
+      }
+      console.log('  '+pad(h.id,12)+cells.join(''));
+    }
+    console.log('');
+  }
+  console.log('! marks a cell with invalid runs (guard trips or timeouts); treat that number as suspect.');
+  return out;
+}
+
 export function main(argv){
-  const o=parseSimArgs(argv),validity=o.ab?abTable(o):detailed(runBatch({},{runs:o.runs,mode:o.mode}));
+  const o=parseSimArgs(argv);
+  if(o.matrix){matrixTable(o);return {invalid:0};}
+  const cfg={heroId:o.heroId,omenId:o.omenId||'none'};
+  const validity=o.ab?abTable(o):detailed(runBatch(cfg,{runs:o.runs,mode:o.mode}));
   if(validity.invalid)process.exitCode=1;
   return validity;
 }

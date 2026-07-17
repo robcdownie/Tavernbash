@@ -1,14 +1,35 @@
 "use strict";
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseSimArgs,damageShareRows,encounterRows,encounterWin,batchValidity,simMidpointTreasure,midpointSummary,runBatch} from '../scripts/route-sim.js';
-import {ITEMS} from '../src/data.js';
+import {parseSimArgs,damageShareRows,encounterRows,encounterWin,batchValidity,simMidpointTreasure,midpointSummary,runBatch,omenA,heroOfId} from '../scripts/route-sim.js';
+import {ITEMS,ANONE,ANOMALIES,HEROES} from '../src/data.js';
 
 test('route sim arguments accept mode, ab, and seed count in any order',()=>{
-  assert.deepEqual(parseSimArgs([]),{ab:false,mode:'quick',runs:600});
-  assert.deepEqual(parseSimArgs(['120','long','ab']),{ab:true,mode:'long',runs:120});
-  assert.deepEqual(parseSimArgs(['ab','quick','25']),{ab:true,mode:'quick',runs:25});
-  assert.deepEqual(parseSimArgs(['long']),{ab:false,mode:'long',runs:600});
+  assert.deepEqual(parseSimArgs([]),{ab:false,matrix:false,mode:'quick',runs:600,heroId:null,omenId:null});
+  assert.deepEqual(parseSimArgs(['120','long','ab']),{ab:true,matrix:false,mode:'long',runs:120,heroId:null,omenId:null});
+  assert.deepEqual(parseSimArgs(['ab','quick','25']),{ab:true,matrix:false,mode:'quick',runs:25,heroId:null,omenId:null});
+  assert.deepEqual(parseSimArgs(['long']),{ab:false,matrix:false,mode:'long',runs:600,heroId:null,omenId:null});
+  assert.deepEqual(parseSimArgs(['hero=kiln','omen=moon']),{ab:false,matrix:false,mode:'quick',runs:600,heroId:'kiln',omenId:'moon'});
+  assert.deepEqual(parseSimArgs(['matrix','40','long']),{ab:false,matrix:true,mode:'long',runs:40,heroId:null,omenId:null});
+});
+
+test('omen and hero cells resolve exactly as the game builds them',()=>{
+  assert.equal(omenA('none'),ANONE);
+  assert.equal(omenA(null),ANONE);
+  const moon=omenA('moon');
+  assert.equal(moon.dmgMul,1.3);
+  assert.equal(moon.healingDisabled,true);
+  assert.equal(moon.hpMul,1,'sparse Omen fields fall back to the ANONE baseline');
+  assert.throws(()=>omenA('nope'));
+  assert.equal(heroOfId('kiln').tag,'burn');
+  assert.equal(heroOfId('none'),null);
+  assert.throws(()=>heroOfId('nope'));
+  for(const om of ANOMALIES)assert.equal(typeof omenA(om.id).hpMul,'number',om.id);
+  const runs=runBatch({heroId:'kiln',omenId:'moon'},{runs:2,mode:'quick'});
+  assert.equal(runs.length,2);
+  for(const r of runs){assert.equal(r.hero,'kiln');assert.equal(r.omen,'moon');}
+  const plain=runBatch({},{runs:2,mode:'quick'});
+  for(const r of plain){assert.equal(r.hero,'none');assert.equal(r.omen,'none');}
 });
 
 test('damage shares count run appearances and omit storm, unattributed, and Treasure uniques',()=>{
