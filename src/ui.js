@@ -28,6 +28,7 @@ import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxTo
 import {initMusic,music,musicMute,sting,musicNow} from './music.js';
 import pkg from '../package.json';
 import {G,setG,RM,setRM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
+import {lockedWareComplement,runWareAllowed,omenUnlocked,heroUnlocked,HERO_HINTS,heroChipAttrs,heroPortraitClass,heroConfirmView,WILD_FIND_EVENT,nextUnlockHint,devAllOpen} from './unlock-profile.js';
 import {wireRouteUI,routeMap,routeState,renderRouteMap,combatPreview,showFightRecap,
         routeEventCard,openRewardChoice,routeEnd,openRouteContinue,openUniquePick,
         openRunHistory} from './route-ui.js';
@@ -640,7 +641,7 @@ function rollShop(){
   const n=Math.max(0,G.A.shopN-frozenKeep.length);
   /* income wares are dead in route mode (income() never runs), so keep them out
      of route shops until the approved rework gives them route semantics */
-  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique&&(G.mode!=='route'||!ITEMS[id].inc);});
+  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique&&(G.mode!=='route'||!ITEMS[id].inc)&&runWareAllowed(store(),G.run,id);});
   const hTag=heroOf()?heroOf().tag:null;
   const out=[];
   for(let k=0;k<n;k++){
@@ -969,6 +970,10 @@ function settleRouteReward(e){
     metricEvent('reward_settled',{nodeId:e.nodeId,monsterId:e.monId,gold:plan.gold,items:granted,
       duplicateUniqueIds:duplicates,duplicateUniqueGold:receipt.duplicateUniqueGold||0,
       relic:!!plan.relic,mote:plan.mote||null,choice:plan.choice||null,drained:plan.drained||0});
+    /* the wild-find grant signal: a bounty ware becomes a free market offer that
+       the player may clear without ever buying, so possession settlement needs an
+       explicit grant event to credit it (consumed by settleWildFinds) */
+    granted.forEach(function(id){metricEvent(WILD_FIND_EVENT,{id:id,source:'bounty'});});
     if(receipt.debtPaid){toast(receipt.debtPaid+' gold repaid your debt before the reward landed.');}
     if(receipt.debtDamage){toast('Unpaid debt cost '+receipt.debtDamage+' Resolve and was cleared.');}
     if(plan.drained>0){toast('The monkey kept '+plan.drained+' gold of the bounty.');}
@@ -1066,6 +1071,10 @@ function snapshotRoute(){
       metrics:serializeMetrics(G.run.metrics),end:G.run.end||null,
       receipts:G.run.receipts||{},pendingChoice:G.run.pendingChoice||null,
       camp:G.run.camp||null,lastReserveUsed:!!G.run.lastReserveUsed,
+      /* the per-run frozen locked complement (Almanac 0.92): additive optional
+         field, no ROUTE_SAVE_VERSION bump, so a resumed market rolls identically
+         and a pre-0.92 save (absent here) grandfathers to the full pool */
+      wareLock:G.run.wareLock||null,
       ids:{nextItem:G.run.ids.nextItem}},
     setup:{hero:G.hero||null,anom:G.anom.id,tags:G.tags.slice()},
     fightN:G.fightN,
@@ -1136,7 +1145,15 @@ function newRoute(mode,heroId,lantern,replay){
   const seed=replay&&replay.seed!=null?(replay.seed>>>0):(((Date.now()>>>0)^0x9e3779b9)>>>0);
   const rng=mulberry(seed);
   const anomPool=ANOMALIES;
-  const rolledAnom=anomPool[Math.floor(rng()*anomPool.length)];
+  /* One rng draw over the whole Omen catalogue, then map into the player's
+     unlocked pool by modulo. At full unlock the unlocked pool is ANOMALIES in
+     its own order, so drawIndex%len equals drawIndex and the pick is identical
+     (the following shuffle stream is untouched, one rng call either way); with
+     the four starters the modulo is exactly uniform. */
+  const drawIndex=Math.floor(rng()*anomPool.length);
+  const openAnoms=anomPool.filter(function(a){return omenUnlocked(store(),a.id);});
+  const pickPool=openAnoms.length?openAnoms:anomPool;
+  const rolledAnom=pickPool[drawIndex%pickPool.length];
   const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
   const replayAnom=replay&&anomPool.filter(function(a){return a.id===replay.omenId;})[0];
   const replayTags=replay&&Array.isArray(replay.tags)?replay.tags.filter(function(t){return CATN[t];}).slice(0,2):[];
@@ -1147,7 +1164,7 @@ function newRoute(mode,heroId,lantern,replay){
      T:null,hero:null,
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
-      run:newRun({seed:seed,routeMode:mode,now:now,lantern:lantern}),
+      run:newRun({seed:seed,routeMode:mode,now:now,lantern:lantern,wareLock:lockedWareComplement(store())}),
       route:{map:genMap(seed,mode,lantern),selectedId:null,market:null,combat:null,opening:false}});
   G.run.metrics=resumeMetrics(G.run.metrics,now,false);
   bindEconomy(G);   /* gold/tier/board/shop/... now delegate to G.run.economy */
@@ -1167,6 +1184,11 @@ function newRoute(mode,heroId,lantern,replay){
    recorded setup tuple, never the old board, route state, rewards, or metrics. */
 function replayHistoryRun(spec){
   if(!spec)return;
+  /* the replay hero gate: a history replay hands spec.heroId straight to
+     newRoute with no picker, so a sealed merchant would slip the rail's gate.
+     Refuse it with the trigger hint. Restores of an in-progress save go through
+     restoreRoute (reviveRun), never this path, so they stay exempt. */
+  if(spec.heroId&&!heroUnlocked(store(),spec.heroId)){toast(heroHint(spec.heroId));return;}
   clearRoute();
   document.querySelectorAll('.ov').forEach(function(o){o.remove();});
   const intro=$('intro');if(intro)intro.remove();
@@ -1288,7 +1310,7 @@ function ensureOpeningOffense(){
   const OFF=['dmg','poison','burn'];
   const has=G.shop.some(function(w){return !w.bought&&OFF.indexOf(ITEMS[w.id].cat)>=0&&buyCost(ITEMS[w.id].size,!!w.ench)<=6;});
   if(has)return;
-  const pool=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,1)&&OFF.indexOf(ITEMS[id].cat)>=0&&ITEMS[id].size===1&&!ITEMS[id].unique&&!ITEMS[id].inc;});
+  const pool=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,1)&&OFF.indexOf(ITEMS[id].cat)>=0&&ITEMS[id].size===1&&!ITEMS[id].unique&&!ITEMS[id].inc&&runWareAllowed(store(),G.run,id);});
   if(!pool.length)return;
   const id=pool[Math.floor(G.rng()*pool.length)];
   let idx=G.shop.findIndex(function(w){return !w.free&&!w.bought&&OFF.indexOf(ITEMS[w.id].cat)<0;});
@@ -1416,6 +1438,8 @@ function coinRain(box){
     box.appendChild(s);
   }
 }
+/* the sealed-merchant trigger line, never empty so a locked tap always toasts */
+function heroHint(id){return HERO_HINTS[id]||'This merchant keeps a shuttered stall until you earn the right to it.';}
 function openHeroPick(cont){
   /* selected-hero layout: a portrait rail up top, one large hero with its
      rule below, and a Confirm. Scales to eight heroes where the old grid
@@ -1431,21 +1455,42 @@ function openHeroPick(cont){
    +'<button class="btn gold" id="heroGo" style="width:100%;margin-top:11px">Take the Stall</button></div>');
   function draw(){
     const h=pool.filter(function(x){return x.id===sel;})[0];
+    const locked=!heroUnlocked(store(),h.id);
+    /* all eight chips render; a sealed merchant wears the lockd class (dim
+       portrait, neutral ring, brass lock corner) yet stays selectable to preview */
     o.querySelector('#herorail').innerHTML=pool.map(function(x){
-      return '<button class="herochip'+(x.id===sel?' on':'')+'" data-h="'+x.id+'" aria-label="'+esc(x.n)+'" style="--cat:'+CATC[x.tag]+'">'+ic(x.g,'hpr')+'</button>';
+      const lk=!heroUnlocked(store(),x.id);
+      const ca=heroChipAttrs(x.id===sel,lk);
+      return '<button class="'+ca.cls+'" data-h="'+x.id+'" aria-label="'+esc(x.n)+ca.labelSeal+'" style="--cat:'+CATC[x.tag]+'">'+ic(x.g,'hpr')+ca.lockCorner+'</button>';
     }).join('');
+    /* the detail panel: a sealed merchant shows the darkened portrait, the real
+       name, no Favors line, and the trigger hint where the rule text sits */
     o.querySelector('#herodetail').innerHTML=
-      '<div class="hdportrait" style="--cat:'+CATC[h.tag]+'">'+ic(h.g,'hpbig')+'</div>'
+      '<div class="hdportrait'+heroPortraitClass(locked)+'" style="--cat:'+CATC[h.tag]+'">'+ic(h.g,'hpbig')+'</div>'
       +'<div class="hdbody"><div class="hdname">'+esc(h.n)+'</div>'
-      +'<div class="hdtag" style="color:'+CATC[h.tag]+'">Favors '+CATN[h.tag]+'</div>'
-      +'<div class="hddesc">'+h.d+'</div>'
-      +(h.start?'<div class="hdstart">'+ic('g-'+h.start,'mi')+' Starts with '+ITEMS[h.start].n+'</div>':'')+'</div>';
+      +(locked
+        ? '<div class="hddesc hdhint">'+esc(heroHint(h.id))+'</div>'
+        : '<div class="hdtag" style="color:'+CATC[h.tag]+'">Favors '+CATN[h.tag]+'</div>'
+          +'<div class="hddesc">'+h.d+'</div>'
+          +(h.start?'<div class="hdstart">'+ic('g-'+h.start,'mi')+' Starts with '+ITEMS[h.start].n+'</div>':''))
+      +'</div>';
     o.querySelectorAll('.herochip').forEach(function(c){c.onclick=function(){sel=c.dataset.h;draw();};});
+    /* Take the Stall re-renders as a sealed stone plaque for a locked hero:
+       same element, aria-disabled and non-gold, never a dead tap */
+    const go=o.querySelector('#heroGo');
+    const gv=heroConfirmView(locked);
+    go.className=gv.cls;
+    /* only touch aria-disabled when sealed: at full unlock gv.aria is null so
+       the button matches the pre-seam markup, which carried no aria-disabled */
+    if(gv.aria)go.setAttribute('aria-disabled',gv.aria);else go.removeAttribute('aria-disabled');
+    go.textContent=gv.text;
   }
   draw();
   o.querySelector('#heroGo').onclick=function(){
     /* hand back the choice only; the run does not exist yet (0.89 hero-first
-       flow), so the hero and starting ware apply during construction */
+       flow), so the hero and starting ware apply during construction. A sealed
+       merchant never confirms: the tap toasts its trigger hint instead. */
+    if(!heroUnlocked(store(),sel)){toast(heroHint(sel));return;}
     ovClose(o);cont(sel);
   };
 }
@@ -1471,13 +1516,18 @@ function openIntro(){
   /* New Game opens the two route lengths. Tutorial stays on the established
      Quick road until the longer route receives its own guided pass. */
   if(!ART['bg-intro']){newRoute();return;}
+  /* the non-interactive Almanac caption: the nearest unclaimed trigger, or late
+     progress, or a Lantern handoff. nextUnlockHint returns null under the dev
+     flag, so the caption is hidden at that full unlock. */
+  const hint=nextUnlockHint(store());
   const o=document.createElement('div');o.id='intro';
   o.innerHTML='<div class="ititle">Tavern Bash</div>'
     +'<button class="btn introhistory" id="inHistory">'+ic('g-ledger','mi')+' Run History</button>'
     +'<div class="ibtns">'
     +'<button class="stonebtn" id="inNew">New Game</button>'
     +'<button class="stonebtn" id="inTut">Tutorial</button>'
-   +'</div>';
+   +'</div>'
+   +(hint?'<div class="introhint" aria-live="polite">'+esc(hint)+'</div>':'');
   document.body.appendChild(o);
   o.querySelector('#inNew').onclick=function(){o.remove();newRoute();};
   o.querySelector('#inTut').onclick=function(){o.remove();newRoute('quick');};
@@ -1510,7 +1560,8 @@ function initDebug(){
     let over=0;const dw=document.documentElement.clientWidth;
     document.querySelectorAll('#app *').forEach(function(el){const r=el.getBoundingClientRect();if(r.width&&(r.right>dw+1||r.left<-1))over++;});
     const standalone=(typeof matchMedia!=='undefined'&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
-    d.textContent=tag+' '+(standalone?'PWA':'TAB')+' '+window.innerWidth+'x'+window.innerHeight+' '+fps+'fps ovf '+over;
+    const allOpen=devAllOpen(store())?' ALL':'';
+    d.textContent=tag+' '+(standalone?'PWA':'TAB')+' '+window.innerWidth+'x'+window.innerHeight+' '+fps+'fps ovf '+over+allOpen;
   },1000);
 }
 export function boot(){

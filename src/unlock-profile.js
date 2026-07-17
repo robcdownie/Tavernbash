@@ -17,7 +17,8 @@
    snapshot), so no report store read is needed at settle time. The epoch
    object still records the lifetime totals at creation for provenance, seeded
    by the optional initUnlockProfile call. */
-import {ITEMS} from './data.js';
+import {ITEMS,HEROES,ANOMALIES} from './data.js';
+import {lanternMaxPick} from './lantern-profile.js';
 
 const KEY='bb-unlocks';
 const DEV_KEY='bb-unlocks-all';
@@ -42,6 +43,69 @@ export const STARTER_SHOP_WARES=[
   'bandage','salve','chalice','sanctum',
   'whetstone','hourglass','adren'
 ];
+
+/* The sealed-merchant trigger hints for the hero rail and the replay guard
+   (design-unlocks-0.92.md, Presentation): Persian night market voice, second
+   person, one sentence carrying the literal trigger, no UI words. The three
+   starters need no hint (they are never sealed). Zero dashes anywhere. */
+export const HERO_HINTS={
+  lender:"The Moneylender extends no credit to strangers; finish three nights and he will find you.",
+  architect:"The Brass Architect raises no stall for the untested; reach the Palace Quarter and he will build beside you.",
+  venom:"The Venom Broker deals only with proven survivors; outlast four nights and his door opens.",
+  silkblade:"The Silkblade measures her steel against the worthy alone; clear a road under a lit Lantern and she takes the next stall.",
+  ash:"The Ash Collector walks in only when the whole Long Bazaar lies cleared; carry a road to its end and he gathers at your side."
+};
+
+/* The sealed-omen trigger hints for the Almanac plaque and the title caption,
+   same voice and grammar as the hero hints: Persian night market, second
+   person, one sentence carrying the literal trigger, no UI words, zero dashes.
+   The four starters (bull, overstock, molasses, wildfire) are never sealed. */
+export const OMEN_HINTS={
+  rapid:"Rapid Trade rewards the first night survived; close a single night and dawn hands it to you.",
+  moon:"The Blood Moon rises for the seasoned; finish three nights and it hangs over your road.",
+  fortified:"Fortified favors a deep purse; end a night standing at Tier 4 and its walls are raised for you.",
+  plague:"Plague Winds gather where venom runs thick; apply sixty poison across one night and they answer.",
+  glass:"The Glass Night tests the unbroken; fell three masters in one night without clearing the road and it settles on you.",
+  narrow:"The Narrow Alleys open to the proven; clear a road under Lantern 2 and they wind your way.",
+  silent:"The Silent Bazaar answers many hands; clear a road with three different merchants and its hush is yours.",
+  auctionbell:"The Auction Bell tolls for the bold; slay the Night Auctioneer at the Gate and it rings for you."
+};
+
+/* The sealed-ware trigger hints for the seven R8 shop wares (LOCKED_START_WARES).
+   The 29 uniques take no trigger hint: they are discovery-gated and wear a
+   channel hint instead (see wareChannelHint). Same voice, zero dashes. */
+export const WARE_HINTS={
+  kilnchain:"The Kiln Chain links to a tempered flame; forge any Burn ware to Silver and the smith parts with it.",
+  rosewaterpump:"The Rosewater Pump rewards a first joining; forge your first Silver and it is drawn up for you.",
+  saltward:"The Salt Ward guards a golden hoard; end a night holding a Gold ware and its circle is scribed for you.",
+  sapperspick:"The Sapper's Pick is earned in gold; forge your first Gold ware and it is set in your hand.",
+  venomsiphon:"The Venom Siphon is drawn from the serpent queen; slay Shahmaran and it coils to you.",
+  chirurgeonsscissors:"The Chirurgeon's Scissors are honed on the rarest work; forge your first Diamond and they are yours.",
+  surgeonhook:"The Surgeon's Hook waits past a cleared road; carry any road to its end and it hangs at your belt."
+};
+
+/* Pure render decisions for the hero picker, shared by openHeroPick in ui.js
+   and pinned headlessly by tests/unlock-hero.test.js. ui.js cannot be imported
+   under node:test (it pulls the DOM art/fx/sfx layers), so extracting the
+   locked-versus-open decisions out of the DOM-bound draw() is what lets a test
+   PROVE full-unlock byte identity instead of merely inspecting it: openHeroPick
+   consumes these, so a sealed verdict cannot silently add an attribute or class
+   the pre-seam markup lacked. Every field is empty or null at full unlock, so
+   the chip, the detail portrait, and the confirm button all render byte for
+   byte as they did before the seam. Zero dashes anywhere. */
+export function heroChipAttrs(selected,locked){
+  return {
+    cls:'herochip'+(selected?' on':'')+(locked?' lockd':''),
+    labelSeal:locked?', sealed':'',
+    lockCorner:locked?'<span class="herolock" aria-hidden="true"></span>':''
+  };
+}
+export function heroPortraitClass(locked){
+  return locked?' lockd':'';
+}
+export function heroConfirmView(locked){
+  return {cls:locked?'btn stonehint':'btn gold',aria:locked?'true':null,text:locked?'Sealed Stall':'Take the Stall'};
+}
 
 /* The seven R8 shop wares gated behind triggers. Each is a stateful or
    conditional hook ware whose concept is noise before the player has met the
@@ -189,6 +253,33 @@ export function wareUnlocked(storage,id){
    ensureOpeningOffense, and route-sim's warePool knob so tuning cannot drift */
 export function starterShopIds(){return STARTER_SHOP_WARES.slice();}
 
+/* The locked complement of the ware catalogue at this instant: every id the
+   live profile does NOT read as unlocked. A run snapshots this at construction
+   so its shop rolls stay frozen even if the profile later changes, and it is
+   stored as the complement (a blocklist), not a whitelist: a ware added in a
+   later version is absent from the blocklist, so a resumed run rolls it rather
+   than silently filtering it out. At full unlock (dev flag) the complement is
+   empty, which is why a full-unlock run's shop is byte-identical to today. */
+export function lockedWareComplement(storage){
+  if(devAllOpen(storage))return [];
+  return Object.keys(ITEMS).filter(function(id){return !wareUnlocked(storage,id);});
+}
+
+/* The per-run shop verdict for one id. A run built under 0.92+ carries a frozen
+   locked complement (run.wareLock), so a resumed market rolls identically; a
+   pre-0.92 run has no snapshot and is grandfathered to the full pool (exempt
+   from the gate for the rest of its life); with no run context at all (the
+   lobby shop) the live unlock verdict applies. An empty snapshot ([]) means
+   nothing is locked, i.e. the full pool, which is the full-unlock case. */
+export function runWareAllowed(storage,run,id){
+  if(run){
+    const lock=run.wareLock;
+    if(lock)return lock.indexOf(id)<0;
+    return true;
+  }
+  return wareUnlocked(storage,id);
+}
+
 /* the full unlocked lists for the hero picker, omen reveal, and Almanac */
 export function unlockedHeroes(storage){
   if(devAllOpen(storage))return null;   /* null means everything, per caller */
@@ -246,4 +337,153 @@ export function settleUnlocks(storage,record){
   if(reportId){p.settled.push(reportId);if(p.settled.length>SETTLED_CAP)p.settled=p.settled.slice(-SETTLED_CAP);}
   writeUnlockProfile(storage,p);
   return newly;
+}
+
+/* The grant-time event a treasure-buy or bounty-take site emits, carrying
+   data.id, so possession settlement can credit a chosen unique that is still
+   parked as a free market offer at run end (never on the board, never bought).
+   Both the emitter (route-ui, ui.js) and the consumer read this one constant. */
+export const WILD_FIND_EVENT='wild_find';
+
+/* Possession-grade extraction of the uniques a finished run actually FOUND
+   (design-unlocks-0.92.md, The wild-find detection). A unique is possessed when
+   the record proves the player held or took it: on the board, in the vault, a
+   metrics.wares row with a real buy, free take, or fight, or a grant-time
+   wild_find event. Offered-but-untaken treasure (a face-up option not chosen)
+   and free shelf exposures (an offer left unbought) are deliberately NOT
+   possession, so they never leak an unlock. Only uniques are extracted here; the
+   seven R8 shop wares unlock through their own forge and feat triggers, not by
+   being handed to the player. */
+function foundUniqueIds(record){
+  const out={};
+  const add=function(id){if(id&&ITEMS[id]&&ITEMS[id].unique)out[id]=1;};
+  const eco=(record&&record.economy)||{};
+  (eco.board||[]).forEach(function(w){add(w&&w.id);});
+  (eco.vault||[]).forEach(function(w){add(w&&w.id);});
+  const wares=(record&&record.metrics&&record.metrics.wares)||{};
+  Object.keys(wares).forEach(function(id){
+    const w=wares[id];
+    if(w&&((w.buys||0)+(w.freeTakes||0)+(w.fights||0))>0)add(id);
+  });
+  const ev=(record&&record.metrics&&record.metrics.events)||[];
+  ev.forEach(function(e){if(e&&e.type===WILD_FIND_EVENT&&e.data&&e.data.id)add(e.data.id);});
+  return Object.keys(out);
+}
+
+/* Record every newly possessed unique and return the {kind:'wares',id}
+   descriptors that were not already held, for the end-screen strip. Monotonic
+   (recordFound), idempotent across a won-run resume (an already-found unique
+   reads unlocked and is skipped), and a total no-op in dev mode. */
+export function settleWildFinds(storage,record){
+  if(!storage||!record)return [];
+  if(devAllOpen(storage))return [];
+  const newly=[];
+  foundUniqueIds(record).forEach(function(id){
+    if(wareUnlocked(storage,id))return;
+    if(recordFound(storage,'wares',id))newly.push({kind:'wares',id:id});
+  });
+  return newly;
+}
+
+/* ============ THE ALMANAC (presentation, design-unlocks-0.92.md) ============
+   Pure resolvers for the Almanac tab (the renamed Discovery tab) and the title
+   caption. Storage is injected so tests pin every tile state, header count, and
+   the next-hint walk headlessly; route-ui renders exactly what these return, so
+   a tile can never drift from the unlock truth. Zero dashes in every string. */
+
+/* whether a gated-category descriptor reads unlocked (starter, dev, or found) */
+function kindUnlocked(storage,kind,id){
+  if(kind==='heroes')return heroUnlocked(storage,id);
+  if(kind==='omens')return omenUnlocked(storage,id);
+  return wareUnlocked(storage,id);
+}
+/* whether a locked ware is trigger-gated (one of the seven R8 shop wares) as
+   opposed to a discovery-gated unique. Heroes and omens are always trigger-gated. */
+function wareTriggerGated(id){return LOCKED_START_WARES.indexOf(id)>=0;}
+
+/* the plaque hint for a locked trigger-gated descriptor (hero, omen, or one of
+   the seven wares). Empty string only if a descriptor somehow lacks copy. */
+export function triggerHint(kind,id){
+  if(kind==='heroes')return HERO_HINTS[id]||'';
+  if(kind==='omens')return OMEN_HINTS[id]||'';
+  if(kind==='wares')return WARE_HINTS[id]||'';
+  return '';
+}
+/* the channel hint for a discovery-gated unique ware, told by where it is found:
+   the eighteen Treasure uniques carry acquisition 'treasure', the eleven bounty
+   uniques carry none and are taken from a slain master's spoils or the Vault. */
+export function wareChannelHint(id){
+  const it=ITEMS[id];
+  if(it&&it.acquisition==='treasure')return "Found in Treasure caches.";
+  return "Taken from a master's bounty or the Vault.";
+}
+
+/* Resolve one Almanac tile to its render decision. Monsters keep the 0.90
+   seen-or-unknown behavior (they carry no unlock gate); the three gated
+   categories resolve on the unlock truth alone, so a tile seen in pre-0.92 or
+   cloud-merged history but still sealed shows the locked state (unlocked wins
+   the tile only when bb-unlocks says so). Fields:
+     state : 'found' | 'unseen' | 'locked'
+     art   : true to paint the glyph, false for the veil or silhouette
+     label : the real name or '???'
+     gate  : 'trigger' | 'discovery' | null (only set when locked)
+     hint  : the plaque copy for a locked tile, else '' */
+export function almanacTile(storage,kind,id,name,seen){
+  if(kind==='monsters'){
+    return seen
+      ?{state:'found',art:true,label:name,gate:null,hint:''}
+      :{state:'unseen',art:false,label:'???',gate:null,hint:''};
+  }
+  if(kindUnlocked(storage,kind,id))return {state:'found',art:true,label:name,gate:null,hint:''};
+  if(kind!=='wares'||wareTriggerGated(id)){
+    return {state:'locked',art:false,label:name,gate:'trigger',hint:triggerHint(kind,id)};
+  }
+  return {state:'locked',art:false,label:'???',gate:'discovery',hint:wareChannelHint(id)};
+}
+
+/* Header counts for one gated category: {found, sealed, total}. ids is the
+   category catalogue (heroes, omens, or the sixty non-income wares). Monsters
+   are seen-counted by the caller, not sealed, so they do not pass through here. */
+export function almanacCounts(storage,kind,ids){
+  let found=0;
+  ids.forEach(function(id){if(kindUnlocked(storage,kind,id))found++;});
+  return {found:found,sealed:ids.length-found,total:ids.length};
+}
+
+/* The collection is heroes plus omens plus the reachable wares. The two income
+   wares (purse, ledger) are excluded and unreachable, so the catalogue is 80,
+   not 82. Derived from data so it cannot drift if a descriptor is ever added. */
+export function collectionTotal(){
+  const wares=Object.keys(ITEMS).filter(function(id){return !ITEMS[id].inc;}).length;
+  return HEROES.length+ANOMALIES.length+wares;
+}
+/* how many of the 80 the player holds right now (starters always count) */
+export function collectionFound(storage){
+  let n=0;
+  HEROES.forEach(function(h){if(heroUnlocked(storage,h.id))n++;});
+  ANOMALIES.forEach(function(a){if(omenUnlocked(storage,a.id))n++;});
+  Object.keys(ITEMS).forEach(function(id){if(!ITEMS[id].inc&&wareUnlocked(storage,id))n++;});
+  return n;
+}
+
+/* The title-screen caption: the nearest unclaimed trigger, then countable
+   unique progress once every trigger is claimed, then a Lantern handoff at full
+   completion so the second-reward promise survives the whole life of the game.
+   Returns null under the dev flag (the caption is hidden at that full unlock).
+   TRIGGERS is ordered by expected run, so its first unclaimed entry is nearest. */
+export function nextUnlockHint(storage){
+  if(devAllOpen(storage))return null;
+  const prof=readUnlockProfile(storage);
+  const held={heroes:prof.heroes||[],omens:prof.omens||[],wares:prof.wares||[]};
+  for(const t of TRIGGERS){
+    if(t.kind==='heroes'&&STARTER_HEROES.indexOf(t.id)>=0)continue;
+    if(t.kind==='omens'&&STARTER_OMENS.indexOf(t.id)>=0)continue;
+    if(t.kind==='wares'&&STARTER_SHOP_WARES.indexOf(t.id)>=0)continue;
+    if(held[t.kind].indexOf(t.id)>=0)continue;
+    return triggerHint(t.kind,t.id);
+  }
+  const uniqIds=Object.keys(ITEMS).filter(function(id){return ITEMS[id].unique;});
+  const found=uniqIds.filter(function(id){return held.wares.indexOf(id)>=0;}).length;
+  if(found<uniqIds.length)return 'Uniques found '+found+' of '+uniqIds.length+' in the wild.';
+  return 'The Almanac is full. Lantern '+lanternMaxPick(storage,'quick','kiln')+' with the Kilnkeeper waits unlit.';
 }

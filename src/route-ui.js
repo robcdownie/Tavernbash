@@ -27,6 +27,9 @@ import {finishMetrics,activateMetrics,touchMetrics,serializeMetrics} from './rou
 import {buildRunRecord,formatRunSummary,formatRunFullData,formatRunBatch} from './route-report.js';
 import {readReportState,saveReport,updateReport,unexportedReports,markReportsExported} from './route-report-store.js';
 import {replaySetup,isClearResult} from './route-history.js';
+import {omenUnlocked,settleUnlocks,settleWildFinds,devAllOpen,readUnlockProfile,WILD_FIND_EVENT,
+        almanacTile,almanacCounts,collectionTotal,collectionFound} from './unlock-profile.js';
+import {lanternMaxPick} from './lantern-profile.js';
 import {cloudSnapshot,onCloudChange,sendCloudMagicLink,syncCloudReports,
         setCloudSharing,deleteCloudReports,signOutCloud} from './cloud-ledger.js';
 
@@ -87,6 +90,7 @@ function chooseRewardUnique(o,id){
   if(!res.ok){return;}
   toast(ITEMS[id].n+' waits in the market, free.');
   B.metricEvent('reward_choice',{kind:'unique',id:id});
+  B.metricEvent(WILD_FIND_EVENT,{id:id,source:'vault'});
   ovClose(o);B.criticalSave(B.presentAfterReward);
 }
 
@@ -109,6 +113,7 @@ function chooseMidpointTreasure(o,pc,id){
   const res=runtimeChooseUnique(G.run,id);
   if(!res.ok)return;
   B.metricEvent('midpoint_treasure_selected',{receiptKey:pc.key,id:id});
+  B.metricEvent(WILD_FIND_EVENT,{id:id,source:'midpoint'});
   toast(ITEMS[id].n+' waits in the next Market, free.');
   ovClose(o);B.criticalSave(B.presentAfterReward);
 }
@@ -193,6 +198,9 @@ function grantFreeWare(rng,fixedId){
     return result;
   }
   if(!result.ok)return result;
+  /* wild-find grant signal: this free ware may be cleared before it is bought, so
+     possession settlement needs the explicit event to credit a unique (route-ui) */
+  B.metricEvent(WILD_FIND_EVENT,{id:id,source:'treasure'});
   toast('A free '+ITEMS[id].n+' waits at the next market.');
   return result;
 }
@@ -454,6 +462,59 @@ function ensureRouteObserver(){
   _rmObs=new ResizeObserver(function(){drawConnectors();});
   _rmObs.observe(plot);
 }
+/* ============ THE END-SCREEN ALMANAC UNLOCK STRIP ============ */
+/* one flavor clause per kind: the strip names what was earned in brass and one
+   short clause, no UI words, zero dashes (design-unlocks-0.92.md, Presentation) */
+const UNLOCK_KIND_FLAVOR={
+  heroes:'takes a stall among your merchants.',
+  omens:'now turns in the night sky.',
+  wares:'is catalogued in the Almanac.'
+};
+function unlockDescriptor(u){
+  if(u.kind==='heroes'){const h=HEROES.find(function(x){return x.id===u.id;});return {g:h?h.g:'g-medallion',n:h?h.n:u.id};}
+  if(u.kind==='omens'){const a=ANOMALIES.find(function(x){return x.id===u.id;});return {g:a?a.g:'g-medallion',n:a?a.n:u.id};}
+  const d=ITEMS[u.id];return {g:'g-'+u.id,n:d?d.n:u.id};
+}
+function unlockRowHTML(u){
+  const d=unlockDescriptor(u);
+  return '<div class="uwrow"><span class="uwglyph">'+ic(d.g,'uwg')+'</span>'
+    +'<span class="uwtext"><b class="uwname">'+esc(d.n)+'</b>'
+    +'<span class="uwflav">'+esc(UNLOCK_KIND_FLAVOR[u.kind]||'is recorded.')+'</span></span></div>';
+}
+/* when nothing unlocked, surface the nearest still-sealed target so every run
+   ends with a second reward; once the gated set and the unique collection are
+   both complete, hand off to the Lantern so the promise survives the whole game */
+function nextSealedHint(record){
+  const prof=readUnlockProfile(store());
+  const heroes=prof.heroes||[],omens=prof.omens||[],runs=prof.runs||0;
+  const clearsByHero=Object.keys(prof.clearsByHero||{}).length;
+  const cands=[];
+  if(omens.indexOf('glass')<0){
+    const felled=(record&&record.progress&&record.progress.bossesBeaten)||0;
+    cands.push({r:Math.max(0,3-felled),line:felled+' master'+(felled===1?'':'s')+' felled of the three the Glass Night asks'});
+  }
+  if(heroes.indexOf('lender')<0)cands.push({r:Math.max(0,3-runs),line:runs+' night'+(runs===1?'':'s')+' finished of the three the Moneylender counts'});
+  if(heroes.indexOf('venom')<0)cands.push({r:Math.max(0,4-runs),line:runs+' night'+(runs===1?'':'s')+' finished of the four the Venom Broker counts'});
+  if(omens.indexOf('silent')<0)cands.push({r:Math.max(0,3-clearsByHero),line:clearsByHero+' merchant'+(clearsByHero===1?'':'s')+' have cleared of the three the Silent Bazaar asks'});
+  cands.sort(function(a,b){return a.r-b.r;});
+  const near=cands.filter(function(c){return c.r>0;})[0];
+  if(near)return 'Still sealed: '+near.line+'.';
+  const uniqIds=Object.keys(ITEMS).filter(function(id){return ITEMS[id].unique;});
+  const uniqFound=uniqIds.filter(function(id){return (prof.wares||[]).indexOf(id)>=0;}).length;
+  if(uniqFound<uniqIds.length)return 'Still sealed: '+uniqFound+' unique wares found of '+uniqIds.length+' in the wild.';
+  const mode=(G.run&&G.run.routeMode)==='long'?'long':'quick',hero=G.hero||'kiln';
+  const H=HEROES.find(function(x){return x.id===hero;});
+  return 'Lantern '+lanternMaxPick(store(),mode,hero)+' with '+(H?H.n:'this merchant')+' is unlit.';
+}
+function unlockStripHTML(newly,dev,record){
+  if(dev)return '<div class="uwstrip uwopen">Unlocks Open</div>';
+  if(newly.length){
+    const shown=newly.slice(0,3).map(unlockRowHTML).join('');
+    const extra=newly.length>3?'<div class="uwmore">and '+(newly.length-3)+' more recorded in the Almanac</div>':'';
+    return '<div class="uwstrip">'+shown+extra+'</div>';
+  }
+  return '<div class="uwstrip uwsealed">'+esc(nextSealedHint(record))+'</div>';
+}
 export function routeEnd(cause){
   G.phase='routeEnd';music(null);
   const longRun=G.run.routeMode==='long';
@@ -476,6 +537,18 @@ export function routeEnd(cause){
   let archiveWarned=false;
   function archiveWarning(){if(archiveWarned)return;archiveWarned=true;toast('Report archive could not update. Copy Full Data before leaving.');}
   if(!archived)archiveWarning();
+  /* the Lantern mastery write, moved ahead of settlement so a run whose own clear
+     is the third-merchant clear settles in-run (design-unlocks-0.92.md, seam 5).
+     Monotonic and idempotent, and routeEnd re-runs on a won-run resume, so this
+     IS the retry. */
+  const lv=G.run.lantern||0;
+  const lit=cause==='won'?(B.recordLanternClear?B.recordLanternClear():false):false;
+  /* Almanac settlement: runs regardless of the saveReport result since bb-unlocks
+     is its own key, and after the Lantern write. Trigger unlocks first, then the
+     possession-graded wild finds. Both no-op and return [] in dev mode. */
+  const newlyUnlocked=settleUnlocks(store(),report).concat(settleWildFinds(store(),report));
+  const unlocksDev=devAllOpen(store());
+  const unlockStrip=unlockStripHTML(newlyUnlocked,unlocksDev,report);
   const endBtns='<div class="rendbtns">'
    +'<button class="btn" id="reSummary">Copy Summary</button>'
    +'<button class="btn" id="reFull">Copy Full Data</button>'
@@ -495,22 +568,21 @@ export function routeEnd(cause){
     :'';
   let o;
   if(cause==='won'){
-    /* the Lantern mastery write: monotonic and idempotent, and routeEnd runs
-       again when a won run resumes to its ending, so this IS the retry */
-    const lv=G.run.lantern||0;
-    const lit=B.recordLanternClear?B.recordLanternClear():false;
     const lampLine=lv>0?'You cleared it at Lantern '+lv+'.':'';
     const nextLine=(lit&&lv<10)?' Lantern '+(lv+1)+' is lit for this road.':'';
     sting('fanfarewin');if(!RM)fxCoinRain();
     o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">'+(longRun?'Long Bazaar Clear':'Quick Night Clear')+(lv>0?' &middot; Lantern '+lv:'')+'</div>'
      +ic('g-crown','bigic')+'<h2 class="big">The Vizier Falls</h2>'
-     +'<p>'+(longRun?'You survived the full road and its After Midnight reprises. The night market is yours.':'You cleared the original road. This Quick Night stands as a complete victory.')+' '+lampLine+nextLine+'</p>'+debrief+cloudPrompt+endBtns+'</div>');
+     +'<p>'+(longRun?'You survived the full road and its After Midnight reprises. The night market is yours.':'You cleared the original road. This Quick Night stands as a complete victory.')+' '+lampLine+nextLine+'</p>'+unlockStrip+debrief+cloudPrompt+endBtns+'</div>');
   }else{
     sting('lament');
+    /* a loss that still unlocked something earns one dawn sting for the moment
+       (win keeps only fanfarewin; no second sting there) */
+    if(!unlocksDev&&newlyUnlocked.length)sting('dawnsting');
     const st=routeState();const D=routeMap().districts[currentDistrict(st,routeMap())];
     o=ovOpen('<div class="card"><div class="rays red"></div><div class="kick">The Road Ends</div>'
      +ic('g-skull','bigic skullic')+'<h2 class="big bad">Resolve Spent</h2>'
-     +'<p>Your caravan broke in '+esc(D.name)+' after '+st.path.length+' encounter'+(st.path.length===1?'':'s')+'.</p>'+debrief+cloudPrompt+endBtns+'</div>');
+     +'<p>Your caravan broke in '+esc(D.name)+' after '+st.path.length+' encounter'+(st.path.length===1?'':'s')+'.</p>'+unlockStrip+debrief+cloudPrompt+endBtns+'</div>');
   }
   function syncReport(){
     const now=Date.now();touchMetrics(G.run.metrics,now);
@@ -599,6 +671,7 @@ export function openUniquePick(msg,cont){
   o.querySelectorAll('.pick').forEach(function(p){
     p.onclick=function(){
       G.shop.push(B.mkOffer({id:p.dataset.u,free:true,bought:false}));
+      B.metricEvent(WILD_FIND_EVENT,{id:p.dataset.u,source:'vault'});
       toast(ITEMS[p.dataset.u].n+' waits in the market, free.');
       ovClose(o);B.renderAll();if(cont)cont();
     };
@@ -746,7 +819,7 @@ export function openRunHistory(startTab){
    +'<span><b id="historyClears">0</b> clears</span><span><b id="historyFound">0</b> discoveries</span></div>'
    +'<div class="historytabs" role="tablist" aria-label="Run history sections">'
    +'<button data-ht="runs" role="tab">Runs</button><button data-ht="mastery" role="tab">Mastery</button>'
-   +'<button data-ht="discovery" role="tab">Discovery</button><button data-ht="cloud" role="tab">Cloud</button></div>'
+   +'<button data-ht="discovery" role="tab">The Almanac</button><button data-ht="cloud" role="tab">Cloud</button></div>'
    +'<div class="historybody" id="historyBody"></div></div>');
   o.classList.add('historyov');o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');
   o.setAttribute('aria-labelledby','historyTitle');
@@ -843,19 +916,55 @@ export function openRunHistory(startTab){
       .map(function(id){return {id:id,n:ITEMS[id].n,g:'g-'+id};});
     return Object.keys(MONSTERS).map(function(id){return {id:id,n:MONSTERS[id].n,g:MONSTERS[id].glyph};});
   }
+  /* the gold-framed hint plaque a locked Almanac tile opens on tap, same
+     grammar as the Lantern rules plaque: a title, the trigger or channel copy,
+     and tap-to-close. Never a dead tap: every locked tile carries a hint. */
+  function openAlmanacHint(title,hint){
+    const o=ovOpen('<div class="card lplaque"><div class="rays"></div><div class="kick gold">The Almanac</div>'
+     +'<h2 class="big" style="font-size:20px">'+esc(title)+'</h2>'
+     +'<p style="font-size:12px;line-height:1.5">'+esc(hint)+'</p>'
+     +'<p style="opacity:.7">Tap anywhere to close</p></div>');
+    o.onclick=function(){ovClose(o);};
+  }
   function discoveryRows(){
     const labels={heroes:'Heroes',omens:'Omens',wares:'Wares',monsters:'Monsters'};
-    const rows=discoveryCatalog(),found=rows.filter(function(x){return historySeen(history,discovery,x.id);}).length;
-    body.innerHTML='<div class="historysubtabs" role="tablist" aria-label="Discovery category">'
+    const rows=discoveryCatalog();
+    let head;
+    if(discovery==='monsters'){
+      const seenN=rows.filter(function(x){return historySeen(history,'monsters',x.id);}).length;
+      head='<b>'+seenN+' of '+rows.length+'</b> seen in finished runs';
+    }else{
+      const c=almanacCounts(store(),discovery,rows.map(function(x){return x.id;}));
+      head='<b>Found '+c.found+', Sealed '+c.sealed+',</b> '+c.total+' in all';
+    }
+    const sealed={};   /* id -> {title, hint} for the locked-tile tap handlers */
+    body.innerHTML='<div class="historysubtabs" role="tablist" aria-label="Almanac category">'
      +Object.keys(labels).map(function(k){return '<button data-hd="'+k+'" role="tab" class="'+(k===discovery?'on':'')
        +'" aria-selected="'+String(k===discovery)+'">'+labels[k]+'</button>';}).join('')+'</div>'
-     +'<div class="discoveryhead"><b>'+found+' of '+rows.length+'</b> discovered in finished runs</div>'
+     +'<div class="discoveryhead">'+head+'</div>'
      +'<div class="discoverygrid">'+rows.map(function(x){
        const seen=historySeen(history,discovery,x.id);
-       return '<div class="discoverytile'+(seen?'':' locked')+'" data-discovery="'+x.id+'">'
-        +(seen?ic(x.g):'<span class="unknown">?</span>')+'<span>'+(seen?esc(x.n):'???')+'</span></div>';
+       const t=almanacTile(store(),discovery,x.id,x.n,seen);
+       const icon=t.art?ic(x.g):'<span class="unknown">?</span>';
+       const cls='discoverytile'+(t.state==='found'?'':' locked')+(t.state==='locked'?' sealed':'');
+       let attrs='',lock='';
+       if(t.state==='locked'){
+         lock='<span class="tilelock" aria-hidden="true"></span>';
+         /* a ??? discovery tile must not announce its hidden name */
+         const aria=(t.gate==='discovery'?'Unfound ware':x.n)+', sealed';
+         attrs=' role="button" tabindex="0" aria-label="'+esc(aria)+'"';
+         sealed[x.id]={title:t.gate==='discovery'?'A Ware Yet Unfound':x.n,hint:t.hint};
+       }
+       return '<div class="'+cls+'" data-discovery="'+esc(x.id)+'"'+attrs+'>'
+        +icon+lock+'<span>'+esc(t.label)+'</span></div>';
      }).join('')+'</div>';
     body.querySelectorAll('[data-hd]').forEach(function(b){b.onclick=function(){discovery=b.dataset.hd;draw();};});
+    body.querySelectorAll('.discoverytile.sealed').forEach(function(el){
+      const s=sealed[el.dataset.discovery];if(!s)return;
+      const open=function(){openAlmanacHint(s.title,s.hint);};
+      el.onclick=open;
+      el.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
+    });
   }
   function cloudRows(){
     const cloud=cloudSnapshot();
@@ -921,12 +1030,17 @@ export function openRunHistory(startTab){
     const active=B.hasActiveRoute&&B.hasActiveRoute();
     const changed=(spec.sourceMapVersion!=null&&spec.sourceMapVersion!==MAP_VERSION)
       ||(spec.sourceVersion&&spec.sourceVersion!==pkg.version);
+    /* The record pins the world, not the player's tools: a replay whose Omen is
+       still sealed plays under the seed anyway, but the run does not record it
+       as found. The button says so, so a sealed Omen is never a silent grant. */
+    const omenLocked=!omenUnlocked(store(),spec.omenId);
     const c=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">Play Seed Again</div>'
      +ic('g-ledger','bigic')+'<h2 class="big" style="font-size:25px">Fresh Road, Same Seed</h2>'
      +'<p>Start a fresh '+(spec.mode==='long'?'Long Bazaar':'Quick Night')+' run as '+esc(historyHero(record))
      +' at '+(spec.lantern?'Lantern '+spec.lantern:'Lantern 0')+' under '+esc(historyOmen(record))+'.</p>'
      +'<div class="replaynote">The old build is not restored. The seed and recorded setup return under current rules.'
-     +(changed?' This report came from an older build or map, so the road may differ.':'')+'</div>'
+     +(changed?' This report came from an older build or map, so the road may differ.':'')
+     +(omenLocked?' This Omen is still sealed: the seed plays it, but the run will not record it in the Almanac.':'')+'</div>'
      +(active?'<p style="color:#ffab61;margin-top:9px">Starting it will replace the saved run waiting beneath this ledger.</p>':'')
      +'<div class="historyactions"><button class="btn" id="replayCancel">Cancel</button>'
      +'<button class="btn gold" id="replayGo">Start Fresh Run</button></div></div>');

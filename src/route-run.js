@@ -78,6 +78,12 @@ export function newRun(setup){
        null except while stalled at a boss gate. */
     camp: null,
     lastReserveUsed: false,
+    /* the Almanac per-run shop freeze (design-unlocks-0.92.md seam 2): the locked
+       ware complement at run start, so a resumed market rolls identically even if
+       the unlock profile changes mid-run. null means no snapshot (a pre-0.92 run,
+       grandfathered to the full pool); [] means nothing is locked (full unlock).
+       Computed by the caller, which has the storage the profile lives in. */
+    wareLock: (setup.wareLock && setup.wareLock.slice()) || null,
     ids: {nextItem: 1}
   };
 }
@@ -226,6 +232,10 @@ export function reviveRun(d){
     pendingChoice: d.pendingChoice || null,
     camp: d.camp || null,
     lastReserveUsed: !!d.lastReserveUsed,
+    /* the Almanac per-run shop freeze: additive optional field, tolerated when
+       absent. A pre-0.92 save has no snapshot (null), which runWareAllowed reads
+       as the grandfathered full pool for the rest of the run. */
+    wareLock: (d.wareLock && d.wareLock.slice()) || null,
     ids: {nextItem: (d.ids && d.ids.nextItem) || 1}
   };
 }

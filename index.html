@@ -291,6 +291,24 @@
   .hdtag{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin:3px 0 6px;}
   .hddesc{font-size:13px;line-height:1.4;color:#e7d6bf;}
   .hdstart{font-size:11.5px;color:var(--dim);margin-top:8px;display:flex;align-items:center;gap:5px;}
+  /* Almanac: a sealed merchant. The chip dims its portrait and drops the cat
+     ring for a neutral one, a small brass lock rides the corner, and the detail
+     panel shows the trigger hint where the rule text sits, over a stone plaque
+     confirm that toasts the trigger instead of taking the stall. */
+  .herochip.lockd{position:relative;border-color:rgba(150,120,80,.28);
+    background:radial-gradient(closest-side,#1b140c,#0d0805);}
+  .herochip.lockd .hpr{filter:brightness(.34) grayscale(.55);}
+  .herochip.lockd.on{border-color:var(--brass-hi);box-shadow:0 0 10px rgba(244,207,124,.28);}
+  .herolock{position:absolute;right:2px;bottom:2px;width:15px;height:15px;border-radius:4px;
+    background:linear-gradient(180deg,#e7c579,#9a6a24);border:1px solid #6f4a16;box-shadow:0 1px 2px rgba(0,0,0,.5);}
+  .herolock::before{content:"";position:absolute;left:4px;top:2px;width:6px;height:5px;
+    border:1.5px solid #4a3110;border-bottom:none;border-radius:4px 4px 0 0;}
+  .herolock::after{content:"";position:absolute;left:3px;top:6px;width:8px;height:6px;border-radius:1.5px;background:#4a3110;}
+  .hdportrait.lockd .hpbig{filter:brightness(.4) grayscale(.5);}
+  .hdhint{font-size:13px;line-height:1.45;color:#c9b48f;font-style:italic;margin-top:2px;}
+  .btn.stonehint{background:linear-gradient(180deg,#4a4038,#2b241d);border:1px solid rgba(140,120,90,.4);
+    color:#cdb79a;cursor:default;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);text-shadow:none;}
+  .btn.stonehint::after{content:none;}
   .sheet .bs{display:flex;gap:6px;margin-top:10px;}
   .sheet .bs .btn{flex:1;padding:10px;font-size:12.5px;min-height:42px;}
   .sheet .bs .sell{background:linear-gradient(180deg,#7a3428,#4a1f18);border-color:rgba(193,68,52,.4);}
@@ -920,6 +938,22 @@
   .cloudprompt .btn{min-height:39px;flex:0 0 auto;padding:7px 9px;font-size:9px;}
   .cloudprompt.on{border-color:rgba(69,190,153,.34);background:rgba(37,122,98,.1);}
 
+  /* the end-screen Almanac unlock strip: earned rows crossfade from silhouette
+     to painted art, capped at three, with a Still Sealed progress line or the
+     dev Unlocks Open marker in their place */
+  .uwstrip{margin-top:8px;display:flex;flex-direction:column;gap:5px;}
+  .uwrow{display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px solid rgba(216,162,74,.28);border-radius:9px;background:rgba(0,0,0,.2);text-align:left;}
+  .uwglyph{flex:0 0 30px;width:30px;height:30px;}
+  .uwglyph .uwg{width:30px;height:30px;display:block;animation:uwreveal .6s ease both;}
+  @keyframes uwreveal{from{filter:brightness(0);opacity:.28;}to{filter:brightness(1);opacity:1;}}
+  .uwtext{min-width:0;flex:1;display:flex;flex-direction:column;}
+  .uwname{color:var(--brass-hi);font-size:11px;font-weight:800;}
+  .uwflav{margin-top:1px;color:var(--dim);font-size:8.5px;line-height:1.3;}
+  .uwmore{margin-top:1px;color:var(--dim);font-size:9px;text-align:center;font-style:italic;}
+  .uwsealed{margin-top:8px;padding:6px 9px;border:1px dashed rgba(216,162,74,.3);border-radius:9px;background:rgba(0,0,0,.16);color:var(--dim);font-size:9.5px;text-align:center;line-height:1.35;}
+  .uwopen{margin-top:8px;padding:6px 9px;border:1px solid rgba(244,207,124,.5);border-radius:9px;background:rgba(216,162,74,.16);color:var(--brass-hi);font-size:10px;font-weight:800;text-align:center;letter-spacing:.08em;text-transform:uppercase;}
+  @media (prefers-reduced-motion:reduce){.uwglyph .uwg{animation:none;}}
+
   /* the tutorial coach */
   .coach{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:80;
     width:min(92vw,360px);padding:10px 12px;border-radius:14px;text-align:left;
@@ -946,6 +980,13 @@
   #intro .introhistory{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));
     min-height:44px;padding:8px 12px;display:flex;align-items:center;gap:6px;font-size:10px;}
   #intro .introhistory svg{width:17px;height:17px;}
+  /* the non-interactive Almanac caption: flows under the plaques in portrait and
+     the art-less fallback; landscape overlays it in the empty strip below the
+     buttons so the painted-plaque button alignment is never shifted */
+  #intro .introhint{max-width:min(90vw,520px);margin:0 auto calc(10px + env(safe-area-inset-bottom));
+    color:var(--brass-hi);font-size:11px;line-height:1.45;text-align:center;opacity:.88;pointer-events:none;
+    text-shadow:0 2px 10px rgba(0,0,0,.95);background:rgba(13,8,5,.5);padding:7px 12px;border-radius:9px;
+    border:1px solid rgba(216,162,74,.26);}
   .card.routepick{width:min(94vw,560px);max-width:560px;}
   .routepickgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
   .routechoice{min-height:142px;padding:14px 12px;border:1px solid rgba(216,162,74,.35);border-radius:13px;
@@ -1092,6 +1133,13 @@
   .discoverytile.locked{opacity:.43;filter:grayscale(1);}
   .discoverytile.locked .unknown{width:38px;height:38px;border:1px solid var(--line);border-radius:50%;display:flex;
     align-items:center;justify-content:center;color:var(--dim);font-size:19px;font-weight:900;}
+  .discoverytile.sealed{position:relative;cursor:pointer;opacity:.6;}
+  .discoverytile.sealed:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px;}
+  .tilelock{position:absolute;right:5px;top:5px;width:14px;height:14px;border-radius:4px;background:#3a2708;
+    border:1px solid rgba(216,162,74,.5);}
+  .tilelock::before{content:"";position:absolute;left:3.5px;top:1.5px;width:6px;height:5px;
+    border:1.5px solid #caa25a;border-bottom:none;border-radius:4px 4px 0 0;}
+  .tilelock::after{content:"";position:absolute;left:2.5px;top:5.5px;width:8px;height:6px;border-radius:1.5px;background:#caa25a;}
   .replaynote{padding:8px;border-radius:9px;background:rgba(216,162,74,.1);color:var(--dim);font-size:10px;line-height:1.45;}
   @media (orientation:portrait){
     .historyruns{display:flex;flex-direction:column;}
@@ -1109,6 +1157,8 @@
     #intro{justify-content:flex-end;background-image:url('/art/bg/bg_intro_wide.png');background-position:center;background-size:contain;}
     #intro .ibtns{width:min(58vw,560px);gap:min(6vw,64px);margin-bottom:min(4vh,26px);}
     #intro .stonebtn{height:min(15vh,82px);font-size:min(4.4vh,30px);}
+    #intro .introhint{position:absolute;left:50%;bottom:3px;transform:translateX(-50%);margin:0;
+      max-width:min(72vw,560px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px 12px;}
   }
   #dbg{position:fixed;top:calc(4px + env(safe-area-inset-top));right:calc(6px + env(safe-area-inset-right));z-index:99;
     font-family:ui-monospace,monospace;font-size:9px;letter-spacing:.3px;color:#9ad8ef;background:rgba(0,0,0,.55);

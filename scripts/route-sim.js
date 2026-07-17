@@ -38,6 +38,7 @@ import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, ANONE, COST, TIERCOST} from '../sr
 import {planReward} from '../src/route-rewards.js';
 import {beginCombatTally, recordCombatDiagnostic} from '../src/route-metrics.js';
 import {midpointTreasureOptions, MIDPOINT_FALLBACK_GOLD} from '../src/route-runtime.js';
+import {starterShopIds} from '../src/unlock-profile.js';
 import {pathToFileURL} from 'node:url';
 
 export function parseSimArgs(argv){
@@ -72,9 +73,19 @@ const pad = (s, n) => (String(s) + ' '.repeat(n)).slice(0, n);
 /* bronze copies needed to hold a ware at rarity 0..3 (3 bronze -> silver, 2 silver
    -> gold, 2 gold -> diamond, per the engine's fuseNeed) */
 const COPIES_FOR = [1, 3, 6, 12];
-function buildBoard(tier, budget, rng, persona) {
+/* The board's ware pool for a tier under a cfg. cfg.warePool: 'starter' restricts
+   the pool to the 24 pre-R8 shop wares from unlock-profile.js's starterShopIds()
+   (the SINGLE source of truth, so the tuning knob cannot drift from the game's
+   starter set); 'full' or unset uses the current full pool. The restriction is an
+   appended Array.filter clause, so at 'full' the pool is byte-identical to the
+   pre-knob behavior. */
+export function boardPool(tier, cfg) {
+  const starter = cfg && cfg.warePool === 'starter' ? new Set(starterShopIds()) : null;
+  return Object.keys(ITEMS).filter(id => gateOK(ITEMS[id].tier, tier) && !ITEMS[id].unique && !ITEMS[id].inc && (!starter || starter.has(id)));
+}
+function buildBoard(tier, budget, rng, persona, cfg) {
   const slots = 4 + tier;
-  const pool = Object.keys(ITEMS).filter(id => gateOK(ITEMS[id].tier, tier) && !ITEMS[id].unique && !ITEMS[id].inc);
+  const pool = boardPool(tier, cfg);
   if (!pool.length) return { items: [], board: [] };
   /* commit to a few LINES (a real build), persona-weighted, cheap size-1 wares
      favoured because they fuse readily. Then spend the budget the way fusing spends
@@ -172,7 +183,7 @@ export function simRun(seed, cfg, mode) {
   let gold = 6, invested = 0, tier = 1, lastReserveUsed = false, mendGate = null, mendUsed = false;
   const ownedUniques=new Set();
   invested += 6; gold = 0;             /* opening stall: the six starting gold */
-  let board = buildBoard(tier, invested, rng, persona);
+  let board = buildBoard(tier, invested, rng, persona, cfg);
   const m = { mode:mode,districtCount:map.districts.length,fights: [], retries: 0, goldEarned: 0, goldSpent: 6,
     resolveStart:st.resolveMax,minResolve: st.resolveMax, tierMax: 1,guardTrips:0,guardCounts:{},fightTimeouts:0,
     combatPendingActions:0,routeGuardExits:0,pendingActions:[],duplicateUniqueCash:0,
@@ -215,7 +226,7 @@ export function simRun(seed, cfg, mode) {
             invested += ITEMS[id]?(COST[ITEMS[id].size]||2):2;
           }
         });
-        board = buildBoard(tier, invested, rng, persona);
+        board = buildBoard(tier, invested, rng, persona, cfg);
       }
       st = transition(st, map, { type: 'settleReward' }).state;
       if(mode==='long'&&node.id==='d3boss'){
@@ -231,7 +242,7 @@ export function simRun(seed, cfg, mode) {
       while (tier < cap && gold >= tierCost(tier + 1, cfg) + 2) { const tc = tierCost(tier + 1, cfg); gold -= tc; m.goldSpent += tc; tier++; }
       const spend = Math.max(0, gold - 2); gold -= spend; invested += spend; m.goldSpent += spend;
       if (tier > m.tierMax) m.tierMax = tier;
-      board = buildBoard(tier, invested, rng, persona);
+      board = buildBoard(tier, invested, rng, persona, cfg);
       st = transition(st, map, { type: 'leaveMarket' }).state;
     } else if (st.phase === 'event') {
       const node = nodeOf(map, st.pendingId); let delta = 0;
@@ -247,7 +258,7 @@ export function simRun(seed, cfg, mode) {
       if (!lastReserveUsed && st.resolve > 6 && st.resolve <= 16) { st.resolve -= 6; st.resolveMax -= 6; invested += 6; lastReserveUsed = true; }
       if (!mendUsed && gold >= 3 && st.resolve < st.resolveMax) { gold -= 3; m.goldSpent += 3; st.resolve = Math.min(st.resolveMax, st.resolve + 4); mendUsed = true; }
       const spend = Math.max(0, gold - 1); gold -= spend; invested += spend; m.goldSpent += spend;
-      board = buildBoard(tier, invested, rng, persona);
+      board = buildBoard(tier, invested, rng, persona, cfg);
       st = transition(st, map, { type: 'startBossRetry' }).state;
     } else {m.pendingActions.push('unhandled_'+st.phase);break;}
   }
