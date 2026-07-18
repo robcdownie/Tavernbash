@@ -6,11 +6,32 @@ roadmap with the agreed lane split (you own 0.91+ for the choice-equity chain:
 Merchant bargains next, then scoped diagnostics). Read this in full, then the
 named files, before answering.
 
-Companion file: the difficulty worker's own paused-state notes are due to land
-beside this briefing as difficulty-worker-notes-2026-07-18.md. If that file is
-present, read it immediately after this briefing and treat it as input to your
-ruling B, not as a decision already taken. If it is absent, say so in your
-review rather than guessing at its contents.
+Companion file: difficulty-worker-notes-2026-07-18.md, the paused difficulty
+worker's sim-validated design, is committed beside this briefing. Read it
+immediately after this briefing and treat it as input to your ruling B, not as
+a decision already taken. Four things in it matter beyond ruling B:
+
+1. It corrects the audit's own measurement: the audit's "Long clear 71.3
+   percent, too easy" was a Quick run mislabeled (the sim takes the bare token
+   long; a --long flag is silently ignored). Long actually clears about 55
+   percent, already inside the roadmap band. The difficulty problem is SHAPE
+   (flat then cliff, and a non-monotonic Long D5 bump), not overall rate.
+   Weigh audit items 2 and 20 against this correction.
+2. Its proposal works in per-district first-attempt win bands with district
+   power as the lever (exact values: Quick D2 1.12 / D3 1.18, Long D5 2.1 /
+   D6 2.15, Azhdaha hasteMates 0.5 to 0.3, optional vizier 660). The
+   adversary review argued the spec currency should be Resolve attrition.
+   These framings are not equivalent; ruling B should pick one or reconcile
+   them explicitly.
+3. It softens the Azhdaha snowball rather than inverting it (audit item 14
+   asked invert or cap). Rule on whether 0.3 is enough or the mechanic should
+   flip.
+4. Its named blocker, "run the hero-by-Omen matrix before finalizing the
+   power values," is now unblocked: item 7 shipped after the worker paused.
+   Its live-telemetry signal (kiln appears in 4 of 5 recorded losses) also
+   converges with the matrix's early read (kiln weakest non-util hero in
+   Long). The final power values should be re-validated through hero cells
+   before ship.
 
 ## What shipped while you were offline (all live on platosd.com; deploy is now
 git push to main, GitHub Pages; Netlify is retired)
