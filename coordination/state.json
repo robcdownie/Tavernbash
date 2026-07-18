@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-18",
-  "build": "0.99.3",
-  "reviewedHead": "6d3ed775d6537bb6944f81fdbbbe96ee55de8551",
+  "build": "0.99.4",
+  "reviewedHead": "f4a91f609f12f1de930627ec7d6de8563ce1c5dc",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -26,26 +26,7 @@
     "outcome": "Calibrated challenge: tune the difficulty the Launch L1 smoke surfaced and remove dead hero and Omen pairings, without reopening settled combat, targeting, economy, map, or save semantics. Work stays isolated, attributable, and exact once.",
     "versions": ["0.99.4"]
   },
-  "reservations": [
-    {
-      "version": "0.99.4",
-      "project": "Launch L2",
-      "token": "launch-calibrated-challenge",
-      "owner": "claude",
-      "branch": "launch-calibrated-challenge-0.99.4",
-      "worktree": "C:/tmp/bazaar-brawler-l2-0.99.4",
-      "status": "in-progress",
-      "base": "6d3ed775d6537bb6944f81fdbbbe96ee55de8551",
-      "scope": "Hero and Omen compatibility. A fresh random run filters the unlocked eligible Omen pool before the single deterministic draw so the Apothecary never opens under Blood Moon, whose healing, regeneration, and lifesteal lockout nullifies the entire heal kit. No redraw loop and no extra rng draw, so every other hero and Omen selection stays byte-identical; explicit replay overrides, active or historical Apothecary plus Blood Moon runs, and the simulator's explicit Apothecary plus Blood Moon negative-control cell are all preserved. No combat, difficulty constant, src/data.js, targeting, economy, map, or save change.",
-      "files": [
-        "package.json",
-        "src/unlock-profile.js",
-        "src/ui.js",
-        "tests/unlock-omen.test.js",
-        "tests/route-sim.test.js"
-      ]
-    }
-  ],
+  "reservations": [],
   "launchL2Base": {
     "productBaseline": "6d3ed775d6537bb6944f81fdbbbe96ee55de8551",
     "reconciledOn": "2026-07-18",
@@ -105,6 +86,21 @@
       "smokeVerification": "robbie-platosd-long-moneylender-2026-07-18",
       "verification": "Claude re-verified after cherry-pick: npm test 523 of 523; npm run build green; Playwright route-decisions recovery 2 of 2 and inherited resume matrix 34 of 34 across both viewports. Codex reported the same on its worktree. Robbie's on-device smoke passed: full playthrough Long mode with Moneylender+Charter, reached district 6, lost to Ifrit after 4 retries, all checkpoint and decision transactions settled exactly once. The seam changes no engine, data, map, or route-persistence file, so there is no combat, balance, or targeting change.",
       "scope": "Behavior-preserving route decision transaction seam (src/route-decisions.js): a durable receipt freezes offers before display; commitRouteDecision validates before mutation, applies payment or reward, records the metric, advances the route, and marks the receipt in one synchronous transaction, with a duplicate guard for exact-once settlement across reload."
+    },
+    {
+      "version": "0.99.4",
+      "project": "Launch L2",
+      "token": "launch-calibrated-challenge",
+      "owner": "claude",
+      "branch": "launch-calibrated-challenge-0.99.4",
+      "worktree": "C:/tmp/bazaar-brawler-l2-0.99.4",
+      "status": "done",
+      "base": "e21a652",
+      "productBaseline": "6d3ed775d6537bb6944f81fdbbbe96ee55de8551",
+      "sourceCommit": "c1679666831698019044e1fc1611f273ca2376d7",
+      "integrationCommit": "f4a91f609f12f1de930627ec7d6de8563ce1c5dc",
+      "verification": "Verified on the dedicated worktree then re-verified after cherry-pick onto launch-safe-ground. Focused tests (node --test tests/unlock-omen.test.js tests/route-sim.test.js) 20 of 20, including six new: five in unlock-omen (compatibleOmenPool shape; a fresh Apothecary run never rolls Blood Moon at full unlock while the rest of the pool stays reachable; non-Apothecary fresh runs byte-identical to the pre-0.99.4 roll and Blood Moon still reachable; the exclusion consumes no rng so the cat shuffle stream is unchanged; a replay preserves an Apothecary plus Blood Moon run) and one negative-control guard in route-sim (Apothecary plus Blood Moon still constructible by explicit omenId). Full npm test 529 of 529 (523 baseline plus 6). npm run build green on vite 6.4.3 (814 modules). The change touches only the fresh run-start Omen draw and a pure helper, so combat parity goldens and every existing determinism pin hold unchanged.",
+      "scope": "Hero and Omen compatibility. compatibleOmenPool (pure, in src/unlock-profile.js, with the data block OMEN_HERO_INCOMPAT={apoth:['moon']}) drops a hero's incompatible Omens from the already-eligible pool in place order, skipping the drop when it would empty the pool. newRoute filters the unlocked eligible pool with it BEFORE the single deterministic draw, on the fresh run-start path only. No redraw loop and no extra rng draw: the draw still spends one rng() call, so every unaffected hero and Omen selection and the following shuffle stream are byte-identical. Explicit replay overrides keep the full unlocked pool and their recorded Omen overrides the roll; restored active runs never touch this draw; the simulator builds cells by explicit omenId, so Apothecary plus Blood Moon stays a negative-control cell. No combat, difficulty constant, src/data.js, targeting, economy, map, or save change."
     }
   ],
   "decisions": {
