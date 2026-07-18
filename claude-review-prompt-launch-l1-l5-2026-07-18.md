@@ -1,12 +1,23 @@
-# Claude Code prompt: Launch R8 through Launch R12 acceptance review
+# Claude Code prompt: Launch L1 through Launch L5 acceptance review
 
 You are the independent acceptance reviewer for the next five high-level Tavern Bash launch projects.
 
 Repository: `C:\Robbie\bazaar-brawler`
 
-Candidate roadmap: `roadmap-launch-r8-r12-2026-07-18.md`
+Candidate roadmap: `roadmap-launch-l1-l5-2026-07-18.md`
 
 Baseline ruling: `codex-adversary-review-2026-07-18.md`
+
+This is a frozen-target rereview after the prior verdict `ACCEPT WITH REQUIRED CHANGES` on commit `996224f`. The corrected candidate claims to resolve all six required roadmap changes:
+
+1. Collision-free `Launch L1` through `Launch L5` labels and named branch tokens replace `Launch R8` through `Launch R12`.
+2. 0.99.1 explicitly tracks and reduces `AGENTS.md`, reconciles live deployment truth, and adds internal subpart evidence.
+3. A program-level report-collection contract names owners, valid builds, a 21-day window, a conservative provisional gate, automatic reopen, and a full-cohort 1.0 requirement.
+4. The 2,400-seed all-Aspect gate is authoritative. The seven named repairs are the currently confirmed subset. A targeted `node scripts/variant-verify.mjs 2400 rats` trace measured shipped `rats_v2` at `+0.0` plain and `-1.1` gilded, inside band.
+5. 0.101.0 is explicitly framed as a curve-shape fix judged by monotonicity, Resolve distribution, and per-cell floors.
+6. 0.99.1 and 0.108.0 include internal checklists with separate evidence requirements.
+
+Verify every correction independently. Do not inherit the prior verdict or assume the recorded Rats trace is accurate.
 
 Your task is to source-verify the candidate roadmap, attack its assumptions, and return an explicit acceptance verdict. This is a read-only review. Acceptance authorizes later reservation and implementation only after Robbie approves it. It does not authorize implementation during this review.
 
@@ -24,7 +35,7 @@ Record `git status --short`, the current branch, `git rev-parse HEAD`, and `git 
 
 If the branch, HEAD, status text, worktree list, candidate-roadmap content, or any relied-on file hash changes during the review, stop and report a review-target collision. A pre-existing modified state that remains merely marked `M` is not enough: its content hash must also remain stable. Preserve and report any pre-existing untracked or modified files exactly as found.
 
-Do not begin any Launch R8 implementation.
+Do not begin any Launch L1 implementation.
 
 ## Required reading
 
@@ -32,7 +43,7 @@ Read these files before judging the roadmap:
 
 1. `AGENTS.md`
 2. `CLAUDE.md`
-3. `roadmap-launch-r8-r12-2026-07-18.md` in full
+3. `roadmap-launch-l1-l5-2026-07-18.md` in full
 4. `codex-adversary-review-2026-07-18.md` in full
 5. `codex-briefing-2026-07-18.md`
 6. `audit-2026-07-17.md`
@@ -66,14 +77,14 @@ Cite every material finding as `path:line`. Separate verified fact from inferenc
 
 Determine whether the candidate's project namespace is unambiguous.
 
-The repository already uses bare `R8` for the completed content phase in `handoff-bazaar-brawler-2026-07-13-R4.md`, current tests, source comments, and commit history. The candidate introduces the explicit names `Launch R8` through `Launch R12` while preserving historical content R8.
+The repository already uses bare `R8` for the completed content phase in `handoff-bazaar-brawler-2026-07-13-R4.md`, current tests, source comments, and commit history. The corrected candidate uses `Launch L1` through `Launch L5` and collision-free branch tokens while preserving historical content R8.
 
 Apply these rules:
 
 1. Unqualified reuse of bare `R8` through `R12` is a source-of-truth collision.
 2. Full acceptance requires an explicit namespace that cannot be confused with historical content R8 in reservations, handoffs, branches, or commits.
 3. Verify that the candidate never proposes renaming current R8 code or tests.
-4. If `Launch R8` is still too ambiguous for reliable project state, return `ACCEPT WITH REQUIRED CHANGES` and provide the exact replacement namespace.
+4. If `Launch L1` through `Launch L5` or their branch tokens remain ambiguous for reliable project state, return `ACCEPT WITH REQUIRED CHANGES` and provide the exact replacement namespace.
 5. If the duplicate meaning could cause an unsafe version reservation or implementation handoff, return `REJECT`.
 
 State the recommended canonical labels.
@@ -107,7 +118,7 @@ The roadmap contains exactly five distinct high-level projects. Each has a coher
 
 ### G2. Historical and current truth
 
-The roadmap resolves the historical R8 collision, uses the current GitHub Pages deployment path, does not schedule already completed simulator-branch rescue work, and does not rely on stale version, test-count, or Netlify claims.
+The roadmap resolves the historical R8 collision, uses the current GitHub Pages deployment path, explicitly reconciles the agent-loaded `AGENTS.md`, does not schedule already completed simulator-branch rescue work, and does not rely on stale version, test-count, or Netlify claims.
 
 ### G3. Complete reconciliation
 
@@ -134,6 +145,8 @@ Check at least:
 17. Native release preparation
 18. The 1.0 release gate
 
+Also verify the report-collection contract, the authoritative all-Aspect gate, the targeted `rats_v2` measurement, and the 0.99.1 and 0.108.0 internal checklists.
+
 ### G4. Dependency order
 
 Process isolation and active-run compatibility precede churn. Measurement prerequisites precede tuning. The difficulty worker's scope remains reserved. Merchant precedes scoped diagnostics. Tutorial follows the systems it teaches. Packaging follows the display-name decision.
@@ -154,7 +167,7 @@ Save migrations, content epochs, choices, payments, receipts, rewards, and reloa
 
 ### G8. Measurable acceptance
 
-Every project defines objective exit criteria, evidence sources, relevant sample sizes, failure thresholds, and a reopen or revert rule. Route simulation is not used to approve mechanics it labels proxy or blind. Cloud Ledger remains optional, private, offline-first, and non-blocking.
+Every project defines objective exit criteria, evidence sources, collection owners, valid instrumented builds, relevant sample sizes, failure thresholds, collection windows, and a reopen or revert rule. Any provisional gate is conservative, keeps collection open, and cannot substitute for the full 1.0 cohort. Route simulation is not used to approve mechanics it labels proxy or blind. Cloud Ledger remains optional, private, offline-first, and non-blocking.
 
 ### G9. Choice-equity continuity
 
@@ -183,7 +196,7 @@ The five-project sequence has a credible route to 1.0, including tutorial, devic
 
 ### G13. Execution start safety
 
-The roadmap states an exact condition under which Launch R8 may begin. Current missing tooling, dirty state, undecided authority, or an in-flight worker cannot be waved away.
+The roadmap states an exact condition under which Launch L1 may begin. Current missing tooling, dirty state, undecided authority, or an in-flight worker cannot be waved away.
 
 ## Ownership ruling
 
@@ -203,11 +216,11 @@ Base the recommendation on:
 4. Current reservations and collision risk
 5. Whether independent adversarial review is needed
 
-For Launch R8, answer directly:
+For Launch L1, answer directly:
 
 1. Should Claude lead and integrate it as proposed?
 2. Should Codex implement 0.99.3 as proposed?
-3. Would Codex be safer as the single Launch R8 owner?
+3. Would Codex be safer as the single Launch L1 owner?
 4. Is a prerequisite or Robbie decision required before either starts?
 5. What exact commit, worktree, tooling, and state condition makes it safe to begin?
 
@@ -241,18 +254,18 @@ Only an overall `ACCEPT` may authorize a reservation or implementation handoff. 
 
 Return the review in this order:
 
-1. `# Launch R8 through Launch R12 acceptance review`
+1. `# Launch L1 through Launch L5 acceptance review`
 2. `## Overall verdict`
 3. `## Frozen review target`
 4. `## Critical adversarial findings`
 5. `## Naming and history ruling`
 6. `## Source verification table`
 7. `## Reconciliation table`
-8. `## Launch R8 review`
-9. `## Launch R9 review`
-10. `## Launch R10 review`
-11. `## Launch R11 review`
-12. `## Launch R12 review`
+8. `## Launch L1 review`
+9. `## Launch L2 review`
+10. `## Launch L3 review`
+11. `## Launch L4 review`
+12. `## Launch L5 review`
 13. `## Cross-project collision matrix`
 14. `## Hard-gate scorecard`
 15. `## Exact required roadmap changes`
@@ -278,11 +291,11 @@ The reconciliation table maps every live road-to-1.0 version and killed or defer
 
 End with exactly one of these forms:
 
-`IMPLEMENTATION RULING: Claude may begin Launch R8 after <specific condition>.`
+`IMPLEMENTATION RULING: Claude may begin Launch L1 after <specific condition>.`
 
-`IMPLEMENTATION RULING: Codex should implement Launch R8; Claude should review at <specific gate>.`
+`IMPLEMENTATION RULING: Codex should implement Launch L1; Claude should review at <specific gate>.`
 
-`IMPLEMENTATION RULING: Do not begin Launch R8 until <specific blocker> is resolved.`
+`IMPLEMENTATION RULING: Do not begin Launch L1 until <specific blocker> is resolved.`
 
 ## Writing constraints
 
