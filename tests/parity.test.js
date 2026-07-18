@@ -5,7 +5,7 @@ import {createContext,runInContext} from 'node:vm';
 import {fileURLToPath} from 'node:url';
 import {dirname,join} from 'node:path';
 import * as engine from '../src/engine.js';
-import {ANONE,PERSONAS,ITEMS,MONSTERS,TRINKETS,ANOMALIES,RSTAT,RINTEG,COST} from '../src/data.js';
+import {ANONE,PERSONAS,ITEMS,MONSTERS,TRINKETS,ANOMALIES,RSTAT,RINTEG,COST,HEROES} from '../src/data.js';
 
 /* Load the original single-file game in a vm sandbox. Its boot is guarded on
    typeof document, so only the logic and the BB export run. */
@@ -88,6 +88,29 @@ const PAYOFF_WARES={
   march:{version:"0.97.0",batch:"payoff",acquisition:"shop"},
   round:{version:"0.97.0",batch:"payoff",acquisition:"shop"}
 };
+/* 0.99.0 signature wares. Two per hero, non-unique shop wares hero-gated by the
+   `sig` field at every grant pool (design-build-identity.md, Part A). Recorded
+   here on the R8_WARES/PAYOFF_WARES pattern so the new-item rule admits them as
+   fusible shop stock; each also pins its owning hero so a def can never drift to
+   another hero's pool. They never enter the Treasure pool (map.js excludes sig). */
+const SIGNATURE_WARES={
+  bellowsboy:{version:"0.99.0",hero:"kiln",acquisition:"shop"},
+  cindertithe:{version:"0.99.0",hero:"kiln",acquisition:"shop"},
+  attar:{version:"0.99.0",hero:"apoth",acquisition:"shop"},
+  quicksilver:{version:"0.99.0",hero:"apoth",acquisition:"shop"},
+  oilstone:{version:"0.99.0",hero:"knife",acquisition:"shop"},
+  headsmansfee:{version:"0.99.0",hero:"knife",acquisition:"shop"},
+  writ:{version:"0.99.0",hero:"lender",acquisition:"shop"},
+  maul:{version:"0.99.0",hero:"lender",acquisition:"shop"},
+  dartcase:{version:"0.99.0",hero:"venom",acquisition:"shop"},
+  alembic:{version:"0.99.0",hero:"venom",acquisition:"shop"},
+  plumbline:{version:"0.99.0",hero:"architect",acquisition:"shop"},
+  keystone:{version:"0.99.0",hero:"architect",acquisition:"shop"},
+  stiletto:{version:"0.99.0",hero:"silkblade",acquisition:"shop"},
+  loom:{version:"0.99.0",hero:"silkblade",acquisition:"shop"},
+  urn:{version:"0.99.0",hero:"ash",acquisition:"shop"},
+  bonechime:{version:"0.99.0",hero:"ash",acquisition:"shop"}
+};
 /* The 0.76.0 Omen rework is an approved replacement of all eight legacy
    anomaly modifiers plus four additions. Pin the complete rule payload here so
    no later data edit can silently turn a benefit or cost off. */
@@ -131,7 +154,7 @@ test('parity: data tables identical to the original outside the rebalance ledger
   }
   for(const k of Object.keys(ITEMS)){
     if(k in ORIG.ITEMS)continue;
-    const shopLedgered=(R8_WARES[k]&&R8_WARES[k].acquisition==='shop')||PAYOFF_WARES[k];
+    const shopLedgered=(R8_WARES[k]&&R8_WARES[k].acquisition==='shop')||PAYOFF_WARES[k]||SIGNATURE_WARES[k];
     if(shopLedgered)assert.equal(ITEMS[k].unique,undefined,'shop ware '+k+' must fuse');
     else assert.ok(ITEMS[k].unique,'new item '+k+' must be flagged unique or explicitly shop-ledgered');
   }
@@ -141,6 +164,21 @@ test('parity: data tables identical to the original outside the rebalance ledger
     assert.equal(ITEMS[id].unique,undefined,'payoff ware '+id+' is non-unique');
     assert.ok(Array.isArray(ITEMS[id].hooks)&&ITEMS[id].hooks.length>0,'payoff ware '+id+' rides combat hooks');
   }
+  /* every signature ware is ledgered, non-unique, shop-acquired, gated to a real
+     hero, and every hero owns exactly two; a missing or extra sig id fails here */
+  const sigInItems=Object.keys(ITEMS).filter(function(id){return ITEMS[id].sig;});
+  assert.deepEqual(sigInItems.sort(),Object.keys(SIGNATURE_WARES).sort(),
+    'every ITEMS sig ware has a SIGNATURE_WARES ledger entry and vice versa');
+  const sigByHero={};
+  for(const [id,entry] of Object.entries(SIGNATURE_WARES)){
+    assert.ok(ITEMS[id],'signature ware '+id+' exists');
+    assert.equal(ITEMS[id].acquisition,entry.acquisition,'signature ware '+id+' acquisition');
+    assert.equal(ITEMS[id].unique,undefined,'signature ware '+id+' is non-unique');
+    assert.equal(ITEMS[id].sig,entry.hero,'signature ware '+id+' is gated to '+entry.hero);
+    assert.ok(HEROES.some(function(h){return h.id===entry.hero;}),'signature ware '+id+' names a real hero');
+    sigByHero[entry.hero]=(sigByHero[entry.hero]||0)+1;
+  }
+  for(const h of HEROES)assert.equal(sigByHero[h.id],2,'hero '+h.id+' owns exactly two signature wares');
   for(const [id,entry] of Object.entries(R8_WARES)){
     assert.ok(ITEMS[id],'R8 ware '+id+' exists');
     assert.equal(ITEMS[id].acquisition,entry.acquisition,'R8 ware '+id+' acquisition');

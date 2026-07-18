@@ -80,7 +80,7 @@ export function treasureWareIds(districtId){
   const gate=TREASURE_GATE[districtId]||6;
   return Object.keys(ITEMS).filter(function(id){
     const item=ITEMS[id];
-    return gateOK(item.tier,gate)&&!item.inc&&(!item.unique||item.acquisition==='treasure');
+    return gateOK(item.tier,gate)&&!item.inc&&!item.sig&&(!item.unique||item.acquisition==='treasure');
   });
 }
 /* roll a face-up Treasure at map generation: the ware option carries a concrete

@@ -294,7 +294,114 @@ export const ITEMS={
    hooks:[{on:"afterActivate",when:[{test:"actorSideIsOwner"},{test:"actorNotSource"},{test:"actorCategory",value:"shield"}],actions:[
      {op:"shield",side:"owner",amount:{from:"sourceRarity",values:[1,2,3,4]}}
    ]}],
-   d:"Every shield activation in your stall raises 1 more."}
+   d:"Every shield activation in your stall raises 1 more."},
+ /* 0.99.0 signature wares (design-build-identity.md, Part A). Two per hero:
+    ordinary non-unique shop wares that fuse on the standard ladder, hero-gated
+    by the `sig` field at every grant pool so a signature never leaks to another
+    hero and never enters the Treasure pool. Every hook re-instruments a shipped
+    R8 skeleton; no engine verb is new. They are hero identity, not Almanac grind:
+    the sig field keeps them out of the unlock collection (see unlock-profile). */
+ /* Kilnkeeper (burn): the burn line's enabler and its threshold payoff. */
+ bellowsboy:{n:"Bellows Boy",size:1,tier:1,cat:"burn",cd:4,fx:{burn:2},sig:"kiln",acquisition:"shop",
+   hooks:[{on:"afterActivate",when:{test:"actorIsSource"},actions:[
+     {op:"haste",target:{side:"owner",category:"burn",active:true,excludeSelf:true},amount:{from:"sourceRarity",values:[0.3,0.45,0.7,1.0]}}
+   ]}],
+   d:"Apply 2 burn and pump 0.3 seconds into your leading burn ware."},
+ cindertithe:{n:"Cinder Tithe",size:2,tier:2,cat:"burn",cd:4.5,fx:{burn:3},sig:"kiln",acquisition:"shop",
+   hooks:[{on:"afterActivate",when:[{test:"actorIsSource"},{test:"statusAtLeast",side:"enemy",status:"burn",value:8}],actions:[
+     {op:"merchantHit",side:"enemy",amount:{from:"sourceRarity",values:[2,3,5,7]}}
+   ]}],
+   d:"Apply 3 burn. While the foe holds 8 or more burn, each activation also scorches the merchant for 2."},
+ /* Apothecary (heal): overheal into shield, and overheal into tempo. */
+ attar:{n:"Attar of Roses",size:1,tier:1,cat:"heal",cd:4,fx:{heal:8},sig:"apoth",acquisition:"shop",
+   hooks:[{on:"afterHeal",when:[{test:"actorIsSource"},{test:"contextAtLeast",key:"overheal",value:1}],actions:[
+     {op:"shield",side:"owner",amount:{from:"sourceRarity",values:[2,3,5,8]}}
+   ]}],
+   d:"Heal 8. Any drop wasted returns as 2 extra shield."},
+ quicksilver:{n:"Quicksilver Dose",size:2,tier:2,cat:"heal",cd:5,fx:{heal:16},sig:"apoth",acquisition:"shop",
+   hooks:[{on:"afterHeal",when:[{test:"actorIsSource"},{test:"contextAtLeast",key:"overheal",value:6}],actions:[
+     {op:"haste",targets:{side:"owner",active:true,excludeSelf:true},amount:{from:"sourceRarity",values:[0.2,0.3,0.45,0.7]}}
+   ]}],
+   d:"Heal 16. Overhealing by 6 or more quickens your whole stall 0.2 seconds."},
+ /* Knifegrinder (dmg): hone every blade, and a payment on every kill. */
+ oilstone:{n:"Grinder's Oilstone",size:1,tier:2,cat:"dmg",cd:4,fx:{dmg:5},sig:"knife",acquisition:"shop",
+   hooks:[
+     {on:"afterActivate",when:{test:"actorIsSource"},actions:[
+       {op:"itemStateSet",targets:{side:"owner",category:"dmg",active:true,excludeSelf:true},key:"honed",value:{from:"sourceRarity",values:[2,3,5,8]}}
+     ]},
+     {on:"beforeHit",allowDead:true,when:[{test:"actorSideIsOwner"},{test:"actorCategory",value:"dmg"},{test:"actorStateAtLeast",key:"honed",value:1}],actions:[
+       {op:"modifyContact",add:{from:"actorState",key:"honed"}},
+       {op:"itemStateReset",source:"actor",target:"actor",key:"honed"}
+     ]}
+   ],
+   d:"Deal 5. Hone every ready blade: its next strike hits 2 harder."},
+ headsmansfee:{n:"Headsman's Fee",size:2,tier:2,cat:"dmg",cd:5,fx:{dmg:14},sig:"knife",acquisition:"shop",
+   hooks:[{on:"afterHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"item"},{test:"destroyed"}],actions:[
+     {op:"haste",target:{side:"owner",category:"dmg",active:true},amount:{from:"sourceRarity",values:[0.5,0.7,1.0,1.5]}}
+   ]}],
+   d:"Deal 14. A killing blow on a ware pays your leading weapon 0.5 seconds."},
+ /* Moneylender (util): repossess weapons, or repossess shields. The Writ is a
+    pure repeatable disable (fx.disable, The Gavel precedent); the foreclosure
+    fallback the draft carried would need a lot-aware selector that does not
+    exist, so it is cut and the triple buys integrity instead. */
+ writ:{n:"Repossession Writ",size:2,tier:2,cat:"util",cd:6,fx:{disable:true},sig:"lender",integMul:1.4,acquisition:"shop",
+   d:"Auctions the foe's finest weapon out of the fight. Survives to seize again."},
+ maul:{n:"Foreclosure Maul",size:2,tier:2,cat:"util",cd:5,fx:{dmg:9},sig:"lender",acquisition:"shop",
+   hooks:[
+     {on:"beforeActivate",when:{test:"actorIsSource"},actions:[
+       {op:"removeShield",side:"enemy",amount:{from:"sourceRarity",values:[6,9,14,20]},store:"collateral"}
+     ]},
+     {on:"afterActivate",when:[{test:"actorIsSource"},{test:"stateAtLeast",key:"collateral",value:2}],actions:[
+       {op:"merchantHit",side:"enemy",amount:{from:"state",key:"collateral",divide:2,floor:true}},
+       {op:"stateReset",key:"collateral"}
+     ]}
+   ],
+   d:"Deal 9, seizing up to 6 enemy shield first as collateral: half of it lands on the merchant."},
+ /* Venom Broker (poison): the fastest applicator, and a break-fed cascade. */
+ dartcase:{n:"Lacquered Dartcase",size:1,tier:1,cat:"poison",cd:2.5,fx:{poison:1},sig:"venom",acquisition:"shop",
+   hooks:[{on:"afterActivate",when:[{test:"actorIsSource"},{test:"statusAtLeast",side:"enemy",status:"pois",value:6}],actions:[
+     {op:"haste",target:"self",amount:{from:"sourceRarity",values:[0.3,0.4,0.6,0.9]}}
+   ]}],
+   d:"Apply 1 poison. Once the foe's wares carry 6 or more between them, the darts come faster."},
+ alembic:{n:"Spillwright's Alembic",size:2,tier:2,cat:"poison",cd:5,fx:{poison:3},sig:"venom",acquisition:"shop",
+   hooks:[{on:"destroyed",when:{test:"eventSideIsEnemy"},actions:[
+     {op:"poison",targetSide:"enemy",amount:{from:"sourceRarity",values:[1,2,3,4]}}
+   ]}],
+   d:"Apply 3 poison. Every enemy ware that breaks feeds the alembic: 1 more poison on the foe."},
+ /* Brass Architect (shield): repoint the wounded, and tempo off absorption. */
+ plumbline:{n:"Plumb Line",size:1,tier:1,cat:"shield",cd:4,fx:{shield:6},sig:"architect",acquisition:"shop",
+   hooks:[{on:"afterActivate",when:{test:"actorIsSource"},actions:[
+     {op:"repair",target:{side:"owner",position:"lowestIntegrity",excludeSelf:true},amount:{from:"sourceRarity",values:[3,4,6,9]}}
+   ]}],
+   d:"Gain 6 shield and repoint the most battered ware for 3 Integrity."},
+ keystone:{n:"Keystone Course",size:2,tier:2,cat:"shield",cd:5,fx:{shield:12},sig:"architect",acquisition:"shop",
+   hooks:[{on:"afterHit",oncePerMs:1000,when:[{test:"eventSideIsOwner"},{test:"contextAtLeast",key:"shieldAbsorbed",value:1}],actions:[
+     {op:"haste",targets:{side:"owner",category:"shield",active:true},amount:{from:"sourceRarity",values:[0.2,0.3,0.45,0.7]}}
+   ]}],
+   d:"Gain 12 shield. Once a second, absorbing a blow sets your shield wares 0.2 ahead."},
+ /* Silkblade (dmg): the crit-carry stiletto, and a board-wide loom. */
+ stiletto:{n:"Silk Stiletto",size:1,tier:2,cat:"dmg",cd:1.8,fx:{dmg:6},sig:"silkblade",acquisition:"shop",
+   hooks:[{on:"afterHit",when:[{test:"actorIsSource"},{test:"contactKind",value:"item"},{test:"destroyed"},{test:"contextAtLeast",key:"overkill",value:1}],actions:[
+     {op:"merchantHit",side:"enemy",amount:{from:"context",key:"overkill",multiply:0.5,round:true}}
+   ]}],
+   d:"Deal 6, faster than anything in the souk. Overkill on a broken ware carries half through to the merchant."},
+ loom:{n:"Loom of Moments",size:2,tier:2,cat:"dmg",cd:5.5,fx:{dmg:10},sig:"silkblade",acquisition:"shop",
+   hooks:[{on:"afterActivate",when:{test:"actorIsSource"},actions:[
+     {op:"haste",targets:{side:"owner",category:"dmg",active:true,excludeSelf:true},amount:{from:"sourceRarity",values:[0.2,0.3,0.45,0.7]}}
+   ]}],
+   d:"Deal 10 and set every other blade 0.2 ahead."},
+ /* Ash Collector (util): a bulwark that spawns on death, and a rattle chorus.
+    His One True Funeral makes duplicate rattles dead weight, so fusion is rule
+    compliance: three urns become one whose single funeral still double-spawns. */
+ urn:{n:"Funerary Urn",size:2,tier:2,cat:"util",cd:0,bulwark:true,integMul:1.6,fx:{},sig:"ash",acquisition:"shop",
+   rattle:{spawn:{nm:"Risen Ash",g:"g-risenash",cd:2.5,integ:18,fx:{dmg:8}}},
+   d:"Bulwark. It guards everything, and when it shatters, something walks out of the ash."},
+ bonechime:{n:"Bone Chime",size:1,tier:2,cat:"util",cd:0,fx:{},sig:"ash",acquisition:"shop",
+   rattle:{hasteMates:0.2},
+   hooks:[{on:"destroyed",when:[{test:"eventSideIsOwner"},{test:"victimNotSource"},{test:"victimHasRattle"}],actions:[
+     {op:"haste",targets:{side:"owner",active:true},amount:{from:"sourceRarity",values:[0.2,0.3,0.5,0.8]}}
+   ]}],
+   d:"When it breaks, the survivors rage a little. When any other keepsake breaks, the whole stall hurries 0.2."}
 };
 /* ============ HEROES ============ */
 /* Picked at run start. The personal tag weights your shop like a lobby

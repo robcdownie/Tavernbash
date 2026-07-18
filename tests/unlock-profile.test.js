@@ -25,7 +25,9 @@ function rec(over){
 const fusion=(id,rarity)=>({type:'fusion',data:{id,rarity}});
 
 test('the starter and locked lists reconcile with the real route shop pool',()=>{
-  const fullPool=Object.keys(ITEMS).filter(id=>gateOK(ITEMS[id].tier,6)&&!ITEMS[id].unique&&!ITEMS[id].inc).sort();
+  /* signature wares are hero-gated identity, not part of the starter/locked shop
+     accounting (they never seal), so the reconcile pool excludes them */
+  const fullPool=Object.keys(ITEMS).filter(id=>gateOK(ITEMS[id].tier,6)&&!ITEMS[id].unique&&!ITEMS[id].sig&&!ITEMS[id].inc).sort();
   const combined=STARTER_SHOP_WARES.concat(LOCKED_START_WARES).sort();
   assert.deepEqual(combined,fullPool,'starter 24 + locked 11 must equal the full non-unique non-inc shop pool');
   assert.equal(STARTER_SHOP_WARES.length,24);

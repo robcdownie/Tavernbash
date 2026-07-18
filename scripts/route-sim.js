@@ -82,7 +82,7 @@ const COPIES_FOR = [1, 3, 6, 12];
    pre-knob behavior. */
 export function boardPool(tier, cfg) {
   const starter = cfg && cfg.warePool === 'starter' ? new Set(starterShopIds()) : null;
-  return Object.keys(ITEMS).filter(id => gateOK(ITEMS[id].tier, tier) && !ITEMS[id].unique && !ITEMS[id].inc && (!starter || starter.has(id)));
+  return Object.keys(ITEMS).filter(id => gateOK(ITEMS[id].tier, tier) && !ITEMS[id].unique && !ITEMS[id].sig && !ITEMS[id].inc && (!starter || starter.has(id)));
 }
 export function buildBoard(tier, budget, rng, persona, cfg) {
   const slots = 4 + tier;

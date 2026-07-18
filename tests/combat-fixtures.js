@@ -263,4 +263,149 @@ export const FIXTURES = [
         fi({nm:'Bulwarker', cat:'shield', cd:1000, fx:{shield:10}})
       ]),
       b:side([ fi({nm:'Wall', cd:9e9, integ:100}) ]) } },
+
+  /* 0.99.0 signature wares. Each pins its signature hook (or its rattle/disable)
+     against a constructed fight, riding the shipped ITEMS hooks so a retune moves
+     the golden on purpose. Bronze rarity throughout, so from:sourceRarity reads
+     the first value of each array. */
+  /* Kilnkeeper. Bellows Boy pumps its leading OTHER burn ware on activation. */
+  { name:'sig-bellowsboy-pumps-burn',
+    dts:[4000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([
+        fi({nm:'Bellows', cat:'burn', cd:4000, fx:{burn:2}, hooks:ITEMS.bellowsboy.hooks}),
+        fi({nm:'Ember', cat:'burn', cd:9e9, integ:100, fx:{burn:1}})
+      ]),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:100}) ]) } },
+  /* Cinder Tithe scorches the merchant only once the foe holds 8+ burn. */
+  { name:'sig-cindertithe-scorch-at-8',
+    dts:[4500],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([ fi({nm:'Tithe', cat:'burn', size:2, cd:4500, fx:{burn:3}, hooks:ITEMS.cindertithe.hooks}) ]),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:200}) ], {hp:200}) },
+    setup:F=>{ F.b.burn=8; } },
+  /* Apothecary. Attar turns wasted healing into shield. */
+  { name:'sig-attar-overheal-to-shield',
+    dts:[4000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([ fi({nm:'Attar', cat:'heal', cd:4000, fx:{heal:8}, hooks:ITEMS.attar.hooks}) ], {hp:97}),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:100}) ]) } },
+  /* Quicksilver Dose quickens the stall when it overheals by 6 or more. */
+  { name:'sig-quicksilver-overheal-haste',
+    dts:[5000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([
+        fi({nm:'Dose', cat:'heal', size:2, cd:5000, fx:{heal:16}, hooks:ITEMS.quicksilver.hooks}),
+        fi({nm:'Blade', cat:'dmg', cd:9e9, integ:100, fx:{dmg:5}})
+      ], {hp:95}),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:100}) ]) } },
+  /* Knifegrinder. The Oilstone hones EVERY ready blade; each pays honed once. */
+  { name:'sig-oilstone-hones-all-blades',
+    dts:[2000, 2000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([
+        fi({nm:'Oilstone', cat:'dmg', cd:2000, fx:{dmg:5}, hooks:ITEMS.oilstone.hooks}),
+        fi({nm:'BladeL', cat:'dmg', cd:4000, integ:100, fx:{dmg:5}}),
+        fi({nm:'BladeR', cat:'dmg', cd:4000, integ:100, fx:{dmg:5}})
+      ]),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:200}) ], {hp:200}) } },
+  /* Headsman's Fee pays its leading weapon on a killing blow. */
+  { name:'sig-headsmansfee-kill-haste',
+    dts:[5000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([ fi({nm:'Fee', cat:'dmg', size:2, cd:5000, fx:{dmg:14}, hooks:ITEMS.headsmansfee.hooks}) ]),
+      b:side([ fi({nm:'Fragile', cd:9e9, integ:5}) ]) } },
+  /* Moneylender. The Writ auctions the finest enemy weapon each activation, and
+     survives to seize the next (highest fx.dmg first, excluding standing lots). */
+  { name:'sig-writ-auctions-successive',
+    dts:[6000, 6000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([ fi({nm:'Writ', cat:'util', size:2, cd:6000, integ:100, fx:{disable:true}}) ]),
+      b:side([
+        fi({nm:'Big', cat:'dmg', cd:9e9, integ:100, fx:{dmg:20}}),
+        fi({nm:'Small', cat:'dmg', cd:9e9, integ:100, fx:{dmg:10}})
+      ], {hp:200}) } },
+  /* Foreclosure Maul seizes enemy shield as collateral and lands half on the
+     merchant. */
+  { name:'sig-maul-collateral-to-merchant',
+    dts:[5000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([ fi({nm:'Maul', cat:'util', size:2, cd:5000, fx:{dmg:9}, hooks:ITEMS.maul.hooks}) ]),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:200}) ], {hp:100}) },
+    setup:F=>{ F.b.shield=6; } },
+  /* Venom Broker. The Dartcase quickens itself once the foe carries 6+ poison. */
+  { name:'sig-dartcase-fast-at-6',
+    dts:[2500, 2500],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([ fi({nm:'Dartcase', cat:'poison', cd:2500, fx:{poison:1}, hooks:ITEMS.dartcase.hooks}) ]),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:100}) ], {hp:100}) },
+    setup:F=>{ F.b.pois=6; } },
+  /* Spillwright's Alembic feeds on enemy destruction: each break adds 1 poison. */
+  { name:'sig-alembic-feeds-on-break',
+    dts:[2000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([
+        fi({nm:'Alembic', cat:'poison', size:2, cd:9e9, fx:{poison:3}, hooks:ITEMS.alembic.hooks}),
+        fi({nm:'Killer', cat:'dmg', cd:2000, integ:100, fx:{dmg:50}})
+      ]),
+      b:side([
+        fi({nm:'Fragile', cd:9e9, integ:5}),
+        fi({nm:'Wall', cd:9e9, integ:200})
+      ], {hp:200}) } },
+  /* Brass Architect. The Plumb Line repoints the most battered OTHER ware. */
+  { name:'sig-plumbline-repairs-lowest',
+    dts:[4000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([
+        fi({nm:'PlumbLine', cat:'shield', cd:4000, fx:{shield:6}, hooks:ITEMS.plumbline.hooks}),
+        fi({nm:'Wounded', cat:'shield', cd:9e9, integ:5, maxI:20, fx:{shield:1}})
+      ]),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:100}) ]) } },
+  /* Keystone Course quickens the shield wares when a blow is absorbed (flyers
+     force the strike onto the shielded merchant). */
+  { name:'sig-keystone-absorb-haste',
+    dts:[2000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([
+        fi({nm:'Keystone', cat:'shield', size:2, cd:5000, flying:true, fx:{shield:12}, hooks:ITEMS.keystone.hooks}),
+        fi({nm:'Guard', cat:'shield', cd:9e9, flying:true, fx:{shield:5}})
+      ]),
+      b:side([ fi({nm:'Hitter', cat:'dmg', cd:2000, integ:100, fx:{dmg:8}}) ]) },
+    setup:F=>{ F.a.shield=20; } },
+  /* Silkblade. The Stiletto carries half its overkill through to the merchant. */
+  { name:'sig-stiletto-overkill-carry',
+    dts:[1800],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([ fi({nm:'Stiletto', cat:'dmg', cd:1800, fx:{dmg:6}, hooks:ITEMS.stiletto.hooks}) ]),
+      b:side([
+        fi({nm:'Fragile', cd:9e9, integ:2}),
+        fi({nm:'Wall', cd:9e9, integ:200})
+      ], {hp:200}) } },
+  /* Loom of Moments sets every OTHER blade ahead on activation. */
+  { name:'sig-loom-hastes-blades',
+    dts:[5500],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([
+        fi({nm:'Loom', cat:'dmg', size:2, cd:5500, fx:{dmg:10}, hooks:ITEMS.loom.hooks}),
+        fi({nm:'Blade', cat:'dmg', cd:9e9, integ:100, fx:{dmg:5}})
+      ]),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:200}) ]) } },
+  /* Ash Collector. The bulwark Urn takes the blow and, when it shatters, a Risen
+     Ash walks out in its slot and strikes. */
+  { name:'sig-urn-spawns-risen-ash',
+    dts:[1000, 2500],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([ fi({nm:'Urn', cat:'util', size:2, cd:0, bulwark:true, integ:10, maxI:10, fx:{}, rattle:ITEMS.urn.rattle}) ]),
+      b:side([ fi({nm:'Hitter', cat:'dmg', cd:1000, integ:100, fx:{dmg:20}}) ]) } },
+  /* Bone Chime hurries the whole stall when any OTHER keepsake (a ware with a
+     rattle) breaks; its own death does not fire its own hook. */
+  { name:'sig-bonechime-hastes-on-keepsake-death',
+    dts:[1000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([
+        fi({nm:'Keepsake', cat:'util', cd:0, integ:5, fx:{}, rattle:{hasteMates:0.1}}),
+        fi({nm:'Chime', cat:'util', cd:0, integ:100, fx:{}, rattle:ITEMS.bonechime.rattle, hooks:ITEMS.bonechime.hooks}),
+        fi({nm:'Spare', cat:'dmg', cd:9e9, integ:100, fx:{dmg:1}})
+      ]),
+      b:side([ fi({nm:'Hitter', cat:'dmg', cd:1000, integ:100, fx:{dmg:20}}) ]) } },
 ];

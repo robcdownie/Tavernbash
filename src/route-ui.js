@@ -188,7 +188,7 @@ function grantFreeWare(rng,fixedId){
   rng=rng||G.rng;
   let id=fixedId;
   if(!id){
-    const ids=Object.keys(ITEMS).filter(function(x){return gateOK(ITEMS[x].tier,G.tier)&&!ITEMS[x].unique&&!ITEMS[x].inc;});
+    const ids=Object.keys(ITEMS).filter(function(x){return gateOK(ITEMS[x].tier,G.tier)&&!ITEMS[x].unique&&(!ITEMS[x].sig||ITEMS[x].sig===G.hero)&&!ITEMS[x].inc;});
     if(!ids.length){G.gold+=4;toast('No ware fits. 4 gold instead.');return;}
     id=ids[Math.floor(rng()*ids.length)];
   }
@@ -936,7 +936,7 @@ export function openRunHistory(startTab){
   function discoveryCatalog(){
     if(discovery==='heroes')return HEROES.map(function(x){return {id:x.id,n:x.n,g:x.g};});
     if(discovery==='omens')return ANOMALIES.map(function(x){return {id:x.id,n:x.n,g:x.g};});
-    if(discovery==='wares')return Object.keys(ITEMS).filter(function(id){return !ITEMS[id].inc;})
+    if(discovery==='wares')return Object.keys(ITEMS).filter(function(id){return !ITEMS[id].inc&&!ITEMS[id].sig;})
       .map(function(id){return {id:id,n:ITEMS[id].n,g:'g-'+id};});
     /* Aspects share their base creature's Almanac tile; filter them so the
        monster catalog lists the 23 creatures, not their board variants */

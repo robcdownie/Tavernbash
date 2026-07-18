@@ -2189,5 +2189,1587 @@
     "val": 11
    }
   ]
+ },
+ "sig-bellowsboy-pumps-burn": {
+  "done": false,
+  "winner": null,
+  "t": 4000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Bellows",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 4000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Ember",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 4300,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 97,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 4000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 4000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "burn"
+   },
+   {
+    "t": 4000,
+    "k": "burn",
+    "side": "b",
+    "amt": 2,
+    "val": 2
+   },
+   {
+    "t": 4000,
+    "k": "haste",
+    "side": "a",
+    "i": 1
+   },
+   {
+    "t": 4000,
+    "k": "tickb",
+    "side": "b",
+    "amt": 2
+   },
+   {
+    "t": 4000,
+    "k": "tickb",
+    "side": "b",
+    "amt": 1
+   }
+  ]
+ },
+ "sig-cindertithe-scorch-at-8": {
+  "done": false,
+  "winner": null,
+  "t": 4500,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Tithe",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 4500,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 177,
+    "maxHp": 200,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 200,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 4500,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 4500,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "burn"
+   },
+   {
+    "t": 4500,
+    "k": "burn",
+    "side": "b",
+    "amt": 3,
+    "val": 11
+   },
+   {
+    "t": 4500,
+    "k": "hhit",
+    "side": "b",
+    "amt": 2,
+    "abs": 0
+   },
+   {
+    "t": 4500,
+    "k": "tickb",
+    "side": "b",
+    "amt": 11
+   },
+   {
+    "t": 4500,
+    "k": "tickb",
+    "side": "b",
+    "amt": 6
+   },
+   {
+    "t": 4500,
+    "k": "tickb",
+    "side": "b",
+    "amt": 3
+   },
+   {
+    "t": 4500,
+    "k": "tickb",
+    "side": "b",
+    "amt": 1
+   }
+  ]
+ },
+ "sig-attar-overheal-to-shield": {
+  "done": false,
+  "winner": null,
+  "t": 4000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 97,
+    "maxHp": 97,
+    "shield": 2,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Attar",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 4000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 4000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 4000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "heal"
+   },
+   {
+    "t": 4000,
+    "k": "heal",
+    "side": "a",
+    "amt": 0
+   },
+   {
+    "t": 4000,
+    "k": "shield",
+    "side": "a",
+    "amt": 2,
+    "val": 2
+   }
+  ]
+ },
+ "sig-quicksilver-overheal-haste": {
+  "done": false,
+  "winner": null,
+  "t": 5000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 95,
+    "maxHp": 95,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Dose",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 5000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Blade",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 5200,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 5000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 5000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "heal"
+   },
+   {
+    "t": 5000,
+    "k": "heal",
+    "side": "a",
+    "amt": 0
+   },
+   {
+    "t": 5000,
+    "k": "haste",
+    "side": "a",
+    "i": 1
+   }
+  ]
+ },
+ "sig-oilstone-hones-all-blades": {
+  "done": false,
+  "winner": null,
+  "t": 4000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Oilstone",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 2000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "BladeL",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 4000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "BladeR",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 4000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 200,
+    "maxHp": 200,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 176,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 4000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 2000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 2000,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 5,
+    "integ": 195
+   },
+   {
+    "t": 4000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 4000,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 5,
+    "integ": 190
+   },
+   {
+    "t": 4000,
+    "k": "fire",
+    "side": "a",
+    "i": 1,
+    "cat": "dmg"
+   },
+   {
+    "t": 4000,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 7,
+    "integ": 183
+   },
+   {
+    "t": 4000,
+    "k": "fire",
+    "side": "a",
+    "i": 2,
+    "cat": "dmg"
+   },
+   {
+    "t": 4000,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 7,
+    "integ": 176
+   }
+  ]
+ },
+ "sig-headsmansfee-kill-haste": {
+  "done": false,
+  "winner": null,
+  "t": 5000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Fee",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 5000,
+      "timer": 500,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 95,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Fragile",
+      "alive": false,
+      "integ": 0,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 5000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 5000,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 5,
+    "integ": 0
+   },
+   {
+    "t": 5000,
+    "k": "destroy",
+    "side": "b",
+    "i": 0,
+    "nm": "Fragile"
+   },
+   {
+    "t": 5000,
+    "k": "haste",
+    "side": "a",
+    "i": 0
+   },
+   {
+    "t": 5000,
+    "k": "hhit",
+    "side": "b",
+    "amt": 5,
+    "abs": 0
+   }
+  ]
+ },
+ "sig-writ-auctions-successive": {
+  "done": false,
+  "winner": null,
+  "t": 12000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Writ",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 6000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 200,
+    "maxHp": 200,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Big",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": true
+     },
+     {
+      "nm": "Small",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 6000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": true
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 6000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "util"
+   },
+   {
+    "t": 6000,
+    "k": "lot",
+    "side": "b",
+    "i": 0,
+    "nm": "Big"
+   },
+   {
+    "t": 12000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "util"
+   },
+   {
+    "t": 12000,
+    "k": "lot",
+    "side": "b",
+    "i": 1,
+    "nm": "Small"
+   }
+  ]
+ },
+ "sig-maul-collateral-to-merchant": {
+  "done": false,
+  "winner": null,
+  "t": 5000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Maul",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 5000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 97,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 191,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 5000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 5000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "util"
+   },
+   {
+    "t": 5000,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 9,
+    "integ": 191
+   },
+   {
+    "t": 5000,
+    "k": "hhit",
+    "side": "b",
+    "amt": 3,
+    "abs": 0
+   }
+  ]
+ },
+ "sig-dartcase-fast-at-6": {
+  "done": false,
+  "winner": null,
+  "t": 5000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Dartcase",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 2500,
+      "timer": 300,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 76,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 2,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 5000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 2500,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "poison"
+   },
+   {
+    "t": 2500,
+    "k": "pois",
+    "side": "b",
+    "amt": 1,
+    "val": 7
+   },
+   {
+    "t": 2500,
+    "k": "haste",
+    "side": "a",
+    "i": 0
+   },
+   {
+    "t": 2500,
+    "k": "tickp",
+    "side": "b",
+    "amt": 7
+   },
+   {
+    "t": 2500,
+    "k": "tickp",
+    "side": "b",
+    "amt": 5
+   },
+   {
+    "t": 5000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "poison"
+   },
+   {
+    "t": 5000,
+    "k": "pois",
+    "side": "b",
+    "amt": 1,
+    "val": 5
+   },
+   {
+    "t": 5000,
+    "k": "tickp",
+    "side": "b",
+    "amt": 5
+   },
+   {
+    "t": 5000,
+    "k": "tickp",
+    "side": "b",
+    "amt": 4
+   },
+   {
+    "t": 5000,
+    "k": "tickp",
+    "side": "b",
+    "amt": 3
+   }
+  ]
+ },
+ "sig-alembic-feeds-on-break": {
+  "done": false,
+  "winner": null,
+  "t": 2000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Alembic",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 2000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Killer",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 2000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 199,
+    "maxHp": 200,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Fragile",
+      "alive": false,
+      "integ": 0,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 200,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 2000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 2000,
+    "k": "fire",
+    "side": "a",
+    "i": 1,
+    "cat": "dmg"
+   },
+   {
+    "t": 2000,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 5,
+    "integ": 0
+   },
+   {
+    "t": 2000,
+    "k": "destroy",
+    "side": "b",
+    "i": 0,
+    "nm": "Fragile"
+   },
+   {
+    "t": 2000,
+    "k": "pois",
+    "side": "b",
+    "amt": 1,
+    "val": 1
+   },
+   {
+    "t": 2000,
+    "k": "tickp",
+    "side": "b",
+    "amt": 1
+   }
+  ]
+ },
+ "sig-plumbline-repairs-lowest": {
+  "done": false,
+  "winner": null,
+  "t": 4000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 6,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "PlumbLine",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 4000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Wounded",
+      "alive": true,
+      "integ": 8,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 4000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 4000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 4000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "shield"
+   },
+   {
+    "t": 4000,
+    "k": "shield",
+    "side": "a",
+    "amt": 6,
+    "val": 6
+   },
+   {
+    "t": 4000,
+    "k": "chip",
+    "side": "a",
+    "i": 1,
+    "amt": -3,
+    "integ": 8,
+    "repair": true
+   }
+  ]
+ },
+ "sig-keystone-absorb-haste": {
+  "done": false,
+  "winner": null,
+  "t": 2000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 12,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Keystone",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 5000,
+      "timer": 2200,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Guard",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 2200,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Hitter",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 2000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 2000,
+    "k": "fire",
+    "side": "b",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 2000,
+    "k": "hhit",
+    "side": "a",
+    "amt": 0,
+    "abs": 8
+   },
+   {
+    "t": 2000,
+    "k": "haste",
+    "side": "a",
+    "i": 0
+   },
+   {
+    "t": 2000,
+    "k": "haste",
+    "side": "a",
+    "i": 1
+   }
+  ]
+ },
+ "sig-stiletto-overkill-carry": {
+  "done": false,
+  "winner": null,
+  "t": 1800,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Stiletto",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 1800,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 198,
+    "maxHp": 200,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Fragile",
+      "alive": false,
+      "integ": 0,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 200,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 1800,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 1800,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 1800,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 2,
+    "integ": 0
+   },
+   {
+    "t": 1800,
+    "k": "destroy",
+    "side": "b",
+    "i": 0,
+    "nm": "Fragile"
+   },
+   {
+    "t": 1800,
+    "k": "hhit",
+    "side": "b",
+    "amt": 2,
+    "abs": 0
+   }
+  ]
+ },
+ "sig-loom-hastes-blades": {
+  "done": false,
+  "winner": null,
+  "t": 5500,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Loom",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 5500,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Blade",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 5700,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 190,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 5500,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 5500,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 5500,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 10,
+    "integ": 190
+   },
+   {
+    "t": 5500,
+    "k": "haste",
+    "side": "a",
+    "i": 1
+   }
+  ]
+ },
+ "sig-urn-spawns-risen-ash": {
+  "done": false,
+  "winner": null,
+  "t": 3500,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 80,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Risen Ash",
+      "alive": false,
+      "integ": 0,
+      "rarity": 0,
+      "cd": 2500,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Hitter",
+      "alive": true,
+      "integ": 92,
+      "rarity": 0,
+      "cd": 1000,
+      "timer": 500,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 1000,
+    "k": "fire",
+    "side": "b",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 1000,
+    "k": "chip",
+    "side": "a",
+    "i": 0,
+    "amt": 10,
+    "integ": 0
+   },
+   {
+    "t": 1000,
+    "k": "destroy",
+    "side": "a",
+    "i": 0,
+    "nm": "Urn"
+   },
+   {
+    "t": 1000,
+    "k": "spawn",
+    "side": "a",
+    "i": 0,
+    "nm": "Risen Ash",
+    "g": "g-risenash",
+    "integ": 18
+   },
+   {
+    "t": 3500,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 3500,
+    "k": "chip",
+    "side": "b",
+    "i": 0,
+    "amt": 8,
+    "integ": 92
+   },
+   {
+    "t": 3500,
+    "k": "fire",
+    "side": "b",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 3500,
+    "k": "chip",
+    "side": "a",
+    "i": 0,
+    "amt": 18,
+    "integ": 0
+   },
+   {
+    "t": 3500,
+    "k": "destroy",
+    "side": "a",
+    "i": 0,
+    "nm": "Risen Ash"
+   },
+   {
+    "t": 3500,
+    "k": "fire",
+    "side": "b",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 3500,
+    "k": "hhit",
+    "side": "a",
+    "amt": 20,
+    "abs": 0
+   }
+  ]
+ },
+ "sig-bonechime-hastes-on-keepsake-death": {
+  "done": false,
+  "winner": null,
+  "t": 1000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Keepsake",
+      "alive": false,
+      "integ": 0,
+      "rarity": 0,
+      "cd": 0,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Chime",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 0,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Spare",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 8100000000,
+      "timer": 1200,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Hitter",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 1000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 1000,
+    "k": "fire",
+    "side": "b",
+    "i": 0,
+    "cat": "dmg"
+   },
+   {
+    "t": 1000,
+    "k": "chip",
+    "side": "a",
+    "i": 0,
+    "amt": 5,
+    "integ": 0
+   },
+   {
+    "t": 1000,
+    "k": "destroy",
+    "side": "a",
+    "i": 0,
+    "nm": "Keepsake"
+   },
+   {
+    "t": 1000,
+    "k": "haste",
+    "side": "a",
+    "i": 2
+   },
+   {
+    "t": 1000,
+    "k": "enrage",
+    "side": "a",
+    "i": 2
+   }
+  ]
  }
 }

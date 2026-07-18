@@ -355,7 +355,7 @@ function renderDraft(){
 function campTopHTML(){
   const st=routeState();const node=nodeOf(routeMap(),st.pendingId);
   const M=MONSTERS[node.monId];
-  const camp=campEnsure(G.run,node,G.tier);
+  const camp=campEnsure(G.run,node,G.tier,G.hero);
   const credit=camp.credit||0;
   return '<div class="sec secmarket"><div class="label">Gate Camp<span class="side">'+esc(M.n)+' bars the gate</span></div>'
     +'<button class="campboss" id="campInspect">'+ic(M.glyph,'campbi')
@@ -651,7 +651,7 @@ function rollShop(){
   const n=Math.max(0,G.A.shopN-frozenKeep.length);
   /* income wares are dead in route mode (income() never runs), so keep them out
      of route shops until the approved rework gives them route semantics */
-  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique&&(G.mode!=='route'||!ITEMS[id].inc)&&runWareAllowed(store(),G.run,id);});
+  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique&&(!ITEMS[id].sig||ITEMS[id].sig===G.hero)&&(G.mode!=='route'||!ITEMS[id].inc)&&runWareAllowed(store(),G.run,id);});
   const hTag=heroOf()?heroOf().tag:null;
   const out=[];
   for(let k=0;k<n;k++){
@@ -1338,7 +1338,7 @@ function ensureOpeningOffense(){
   const OFF=['dmg','poison','burn'];
   const has=G.shop.some(function(w){return !w.bought&&OFF.indexOf(ITEMS[w.id].cat)>=0&&buyCost(ITEMS[w.id].size,!!w.ench)<=6;});
   if(has)return;
-  const pool=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,1)&&OFF.indexOf(ITEMS[id].cat)>=0&&ITEMS[id].size===1&&!ITEMS[id].unique&&!ITEMS[id].inc&&runWareAllowed(store(),G.run,id);});
+  const pool=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,1)&&OFF.indexOf(ITEMS[id].cat)>=0&&ITEMS[id].size===1&&!ITEMS[id].unique&&(!ITEMS[id].sig||ITEMS[id].sig===G.hero)&&!ITEMS[id].inc&&runWareAllowed(store(),G.run,id);});
   if(!pool.length)return;
   const id=pool[Math.floor(G.rng()*pool.length)];
   let idx=G.shop.findIndex(function(w){return !w.free&&!w.bought&&OFF.indexOf(ITEMS[w.id].cat)<0;});

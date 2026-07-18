@@ -273,6 +273,11 @@ export function omenUnlocked(storage,id){
 }
 export function wareUnlocked(storage,id){
   if(STARTER_SHOP_WARES.indexOf(id)>=0)return true;
+  /* signature wares are hero identity, not Almanac chase: they never seal and
+     never count toward the collection (see collectionTotal). The hero gate at
+     every grant pool is their sole visibility control, so a foreign hero never
+     sees one and the owning hero sees it from round one. */
+  if(ITEMS[id]&&ITEMS[id].sig)return true;
   if(devAllOpen(storage))return true;
   return readUnlockProfile(storage).wares.indexOf(id)>=0;
 }
@@ -479,18 +484,19 @@ export function almanacCounts(storage,kind,ids){
 }
 
 /* The collection is heroes plus omens plus the reachable wares. The two income
-   wares (purse, ledger) are excluded and unreachable, so the catalogue is 84,
-   not 86. Derived from data so it cannot drift if a descriptor is ever added. */
+   wares (purse, ledger) are excluded and unreachable, and the signature wares are
+   excluded too (they ride in with their hero, not the Almanac chase), so the
+   catalogue is derived from data and cannot drift when a descriptor is added. */
 export function collectionTotal(){
-  const wares=Object.keys(ITEMS).filter(function(id){return !ITEMS[id].inc;}).length;
+  const wares=Object.keys(ITEMS).filter(function(id){return !ITEMS[id].inc&&!ITEMS[id].sig;}).length;
   return HEROES.length+ANOMALIES.length+wares;
 }
-/* how many of the 84 the player holds right now (starters always count) */
+/* how many of the catalogue the player holds right now (starters always count) */
 export function collectionFound(storage){
   let n=0;
   HEROES.forEach(function(h){if(heroUnlocked(storage,h.id))n++;});
   ANOMALIES.forEach(function(a){if(omenUnlocked(storage,a.id))n++;});
-  Object.keys(ITEMS).forEach(function(id){if(!ITEMS[id].inc&&wareUnlocked(storage,id))n++;});
+  Object.keys(ITEMS).forEach(function(id){if(!ITEMS[id].inc&&!ITEMS[id].sig&&wareUnlocked(storage,id))n++;});
   return n;
 }
 

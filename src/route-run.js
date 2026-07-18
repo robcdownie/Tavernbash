@@ -99,11 +99,13 @@ export const CAMP_LAST_RESERVE = {resolve:6, maxCut:6, credit:6};
    offensive, one defensive/sustain, one synergy or forge-completer), rolled once
    and keyed by the run seed and the boss node so retries and reloads see the same
    three. Regenerated only when the gate changes. */
-export function campEnsure(run, node, tier){
+export function campEnsure(run, node, tier, heroId){
   if(run.camp && run.camp.nodeId === node.id) return run.camp;
   const rng = mulberry(fightSeed(run.seed, node.id, 'camp'));
   const board = run.economy.board || [];
-  const pool = Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,tier)&&!ITEMS[id].unique&&!ITEMS[id].inc;});
+  /* the Quartermaster is hero-threaded so a signature ware never rolls for a
+     hero it does not belong to (heroId flows from the caller's G.hero) */
+  const pool = Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,tier)&&!ITEMS[id].unique&&(!ITEMS[id].sig||ITEMS[id].sig===heroId)&&!ITEMS[id].inc;});
   const inCats = function(cats){return pool.filter(function(id){return cats.indexOf(ITEMS[id].cat)>=0;});};
   const off = inCats(['dmg','poison','burn']);
   const def = inCats(['shield','heal']);

@@ -21,7 +21,9 @@ function profileStore(over){
 
 const heroIds=HEROES.map(h=>h.id);
 const omenIds=ANOMALIES.map(a=>a.id);
-const wareIds=Object.keys(ITEMS).filter(id=>!ITEMS[id].inc);
+/* signature wares are hero identity, exempt from the Almanac collection (as income
+   wares are), so the catalogue counts exclude them the same way the source does */
+const wareIds=Object.keys(ITEMS).filter(id=>!ITEMS[id].inc&&!ITEMS[id].sig);
 const uniqueIds=Object.keys(ITEMS).filter(id=>ITEMS[id].unique);
 const dashRe=new RegExp('['+String.fromCharCode(0x2013)+String.fromCharCode(0x2014)+']');
 
