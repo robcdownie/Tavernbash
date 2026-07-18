@@ -3,6 +3,7 @@
    two views of the same immutable run record. */
 import {ITEMS,ENCH,RNAME,HEROES,ANOMALIES,TRINKETS,CATN} from './data.js';
 import {serializeMetrics} from './route-metrics.js';
+import {districtAffix} from './aspects.js';
 
 export const RUN_REPORT_SCHEMA='tavern-bash-run/1';
 
@@ -19,6 +20,17 @@ function bossCount(route,map){
 function districtReached(route,map){
   const id=route.pendingId||(route.path&&route.path[route.path.length-1]);
   const n=id&&map.nodes[id];return n?n.district:1;
+}
+/* the variance the run's road wore: the board-Aspect and district-Affix stamps,
+   and the one affix word each non-Gate district drew (districtAffix returns null on
+   the Gate, so those drop out). Empty on a resumed pre-stamp run, which carries neither
+   flag and fights byte-identically. */
+function runVariance(run,map){
+  const route=run.route||{};
+  const affixes=(route.affix&&map&&map.districts)
+    ? map.districts.map(function(d){const a=districtAffix(d,run.seed>>>0);return a?{district:d.name,word:a.w}:null;}).filter(Boolean)
+    : [];
+  return {variety:!!route.variety,affix:!!route.affix,affixes:affixes};
 }
 function midpointTreasureOutcome(run){
   const receipts=run.receipts||{};
@@ -57,6 +69,7 @@ export function buildRunRecord(input){
       sessions:metrics.timing.sessions||0,reloads:metrics.timing.reloads||0,
       phases:clone(metrics.timing.phases||{}),districts:clone(metrics.timing.districts||{})},
     midpointTreasure:midpointTreasureOutcome(run),
+    variance:runVariance(run,map),
     debrief:clone(metrics.debrief||{}),metrics:metrics};
   return report;
 }
@@ -82,6 +95,10 @@ export function formatRunSummary(record){
       ?'Cleared '+record.progress.district+'.':'The caravan broke in '+record.progress.district+'.','',
     'Final board: '+(record.economy.board.length?record.economy.board.map(function(w){return w.rarityName+' '+(w.enchantName?w.enchantName+' ':'')+w.name;}).join(', '):'empty')];
   const top=topDamage(record);if(top.length){L.push('','Top attributed damage: '+top.map(function(x){return x.n+' '+Math.round(x.d);}).join(', '));}
+  const va=record.variance;if(va&&(va.variety||va.affix)){
+    const words=(va.affixes||[]).map(function(a){return a.word;});
+    L.push('','Variety '+(va.variety?'on':'off')+'. Affixes: '+(words.length?words.join(', '):'off')+'.');
+  }
   const mt=record.midpointTreasure;if(mt){
     L.push('','Midpoint Treasure offered: '+(mt.offered.length?mt.offered.map(function(w){return w.name;}).join(', '):'none'));
     if(mt.selected)L.push('Midpoint Treasure selected: '+mt.selected.name);

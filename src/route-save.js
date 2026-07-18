@@ -8,7 +8,7 @@ import {MAP_VERSION} from './map.js';
 import {newMetrics,serializeMetrics} from './route-metrics.js';
 import {ensureMidpointTreasure,midpointTreasureKey} from './route-runtime.js';
 
-export const ROUTE_SAVE_VERSION = 6;   /* v6: the run route carries the variety stamp */
+export const ROUTE_SAVE_VERSION = 7;   /* v7: the run route carries the affix stamp */
 export const ROUTE_KEY = 'bb-route-run';
 
 function highestId(list,key){
@@ -98,6 +98,17 @@ export function migrateV5toV6(d){
   return Object.assign({},d,{saveVersion:6,run:Object.assign({},d.run||{},{schemaVersion:6})});
 }
 
+/* v6 -> v7 marks the district-affix epoch. Like v5 -> v6 it adds no field: a
+   resumed pre-v7 run deliberately lacks run.route.affix, so the fight wiring builds
+   no affix cfg.hooks and every fight and scout stays byte-identical to what that run
+   scouted. Affixes do not bump the map version (genMap is untouched), so unlike the
+   map-retired transforms above a live v6 save resumes in place through this stamp
+   with affixes off; the bump keeps the schema tracking the new run.route stamp and
+   rejects stale shapes cleanly. */
+export function migrateV6toV7(d){
+  return Object.assign({},d,{saveVersion:7,run:Object.assign({},d.run||{},{schemaVersion:7})});
+}
+
 /* read, migrate, then version-gate. A save from a stale generator (mapVersion)
    is dropped regardless of format. A v1 save is migrated to v2 in memory. Any
    failure (bad JSON, a migration throw) falls back to null so restore starts a
@@ -119,6 +130,7 @@ export function readRouteSave(storage){
     if(d.saveVersion===3){d=migrateV3toV4(d);}
     if(d.saveVersion===4){d=migrateV4toV5(d);}
     if(d.saveVersion===5){d=migrateV5toV6(d);}
+    if(d.saveVersion===6){d=migrateV6toV7(d);}
     if(!d||d.saveVersion!==ROUTE_SAVE_VERSION){storage.removeItem(ROUTE_KEY);return null;}
     return d;
   }catch(e){return null;}

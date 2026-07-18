@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ROUTE_SAVE_VERSION, ROUTE_KEY, readRouteSave, writeRouteSave, clearRouteSave,
-  migrateV1toV2, migrateV2toV3, migrateV3toV4, migrateV4toV5, migrateV5toV6} from '../src/route-save.js';
+  migrateV1toV2, migrateV2toV3, migrateV3toV4, migrateV4toV5, migrateV5toV6, migrateV6toV7} from '../src/route-save.js';
 import {genMap, districtPaths, MAP_VERSION} from '../src/map.js';
 import {initRoute, transition, validRoute} from '../src/route.js';
 import {ITEMS} from '../src/data.js';
@@ -238,24 +238,40 @@ test('migrateV5toV6 marks the epoch without inventing a variety stamp',()=>{
   assert.deepEqual(v5,before,'migration does not mutate the v5 wire object');
 });
 
+test('migrateV6toV7 marks the epoch without inventing an affix stamp',()=>{
+  const route=initRoute(SEED);delete route.affix;   /* model a genuine pre-v7 save */
+  const v6=migrateV5toV6(migrateV4toV5(migrateV3toV4(v3env(route))));
+  assert.equal(v6.saveVersion,6);
+  assert.equal(v6.run.schemaVersion,6);
+  const before=JSON.parse(JSON.stringify(v6));
+  const v7=migrateV6toV7(v6);
+  assert.equal(v7.saveVersion,7);
+  assert.equal(v7.run.schemaVersion,7);
+  /* a resumed pre-v7 run deliberately has no affix stamp, so its fights build no
+     affix cfg.hooks and stay byte-identical to what it scouted */
+  assert.equal(v7.run.route.affix,undefined,'migration does not turn affixes on for old runs');
+  assert.deepEqual(v7.run.economy,v6.run.economy,'economy untouched');
+  assert.deepEqual(v6,before,'migration does not mutate the v6 wire object');
+});
+
 test('readRouteSave upgrades a stored 0.83 Long boundary save and preserves its exact offers',()=>{
   const s=fakeStorage(),v3=v3env(d3Boundary());v3.run.routeMode='long';
   writeRouteSave(s,v3);
   const loaded=readRouteSave(s),key=midpointTreasureKey('r-test');
-  assert.equal(loaded.saveVersion,6);
-  assert.equal(loaded.run.schemaVersion,6);
+  assert.equal(loaded.saveVersion,7);
+  assert.equal(loaded.run.schemaVersion,7);
   assert.equal(loaded.run.lantern,0,'a migrated save is a Lantern 0 run');
   assert.deepEqual(loaded.run.pendingChoice.options,loaded.run.receipts[key].offeredIds);
   assert.deepEqual(readRouteSave(s),loaded,'repeated reads reproduce the exact migrated offer set');
 });
 
-test('readRouteSave chains a stored v1 save through v6 on load', () => {
+test('readRouteSave chains a stored v1 save through v7 on load', () => {
   const s = fakeStorage();
   writeRouteSave(s, v1env(initRoute(SEED)));
   const loaded = readRouteSave(s);
   assert.ok(loaded, 'a v1 save loads');
-  assert.equal(loaded.saveVersion, 6, 'as v6');
-  assert.equal(loaded.run.schemaVersion,6);
+  assert.equal(loaded.saveVersion, 7, 'as v7');
+  assert.equal(loaded.run.schemaVersion,7);
   assert.equal(loaded.run.lantern,0);
   assert.equal(loaded.run.routeMode,'quick');
   assert.equal(loaded.run.metrics.partial,true);

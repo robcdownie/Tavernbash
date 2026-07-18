@@ -572,6 +572,49 @@ export const VARIANTS={
  ifrit:["ifrit_v1","ifrit_v2"],azhdaha:["azhdaha_v1","azhdaha_v2"],auctioneer:["auctioneer_v1","auctioneer_v2"],
  vizier:["vizier_v1","vizier_v2"]
 };
+/* District Affixes: one one-word rule per non-Gate district, drawn from that
+   district boss's theme, injected purely as engine cfg.hooks. Keyed by district
+   sourceId 1 to 3 (a Long reprise shares its source district's set, salted by
+   its own id so it draws independently). Each affix is {id, w, d, hooks}: w the
+   one player-facing word, d the scout sentence, hooks an array of R8 hook specs.
+   Every op appears in HOOK_ACTIONS (engine.js) and every on in COMBAT_HOOK_POINTS;
+   affix hooks are stamped side b (the monster), kind rule at wire time. The
+   amounts are literal on purpose, so gilding and Lantern power (which multiply
+   item fx at compile, never hook amounts) price the district ceiling while an
+   affix prices only its floor: the scout word reads exactly what the fight does.
+   Freeze is deliberately absent from every affix because it is not a hook op. */
+export const AFFIXES={
+ /* District 1, from Ghul Matron: she mends as fast as you can cut, and her kiss
+    poisons. Trains burst, cleanse, and shield play against the district boss. */
+ 1:[
+  {id:"mending",w:"Mending",d:"Wounds close in these alleys: this foe heals 2 whenever its wares strike you, at most once a second.",
+   hooks:[{on:"afterHit",oncePerMs:1000,when:[{test:"actorSideIsOwner"},{test:"contactKind",value:"merchant"}],actions:[{op:"heal",side:"owner",amount:2}]}]},
+  {id:"venomed",w:"Venomed",d:"The Matron's kiss rides every blade: this foe's merchant strikes add 1 poison, at most once every 2 seconds.",
+   hooks:[{on:"afterHit",oncePerMs:2000,when:[{test:"actorSideIsOwner"},{test:"contactKind",value:"merchant"}],actions:[{op:"poison",targetSide:"enemy",amount:1}]}]},
+  {id:"clinging",w:"Clinging",d:"Grave-dust clings to your salves: your healing is a fifth weaker behind these doors.",
+   hooks:[{on:"beforeHeal",when:[{test:"eventSideIsEnemy"}],actions:[{op:"modifyHeal",mul:0.8}]}]}
+ ],
+ /* District 2, from The Debt Collector: gold, ledgers, the long count. Trains the
+    poison pivot, racing, and integrity care. */
+ 2:[
+  {id:"hoarding",w:"Hoarding",d:"Coin stands stacked as armor: this foe begins the fight with 12 shield.",
+   hooks:[{on:"fightStart",actions:[{op:"shield",side:"owner",amount:12}]}]},
+  {id:"taxing",w:"Taxing",d:"Interest accrues: every fourth activation by this foe's wares costs your merchant 2 health.",
+   hooks:[{on:"afterActivate",every:4,when:[{test:"actorSideIsOwner"}],actions:[{op:"merchantHit",side:"enemy",amount:2}]}]},
+  {id:"foreclosing",w:"Foreclosing",d:"Broken stock is repossessed: when one of your wares is destroyed, this foe heals 6.",
+   hooks:[{on:"destroyed",when:[{test:"eventSideIsEnemy"}],actions:[{op:"heal",side:"owner",amount:6}]}]}
+ ],
+ /* District 3, from Ifrit of the Kiln: the kiln, the bellows. Trains cleanse
+    cadence against burn and kill-order against acceleration. */
+ 3:[
+  {id:"smoldering",w:"Smoldering",d:"Kiln-heat rides every blow: this foe's merchant strikes add 2 burn, at most once every 2 seconds.",
+   hooks:[{on:"afterHit",oncePerMs:2000,when:[{test:"actorSideIsOwner"},{test:"contactKind",value:"merchant"}],actions:[{op:"burn",targetSide:"enemy",amount:2}]}]},
+  {id:"bellowed",w:"Bellowed",d:"The bellows breathe down every alley: this foe's strike quickens its leftmost working ware a quarter second, at most once every 2 seconds.",
+   hooks:[{on:"afterHit",oncePerMs:2000,when:[{test:"actorSideIsOwner"}],actions:[{op:"haste",target:{side:"owner",active:true},amount:0.25}]}]},
+  {id:"scorched",w:"Scorched",d:"You arrive singed: 3 burn clings to you as each fight begins.",
+   hooks:[{on:"fightStart",actions:[{op:"burn",targetSide:"enemy",amount:3}]}]}
+ ]
+};
 export const MONBAND={1:["imp","rats","ghul","samovar","sandling","monkey"],2:["lamassu","kark","collector","matron","icebox","peri"],3:["ifrit","qareen","shahmaran","marid","roc","simurgh","golem","nasnas"],4:["azhdaha","auctioneer","vizier"]};
 export const MONCHIP={1:2,2:4,3:6,4:8};
 /* The Long Bazaar route layer. District tables define each route stage: which

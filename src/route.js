@@ -108,9 +108,11 @@ export function initRoute(seed,mode='quick',lantern=0){
   const resolve=lantern>=10?(mode==='long'?50:34):(mode==='long'?60:40);
   /* variety stamps the board-Aspect feature on for new runs; buildFoe reads it
      to decide whether to thread the seed and node id into the Aspect pick.
-     Resumed pre-bump saves lack the field, so their fights stay byte-identical. */
+     affix stamps the district-Affix feature on the same way: the fight wiring
+     reads it to decide whether to build the affix cfg.hooks. Resumed pre-bump
+     saves lack both fields, so their fights and scouts stay byte-identical. */
   return {seed:seed>>>0,version:MAP_VERSION,path:[],pendingId:null,resolution:null,
-    phase:'map',resolve:resolve,resolveMax:resolve,attempts:{},fightSeed:null,variety:1};
+    phase:'map',resolve:resolve,resolveMax:resolve,attempts:{},fightSeed:null,variety:1,affix:1};
 }
 
 const PHASES=new Set(['map','encounter','reward','market','event','gateCamp','won','lost']);
@@ -142,7 +144,7 @@ export function validRoute(state,map){
 function clone(state){
   return {seed:state.seed,version:state.version,path:state.path.slice(),pendingId:state.pendingId,
     resolution:state.resolution,phase:state.phase,resolve:state.resolve,resolveMax:state.resolveMax,
-    attempts:Object.assign({},state.attempts),fightSeed:state.fightSeed,variety:state.variety};
+    attempts:Object.assign({},state.attempts),fightSeed:state.fightSeed,variety:state.variety,affix:state.affix};
 }
 function complete(ns,node){ns.path.push(node.id);ns.pendingId=null;ns.resolution=null;}
 

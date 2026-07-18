@@ -5,6 +5,7 @@ import {TICK,SPEED,RSTAT,RNAME,BASEINTEG,TIERCOST,CATN,CATC,ANONE,
 import {mulberry,fightHP,stormAt,gateOK,makeItem,integOf,fuseScan,fuseNeed,
         playerFightItems,createFight,boardRegen} from './engine.js';
 import {buildFoe} from './encounter.js';
+import {districtAffix,affixFightHooks} from './aspects.js';
 import {wareSlotCost,boardUsedCells,boardSlotCount,warePurchaseCost,wareSaleValue,rerollPrice,
         adjustedStormAt,adjustedVictoryIncome,advanceFrozenOffers,setFrozenOffers,thawOffers,
         composeLantern,lanternRules} from './anomaly-rules.js';
@@ -150,10 +151,19 @@ function openAnoInfo(){
   const lant=lv?'<div class="lantrules"><div class="kick gold" style="margin-top:8px">Lantern '+lv+'</div>'
     +lanternRules(lv).map(function(r){return '<p class="lline"><b>'+esc(r.n)+'</b> '+esc(r.d)+'</p>';}).join('')
     +(G.A0&&G.A.shopN!==G.A0.shopN?'<p class="lline lit">Markets show '+G.A.shopN+' wares tonight.</p>':'')+'</div>':'';
+  /* the current district's Affix rides under the Omen, the slot the Lantern rules
+     use, so both run modifiers read from one place. Absent on the Gate and pre-stamp runs. */
+  let affBlock='';
+  if(G.run&&G.run.route&&G.run.route.affix&&G.route&&G.route.map){
+    const map=routeMap(),D=map.districts[currentDistrict(routeState(),map)];
+    const aff=districtAffix(D,map.seed);
+    if(aff)affBlock='<div class="lantrules"><div class="kick gold" style="margin-top:8px">District Affix</div>'
+      +'<p class="lline"><b>'+esc(aff.w)+'</b> '+esc(aff.d)+'</p></div>';
+  }
   const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick">Tonight\'s Omen</div>'
    +ic(G.anom.g,'bigic')+'<h2 class="big" style="font-size:25px">'+G.anom.n+'</h2>'
    +'<p>'+G.anom.d+'</p><p>Featured wares: <b>'+CATN[G.tags[0]]+' + '+CATN[G.tags[1]]+'</b></p>'
-   +lant
+   +lant+affBlock
    +'<p style="opacity:.7">Tap anywhere to close</p></div>');
   o.onclick=function(){ovClose(o);};
 }
@@ -869,7 +879,7 @@ function startFight(me,foe,opts){
      (the plain Omen, G.A0); every other fight takes the composed value */
   const stormA=(opts&&opts.gate&&G.A0)?G.A0:G.A;
   const F=createFight({a:me,b:foe,stormAt:adjustedStormAt(baseStorm,stormA),seed:fseed,playerIs:'a',
-    diagnosticTap:opts&&opts.diagnosticTap});
+    hooks:(opts&&opts.hooks)||undefined,diagnosticTap:opts&&opts.diagnosticTap});
   G.F=F;
   G.recap={a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
   function pad(items){const u=items.reduce(function(s,x){return s+(x.slotSize||x.size);},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
@@ -1260,7 +1270,14 @@ function runEffects(effects,i,ctx){
 function startRouteFight(e){
   const H=heroOf();
   const node=nodeOf(routeMap(),e.nodeId);
-  const gate=isGateDistrict(routeMap().districts.filter(function(x){return x.id===node.district;})[0]);
+  const dist=routeMap().districts.filter(function(x){return x.id===node.district;})[0];
+  const gate=isGateDistrict(dist);
+  /* the district Affix, injected as engine cfg.hooks, applies to monster and elite
+     doors only, never bosses (the boss prices the district) nor the Dragon Gate (the
+     Gate contract). It rides the affix stamp, so pre-stamp runs pass no hooks and
+     fight byte-identically; districtAffix returns null for the Gate as a second guard. */
+  const affOn=routeState().affix?1:0;
+  const affix=(affOn&&(node.type==='monster'||node.type==='elite'))?districtAffix(dist,routeMap().seed):null;
   /* the board Aspect pick threads the map seed and node id only when the run
      carries the variety stamp; older runs pass neither and face the shipped board */
   const vary=routeState().variety?1:0;
@@ -1280,6 +1297,7 @@ function startRouteFight(e){
   tally.phaseBaseline=metricPhaseTotals(G.run.metrics,['combat_1x','combat_2x','combat_inspect']);
   G.route.fightTelemetry=tally;
   startFight(me,foe,{seed:e.fightSeed,threat:e.threat,caption:'Threat '+e.threat,boss:!!e.boss,gate:gate,
+    hooks:affixFightHooks(affix),
     stormAt:built.def.stormAt?built.def.stormAt*1000:stormAt(e.threat),diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);},
     onEnd:function(F){endRouteFight(F,e);}});
 }

@@ -33,8 +33,9 @@ import {genMap} from '../src/map.js';
 import {initRoute, transition, frontier, nodeOf, currentDistrict, BASE_GOLD, isGateDistrict} from '../src/route.js';
 import {createFight, runHeadless, monsterSide, playerFightItems, makeItem, usedCells, gateOK, fightHP, stormAt, mulberry} from '../src/engine.js';
 import {buildFoe} from '../src/encounter.js';
+import {districtAffix,affixFightHooks} from '../src/aspects.js';
 import {adjustedStormAt, composeLantern} from '../src/anomaly-rules.js';
-import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, ANONE, COST, TIERCOST} from '../src/data.js';
+import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, ANONE, COST, TIERCOST, AFFIXES} from '../src/data.js';
 import {planReward} from '../src/route-rewards.js';
 import {beginCombatTally, recordCombatDiagnostic} from '../src/route-metrics.js';
 import {midpointTreasureOptions, MIDPOINT_FALLBACK_GOLD} from '../src/route-runtime.js';
@@ -48,7 +49,7 @@ export function parseSimArgs(argv){
 const A = ANONE;                       /* baseline: no anomaly, to isolate the route economy */
 
 const DEFAULT_CFG = { startResolve: null, bossLossAdj: 0, treasureCash: 6, negoCash: 6, rewardGoldAdj: 0,
-  reprisePower:1, reprisePowers:null, lantern: 0 };
+  reprisePower:1, reprisePowers:null, lantern: 0, affix: false, forceAffix: null, forceGild: false };
 const ROUTE_GUARD=400;
 const DAMAGE_CHANNELS=['weapon','poison','burn','hook','other'];
 
@@ -128,6 +129,15 @@ export function simMidpointTreasure(seed,owned){
     fallbackGold:offered.length?0:MIDPOINT_FALLBACK_GOLD,contribution:'abstracted'};
 }
 
+/* pin one named affix for a district's non-Gate doors (per-affix gate readout).
+   Returns null on the Gate or when the district has no such affix, so a forced
+   run over a Gate door still passes no hooks, matching the game. */
+function forcedAffix(district,affixId){
+  if(!district||isGateDistrict(district))return null;
+  const theme=district.sourceId!=null?district.sourceId:district.id;
+  return (AFFIXES[theme]||[]).find(function(a){return a.id===affixId;})||null;
+}
+
 /* ---- one fight, headless, with FRESH fight items (as the game rebuilds them) ---- */
 function applyEnemyPower(side,power){
   if(!(power>1))return side;
@@ -139,13 +149,13 @@ function applyEnemyPower(side,power){
   });
   return side;
 }
-function simFight(board, node, gold, seed, cfg, mode, gate) {
+function simFight(board, node, gold, seed, cfg, mode, gate, affixHooks) {
   /* the shared encounter builder: the sim sees the same L1 door power, the
      same gilding, and the same mirror and Gate exemptions as the game. Aspects
      are off by default here (no seed/nodeId), so the baseline faces the shipped
      board; variant-verify.mjs forces a specific board by passing its id. */
   const built = buildFoe(node.monId, { threat: node.threat, hpFlat: 0, A: A, gold: gold,
-    gilded: node.gilded, power: node.power, board: board.board,
+    gilded: (cfg.forceGild&&!gate&&node.type!=='boss')||node.gilded, power: node.power, board: board.board,
     nodeType: node.type, gate: gate, lantern: cfg.lantern || 0 });
   const php = built.php, foe = built.side;
   if(mode==='long'&&node.district>=4){
@@ -160,7 +170,7 @@ function simFight(board, node, gold, seed, cfg, mode, gate) {
      fight takes the plain Omen per the Gate contract */
   const stormA = gate ? A : composeLantern('none', A, cfg.lantern || 0);
   const F = createFight({ a: me, b: foe, stormAt: adjustedStormAt(built.def.stormAt ? built.def.stormAt * 1000 : stormAt(node.threat), stormA), seed: seed >>> 0, playerIs: 'a',
-    diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);} });
+    hooks:affixHooks||undefined,diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);} });
   runHeadless(F);
   return { winner: F.done?F.winner:'b', survTier: F.survTiers('b'), t: F.t / 1000,
     meHp: Math.max(0, F.a.hp), foeHp: Math.max(0, F.b.hp),timeout:!F.done,
@@ -201,9 +211,21 @@ export function simRun(seed, cfg, mode) {
     } else if (st.phase === 'encounter') {
       const node = nodeOf(map, st.pendingId);
       const first = !st.attempts[node.id];
-      const r = simFight(board, node, gold, st.fightSeed,cfg,mode,gateOf(node));
+      const dist = map.districts.filter(function(d){return d.id===node.district;})[0];
+      /* district Affix: off by default so the baseline is byte-identical. When
+         cfg.affix is set it threads the hash-picked affix for monster and elite
+         doors only (never bosses, never the Gate: districtAffix returns null there),
+         matching the game's fight wiring. cfg.forceAffix pins one affix id for a
+         per-affix gate readout. */
+      let affixHooks=null;
+      if(cfg.affix&&(node.type==='monster'||node.type==='elite')){
+        const aff=cfg.forceAffix?forcedAffix(dist,cfg.forceAffix):districtAffix(dist,map.seed);
+        affixHooks=affixFightHooks(aff);
+      }
+      const r = simFight(board, node, gold, st.fightSeed,cfg,mode,gateOf(node),affixHooks);
       m.fights.push({ threat: node.threat, band: node.district, type: node.type, mon: node.monId,
         won: r.winner === 'a', t: r.t, margin: r.winner === 'a' ? r.meHp : r.foeHp, first: first,
+        gilded: !!node.gilded, reprise: !!(dist&&dist.reprise),
         wares:r.wares,guardTrips:r.guardTrips,timeout:r.timeout });
       m.guardTrips+=r.guardTrips;if(r.timeout)m.fightTimeouts++;
       m.combatPendingActions+=r.pendingActions;

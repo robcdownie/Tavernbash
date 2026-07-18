@@ -15,6 +15,7 @@ import {G,RM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
 import {ITEMS,RNAME,ENCH,MONSTERS,PERSONAS,CATN,TRINKETS,HEROES,ANOMALIES} from './data.js';
 import {mulberry,gateOK} from './engine.js';
 import {buildFoe} from './encounter.js';
+import {districtAffix} from './aspects.js';
 import {genMap,isCombat,MAP_VERSION} from './map.js';
 import {frontier,currentDistrict,visitedSet,validRoute,classifyEdges,fightSeed,isGateDistrict} from './route.js';
 import {ic} from './art.js';
@@ -363,10 +364,18 @@ export function combatPreview(n){
      absent on the shipped board except sandling, which has always stormed. */
   const vn=(def&&def.variantOf&&def.vn)?'<div class="rmpi vn"><b>'+esc(def.vn)+'</b></div>':'';
   const storm=(def&&def.stormAt)?'<div class="rmpi">The simoom rises at '+def.stormAt+'s here.</div>':'';
+  /* the district Affix names itself above the board list, but only where it applies:
+     monster and elite doors, never a boss, never the Gate (districtAffix returns null
+     there), and only when the run carries the affix stamp. Face-up like everything else
+     in the scout: the word and its sentence are exactly what the fight will do. */
+  const affOn=(G.run&&G.run.route&&G.run.route.affix)?1:0;
+  const aff=(affOn&&(n.type==='monster'||n.type==='elite'))?districtAffix(districtForNode(n),routeMap().seed):null;
+  const affLine=aff?'<div class="rmpi affix"><b>'+esc(aff.w)+'.</b> '+esc(aff.d)+'</div>':'';
   return '<div class="rmpi"><b>Health</b> '+hp+(M.special==='mirror'?' (mirrors your stall)':'')+(regen?' &middot; regen '+regen+'/s':'')+'</div>'
     +vn+storm
     +'<div class="rmpi"><b>Bounty</b> '+esc(routeBountyText(n))+'</div>'
     +(n.gilded?'<div class="rmpi gild">Gilded: tougher board; bonus gold bounties are doubled.</div>':'')
+    +affLine
     +(board?'<div class="rmpboard">'+board+'</div>':'')
     +(n.type==='boss'?'<div class="rmpi">The district boss. No way past but through.</div>':'');
 }
@@ -427,10 +436,15 @@ export function renderRouteMap(){
   const prev=sel?routeNodePreviewHTML(map.nodes[sel],stateOf(sel)):'<div class="rmhint">Tap any node to scout it.</div>';
   const source=districtSource(D);
   const displayName=D.reprise?DISTRICT_SOURCE_NAME[source]:D.name;
+  /* the current district's Affix word rides the header, one carved chip beside the
+     name. Absent on the Gate and on pre-stamp runs (districtAffix returns null). */
+  const affOn=(G.run&&G.run.route&&G.run.route.affix)?1:0;
+  const headerAffix=affOn?districtAffix(D,map.seed):null;
+  const affChip=headerAffix?'<span class="rmaffix">'+esc(headerAffix.w)+'</span>':'';
   $('main').className='routemap';
   $('main').innerHTML='<div class="rmwrap">'
     +'<div class="rmboard source-'+source+'" style="background-image:linear-gradient(180deg,rgba(20,14,8,.28),rgba(14,9,5,.62)),url(art/bg/bg_route_'+DBG[source]+'.png)">'
-    +'<div class="rmhdr"><span class="rmdn">'+esc(displayName)+'</span>'+(D.reprise?'<span class="rmafter">After Midnight</span>':'')+'<span class="rmpips">'+pips+'</span>'
+    +'<div class="rmhdr"><span class="rmdn">'+esc(displayName)+'</span>'+(D.reprise?'<span class="rmafter">After Midnight</span>':'')+affChip+'<span class="rmpips">'+pips+'</span>'
     +'<span class="rmdest">'+esc(MONSTERS[D.boss.monId].n)+' waits at the gate</span></div>'
     +'<div class="rmplot" id="rmplot"><svg class="rmedges" id="rmedges" preserveAspectRatio="none" aria-hidden="true"></svg>'+nodes+'</div>'
     +'</div>'

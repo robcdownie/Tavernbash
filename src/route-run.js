@@ -13,7 +13,7 @@ import {TIERCOST, ITEMS} from './data.js';
 import {mulberry, gateOK} from './engine.js';
 import {newMetrics,reviveMetrics,serializeMetrics,recordMetric} from './route-metrics.js';
 
-export const SCHEMA_VERSION = 6;   /* v6: the run route carries the variety stamp */
+export const SCHEMA_VERSION = 7;   /* v7: the run route carries the affix stamp */
 
 /* the ten durable economy fields. run.economy is their single truth; G exposes
    them through accessors (bindEconomy) so the old direct call sites and in-place
