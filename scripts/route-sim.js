@@ -11,6 +11,30 @@
      node scripts/route-sim.js long       seven-district Long readout
      node scripts/route-sim.js long ab 50 Long A/B with 50 seeds per variant
      node scripts/route-sim.js 1200       set the seed count
+     node scripts/route-sim.js hero=kiln omen=moon   one hero-Omen cell, detailed
+     node scripts/route-sim.js uniques=hold          hold granted uniques on the board
+     node scripts/route-sim.js matrix 150 every hero x Omen x route clear table
+     node scripts/route-sim.js coverage   the mechanic coverage manifest
+
+   HERO, OMEN, AND UNIQUE MODELLING (item 7 of the 2026-07-17 audit). A cell is
+   (hero, Omen, route). Modelled faithfully: fight-side rules (the Omen A object
+   merged with the hero mod flags rides side.rules exactly as ui.js builds them),
+   fightHP hpMul via buildFoe, storm offsets through composeLantern and
+   adjustedStormAt with the Gate contract, board slots (slotCountFlat,
+   sizeCostOverride), ware copy cost (shopItemCostFlat), the hero's own signature
+   wares in the pool, the hero's free starting ware, and under uniques=hold the
+   granted Treasure and bounty uniques fighting on the board with their real
+   hooks. Deliberate policy choice: the archetype concentration weight stays 3.5
+   for a hero (arch = the hero tag), the same as the persona baseline, so hero
+   cells differ from baseline only by rules, start ware, sig pool, and Omen
+   levers, never by policy focus. The REAL shop weights are hero tag x1.5 and
+   featured tags x2.2 (data.js HERO_SHOP_WEIGHT / FEATURED_SHOP_WEIGHT); the
+   sim has no shop roll to apply them to, so the pull is a proxy either way.
+   NOT modelled, honestly: shopN, reroll pricing and bans, the freeze, sell
+   values, enchants, goldMul income, the Moneylender's credit ledger, and
+   featured-tag pinning (charter). Cells whose Omen lever is unmodelled read as
+   their no-Omen baseline; the matrix prints which columns are live. Run the
+   coverage command for the full full/proxy/blind manifest.
 
    The player is modelled, not hand-played: a FUSION-AWARE board is rebuilt at each
    market/camp from the gold invested so far - it commits to a few ware lines and
@@ -31,11 +55,11 @@
    genRival board already always has damage, so the sim cannot see that change. */
 import {genMap} from '../src/map.js';
 import {initRoute, transition, frontier, nodeOf, currentDistrict, BASE_GOLD, isGateDistrict} from '../src/route.js';
-import {createFight, runHeadless, monsterSide, playerFightItems, makeItem, usedCells, gateOK, fightHP, stormAt, mulberry} from '../src/engine.js';
+import {createFight, runHeadless, monsterSide, playerFightItems, makeItem, gateOK, fightHP, stormAt, mulberry} from '../src/engine.js';
 import {buildFoe} from '../src/encounter.js';
 import {districtAffix,affixFightHooks} from '../src/aspects.js';
-import {adjustedStormAt, composeLantern} from '../src/anomaly-rules.js';
-import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, ANONE, COST, TIERCOST, AFFIXES} from '../src/data.js';
+import {adjustedStormAt, composeLantern, boardSlotCount, boardUsedCells, wareSlotCost, warePurchaseCost} from '../src/anomaly-rules.js';
+import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, HEROES, ANOMALIES, ANONE, COST, TIERCOST, AFFIXES} from '../src/data.js';
 import {planReward} from '../src/route-rewards.js';
 import {beginCombatTally, recordCombatDiagnostic} from '../src/route-metrics.js';
 import {midpointTreasureOptions, MIDPOINT_FALLBACK_GOLD} from '../src/route-runtime.js';
@@ -43,13 +67,31 @@ import {starterShopIds} from '../src/unlock-profile.js';
 import {pathToFileURL} from 'node:url';
 
 export function parseSimArgs(argv){
-  const args=(argv||[]).map(String),ab=args.includes('ab');
-  return {ab:ab,mode:args.includes('long')?'long':'quick',runs:+(args.find(a=>/^\d+$/.test(a))||(ab?1200:600))};
+  const args=(argv||[]).map(String),ab=args.includes('ab'),matrix=args.includes('matrix'),coverage=args.includes('coverage');
+  const kv=function(key){const hit=args.find(a=>a.startsWith(key+'='));return hit?hit.slice(key.length+1):null;};
+  return {ab:ab,matrix:matrix,coverage:coverage,mode:args.includes('long')?'long':'quick',
+    runs:+(args.find(a=>/^\d+$/.test(a))||(matrix?150:(ab?1200:600))),
+    heroId:kv('hero'),omenId:kv('omen'),uniques:kv('uniques')};
 }
-const A = ANONE;                       /* baseline: no anomaly, to isolate the route economy */
+
+/* the anomaly A object for a cell: the plain baseline, or the Omen's m merged
+   over ANONE exactly as ui.js builds the run's G.A */
+export function omenA(omenId){
+  if(!omenId||omenId==='none')return ANONE;
+  const om=ANOMALIES.find(a=>a.id===omenId);
+  if(!om)throw new Error('unknown omen: '+omenId);
+  return Object.assign({},ANONE,om.m);
+}
+export function heroOfId(heroId){
+  if(!heroId||heroId==='none')return null;
+  const h=HEROES.find(x=>x.id===heroId);
+  if(!h)throw new Error('unknown hero: '+heroId);
+  return h;
+}
 
 const DEFAULT_CFG = { startResolve: null, bossLossAdj: 0, treasureCash: 6, negoCash: 6, rewardGoldAdj: 0,
-  reprisePower:1, reprisePowers:null, lantern: 0, affix: false, forceAffix: null, forceGild: false };
+  reprisePower:1, reprisePowers:null, lantern: 0, affix: false, forceAffix: null, forceGild: false,
+  heroId: null, omenId: 'none', uniques: 'cash' };
 const ROUTE_GUARD=400;
 const DAMAGE_CHANNELS=['weapon','poison','burn','hook','other'];
 
@@ -80,22 +122,28 @@ const COPIES_FOR = [1, 3, 6, 12];
    starter set); 'full' or unset uses the current full pool. The restriction is an
    appended Array.filter clause, so at 'full' the pool is byte-identical to the
    pre-knob behavior. */
-export function boardPool(tier, cfg) {
+export function boardPool(tier, cfg, hero) {
   const starter = cfg && cfg.warePool === 'starter' ? new Set(starterShopIds()) : null;
-  return Object.keys(ITEMS).filter(id => gateOK(ITEMS[id].tier, tier) && !ITEMS[id].unique && !ITEMS[id].sig && !ITEMS[id].inc && (!starter || starter.has(id)));
+  /* signature wares ride only their own hero's pool, exactly as rollShop gates
+     them; with no hero the sig clause reduces to the pre-hero !sig filter */
+  return Object.keys(ITEMS).filter(id => gateOK(ITEMS[id].tier, tier) && !ITEMS[id].unique && (!ITEMS[id].sig || (hero && ITEMS[id].sig === hero.id)) && !ITEMS[id].inc && (!starter || starter.has(id)));
 }
-export function buildBoard(tier, budget, rng, persona, cfg) {
-  const slots = 4 + tier;
-  const pool = boardPool(tier, cfg);
+export function buildBoard(tier, budget, rng, persona, cfg, cell, reservedCells) {
+  const hero = cell && cell.hero || null, A = cell && cell.A || ANONE;
+  const slots = boardSlotCount(tier, A) - (reservedCells || 0);
+  const pool = boardPool(tier, cfg, hero);
   if (!pool.length) return { items: [], board: [] };
   /* commit to a few LINES (a real build), persona-weighted, cheap size-1 wares
      favoured because they fuse readily. Then spend the budget the way fusing spends
      it: seed each line at Bronze, then greedily buy the cheapest rarity upgrade
      (fuseNeed copies), so gold concentrates into Silver/Gold/Diamond rather than a
-     wide bronze board. makeItem(id, rarity) is the fused result, so no fuseScan. */
-  const wOf = id => { const d = ITEMS[id]; let w = d.tier === 1 ? 8 : (d.tier === 2 ? 7 : 6); if (d.cat === persona.arch) w *= 3.5; if (d.cat === 'util' && persona.arch !== 'util') w *= 0.3; if (d.size === 1) w *= 1.8; return w; };
+     wide bronze board. makeItem(id, rarity) is the fused result, so no fuseScan.
+     With a hero the archetype is the hero tag at the SAME 3.5 concentration as the
+     persona baseline (see the header note), so cells isolate the hero's rules. */
+  const arch = hero ? hero.tag : persona.arch;
+  const wOf = id => { const d = ITEMS[id]; let w = d.tier === 1 ? 8 : (d.tier === 2 ? 7 : 6); if (d.cat === arch) w *= 3.5; if (d.cat === 'util' && arch !== 'util') w *= 0.3; if (d.size === 1) w *= 1.8; return w; };
   const nLines = Math.min(slots, Math.max(3, 3 + Math.floor(tier / 2)));
-  const avail = pool.slice(), lines = [];
+  const avail = pool.filter(id => !(hero && id === hero.start)), lines = [];
   for (let k = 0; k < nLines && avail.length; k++) {
     let tot = 0; const ws = avail.map(id => { const w = wOf(id); tot += w; return w; });
     let roll = rng() * tot, idx = 0;
@@ -103,11 +151,13 @@ export function buildBoard(tier, budget, rng, persona, cfg) {
     lines.push(avail[idx]); avail.splice(idx, 1);
   }
   const board = []; let b = budget;
-  for (const id of lines) { const sz = ITEMS[id].size; if (usedCells(board) + sz <= slots && b >= COST[sz]) { board.push(makeItem(id, 0)); b -= COST[sz]; } }
+  /* the hero's starting ware arrives free, exactly as a run opens */
+  if (hero && hero.start && ITEMS[hero.start]) board.push(makeItem(hero.start, 0));
+  for (const id of lines) { const sz = ITEMS[id].size; const c = warePurchaseCost(sz, false, A); if (boardUsedCells(board, A) + wareSlotCost(sz, A) <= slots && b >= c) { board.push(makeItem(id, 0)); b -= c; } }
   let guard = 0;
   while (guard++ < 300) {
     let best = null, bestCost = Infinity;
-    for (const w of board) { if (w.rarity >= 3) continue; const c = (COPIES_FOR[w.rarity + 1] - COPIES_FOR[w.rarity]) * COST[w.size]; if (c <= b && c < bestCost) { bestCost = c; best = w; } }
+    for (const w of board) { if (w.rarity >= 3) continue; const c = (COPIES_FOR[w.rarity + 1] - COPIES_FOR[w.rarity]) * warePurchaseCost(w.size, false, A); if (c <= b && c < bestCost) { bestCost = c; best = w; } }
     if (!best) break;
     best.rarity++; b -= bestCost;
   }
@@ -119,9 +169,9 @@ function tierCost(nextTier, cfg) { return (nextTier === 6 ? (cfg.tier6Cost || TI
 function topRarity(board) { return board.board.reduce((m, w) => Math.max(m, w.rarity), 0); }
 
 /* The policy records the real deterministic offer, then takes its first card.
-   Treasure uniques stay outside buildBoard and combat attribution: until the
-   harness can model their hooks faithfully, acquisition is evidence, not fake
-   generic combat power. */
+   Under the default uniques=cash the pick stays outside buildBoard and combat
+   attribution (acquisition is evidence, not fake generic combat power); under
+   uniques=hold simRun places the pick on the board so its hooks fight. */
 export function simMidpointTreasure(seed,owned){
   const held=Array.from(owned||[]).map(function(id){return {id:id};});
   const offered=midpointTreasureOptions({seed:seed>>>0,economy:{board:held,vault:[],shop:[]}});
@@ -149,7 +199,8 @@ function applyEnemyPower(side,power){
   });
   return side;
 }
-function simFight(board, node, gold, seed, cfg, mode, gate, affixHooks) {
+function simFight(board, node, gold, seed, cfg, mode, gate, affixHooks, cell) {
+  const A = cell.A, hero = cell.hero;
   /* the shared encounter builder: the sim sees the same L1 door power, the
      same gilding, and the same mirror and Gate exemptions as the game. Aspects
      are off by default here (no seed/nodeId), so the baseline faces the shipped
@@ -163,12 +214,15 @@ function simFight(board, node, gold, seed, cfg, mode, gate, affixHooks) {
     applyEnemyPower(foe,power);
   }
   const playerItems=playerFightItems(board.board, {}, A, 1);
-  const me = { nm: 'You', portrait: 'p-0', hp: php, items: playerItems, lifesteal: 0, regen: 0 };
+  /* the player side carries the Omen A merged with the hero mod flags,
+     byte-for-byte the ui.js construction (startRouteFight line 1297) */
+  const me = { nm: 'You', portrait: 'p-0', hp: php, items: playerItems, lifesteal: 0, regen: 0,
+    rules: Object.assign({}, A, hero ? hero.mod : {}) };
   const metricBoard=board.board.map(function(w){return Object.assign({iid:w.uid},w);});
   const tally=beginCombatTally({district:node.district,nodeId:node.id,monId:node.monId},metricBoard,playerItems,foe.items);
   /* L4 through the composed offsets and the single existing floor; a Gate
      fight takes the plain Omen per the Gate contract */
-  const stormA = gate ? A : composeLantern('none', A, cfg.lantern || 0);
+  const stormA = gate ? A : composeLantern(cell.omenId, A, cfg.lantern || 0);
   const F = createFight({ a: me, b: foe, stormAt: adjustedStormAt(built.def.stormAt ? built.def.stormAt * 1000 : stormAt(node.threat), stormA), seed: seed >>> 0, playerIs: 'a',
     hooks:affixHooks||undefined,diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);} });
   runHeadless(F);
@@ -183,21 +237,40 @@ function simFight(board, node, gold, seed, cfg, mode, gate, affixHooks) {
 export function simRun(seed, cfg, mode) {
   mode=mode||'quick';
   const lantern = cfg.lantern || 0;
+  const cell = { omenId: cfg.omenId || 'none', A: omenA(cfg.omenId), hero: heroOfId(cfg.heroId) };
   const map = genMap(seed,mode,lantern);
   const rng = mulberry((seed ^ 0x5f3759df) >>> 0);
   const persona = PERSONAS[seed % PERSONAS.length];
   let st = initRoute(seed,mode,lantern);
   if (cfg.startResolve!=null&&cfg.startResolve!==st.resolveMax) { st.resolve = cfg.startResolve; st.resolveMax = cfg.startResolve; }
   /* L2: the same shared delta the event cards read */
-  const evFlat = (composeLantern('none', A, lantern).directEventGoldFlat) || 0;
+  const evFlat = (composeLantern(cell.omenId, cell.A, lantern).directEventGoldFlat) || 0;
   const gateOf = function(node){ return isGateDistrict(map.districts.filter(function(d){return d.id===node.district;})[0]); };
   let gold = 6, invested = 0, tier = 1, lastReserveUsed = false, mendGate = null, mendUsed = false;
   const ownedUniques=new Set();
+  /* uniques=hold: granted uniques (bounty and Treasure) persist on the board as
+     real Bronze items, so their hooks fight instead of melting into generic
+     budget. Capped at half the board so the core build keeps fusing; overflow
+     falls back to the cash path. Default 'cash' is the pre-knob behavior. */
+  const held=[];
+  const heldCells=function(){ return held.reduce(function(s,id){return s+wareSlotCost(ITEMS[id].size,cell.A);},0); };
+  const holdUnique=function(id){
+    if(cfg.uniques!=='hold')return false;
+    const d=ITEMS[id];if(!d||!d.unique)return false;
+    if(heldCells()+wareSlotCost(d.size,cell.A)>Math.floor(boardSlotCount(tier,cell.A)/2))return false;
+    held.push(id);return true;
+  };
   invested += 6; gold = 0;             /* opening stall: the six starting gold */
-  let board = buildBoard(tier, invested, rng, persona, cfg);
-  const m = { mode:mode,districtCount:map.districts.length,fights: [], retries: 0, goldEarned: 0, goldSpent: 6,
+  const rebuild = function(){
+    const b = buildBoard(tier, invested, rng, persona, cfg, cell, heldCells());
+    for(const id of held) b.board.push(makeItem(id, 0));
+    return b;
+  };
+  let board = rebuild();
+  const m = { mode:mode,hero:cell.hero?cell.hero.id:'none',omen:cell.omenId,
+    districtCount:map.districts.length,fights: [], retries: 0, goldEarned: 0, goldSpent: 6,
     resolveStart:st.resolveMax,minResolve: st.resolveMax, tierMax: 1,guardTrips:0,guardCounts:{},fightTimeouts:0,
-    combatPendingActions:0,routeGuardExits:0,pendingActions:[],duplicateUniqueCash:0,
+    combatPendingActions:0,routeGuardExits:0,pendingActions:[],duplicateUniqueCash:0,heldUniques:held,
     midpointTreasure:{reached:false,offered:[],selected:null,fallbackGold:0,contribution:'abstracted'} };
 
   let guard = 0;
@@ -222,7 +295,7 @@ export function simRun(seed, cfg, mode) {
         const aff=cfg.forceAffix?forcedAffix(dist,cfg.forceAffix):districtAffix(dist,map.seed);
         affixHooks=affixFightHooks(aff);
       }
-      const r = simFight(board, node, gold, st.fightSeed,cfg,mode,gateOf(node),affixHooks);
+      const r = simFight(board, node, gold, st.fightSeed,cfg,mode,gateOf(node),affixHooks,cell);
       m.fights.push({ threat: node.threat, band: node.district, type: node.type, mon: node.monId,
         won: r.winner === 'a', t: r.t, margin: r.winner === 'a' ? r.meHp : r.foeHp, first: first,
         gilded: !!node.gilded, reprise: !!(dist&&dist.reprise),
@@ -246,16 +319,22 @@ export function simRun(seed, cfg, mode) {
             gold+=3;m.goldEarned+=3;m.duplicateUniqueCash+=3;
           }else{
             if(ITEMS[id]&&ITEMS[id].unique)ownedUniques.add(id);
-            invested += ITEMS[id]?(COST[ITEMS[id].size]||2):2;
+            /* under uniques=hold a new unique joins the board with its hooks
+               live; otherwise (or when the hold cap is hit) it melts into the
+               invested budget as before */
+            if(!holdUnique(id))invested += ITEMS[id]?(COST[ITEMS[id].size]||2):2;
           }
         });
-        board = buildBoard(tier, invested, rng, persona, cfg);
+        board = rebuild();
       }
       st = transition(st, map, { type: 'settleReward' }).state;
       if(mode==='long'&&node.id==='d3boss'){
         const pivot=simMidpointTreasure(seed,ownedUniques);
         m.midpointTreasure=Object.assign({reached:true},pivot);
-        if(pivot.selected)ownedUniques.add(pivot.selected);
+        if(pivot.selected){
+          ownedUniques.add(pivot.selected);
+          if(holdUnique(pivot.selected)){m.midpointTreasure.contribution='held';board=rebuild();}
+        }
         else if(pivot.fallbackGold){gold+=pivot.fallbackGold;m.goldEarned+=pivot.fallbackGold;}
       }
     } else if (st.phase === 'market') {
@@ -265,11 +344,21 @@ export function simRun(seed, cfg, mode) {
       while (tier < cap && gold >= tierCost(tier + 1, cfg) + 2) { const tc = tierCost(tier + 1, cfg); gold -= tc; m.goldSpent += tc; tier++; }
       const spend = Math.max(0, gold - 2); gold -= spend; invested += spend; m.goldSpent += spend;
       if (tier > m.tierMax) m.tierMax = tier;
-      board = buildBoard(tier, invested, rng, persona, cfg);
+      board = rebuild();
       st = transition(st, map, { type: 'leaveMarket' }).state;
     } else if (st.phase === 'event') {
       const node = nodeOf(map, st.pendingId); let delta = 0;
-      if (node.type === 'treasure') { const c=cfg.treasureCash+evFlat; gold += c; m.goldEarned += c; }
+      if (node.type === 'treasure') {
+        /* the node's face-up reward carries the concrete rolled ware (map.js
+           rollTreasure); under uniques=hold the policy takes an unowned unique
+           ware option over the gold, which is how Treasure uniques get their
+           combat contribution measured. Default stays the gold, matching the
+           live selection data (Treasure Gold 18 of 28). */
+        const wareOpt=cfg.uniques==='hold'&&node.reward&&(node.reward.options||[]).find(function(o){
+          return o.kind==='ware'&&o.id&&ITEMS[o.id]&&ITEMS[o.id].unique&&!ownedUniques.has(o.id);});
+        if(wareOpt&&holdUnique(wareOpt.id)){ownedUniques.add(wareOpt.id);board=rebuild();}
+        else { const c=cfg.treasureCash+evFlat; gold += c; m.goldEarned += c; }
+      }
       else if (node.type === 'rest') { delta = 8; }
       else if (node.type === 'shrine') { delta = 12; }
       else if (node.type === 'negotiation') { const c=cfg.negoCash+evFlat; gold += c; m.goldEarned += c; }
@@ -281,7 +370,7 @@ export function simRun(seed, cfg, mode) {
       if (!lastReserveUsed && st.resolve > 6 && st.resolve <= 16) { st.resolve -= 6; st.resolveMax -= 6; invested += 6; lastReserveUsed = true; }
       if (!mendUsed && gold >= 3 && st.resolve < st.resolveMax) { gold -= 3; m.goldSpent += 3; st.resolve = Math.min(st.resolveMax, st.resolve + 4); mendUsed = true; }
       const spend = Math.max(0, gold - 1); gold -= spend; invested += spend; m.goldSpent += spend;
-      board = buildBoard(tier, invested, rng, persona, cfg);
+      board = rebuild();
       st = transition(st, map, { type: 'startBossRetry' }).state;
     } else {m.pendingActions.push('unhandled_'+st.phase);break;}
   }
@@ -362,9 +451,10 @@ export function batchValidity(runs){
 }
 
 export function midpointSummary(runs){
-  const offered={},selected={};let reached=0,fallbacks=0,fallbackGold=0;
+  const offered={},selected={};let reached=0,fallbacks=0,fallbackGold=0,heldRuns=0;
   (runs||[]).forEach(function(run){
     const p=run.midpointTreasure||{};if(!p.reached)return;reached++;
+    if(p.contribution==='held')heldRuns++;
     (p.offered||[]).forEach(function(id){offered[id]=(offered[id]||0)+1;});
     if(p.selected)selected[p.selected]=(selected[p.selected]||0)+1;
     if(p.fallbackGold){fallbacks++;fallbackGold+=p.fallbackGold;}
@@ -372,7 +462,8 @@ export function midpointSummary(runs){
   const rows=function(counts){return Object.keys(counts).map(function(id){return {id:id,name:ITEMS[id]?ITEMS[id].n:id,count:counts[id]};})
     .sort(function(a,b){return b.count-a.count||a.id.localeCompare(b.id);});};
   return {runs:(runs||[]).length,reached:reached,selections:Object.values(selected).reduce(function(s,n){return s+n;},0),
-    fallbacks:fallbacks,fallbackGold:fallbackGold,offered:rows(offered),selected:rows(selected),contribution:'abstracted'};
+    fallbacks:fallbacks,fallbackGold:fallbackGold,offered:rows(offered),selected:rows(selected),
+    heldRuns:heldRuns,contribution:heldRuns?'held':'abstracted'};
 }
 
 function modeDistricts(runs){
@@ -393,8 +484,14 @@ function printDamageShares(runs){
     console.log('  '+pad(r.name,24)+pad(pct(r.share),8)+pad(r.appearances,8)+pad(r.fights,8)
       +DAMAGE_CHANNELS.map(ch=>pad(Math.round(r.damage[ch]),8)).join(''));
   });
-  const treasureN=Object.keys(ITEMS).filter(id=>ITEMS[id].unique&&ITEMS[id].acquisition==='treasure').length;
-  console.log('  Treasure uniques abstracted: '+treasureN+' are outside the fusion-board policy and have no contribution estimate.');
+  const heldTotal=runs.reduce((s,r)=>s+((r.heldUniques&&r.heldUniques.length)||0),0);
+  if(heldTotal){
+    console.log('  Held uniques this batch: '+heldTotal+' (uniques=hold). Their hooks fought for real; their damage');
+    console.log('  rides their own ids and stays out of the shop-ware share table above.');
+  }else{
+    const treasureN=Object.keys(ITEMS).filter(id=>ITEMS[id].unique&&ITEMS[id].acquisition==='treasure').length;
+    console.log('  Treasure uniques abstracted: '+treasureN+' are outside the fusion-board policy and have no contribution estimate. Run uniques=hold to measure them.');
+  }
 }
 
 function printValidity(runs){
@@ -415,14 +512,16 @@ function printMidpointTreasure(runs){
     console.log('  selected '+p.selected.slice(0,8).map(function(r){return r.name+' '+r.count;}).join('   '));
     console.log('  offered  '+p.offered.slice(0,8).map(function(r){return r.name+' '+r.count;}).join('   '));
   }else console.log('  Quick mode has no midpoint pivot.');
-  console.log('  combat contribution is abstracted; selected Treasure hooks are not credited to shop wares.');
+  if(p.heldRuns)console.log('  combat contribution: HELD on '+p.heldRuns+' boards (uniques=hold); the picks fought for real.');
+  else console.log('  combat contribution is abstracted; selected Treasure hooks are not credited to shop wares.');
 }
 
 /* ---- detailed single-config readout ---- */
 export function detailed(runs) {
   const runN=runs.length,districts=modeDistricts(runs),mode=runs[0]&&runs[0].mode||'quick';
+  const hero=runs[0]&&runs[0].hero||'none',omen=runs[0]&&runs[0].omen||'none';
   const wins = runs.filter(r => r.result === 'won');
-  console.log('== ROUTE SIM (' + runN + ' seeds, '+mode+' mode, competent-baseline policy, no anomaly) ==\n');
+  console.log('== ROUTE SIM (' + runN + ' seeds, '+mode+' mode, competent-baseline policy, hero '+hero+', omen '+omen+') ==\n');
   console.log('COMPLETION');
   console.log('  clear rate            ' + pct(wins.length / runN));
   const byDist = Array(districts.length).fill(0);
@@ -489,8 +588,98 @@ export function abTable(options) {
   return printValidity(allRuns);
 }
 
+/* ---- the hero x Omen x route matrix (audit item 7) ---- */
+const FIGHT_KEYS=['dmgMul','hpMul','burnMul','poisonMul','cdMul','itemIntegrityMul','healingDisabled',
+  'stormStartOffsetMs','activationSelfDamagePct','startFullyChargedIfBaseCdAtLeast','firstDeathrattleDouble',
+  'healClearsAllBurn','poisonDecayAfterTick'];
+const ECON_KEYS=['shopItemCostFlat','slotCountFlat','sizeCostOverride'];
+function omenLever(om){
+  if(om.id==='none')return 'baseline';
+  const keys=Object.keys(om.m||{});
+  const fight=keys.some(k=>FIGHT_KEYS.includes(k)&&(om.m[k]!==ANONE[k]));
+  const econ=keys.some(k=>ECON_KEYS.includes(k));
+  if(fight&&econ)return 'fight+econ';
+  if(fight)return 'fight';
+  if(econ)return 'econ';
+  return 'UNMODELLED';
+}
+
+export function matrixTable(options){
+  options=options||{};
+  const runsN=options.runs||150;
+  const heroes=[{id:'none',n:'(no hero)'}].concat(HEROES);
+  const omens=[{id:'none',n:'No Omen',m:{}}].concat(ANOMALIES);
+  const out={};
+  console.log('== HERO x OMEN x ROUTE MATRIX ('+runsN+' seeds per cell, competent-baseline policy) ==');
+  console.log('Cell = clear rate. Column levers: fight = combat rules modelled; econ = board cost/slots');
+  console.log('modelled; UNMODELLED = the Omen only touches shop mechanics the policy abstracts away,');
+  console.log('so its column reads as the baseline and says nothing about that Omen.\n');
+  const label=om=>pad(om.id,11);
+  for(const mode of ['quick','long']){
+    console.log('ROUTE: '+(mode==='long'?'The Long Bazaar':'Quick Night'));
+    console.log('  '+pad('lever',12)+omens.map(om=>pad(omenLever(om),11)).join(''));
+    console.log('  '+pad('hero',12)+omens.map(label).join(''));
+    for(const h of heroes){
+      const cells=[];
+      for(const om of omens){
+        const runs=runBatch({heroId:h.id==='none'?null:h.id,omenId:om.id},{runs:runsN,mode:mode});
+        const clr=runs.filter(r=>r.result==='won').length/runs.length;
+        const bad=batchValidity(runs);
+        out[mode+':'+h.id+':'+om.id]={clear:clr,invalid:bad.invalid};
+        cells.push(pad(pct(clr)+(bad.invalid?'!':''),11));
+      }
+      console.log('  '+pad(h.id,12)+cells.join(''));
+    }
+    console.log('');
+  }
+  console.log('! marks a cell with invalid runs (guard trips or timeouts); treat that number as suspect.');
+  console.log('CAUTION: lender and ash rows are policy-bound, not hero power. Their util tag concentrates');
+  console.log('the board policy on utility wares (low damage), and lender\'s economy mods are blind to the');
+  console.log('sim. Read those two rows only against each other and their own Omen columns.');
+  return out;
+}
+
+/* ---- the coverage manifest (audit item 7): what this harness actually
+   measures. full = the real engine or controller runs it; proxy = a policy
+   stands in for the player; blind = invisible to the harness, so sim numbers
+   say NOTHING about it. Printed by the coverage command and asserted by
+   tests so the labels cannot silently rot. ---- */
+export function coverageManifest(){
+  return [
+    {mechanic:'combat engine (weapons, poison, burn, shield, heal, freeze, flying, crit, ammo, rattles, R7 hooks)',status:'full',note:'the real engine.js runs every fight'},
+    {mechanic:'monster boards, gilding, door power, Gate exemptions',status:'full',note:'shared buildFoe constructor'},
+    {mechanic:'storm timing with Omen and Lantern offsets',status:'full',note:'adjustedStormAt + composeLantern, Gate contract honored'},
+    {mechanic:'route control, Resolve, retries, Gate camp',status:'full',note:'the real route.js transitions'},
+    {mechanic:'reward gold and bounty planning',status:'full',note:'the real planReward'},
+    {mechanic:'hero fight mods (7 of 8 heroes)',status:'full',note:'side.rules built exactly as ui.js line 1297'},
+    {mechanic:'hero start ware and signature-ware pool',status:'full',note:'free start ware; sig wares in the owning hero pool only'},
+    {mechanic:'Omen fight rules (moon, wildfire, plague, molasses, fortified, rapid, glass)',status:'full',note:'A rides both sides as in the game'},
+    {mechanic:'Omen board economy (narrow slots, bull and deep copy cost)',status:'full',note:'anomaly-rules cost helpers in the board policy'},
+    {mechanic:'district Affixes',status:'full',note:'behind cfg.affix, hash-picked as the game wires them'},
+    {mechanic:'board Aspects',status:'proxy',note:'off here; variant-verify.mjs measures each variant directly'},
+    {mechanic:'Treasure and bounty uniques',status:'proxy',note:'uniques=hold fights them for real under a half-board policy cap; default cash melts them into budget'},
+    {mechanic:'fusion economy and shopping',status:'proxy',note:'invested-budget board policy, no shop rolls, no reroll or freeze decisions'},
+    {mechanic:'hero shop pull',status:'proxy',note:'arch concentration 3.5 on the hero tag; real weights are 1.5 hero / 2.2 featured on actual rolls'},
+    {mechanic:'events and personas',status:'proxy',note:'flat gold and Resolve deltas; midpoint records the real offer'},
+    {mechanic:'board regen and lifesteal wares',status:'blind',note:'player side regen and lifesteal fixed at 0'},
+    {mechanic:'shop mechanics Omens (overstock, silent, auctionbell, patient, lean, charter)',status:'blind',note:'no shop roll to apply them to; matrix columns read as baseline'},
+    {mechanic:'Moneylender economy (credit, debt, reroll ban)',status:'blind',note:'lender cells measure fight baseline plus tag pull only'},
+    {mechanic:'goldMul victory income (bull)',status:'blind',note:'the policy has no income wares to scale'},
+    {mechanic:'enchants, Vault, slip play, matchup routing',status:'blind',note:'the stated competent-baseline exclusions'}
+  ];
+}
+export function printCoverage(){
+  console.log('== SIM MECHANIC COVERAGE ==');
+  for(const row of coverageManifest())console.log('  '+pad(row.status.toUpperCase(),7)+row.mechanic+'\n         '+row.note);
+  console.log('\nRead sim numbers only through this manifest: a blind mechanic has NO sim evidence.');
+}
+
 export function main(argv){
-  const o=parseSimArgs(argv),validity=o.ab?abTable(o):detailed(runBatch({},{runs:o.runs,mode:o.mode}));
+  const o=parseSimArgs(argv);
+  if(o.coverage){printCoverage();return {invalid:0};}
+  if(o.matrix){matrixTable(o);return {invalid:0};}
+  const cfg={heroId:o.heroId,omenId:o.omenId||'none',uniques:o.uniques||'cash'};
+  const validity=o.ab?abTable(o):detailed(runBatch(cfg,{runs:o.runs,mode:o.mode}));
   if(validity.invalid)process.exitCode=1;
   return validity;
 }

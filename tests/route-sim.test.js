@@ -1,14 +1,63 @@
 "use strict";
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseSimArgs,damageShareRows,encounterRows,encounterWin,batchValidity,simMidpointTreasure,midpointSummary,runBatch} from '../scripts/route-sim.js';
-import {ITEMS} from '../src/data.js';
+import {parseSimArgs,damageShareRows,encounterRows,encounterWin,batchValidity,simMidpointTreasure,midpointSummary,runBatch,omenA,heroOfId,coverageManifest} from '../scripts/route-sim.js';
+import {ITEMS,ANONE,ANOMALIES,HEROES} from '../src/data.js';
 
+const NOARGS={ab:false,matrix:false,coverage:false,mode:'quick',runs:600,heroId:null,omenId:null,uniques:null};
 test('route sim arguments accept mode, ab, and seed count in any order',()=>{
-  assert.deepEqual(parseSimArgs([]),{ab:false,mode:'quick',runs:600});
-  assert.deepEqual(parseSimArgs(['120','long','ab']),{ab:true,mode:'long',runs:120});
-  assert.deepEqual(parseSimArgs(['ab','quick','25']),{ab:true,mode:'quick',runs:25});
-  assert.deepEqual(parseSimArgs(['long']),{ab:false,mode:'long',runs:600});
+  assert.deepEqual(parseSimArgs([]),NOARGS);
+  assert.deepEqual(parseSimArgs(['120','long','ab']),Object.assign({},NOARGS,{ab:true,mode:'long',runs:120}));
+  assert.deepEqual(parseSimArgs(['ab','quick','25']),Object.assign({},NOARGS,{ab:true,runs:25}));
+  assert.deepEqual(parseSimArgs(['long']),Object.assign({},NOARGS,{mode:'long'}));
+  assert.deepEqual(parseSimArgs(['hero=kiln','omen=moon','uniques=hold']),Object.assign({},NOARGS,{heroId:'kiln',omenId:'moon',uniques:'hold'}));
+  assert.deepEqual(parseSimArgs(['matrix','40','long']),Object.assign({},NOARGS,{matrix:true,mode:'long',runs:40}));
+  assert.deepEqual(parseSimArgs(['coverage']),Object.assign({},NOARGS,{coverage:true}));
+});
+
+test('omen and hero cells resolve exactly as the game builds them',()=>{
+  assert.equal(omenA('none'),ANONE);
+  assert.equal(omenA(null),ANONE);
+  const moon=omenA('moon');
+  assert.equal(moon.dmgMul,1.3);
+  assert.equal(moon.healingDisabled,true);
+  assert.equal(moon.hpMul,1,'sparse Omen fields fall back to the ANONE baseline');
+  assert.throws(()=>omenA('nope'));
+  assert.equal(heroOfId('kiln').tag,'burn');
+  assert.equal(heroOfId('none'),null);
+  assert.throws(()=>heroOfId('nope'));
+  for(const om of ANOMALIES)assert.equal(typeof omenA(om.id).hpMul,'number',om.id);
+  const runs=runBatch({heroId:'kiln',omenId:'moon'},{runs:2,mode:'quick'});
+  assert.equal(runs.length,2);
+  for(const r of runs){assert.equal(r.hero,'kiln');assert.equal(r.omen,'moon');}
+  const plain=runBatch({},{runs:2,mode:'quick'});
+  for(const r of plain){assert.equal(r.hero,'none');assert.equal(r.omen,'none');}
+});
+
+test('every hero id and omen id in data resolves through the cell helpers',()=>{
+  for(const h of HEROES)assert.equal(heroOfId(h.id),h);
+  for(const om of ANOMALIES)assert.equal(omenA(om.id).shopN>=1,true,om.id);
+});
+
+test('uniques=hold fights granted uniques on the board; the default melts them to budget',()=>{
+  const hold=runBatch({uniques:'hold'},{runs:6,mode:'long'});
+  const heldTotal=hold.reduce((s,r)=>s+r.heldUniques.length,0);
+  assert.ok(heldTotal>0,'long runs reach Treasure and bounty uniques, so hold must capture some');
+  for(const r of hold)for(const id of r.heldUniques)assert.equal(ITEMS[id].unique,true,id);
+  const cash=runBatch({},{runs:6,mode:'long'});
+  for(const r of cash)assert.equal(r.heldUniques.length,0);
+});
+
+test('the coverage manifest labels every mechanic full, proxy, or blind',()=>{
+  const rows=coverageManifest();
+  assert.ok(rows.length>=15);
+  for(const row of rows){
+    assert.ok(['full','proxy','blind'].includes(row.status),row.mechanic);
+    assert.ok(row.mechanic&&row.note,row.mechanic);
+  }
+  /* the labels that guard against silent rot: heroes and uniques are no longer blind */
+  assert.ok(rows.some(r=>r.status==='full'&&/hero fight mods/.test(r.mechanic)));
+  assert.ok(rows.some(r=>r.status==='proxy'&&/uniques/.test(r.mechanic)));
 });
 
 test('damage shares count run appearances and omit storm, unattributed, and Treasure uniques',()=>{
@@ -65,7 +114,7 @@ test('sim midpoint offers are deterministic, unowned Treasure uniques with an ho
 test('sim reports zero Quick pivots and one abstracted Long pivot per run reaching D4',()=>{
   const quick=runBatch({},{runs:3,mode:'quick'}),long=runBatch({},{runs:3,mode:'long'});
   assert.deepEqual(midpointSummary(quick),{runs:3,reached:0,selections:0,fallbacks:0,fallbackGold:0,
-    offered:[],selected:[],contribution:'abstracted'});
+    offered:[],selected:[],heldRuns:0,contribution:'abstracted'});
   const p=midpointSummary(long);
   assert.equal(p.reached,3);
   assert.equal(p.selections,3);
