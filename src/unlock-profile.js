@@ -323,6 +323,32 @@ export function unlockedOmens(storage){
   return STARTER_OMENS.concat(readUnlockProfile(storage).omens);
 }
 
+/* Hero and Omen compatibility (Launch L2 0.99.4). A fresh random run must not
+   hand the player an Omen whose whole effect cancels their hero's identity. The
+   Apothecary is a heal hero; Blood Moon (moon) disables all healing,
+   regeneration, and lifesteal, so the pairing deletes the kit for the night (the
+   sim measured the cliff: Apothecary clears fall from ~98% to ~32% Quick and
+   ~96% to ~7% Long under moon). This is a pool shape, not an unlock: the blocked
+   Omen may be fully unlocked and freely reachable for every other hero. */
+export const OMEN_HERO_INCOMPAT={apoth:['moon']};
+
+/* Drop a hero's incompatible Omens from an already-eligible pool, in place order,
+   without consuming any rng. newRoute calls this on the eligible pool BEFORE its
+   single deterministic draw, so the draw still spends exactly one rng() call and
+   every unaffected hero and Omen selection stays byte-identical. The block is
+   skipped whenever it would empty the pool, so a pool that is only the blocked
+   Omen still resolves (no dead roll) and the guarantee never depends on unlock
+   state. Only the fresh run-start random draw calls this: explicit replay
+   overrides, restored active runs, and the simulator's explicit Apothecary plus
+   Blood Moon negative-control cell all pass their Omen straight through and are
+   untouched. `pool` is an array of Omen (ANOMALIES) objects. */
+export function compatibleOmenPool(pool,heroId){
+  const blocked=OMEN_HERO_INCOMPAT[heroId];
+  if(!blocked||!blocked.length)return pool;
+  const kept=(pool||[]).filter(function(a){return blocked.indexOf(a.id)<0;});
+  return kept.length?kept:pool;
+}
+
 /* Monotonic set-add for a wild find (a unique taken from a bounty, the Vault,
    a Treasure cache, or the midpoint pivot). Returns whether the id is now
    held. Dev mode records nothing, per the no-contamination rule. */

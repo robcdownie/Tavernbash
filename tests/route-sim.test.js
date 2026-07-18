@@ -39,6 +39,17 @@ test('every hero id and omen id in data resolves through the cell helpers',()=>{
   for(const om of ANOMALIES)assert.equal(omenA(om.id).shopN>=1,true,om.id);
 });
 
+/* Launch L2 0.99.4: the run-start draw now excludes Blood Moon from a fresh
+   Apothecary run, but the simulator builds cells by explicit omenId, never by
+   that draw, so the Apothecary + Blood Moon pairing stays available as a
+   negative-control cell (the sim measured the ~98%->~32% clear cliff there). */
+test('the Apothecary + Blood Moon negative-control cell is still constructible in the sim',()=>{
+  const runs=runBatch({heroId:'apoth',omenId:'moon'},{runs:1,mode:'quick'});
+  assert.equal(runs.length,1);
+  assert.equal(runs[0].hero,'apoth');
+  assert.equal(runs[0].omen,'moon');
+});
+
 test('uniques=hold fights granted uniques on the board; the default melts them to budget',()=>{
   const hold=runBatch({uniques:'hold'},{runs:6,mode:'long'});
   const heldTotal=hold.reduce((s,r)=>s+r.heldUniques.length,0);

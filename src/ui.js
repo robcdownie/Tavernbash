@@ -30,7 +30,7 @@ import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxTo
 import {initMusic,music,musicMute,sting,musicNow} from './music.js';
 import pkg from '../package.json';
 import {G,setG,RM,setRM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
-import {lockedWareComplement,runWareAllowed,omenUnlocked,heroUnlocked,HERO_HINTS,heroChipAttrs,heroPortraitClass,heroConfirmView,WILD_FIND_EVENT,nextUnlockHint,devAllOpen} from './unlock-profile.js';
+import {lockedWareComplement,runWareAllowed,omenUnlocked,compatibleOmenPool,heroUnlocked,HERO_HINTS,heroChipAttrs,heroPortraitClass,heroConfirmView,WILD_FIND_EVENT,nextUnlockHint,devAllOpen} from './unlock-profile.js';
 import {wireRouteUI,routeMap,routeState,renderRouteMap,combatPreview,showFightRecap,
         prepareRouteDecision,routeEventCard,openRewardChoice,routeEnd,openRouteContinue,openUniquePick,
         openRunHistory} from './route-ui.js';
@@ -1175,10 +1175,18 @@ function newRoute(mode,heroId,lantern,replay){
      unlocked pool by modulo. At full unlock the unlocked pool is ANOMALIES in
      its own order, so drawIndex%len equals drawIndex and the pick is identical
      (the following shuffle stream is untouched, one rng call either way); with
-     the four starters the modulo is exactly uniform. */
-  const drawIndex=Math.floor(rng()*anomPool.length);
+     the four starters the modulo is exactly uniform.
+
+     Hero and Omen compatibility (0.99.4): shape the eligible pool BEFORE the
+     single draw so a fresh Apothecary run never opens under Blood Moon, whose
+     healing lockout nullifies the heal kit. A replay keeps the full unlocked
+     pool because its recorded Omen (replayAnom below) overrides the roll and
+     must reproduce exactly. The draw still takes one rng() call, so the pick for
+     every other hero and Omen, and the following shuffle stream, are unchanged. */
   const openAnoms=anomPool.filter(function(a){return omenUnlocked(store(),a.id);});
-  const pickPool=openAnoms.length?openAnoms:anomPool;
+  const basePool=openAnoms.length?openAnoms:anomPool;
+  const pickPool=replay?basePool:compatibleOmenPool(basePool,heroId);
+  const drawIndex=Math.floor(rng()*anomPool.length);
   const rolledAnom=pickPool[drawIndex%pickPool.length];
   const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
   const replayAnom=replay&&anomPool.filter(function(a){return a.id===replay.omenId;})[0];

@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ANOMALIES} from '../src/data.js';
 import {mulberry} from '../src/engine.js';
-import {STARTER_OMENS, omenUnlocked, settleUnlocks, readUnlockProfile} from '../src/unlock-profile.js';
+import {STARTER_OMENS, omenUnlocked, settleUnlocks, readUnlockProfile, compatibleOmenPool, OMEN_HERO_INCOMPAT} from '../src/unlock-profile.js';
 
 /* Seam 3 pins (design-unlocks-0.92.md, "The five seams" item 3). ui.js is not
    importable headlessly (it pulls the DOM art/fx/sfx layers), so these tests
@@ -43,6 +43,20 @@ function rollGated(seed,storage){
   const drawIndex=Math.floor(rng()*ANOMALIES.length);
   const openAnoms=ANOMALIES.filter(function(a){return omenUnlocked(storage,a.id);});
   const pickPool=openAnoms.length?openAnoms:ANOMALIES;
+  const anom=pickPool[drawIndex%pickPool.length];
+  const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
+  return {omen:anom.id,cats:cats};
+}
+/* the 0.99.4 compat roll: mirrors newRoute's new order exactly. The eligible
+   pool is shaped by compatibleOmenPool BEFORE the single draw (a replay keeps
+   the full unlocked pool), and the draw still spends the same single rng() call,
+   so the following cat shuffle stream never moves. */
+function rollCompat(seed,storage,heroId,isReplay){
+  const rng=mulberry(seed>>>0);
+  const openAnoms=ANOMALIES.filter(function(a){return omenUnlocked(storage,a.id);});
+  const basePool=openAnoms.length?openAnoms:ANOMALIES;
+  const pickPool=isReplay?basePool:compatibleOmenPool(basePool,heroId);
+  const drawIndex=Math.floor(rng()*ANOMALIES.length);
   const anom=pickPool[drawIndex%pickPool.length];
   const cats=['dmg','poison','burn','shield','heal'];shuffle(cats,rng);
   return {omen:anom.id,cats:cats};
@@ -110,4 +124,104 @@ test('a replay of a locked omen plays it but settleUnlocks does not record it as
   /* sanity: the run DID settle (rapid fires on the first finished night), so the
      non-grant of glass is the gate holding, not settlement silently no-opping */
   assert.ok(ids.indexOf('omens:rapid')>=0,'the first-night omen still settled normally');
+});
+
+/* ---- Hero and Omen compatibility (Launch L2 0.99.4) ---- */
+
+/* the pure helper: the block is data, drops only the incompatible id, and never
+   empties the pool */
+test('compatibleOmenPool drops the Apothecary block, keeps every other hero, and never empties the pool', ()=>{
+  assert.deepEqual(OMEN_HERO_INCOMPAT.apoth,['moon'],'the recorded block is Apothecary vs Blood Moon');
+  const full=ANOMALIES.slice();
+  const apothPool=compatibleOmenPool(full,'apoth');
+  assert.ok(apothPool.every(a=>a.id!=='moon'),'moon is dropped from the Apothecary pool');
+  assert.equal(apothPool.length,full.length-1,'exactly one Omen (moon) is removed, order otherwise preserved');
+  assert.deepEqual(apothPool.map(a=>a.id),full.filter(a=>a.id!=='moon').map(a=>a.id),'the surviving order is the source order minus moon');
+  /* every other hero (and no hero) keeps the full pool by identity */
+  assert.equal(compatibleOmenPool(full,'knife'),full,'a non-blocked hero keeps the exact pool reference');
+  assert.equal(compatibleOmenPool(full,'kiln'),full,'another non-blocked hero keeps the exact pool reference');
+  assert.equal(compatibleOmenPool(full,null),full,'no hero keeps the exact pool reference');
+  /* a pool that is only the blocked Omen still resolves: the block is skipped so
+     the roll is never dead (this is the guard the moon-only unlock relies on) */
+  const moonOnly=ANOMALIES.filter(a=>a.id==='moon');
+  assert.equal(compatibleOmenPool(moonOnly,'apoth'),moonOnly,'a moon-only pool falls back so the Apothecary still resolves');
+});
+
+/* requirement 4: a fresh random Apothecary run must exclude Blood Moon. At full
+   unlock moon is eligible for everyone, yet the Apothecary never draws it. */
+test('a fresh Apothecary run never rolls Blood Moon at full unlock, and the rest of the pool stays reachable', ()=>{
+  withDebug(function(){
+    const dev=fakeStore({'bb-unlocks-all':'1'});
+    assert.equal(omenUnlocked(dev,'moon'),true,'moon is unlocked in the dev profile, so the exclusion is the only reason it is skipped');
+    const seen=new Set();
+    for(let seed=0;seed<600;seed++){
+      const {omen}=rollCompat(seed,dev,'apoth',false);
+      assert.notEqual(omen,'moon','seed '+seed+' opened the Apothecary under Blood Moon');
+      seen.add(omen);
+    }
+    /* every other Omen is still reachable for the Apothecary: only moon is gone */
+    for(const a of ANOMALIES){
+      if(a.id==='moon')continue;
+      assert.ok(seen.has(a.id),'Apothecary Omen '+a.id+' became unreachable');
+    }
+    assert.ok(!seen.has('moon'),'moon never appeared for the Apothecary');
+  });
+});
+
+/* requirement 6: preserve deterministic selections for other heroes and Omens.
+   A non-Apothecary fresh run is byte-identical to the pre-0.99.4 gated roll,
+   including the cat shuffle stream, and Blood Moon is still reachable for it. */
+test('non-Apothecary fresh runs are byte-identical to the pre-0.99.4 roll and still reach Blood Moon', ()=>{
+  withDebug(function(){
+    const dev=fakeStore({'bb-unlocks-all':'1'});
+    let sawMoon=false;
+    for(const seed of SEEDS){
+      assert.deepEqual(rollCompat(seed,dev,'knife',false),rollGated(seed,dev),'knife seed '+seed+' pick and shuffle unchanged');
+      assert.deepEqual(rollCompat(seed,dev,null,false),rollGated(seed,dev),'no-hero seed '+seed+' pick and shuffle unchanged');
+    }
+    for(let seed=0;seed<600;seed++){
+      if(rollCompat(seed,dev,'knife',false).omen==='moon'){sawMoon=true;break;}
+    }
+    assert.ok(sawMoon,'Blood Moon is still reachable for a non-Apothecary hero');
+  });
+});
+
+/* the exclusion consumes no rng: the Apothecary roll draws the same drawIndex and
+   leaves the same following shuffle stream as the ungated single draw (no redraw,
+   no extra draw). We check the cat stream matches the ungated roll for every seed. */
+test('the Apothecary exclusion consumes no rng: the cat shuffle stream is unchanged', ()=>{
+  withDebug(function(){
+    const dev=fakeStore({'bb-unlocks-all':'1'});
+    for(const seed of SEEDS){
+      assert.deepEqual(rollCompat(seed,dev,'apoth',false).cats,rollUngated(seed).cats,'apoth seed '+seed+' shuffle stream unchanged (single rng draw)');
+    }
+  });
+});
+
+/* requirement 7: an explicit replay override of Apothecary plus Blood Moon still
+   plays Blood Moon. The replay keeps the full pool AND the recorded Omen overrides
+   the roll, so the exclusion cannot touch a recorded apoth+moon run. */
+test('a replay preserves an Apothecary + Blood Moon run', ()=>{
+  withDebug(function(){
+    const dev=fakeStore({'bb-unlocks-all':'1'});
+    /* the recorded Omen is looked up by id and overrides the roll (newRoute:
+       anom = replayAnom || rolledAnom). Mirror that direct lookup. */
+    const replayAnom=ANOMALIES.filter(a=>a.id==='moon')[0];
+    assert.ok(replayAnom&&replayAnom.id==='moon','the recorded Blood Moon resolves for the replay');
+    /* and even the roll pool is not narrowed on a replay: a replay Apothecary roll
+       is byte-identical to the pre-0.99.4 gated roll, so nothing about the
+       apoth+moon replay path depends on the exclusion */
+    for(const seed of SEEDS){
+      assert.deepEqual(rollCompat(seed,dev,'apoth',true),rollGated(seed,dev),'a replay Apothecary roll keeps the full unlocked pool');
+    }
+    /* the replay pool genuinely reaches Blood Moon (proving it is not narrowed),
+       while the fresh Apothecary pool never does */
+    let replaySawMoon=false,freshSawMoon=false;
+    for(let seed=0;seed<600;seed++){
+      if(rollCompat(seed,dev,'apoth',true).omen==='moon')replaySawMoon=true;
+      if(rollCompat(seed,dev,'apoth',false).omen==='moon')freshSawMoon=true;
+    }
+    assert.ok(replaySawMoon,'a replay Apothecary roll can still land on Blood Moon');
+    assert.ok(!freshSawMoon,'a fresh Apothecary roll never lands on Blood Moon');
+  });
 });
