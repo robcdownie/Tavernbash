@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-18",
-  "build": "0.99.1",
+  "build": "0.99.2",
   "reviewedHead": "15e8995cacf1cd15929978f103e1e9743f1a58ea",
   "deploy": {
     "target": "github-pages",
@@ -13,12 +13,12 @@
     "approvalRule": "no push or deploy without Robbie's explicit approval after local verification is summarized"
   },
   "schemas": {
-    "saveSchema": 7,
+    "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 1,
     "cacheVersion": "bb-v73"
   },
-  "contentEpochNote": "0.99.1 records the current content epoch as a baseline field only. Launch L2 0.99.2 makes it a real per-run runtime stamp with supported epoch tables, so a content or balance change starts a new epoch without retiring a supported active run.",
+  "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
     "name": "Launch L1",
     "token": "launch-safe-ground",
@@ -28,32 +28,47 @@
   },
   "reservations": [
     {
+      "version": "0.99.2",
+      "project": "Launch L1",
+      "token": "launch-safe-ground",
+      "owner": "claude",
+      "branch": "launch-safe-ground",
+      "worktree": "C:/Robbie/bazaar-brawler",
+      "worktreeNote": "Single-writer bootstrap on a dedicated branch inside the main checkout; a sibling worktree path falls outside this session's sandboxed working directory. Codex takes 0.99.3 in its own separate worktree.",
+      "status": "in-progress",
+      "base": "719da50c5efb5d3c109f22cc09a07b9b25c4813b",
+      "integrationCommit": null,
+      "verification": "npm test 515 of 515 pass (8 new content-epoch tests; the byte-identical map and combat parity goldens hold, proving the default generator path is unchanged); npm run build green; Playwright resume crash-recovery matrix 34 of 34 across both viewports (v1 saves migrate through v8, resume is byte-identical, rewards settle exactly once); layout suite 26 of 28, the 2 failures being a pre-existing stale Omen-count assertion from 0.98.0 unrelated to the content epoch.",
+      "files": [
+        "package.json",
+        "coordination/state.json",
+        "src/map.js",
+        "src/route-run.js",
+        "src/route-save.js",
+        "src/ui.js",
+        "src/route-ui.js",
+        "tests/content-epoch.test.js",
+        "tests/route-run.test.js",
+        "tests/route-save.test.js",
+        "e2e/resume.spec.js"
+      ]
+    }
+  ],
+  "reservationLedger": [
+    {
       "version": "0.99.1",
       "project": "Launch L1",
       "token": "launch-safe-ground",
       "owner": "claude",
       "branch": "launch-safe-ground",
       "worktree": "C:/Robbie/bazaar-brawler",
-      "worktreeNote": "The roadmap calls for a separate worktree per writer. A sibling worktree path falls outside this session's sandboxed working directory, so the single-writer bootstrap runs on a dedicated branch inside the main checkout instead. Codex takes 0.99.3 in its own separate worktree, and the reservation validator still enforces one branch and one resolved worktree path per active reservation.",
-      "status": "in-progress",
+      "status": "done",
       "base": "15e8995cacf1cd15929978f103e1e9743f1a58ea",
-      "integrationCommit": null,
-      "verification": "npm ci restored 52 packages from the committed lockfile with the lockfile unchanged; npm test passed 494 of 494; npm run build succeeded on vite 6.4.3 with 813 modules transformed.",
-      "files": [
-        "package.json",
-        "coordination/state.json",
-        "scripts/coordination.js",
-        "scripts/ship.js",
-        "tests/coordination.test.js",
-        ".gitignore",
-        "AGENTS.md",
-        "CLAUDE.md",
-        "ROADMAP.md",
-        "roadmap-launch-l1-l5-2026-07-18.md"
-      ]
+      "integrationCommit": "719da50c5efb5d3c109f22cc09a07b9b25c4813b",
+      "verification": "npm ci restored 52 packages from the committed lockfile with the lockfile unchanged; npm test passed 507 of 507 (13 new coordination tests); npm run build succeeded on vite 6.4.3.",
+      "scope": "Canonical coordination state, reservation validator, explicit staging in ship.js, and doc reconciliation (AGENTS.md tracked and reduced, CLAUDE.md and ROADMAP.md pointers, roadmap refinements R1 and R2)."
     }
   ],
-  "reservationLedger": [],
   "decisions": {
     "namespace": {
       "ruling": "Launch L1 through Launch L5 with the descriptive tokens launch-safe-ground, launch-calibrated-challenge, launch-market-agency, launch-route-choice-equity, and launch-release-experience. Historical content R8 keeps its name; no R8 code or test identifier is renamed. Never abbreviate a project to a bare L1 through L5, because the Lantern ladder already uses L1 through L10.",

@@ -16,7 +16,7 @@ import {ITEMS,RNAME,ENCH,MONSTERS,PERSONAS,CATN,TRINKETS,HEROES,ANOMALIES} from 
 import {mulberry,gateOK} from './engine.js';
 import {buildFoe} from './encounter.js';
 import {districtAffix} from './aspects.js';
-import {genMap,isCombat,MAP_VERSION} from './map.js';
+import {genMap,isCombat,MAP_VERSION,contentTablesFor} from './map.js';
 import {frontier,currentDistrict,visitedSet,validRoute,classifyEdges,fightSeed,isGateDistrict} from './route.js';
 import {ic} from './art.js';
 import {chooseGild as runtimeChooseGild,chooseUnique as runtimeChooseUnique,chooseCharm as runtimeChooseCharm,
@@ -640,7 +640,7 @@ export function routeEnd(cause){
 }
 export function openRouteContinue(d){
   const mode=d.run.routeMode||'quick';
-  const map=genMap(d.run.seed,mode,(d.run&&d.run.lantern)||0);
+  const map=genMap(d.run.seed,mode,(d.run&&d.run.lantern)||0,contentTablesFor((d.run&&d.run.contentEpoch)||1));
   const di=validRoute(d.run.route,map)?currentDistrict(d.run.route,map):0;
   const o=ovOpen('<div class="card"><div class="rays"></div>'
    +'<div class="kick gold">The Lantern Still Burns</div>'+ic('g-lantern','bigic')

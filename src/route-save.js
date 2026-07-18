@@ -8,7 +8,7 @@ import {MAP_VERSION} from './map.js';
 import {newMetrics,serializeMetrics} from './route-metrics.js';
 import {ensureMidpointTreasure,midpointTreasureKey} from './route-runtime.js';
 
-export const ROUTE_SAVE_VERSION = 7;   /* v7: the run route carries the affix stamp */
+export const ROUTE_SAVE_VERSION = 8;   /* v8: the run carries the content epoch stamp */
 export const ROUTE_KEY = 'bb-route-run';
 
 function highestId(list,key){
@@ -109,6 +109,18 @@ export function migrateV6toV7(d){
   return Object.assign({},d,{saveVersion:7,run:Object.assign({},d.run||{},{schemaVersion:7})});
 }
 
+/* v7 -> v8 marks the content-epoch decoupling (Launch L1 0.99.2). It stamps the
+   baseline content epoch 1 on the run: a v7 save was generated with pre-0.99.2
+   content, which is epoch 1. From here a content or balance release bumps the
+   run's content epoch, not the map version, so the run regenerates its own epoch's
+   map and is never retired for a content change. The map version gate above is
+   unchanged (only a genuine generator-structure bump retires), so this is a
+   byte-identical, non-retiring migration. */
+export function migrateV7toV8(d){
+  return Object.assign({},d,{saveVersion:8,run:Object.assign({},d.run||{},
+    {schemaVersion:8,contentEpoch:(d.run&&d.run.contentEpoch)||1})});
+}
+
 /* read, migrate, then version-gate. A save from a stale generator (mapVersion)
    is dropped regardless of format. A v1 save is migrated to v2 in memory. Any
    failure (bad JSON, a migration throw) falls back to null so restore starts a
@@ -131,6 +143,7 @@ export function readRouteSave(storage){
     if(d.saveVersion===4){d=migrateV4toV5(d);}
     if(d.saveVersion===5){d=migrateV5toV6(d);}
     if(d.saveVersion===6){d=migrateV6toV7(d);}
+    if(d.saveVersion===7){d=migrateV7toV8(d);}
     if(!d||d.saveVersion!==ROUTE_SAVE_VERSION){storage.removeItem(ROUTE_KEY);return null;}
     return d;
   }catch(e){return null;}

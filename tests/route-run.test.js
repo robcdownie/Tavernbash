@@ -11,7 +11,7 @@ const SEED = 1234567;
 test('newRun builds a v5 Quick aggregate with metrics and an id counter', () => {
   const run = newRun({seed: SEED, now:1000});
   assert.equal(run.schemaVersion, SCHEMA_VERSION);
-  assert.equal(run.schemaVersion, 7);
+  assert.equal(run.schemaVersion, 8);
   assert.equal(typeof run.runId, 'string');
   assert.ok(run.runId.length > 0);
   assert.equal(run.revision, 0);
@@ -69,7 +69,7 @@ test('serialize then revive round-trips the durable fields', () => {
 test('serialize keeps only durable fields (no map, no transients)', () => {
   const run = newRun({seed: SEED});
   const wire = serializeRun(run);
-  assert.deepEqual(Object.keys(wire).sort(), ['camp', 'economy', 'end', 'ids', 'lantern', 'lastReserveUsed', 'metrics', 'pendingChoice', 'receipts', 'revision', 'route', 'routeMode', 'runId', 'schemaVersion', 'seed']);
+  assert.deepEqual(Object.keys(wire).sort(), ['camp', 'contentEpoch', 'economy', 'end', 'ids', 'lantern', 'lastReserveUsed', 'metrics', 'pendingChoice', 'receipts', 'revision', 'route', 'routeMode', 'runId', 'schemaVersion', 'seed']);
 });
 
 test('newEconomy carries the starting defaults', () => {
@@ -159,7 +159,7 @@ test('ensureIdFloor leaves an already-correct counter alone', () => {
 
 test('revive fills defaults for an older save that omits identity or the id counter', () => {
   const revived = reviveRun({seed: SEED, route: initRoute(SEED)});
-  assert.equal(revived.schemaVersion, 7);
+  assert.equal(revived.schemaVersion, 8);
   assert.equal(revived.routeMode,'quick');
   assert.equal(revived.metrics.partial,true);
   assert.equal(revived.revision, 0);

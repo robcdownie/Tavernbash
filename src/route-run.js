@@ -11,9 +11,10 @@
 import {initRoute, transition, fightSeed} from './route.js';
 import {TIERCOST, ITEMS} from './data.js';
 import {mulberry, gateOK} from './engine.js';
+import {CONTENT_EPOCH} from './map.js';
 import {newMetrics,reviveMetrics,serializeMetrics,recordMetric} from './route-metrics.js';
 
-export const SCHEMA_VERSION = 7;   /* v7: the run route carries the affix stamp */
+export const SCHEMA_VERSION = 8;   /* v8: the run carries the content epoch stamp */
 
 /* the ten durable economy fields. run.economy is their single truth; G exposes
    them through accessors (bindEconomy) so the old direct call sites and in-place
@@ -64,6 +65,10 @@ export function newRun(setup){
     /* fixed at run start; canonical for every Lantern rule and stored in the
        save so resume regenerates the same map and composed Omen */
     lantern: lantern,
+    /* the content epoch fixed at run start: pool membership and resolved map
+       content are pinned to this epoch so a later balance or content release
+       regenerates this run's map byte-identical instead of retiring it */
+    contentEpoch: CONTENT_EPOCH,
     route: initRoute(seed,routeMode,lantern),
     economy: newEconomy(),
     metrics: newMetrics(setup.now),
@@ -202,6 +207,7 @@ export function serializeRun(run){
     seed: run.seed >>> 0,
     routeMode: run.routeMode || 'quick',
     lantern: run.lantern || 0,
+    contentEpoch: run.contentEpoch == null ? CONTENT_EPOCH : run.contentEpoch,
     route: run.route,
     economy: run.economy,
     metrics: serializeMetrics(run.metrics),
@@ -223,6 +229,9 @@ export function reviveRun(d){
     seed: seed,
     routeMode: d.routeMode || 'quick',
     lantern: d.lantern || 0,
+    /* additive optional field; a save from before 0.99.2 lacks it and grandfathers
+       to the baseline epoch 1 (the migration stamps it, this is the safety net) */
+    contentEpoch: d.contentEpoch == null ? 1 : d.contentEpoch,
     route: d.route,
     /* economy is opaque here; the item-wire reduction (board -> {id,rarity,size,
        ench}) and v1->v2 migration land in 3c2 when the save switches to this

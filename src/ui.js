@@ -11,7 +11,7 @@ import {wareSlotCost,boardUsedCells,boardSlotCount,warePurchaseCost,wareSaleValu
         composeLantern,lanternRules} from './anomaly-rules.js';
 import {lanternHighest,lanternMaxPick,recordLanternClear,backfillLanternFromHistory} from './lantern-profile.js';
 import {readReportState} from './route-report-store.js';
-import {genMap,MAP_VERSION} from './map.js';
+import {genMap,MAP_VERSION,CONTENT_EPOCH,contentTablesFor} from './map.js';
 import {frontier,currentDistrict,nodeOf,lossDamage,fightSeed,validRoute,BASE_GOLD,isGateDistrict} from './route.js';
 import {ROUTE_SAVE_VERSION,readRouteSave,writeRouteSave,clearRouteSave} from './route-save.js';
 import {planReward,boardVictoryIncome} from './route-rewards.js';
@@ -1072,6 +1072,7 @@ function snapshotRoute(){
     run:{schemaVersion:G.run.schemaVersion,runId:G.run.runId,revision:G.run.revision,seed:G.run.seed,
       routeMode:G.run.routeMode||'quick',
       lantern:G.run.lantern||0,
+      contentEpoch:G.run.contentEpoch==null?CONTENT_EPOCH:G.run.contentEpoch,
       route:G.run.route,
       economy:{gold:E.gold,tier:E.tier,tierCost:E.tierCost,relicIncome:E.relicIncome,freeReroll:!!E.freeReroll,frozen:!!E.frozen,
         board:E.board.map(item),vault:E.vault.map(item),
@@ -1181,7 +1182,7 @@ function newRoute(mode,heroId,lantern,replay){
      stats:{slain:0,driven:0,safe:0},sel:null,vsel:null,swapV:null,shopSel:null,dockV:false,tut:null,
      phase:'routeMap',fightN:0,fiv:null,F:null,recap:null,you:{n:'You',p:'p-0'},
       run:newRun({seed:seed,routeMode:mode,now:now,lantern:lantern,wareLock:lockedWareComplement(store())}),
-      route:{map:genMap(seed,mode,lantern),selectedId:null,market:null,combat:null,opening:false}});
+      route:{map:genMap(seed,mode,lantern,contentTablesFor(CONTENT_EPOCH)),selectedId:null,market:null,combat:null,opening:false}});
   G.run.metrics=resumeMetrics(G.run.metrics,now,false);
   bindEconomy(G);   /* gold/tier/board/shop/... now delegate to G.run.economy */
   /* the hero applies after construction (setup step 4) */
@@ -1369,7 +1370,7 @@ function restoreRoute(d){
   const anom=ANOMALIES.filter(function(a){return a.id===d.setup.anom;})[0]||ANOMALIES[0];
   const mode=d.run.routeMode||'quick';
   const lantern=(d.run&&d.run.lantern)||0;
-  const map=genMap(d.run.seed,mode,lantern);
+  const map=genMap(d.run.seed,mode,lantern,contentTablesFor((d.run&&d.run.contentEpoch)||1));
   if(!validRoute(d.run.route,map)){clearRoute();openIntro();return;}
   const omenA=Object.assign({},ANONE,anom.m);
   setG({mode:'route',seed:d.run.seed,rng:mulberry((d.run.seed+(d.fightN||0)*2654435761+7)>>>0),round:0,

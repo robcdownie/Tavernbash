@@ -258,20 +258,22 @@ test('readRouteSave upgrades a stored 0.83 Long boundary save and preserves its 
   const s=fakeStorage(),v3=v3env(d3Boundary());v3.run.routeMode='long';
   writeRouteSave(s,v3);
   const loaded=readRouteSave(s),key=midpointTreasureKey('r-test');
-  assert.equal(loaded.saveVersion,7);
-  assert.equal(loaded.run.schemaVersion,7);
+  assert.equal(loaded.saveVersion,8);
+  assert.equal(loaded.run.schemaVersion,8);
+  assert.equal(loaded.run.contentEpoch,1,'the baseline content epoch is stamped, and the run is not retired');
   assert.equal(loaded.run.lantern,0,'a migrated save is a Lantern 0 run');
   assert.deepEqual(loaded.run.pendingChoice.options,loaded.run.receipts[key].offeredIds);
   assert.deepEqual(readRouteSave(s),loaded,'repeated reads reproduce the exact migrated offer set');
 });
 
-test('readRouteSave chains a stored v1 save through v7 on load', () => {
+test('readRouteSave chains a stored v1 save through v8 on load', () => {
   const s = fakeStorage();
   writeRouteSave(s, v1env(initRoute(SEED)));
   const loaded = readRouteSave(s);
   assert.ok(loaded, 'a v1 save loads');
-  assert.equal(loaded.saveVersion, 7, 'as v7');
-  assert.equal(loaded.run.schemaVersion,7);
+  assert.equal(loaded.saveVersion, 8, 'as v8');
+  assert.equal(loaded.run.schemaVersion,8);
+  assert.equal(loaded.run.contentEpoch,1);
   assert.equal(loaded.run.lantern,0);
   assert.equal(loaded.run.routeMode,'quick');
   assert.equal(loaded.run.metrics.partial,true);

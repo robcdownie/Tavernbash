@@ -68,7 +68,7 @@ test('every ware and offer carries a unique durable id, disjoint across the pool
   expect(r.nextAboveMax).toBe(true);
 });
 
-test('durable ids are stable across a reload (v5 save persistence)', async ({page}) => {
+test('durable ids are stable across a reload (v8 save persistence)', async ({page}) => {
   await freshRoute(page);
   const before = await page.evaluate(() => {
     const G = window.BBDEV.g();
@@ -80,12 +80,12 @@ test('durable ids are stable across a reload (v5 save persistence)', async ({pag
     const G = window.BBDEV.g();
     return {board: G.board.map(w => w.iid), gold: G.gold, schemaV: G.run.schemaVersion};
   });
-  expect(after.schemaV).toBe(5);
+  expect(after.schemaV).toBe(8);
   expect(after.board).toEqual(before.board);   /* same iids, not renumbered */
   expect(after.gold).toBe(before.gold);
 });
 
-test('a legacy v1 save migrates to v5 and continues on load', async ({page}) => {
+test('a legacy v1 save migrates to v8 and continues on load', async ({page}) => {
   await freshRoute(page);
   /* craft a faithful v1 save from the live v4 one (strip the durable ids and
      flatten the shape) so the migration path is exercised end to end */
@@ -118,7 +118,7 @@ test('a legacy v1 save migrates to v5 and continues on load', async ({page}) => 
       gold: G.gold
     };
   });
-  expect(after.schemaV).toBe(5);           /* migrated */
+  expect(after.schemaV).toBe(8);           /* migrated */
   expect(after.allStamped).toBe(true);     /* wares got ids */
   expect(after.nextAboveMax).toBe(true);
 });
@@ -235,7 +235,7 @@ test('a stored v3 Long boundary save injects and checkpoints the midpoint withou
       offerEvents:G.run.metrics.events.filter(e=>e.type==='midpoint_treasure_offered').length,
       markerPersisted:Object.prototype.hasOwnProperty.call(saved,'midpointInjected')};
   });
-  expect(after).toEqual({schema:5,saveVersion:5,gold:before.gold,shop:before.shop,pending:'midpointTreasure',
+  expect(after).toEqual({schema:8,saveVersion:8,gold:before.gold,shop:before.shop,pending:'midpointTreasure',
     savedPending:'midpointTreasure',offers:3,rewardReceipts:0,offerEvents:1,markerPersisted:false});
 });
 
