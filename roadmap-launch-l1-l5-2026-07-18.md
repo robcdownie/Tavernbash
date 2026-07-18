@@ -18,7 +18,7 @@ The next five high-level projects therefore use a collision-free launch namespac
 4. Launch L4: Route Choice Equity
 5. Launch L5: Release Experience
 
-Use `Launch L1` through `Launch L5` in state files and prose, and the tokens `launch-safe-ground`, `launch-calibrated-challenge`, `launch-market-agency`, `launch-route-choice-equity`, and `launch-release-experience` in reservations, branches, worktrees, handoffs, and commit subjects. Historical content R8 keeps its existing name. No code or test identifier from historical R8 is renamed.
+Use `Launch L1` through `Launch L5` in state files and prose, and the tokens `launch-safe-ground`, `launch-calibrated-challenge`, `launch-market-agency`, `launch-route-choice-equity`, and `launch-release-experience` in reservations, branches, worktrees, handoffs, and commit subjects. Historical content R8 keeps its existing name. No code or test identifier from historical R8 is renamed. Never abbreviate a project to a bare `L1` through `L5`, because the Lantern ladder already uses `L1` through `L10` (`src/data.js`); use the full `Launch L` labels in prose and the descriptive tokens in all machine readable state.
 
 ## Program outcome
 
@@ -135,7 +135,7 @@ Launch L1 passes only when:
 * Apart from explicit migration metadata, the saved map, pending choice, fight seed, Treasure result, and next action remain byte-identical in the mutation test.
 * Crash-point tests prove each payment and reward settles exactly once before and after reload.
 * Player-visible output and combat goldens remain unchanged.
-* All tests and the production build pass from a clean worktree. The current missing local `vite` executable must be resolved without changing the lockfile before this gate can pass.
+* All tests and the production build pass from a clean worktree. The local dev dependency tree is currently absent in full (vite, sharp, @playwright/test, and pixi.js), so it must be restored with `npm ci` from the committed lockfile, without changing the lockfile, before this gate can pass.
 * `coordination/state.json` records the frozen Launch L2 baseline and has no unresolved reservation.
 
 ### Handoff package
@@ -419,4 +419,4 @@ If Robbie wants one agent to execute every Launch L1 version, Claude is the clea
 
 ## Start condition
 
-No implementation begins until Claude's review returns `ACCEPT`, Robbie approves the namespace and owner split, the roadmap commit is frozen, the pre-existing worktree status is recorded, the bootstrap 0.99.1 worktree is created from that commit, and the clean worktree can run both the full tests and production build. The first 0.99.1 commit creates `coordination/state.json` and records the bootstrap reservation; later versions may not use an out-of-band reservation.
+No implementation begins until Claude's review returns `ACCEPT`, Robbie approves the namespace and owner split, the roadmap commit is frozen, the pre-existing worktree status is recorded, the bootstrap 0.99.1 worktree is created from that commit, and the clean worktree can run both the full tests and production build after the full dev dependency tree is restored with `npm ci` from the committed lockfile. The first 0.99.1 commit creates `coordination/state.json` and records the bootstrap reservation; later versions may not use an out-of-band reservation.

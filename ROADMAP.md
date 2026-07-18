@@ -6,6 +6,8 @@ type: roadmap
 
 # Tavern Bash roadmap
 
+> SUPERSEDED (Launch L1 0.99.1): this 0.87.0-era road to 1.0 is history. The live plan is `roadmap-launch-l1-l5-2026-07-18.md` (Launch L1 through Launch L5), and the canonical current state is `coordination/state.json`. The version numbering below (0.88 through 1.0) did not ship as written; read the git log and those two files as current truth.
+
 Current build: 0.87.0.
 
 ## Product verdict

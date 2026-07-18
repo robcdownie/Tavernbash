@@ -1,0 +1,94 @@
+{
+  "stateSchema": 1,
+  "generatedBy": "Launch L1 0.99.1",
+  "updated": "2026-07-18",
+  "build": "0.99.1",
+  "reviewedHead": "15e8995cacf1cd15929978f103e1e9743f1a58ea",
+  "deploy": {
+    "target": "github-pages",
+    "url": "https://platosd.com",
+    "command": "git push origin main",
+    "ci": ".github/workflows/deploy.yml runs npm ci, npm test, npm run build on node 22 and publishes dist to GitHub Pages",
+    "netlify": "retired and dead; every historical Netlify site and the npx netlify deploy route is out of the deploy path and must not be used",
+    "approvalRule": "no push or deploy without Robbie's explicit approval after local verification is summarized"
+  },
+  "schemas": {
+    "saveSchema": 7,
+    "mapSchema": 12,
+    "contentEpoch": 1,
+    "cacheVersion": "bb-v73"
+  },
+  "contentEpochNote": "0.99.1 records the current content epoch as a baseline field only. Launch L2 0.99.2 makes it a real per-run runtime stamp with supported epoch tables, so a content or balance change starts a new epoch without retiring a supported active run.",
+  "activeProject": {
+    "name": "Launch L1",
+    "token": "launch-safe-ground",
+    "integrator": "claude",
+    "outcome": "Work is isolated, attributable, exact once, and safe for active runs.",
+    "versions": ["0.99.1", "0.99.2", "0.99.3"]
+  },
+  "reservations": [
+    {
+      "version": "0.99.1",
+      "project": "Launch L1",
+      "token": "launch-safe-ground",
+      "owner": "claude",
+      "branch": "launch-safe-ground",
+      "worktree": "C:/Robbie/bazaar-brawler",
+      "worktreeNote": "The roadmap calls for a separate worktree per writer. A sibling worktree path falls outside this session's sandboxed working directory, so the single-writer bootstrap runs on a dedicated branch inside the main checkout instead. Codex takes 0.99.3 in its own separate worktree, and the reservation validator still enforces one branch and one resolved worktree path per active reservation.",
+      "status": "in-progress",
+      "base": "15e8995cacf1cd15929978f103e1e9743f1a58ea",
+      "integrationCommit": null,
+      "verification": "npm ci restored 52 packages from the committed lockfile with the lockfile unchanged; npm test passed 494 of 494; npm run build succeeded on vite 6.4.3 with 813 modules transformed.",
+      "files": [
+        "package.json",
+        "coordination/state.json",
+        "scripts/coordination.js",
+        "scripts/ship.js",
+        "tests/coordination.test.js",
+        ".gitignore",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "ROADMAP.md",
+        "roadmap-launch-l1-l5-2026-07-18.md"
+      ]
+    }
+  ],
+  "reservationLedger": [],
+  "decisions": {
+    "namespace": {
+      "ruling": "Launch L1 through Launch L5 with the descriptive tokens launch-safe-ground, launch-calibrated-challenge, launch-market-agency, launch-route-choice-equity, and launch-release-experience. Historical content R8 keeps its name; no R8 code or test identifier is renamed. Never abbreviate a project to a bare L1 through L5, because the Lantern ladder already uses L1 through L10.",
+      "by": "robbie",
+      "date": "2026-07-18"
+    },
+    "ownerSplit": {
+      "ruling": "Claude leads and integrates Launch L1 and implements 0.99.1 and 0.99.2. Codex reviews the frozen 0.99.2 integration, implements 0.99.3, and signs the Launch L1 exit gate. Codex leads Launch L3 and Launch L4. The difficulty worker owns 0.101.0. Claude leads Launch L5.",
+      "by": "robbie",
+      "date": "2026-07-18"
+    },
+    "targetingReopen": {
+      "ruling": "Keep settled. No bulwark taunt or flying immunity reopen before 1.0. A later veto requires new reservations and renumbering.",
+      "by": "robbie",
+      "date": "2026-07-18"
+    },
+    "signatureModel": {
+      "ruling": "Keep Model B. Unlocking a hero atomically unlocks both signature wares, and signatures stay outside the global Almanac chase. Fix presentation debt in 0.108.0. A veto requires a separately reserved progression migration version and renumbering.",
+      "by": "robbie",
+      "date": "2026-07-18"
+    },
+    "displayName": {
+      "ruling": "Pending. Robbie decides, and it is due before 0.111.0 native metadata. Silence does not resolve it.",
+      "by": "robbie",
+      "date": null
+    },
+    "deploy": {
+      "ruling": "GitHub Pages only at platosd.com via git push origin main. Robbie approves each push at every deploy gate.",
+      "by": "robbie",
+      "date": "2026-07-18"
+    }
+  },
+  "reviewRulings": {
+    "acceptance": "Claude's frozen-target acceptance review returned ACCEPT for all five projects on 2026-07-18 against the roadmap at commit 15e8995.",
+    "refinementR1": "The full local dev dependency tree was absent, not only vite. It is restored with npm ci from the committed lockfile without changing the lockfile. Folded into the Launch L1 doc reconciliation.",
+    "refinementR2": "Bare L1 through L5 is forbidden because the Lantern ladder uses L1 through L10. Use the full Launch L labels in prose and the descriptive tokens in all machine readable state. Folded into the Launch L1 doc reconciliation."
+  }
+}

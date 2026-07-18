@@ -1,12 +1,22 @@
 /* One-command ship: test, bump, commit. Exists because the loop ran
    51 times by hand in one session and PowerShell reports git's CRLF
    stderr as failure. This script owns its exit code honestly.
+
+   Launch L1 0.99.1: staging is now explicit. The old git add -A let a stray
+   untracked file ride into a release. This stages only an approved file set and
+   refuses any unexpected path. The approved set is the active reservation's
+   files list in coordination/state.json (matched by the current branch); when
+   there is no such reservation it stages tracked changes and refuses any
+   unexpected untracked file. The staging planner is pure and tested in
+   tests/coordination.test.js.
+
    Run: node scripts/ship.js <major|minor|patch> "commit subject"
         [more message lines as extra args] */
 import {spawnSync} from 'node:child_process';
-import {readFileSync,writeFileSync} from 'node:fs';
+import {readFileSync,writeFileSync,existsSync} from 'node:fs';
 import {dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {parsePorcelain,planStaging} from './coordination.js';
 
 const root=dirname(dirname(fileURLToPath(import.meta.url)));
 const [kind,...msg]=process.argv.slice(2);
@@ -17,9 +27,8 @@ if(!['major','minor','patch'].includes(kind)||!msg.length){
 
 /* git runs shell-free so multi-word commit messages survive Windows
    arg joining; npm needs a shell for npm.cmd, so it goes as one string */
-function run(cmd,args,opts){
-  const r=spawnSync(cmd,args,Object.assign({cwd:root,encoding:'utf8'},opts));
-  return r;
+function git(args){
+  return spawnSync('git',args,{cwd:root,encoding:'utf8'});
 }
 
 /* 1. tests must pass */
@@ -40,10 +49,33 @@ pkg.version=v.join('.');
 writeFileSync(pkgPath,JSON.stringify(pkg,null,2)+'\n');
 console.log('version '+pkg.version);
 
-/* 3. commit; git writes CRLF warnings to stderr on success, ignore them */
-run('git',['add','-A']);
+/* 3. explicit staging: resolve the approved set from the active reservation,
+   refuse anything unexpected, then stage by path (never git add -A). */
+const entries=parsePorcelain((git(['status','--porcelain']).stdout)||'');
+let approved=[], strict=false;
+const statePath=join(root,'coordination','state.json');
+if(existsSync(statePath)){
+  try{
+    const state=JSON.parse(readFileSync(statePath,'utf8'));
+    const branch=((git(['rev-parse','--abbrev-ref','HEAD']).stdout)||'').trim();
+    const res=(state.reservations||[]).find(r=>r.branch===branch);
+    if(res&&Array.isArray(res.files)){approved=res.files;strict=true;}
+  }catch(e){/* fall back to the safe default staging below */}
+}
+const plan=planStaging(entries,approved,{strict});
+if(plan.refuse.length){
+  console.error('ship refused: files outside the approved set (stage them explicitly or update the reservation)\n  '+plan.refuse.join('\n  '));
+  process.exit(1);
+}
+if(!plan.stage.length){console.error('nothing to stage, nothing shipped');process.exit(1);}
+for(const p of plan.stage){
+  const a=git(['add','--',p]);
+  if(a.status!==0){console.error('stage failed for '+p+'\n'+(a.stderr||''));process.exit(1);}
+}
+
+/* 4. commit; git writes CRLF warnings to stderr on success, ignore them */
 const full=pkg.version+' '+msg.join('\n\n')+'\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>';
-const c=run('git',['commit','-m',full]);
+const c=git(['commit','-m',full]);
 if(c.status!==0){console.error('commit failed\n'+(c.stderr||'')+(c.stdout||''));process.exit(1);}
 console.log((c.stdout||'').split('\n')[0]);
 console.log('shipped '+pkg.version);

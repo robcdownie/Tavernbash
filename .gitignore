@@ -20,4 +20,3 @@ debug.log
 # Codex working files, never committed (per the R7 handoff)
 .agents/
 .tmp/
-AGENTS.md
