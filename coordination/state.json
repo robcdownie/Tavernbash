@@ -28,6 +28,17 @@
   },
   "reservations": [],
   "launchL1Status": "CLOSED. All three Launch L1 versions (0.99.1 coordination, 0.99.2 content epoch, 0.99.3 route decisions) are integrated and deployed to https://platosd.com (origin/main). Codex signed the technical gate. Robbie's on-device smoke passed (full game playthrough, Long mode, Moneylender + Guild Charter, district 6 Ifrit loss, 4 gate retries, all checkpoints and decisions settled exactly once). Launch L1 exit criteria met.",
+  "launchL2Inputs": [
+    {
+      "id": "after-midnight-storm-wall",
+      "source": "Robbie on-device smoke 2026-07-18, run r1slbuqc at platosd.com",
+      "owner": "difficulty worker (0.101.0), Launch L2 calibrated challenge",
+      "signal": "Sharp difficulty cliff at the After Midnight bosses. The player cleared districts 1 through 4 at or near full health, then lost five straight attempts to the district 6 Ifrit boss and never dropped it below about 247 of 1537 health.",
+      "rootCause": "Storm timing, not board strength. stormAt was 16s but the late fights ran 24 to 26s, so storm dealt 378 to 550 unattributed damage per attempt and dominated the loss. The board (Silver icy Torch, Silver Sword, Gold swift Fire Bomb, Gold stout March, Silver venomous Writ, Salt Ward at tier 4) was adequate through the front half but could not close before the storm buried it.",
+      "lever": "The After Midnight power multiplier (2.05 at d6) stacked on top of the fixed storm arrival is the specific spike. The front half at power 1 gave no such pressure. Consider easing storm timing or the After Midnight multiplier in the back half, or telegraphing the storm clock so players build to beat it.",
+      "relatedFinding": "Reinforces the earlier real-playtest note that spikes come from the offensive-opening plus Dragon Gate pattern rather than from tier cost."
+    }
+  ],
   "reservationLedger": [
     {
       "version": "0.99.1",
