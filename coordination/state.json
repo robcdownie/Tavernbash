@@ -35,9 +35,9 @@
       "branch": "launch-safe-ground",
       "worktree": "C:/Robbie/bazaar-brawler",
       "worktreeNote": "Single-writer bootstrap on a dedicated branch inside the main checkout; a sibling worktree path falls outside this session's sandboxed working directory. Codex takes 0.99.3 in its own separate worktree.",
-      "status": "in-progress",
+      "status": "frozen-for-review",
       "base": "719da50c5efb5d3c109f22cc09a07b9b25c4813b",
-      "integrationCommit": null,
+      "integrationCommit": "ff8fd931171bcc98bf0a7c4225a9969700fed3d6",
       "verification": "npm test 515 of 515 pass (8 new content-epoch tests; the byte-identical map and combat parity goldens hold, proving the default generator path is unchanged); npm run build green; Playwright resume crash-recovery matrix 34 of 34 across both viewports (v1 saves migrate through v8, resume is byte-identical, rewards settle exactly once); layout suite 26 of 28, the 2 failures being a pre-existing stale Omen-count assertion from 0.98.0 unrelated to the content epoch.",
       "files": [
         "package.json",
@@ -52,6 +52,20 @@
         "tests/route-save.test.js",
         "e2e/resume.spec.js"
       ]
+    },
+    {
+      "version": "0.99.3",
+      "project": "Launch L1",
+      "token": "launch-safe-ground",
+      "owner": "codex",
+      "branch": null,
+      "worktree": null,
+      "worktreeNote": "Codex creates its own separate worktree and branch from the frozen 0.99.2 commit ff8fd93. Claude and Codex do not edit the route persistence files concurrently.",
+      "status": "reserved",
+      "base": "ff8fd931171bcc98bf0a7c4225a9969700fed3d6",
+      "integrationCommit": null,
+      "scope": "Behavior-preserving route decision transaction seam over validation, deterministic generation, receipt creation, payment or reward mutation, report emission, and checkpoint ordering. No player-visible choice change.",
+      "gate": "Crash-point tests prove each payment and reward settles exactly once before and after reload; player-visible output and combat goldens unchanged; the content epoch and byte-identical resume from 0.99.2 stay intact; full tests and production build pass."
     }
   ],
   "reservationLedger": [
