@@ -19,6 +19,7 @@ import {attachCharmCheckpoint,charmVictoryIncome} from './route-charms.js';
 import {newRun,advance as advanceRun,serializeRun,reviveRun,bindEconomy,allocId,ensureIdFloor,
         campEnsure,campMend,campLastReserve,campExpireCredit,campClear,CAMP_MEND,CAMP_LAST_RESERVE} from './route-run.js';
 import {rewardKey,settleFixed,refreshPendingChoice,nextPresentation,ensureMidpointTreasure,midpointTreasureKey} from './route-runtime.js';
+import {commitRouteDecision as runtimeCommitRouteDecision} from './route-decisions.js';
 import {resumeMetrics,activateMetrics,pauseMetrics,setMetricPhase,touchMetrics,serializeMetrics,recordMetric,
         captureBoardSnapshot,beginCombatTally,recordCombatDiagnostic,commitCombatTally,metricPhaseTotals} from './route-metrics.js';
 import {ic} from './art.js';
@@ -31,7 +32,7 @@ import pkg from '../package.json';
 import {G,setG,RM,setRM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
 import {lockedWareComplement,runWareAllowed,omenUnlocked,heroUnlocked,HERO_HINTS,heroChipAttrs,heroPortraitClass,heroConfirmView,WILD_FIND_EVENT,nextUnlockHint,devAllOpen} from './unlock-profile.js';
 import {wireRouteUI,routeMap,routeState,renderRouteMap,combatPreview,showFightRecap,
-        routeEventCard,openRewardChoice,routeEnd,openRouteContinue,openUniquePick,
+        prepareRouteDecision,routeEventCard,openRewardChoice,routeEnd,openRouteContinue,openUniquePick,
         openRunHistory} from './route-ui.js';
 import {initCloudLedger} from './cloud-ledger.js';
 /* ============ SESSION + UI PRIMITIVES ============ */
@@ -1038,6 +1039,21 @@ function criticalSave(onProceed){
   };
   o.querySelector('#csGo').onclick=function(){ovClose(o);onProceed();};
 }
+/* The only UI entry for a prepared route decision. The pure transaction owns
+   validation, payment or reward mutation, metrics, receipt, and route advance.
+   This adapter runs the existing fusion cascade at its ordered hook, then makes
+   the aggregate durable before closing the card or consuming controller effects. */
+function commitPreparedRouteDecision(nodeId,choiceId,targetIid,afterSaved){
+  const result=runtimeCommitRouteDecision(G.run,routeMap(),nodeId,choiceId,targetIid,Date.now(),function(tx){
+    if(tx.needsFusion){fuseStamp(G.board);fuseWithVault();}
+  });
+  if(!result.ok||result.duplicate)return result;
+  criticalSave(function(){
+    if(afterSaved)afterSaved(result);
+    runEffects(result.effects,0);
+  });
+  return result;
+}
 /* present the screen a reward transaction leaves us on: an owed choice reopens,
    a finished run ends (so a final-boss choice resolves before the win screen),
    otherwise back to the map */
@@ -1262,7 +1278,12 @@ function runEffects(effects,i,ctx){
     else if(e.type==='slip'){toast('You slip past. Lost '+e.cost+' Resolve.');checkpointActiveRun();}
     else if(e.type==='market'){enterRouteMarket(e.nodeId);return;}
     else if(e.type==='marketDone'){G.route.market=null;G.phase='routeMap';metricPhase('map');checkpointActiveRun();}
-    else if(e.type==='event'){metricPhase('event');checkpointActiveRun();routeEventCard(e);return;}
+    else if(e.type==='event'){
+      metricPhase('event');
+      const prepared=prepareRouteDecision(e.node);
+      if(!prepared.ok)throw new Error('route decision: '+prepared.reason);
+      criticalSave(function(){routeEventCard(e);});return;
+    }
     else if(e.type==='eventDone'){G.phase='routeMap';metricPhase('map');checkpointActiveRun();}
     else if(e.type==='gateCamp'){G.phase='gateCamp';metricPhase('gate_camp');checkpointActiveRun();renderAll();return;}
     else if(e.type==='end'){routeEnd(e.cause);return;}
@@ -1422,7 +1443,12 @@ function resumeRoutePhase(){
     startRouteFight({nodeId:n.id,monId:n.monId,threat:n.threat,gilded:n.gilded,power:n.power||1,boss:n.type==='boss',fightSeed:st.fightSeed});
   }else if(st.phase==='reward'){metricPhase('reward');dispatchRoute({type:'settleReward'});}   /* fixed not saved: re-settle, receipt makes it once */
   else if(st.phase==='market'){G.phase='draft';metricPhase('market');renderAll();}
-  else if(st.phase==='event'){metricPhase('event');const n=nodeOf(routeMap(),st.pendingId);routeEventCard({node:n});}
+  else if(st.phase==='event'){
+    metricPhase('event');const n=nodeOf(routeMap(),st.pendingId),prepared=prepareRouteDecision(n);
+    if(!prepared.ok){clearRoute();openIntro();return;}
+    if(prepared.created){criticalSave(resumeRoutePhase);return;}
+    routeEventCard({node:n});
+  }
   else if(st.phase==='gateCamp'){G.phase='gateCamp';metricPhase('gate_camp');renderAll();}
   else if(st.phase==='won'){routeEnd('won');}   /* a finished run resumes to its end screen, not the map */
   else if(st.phase==='lost'){routeEnd('resolve');}
@@ -1603,6 +1629,7 @@ export function boot(){
      this is the one-way bridge. All targets are hoisted function declarations. */
   wireRouteUI({dispatchRoute:dispatchRoute,renderAll:renderAll,checkpointActiveRun:checkpointActiveRun,
     criticalSave:criticalSave,presentAfterReward:presentAfterReward,fuseStamp:fuseStamp,fuseWithVault:fuseWithVault,
+    commitRouteDecision:commitPreparedRouteDecision,
     computeT:computeT,mkOffer:mkOffer,heroOf:heroOf,newRoute:newRoute,restoreRoute:restoreRoute,clearRoute:clearRoute,
     replayHistoryRun:replayHistoryRun,hasActiveRoute:hasActiveRoute,
     lanternHighest:function(mode,heroId){return lanternHighest(store(),mode,heroId);},
@@ -1629,6 +1656,7 @@ export function boot(){
       openUniquePick:openUniquePick,bark:bark,music:music,musicNow:musicNow,
       newRoute:newRoute,dispatchRoute:dispatchRoute,frontier:function(){return frontier(G.run.route,G.route.map);},
       routeState:function(){return G.run.route;},
+      prepareRouteDecision:prepareRouteDecision,routeEventCard:routeEventCard,
       /* reward-flow hooks so the resume e2e can exercise the gild/unique choice
          branch without walking deep into the route to a choice-bounty monster */
       settleFixed:function(plan,nodeId){var key=rewardKey(G.run.runId,nodeId||'test',0);settleFixed(G.run,plan,key);return key;},

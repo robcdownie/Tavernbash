@@ -75,13 +75,13 @@ test('the Gate Camp Quartermaster never offers a foreign signature',()=>{
 
 test('the sig gate is wired at every grant pool and the treasure exclusion holds',()=>{
   const ui=readFileSync(join(root,'src','ui.js'),'utf8');
-  const routeUi=readFileSync(join(root,'src','route-ui.js'),'utf8');
+  const routeDecisions=readFileSync(join(root,'src','route-decisions.js'),'utf8');
   const routeRun=readFileSync(join(root,'src','route-run.js'),'utf8');
   const map=readFileSync(join(root,'src','map.js'),'utf8');
   /* rollShop and the opening offense seed both carry the hero clause in ui.js */
   const uiGates=(ui.match(/ITEMS\[id\]\.sig===G\.hero/g)||[]).length;
   assert.ok(uiGates>=2,'ui.js gates both rollShop and the opening offense seed (found '+uiGates+')');
-  assert.ok(/ITEMS\[x\]\.sig===G\.hero/.test(routeUi),'route-ui.js gates Fresh Stock');
+  assert.ok(/!d\.sig\|\|d\.sig===heroId/.test(routeDecisions),'route-decisions.js gates Fresh Stock');
   assert.ok(/ITEMS\[id\]\.sig===heroId/.test(routeRun),'route-run.js gates the Quartermaster');
   assert.ok(/!item\.sig/.test(map),'map.js excludes signatures from Treasure');
 });

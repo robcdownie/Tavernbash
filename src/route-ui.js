@@ -13,14 +13,13 @@
    ideal, and moving persistence out of render, stay later audited changes). */
 import {G,RM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
 import {ITEMS,RNAME,ENCH,MONSTERS,PERSONAS,CATN,TRINKETS,HEROES,ANOMALIES} from './data.js';
-import {mulberry,gateOK} from './engine.js';
 import {buildFoe} from './encounter.js';
 import {districtAffix} from './aspects.js';
 import {genMap,isCombat,MAP_VERSION,contentTablesFor} from './map.js';
-import {frontier,currentDistrict,visitedSet,validRoute,classifyEdges,fightSeed,isGateDistrict} from './route.js';
+import {frontier,currentDistrict,visitedSet,validRoute,classifyEdges,isGateDistrict} from './route.js';
 import {ic} from './art.js';
-import {chooseGild as runtimeChooseGild,chooseUnique as runtimeChooseUnique,chooseCharm as runtimeChooseCharm,
-        grantFreeOffer as runtimeGrantFreeOffer} from './route-runtime.js';
+import {chooseGild as runtimeChooseGild,chooseUnique as runtimeChooseUnique,chooseCharm as runtimeChooseCharm} from './route-runtime.js';
+import {ensureRouteDecision,routeDecisionReceipt,routeDecisionTargetOptions} from './route-decisions.js';
 import {fxCoinRain} from './fx.js';
 import {music,sting} from './music.js';
 import pkg from '../package.json';
@@ -179,63 +178,59 @@ function treasureView(op){
   const word={4:'Four',5:'Five',6:'Six'}[cash]||String(cash);
   return {g:'g-coin',t:word+' Gold',d:word+' gold, no strings.'};
 }
-/* event rolls draw from a stream keyed to the node and choice, not the mutable
-   G.rng, so a reload reproduces the same reward instead of inventing a new one */
-function eventRng(nodeId,tag){return mulberry(fightSeed(G.seed,nodeId,tag));}
-/* grant a free ware. A fixedId (from a face-up Treasure) is used as-is; without
-   one the ware is rolled from the tier-gated pool (the Negotiation Fresh Stock). */
-function grantFreeWare(rng,fixedId){
-  rng=rng||G.rng;
-  let id=fixedId;
-  if(!id){
-    const ids=Object.keys(ITEMS).filter(function(x){return gateOK(ITEMS[x].tier,G.tier)&&!ITEMS[x].unique&&(!ITEMS[x].sig||ITEMS[x].sig===G.hero)&&!ITEMS[x].inc;});
-    if(!ids.length){G.gold+=4;toast('No ware fits. 4 gold instead.');return;}
-    id=ids[Math.floor(rng()*ids.length)];
-  }
-  const result=runtimeGrantFreeOffer(G.run,id);
-  if(!result.ok&&result.reason==='duplicate unique'){
-    B.metricEvent('treasure_duplicate_unique',{id:id,gold:result.duplicateGold});
-    toast('You already own '+ITEMS[id].n+'. '+result.duplicateGold+' gold instead.');
-    return result;
-  }
-  if(!result.ok)return result;
-  /* wild-find grant signal: this free ware may be cleared before it is bought, so
-     possession settlement needs the explicit event to credit a unique (route-ui) */
-  B.metricEvent(WILD_FIND_EVENT,{id:id,source:'treasure'});
-  toast('A free '+ITEMS[id].n+' waits at the next market.');
-  return result;
+/* Freeze the deterministic offer set before its card opens. ui.js checkpoints a
+   newly-created receipt before calling routeEventCard, so no offer is visible
+   before it is durable. */
+export function prepareRouteDecision(node){
+  return ensureRouteDecision(G.run,node,{heroId:G.hero,directEventGold:directEventGold()});
 }
-/* etch an enchant onto the first compatible unenchanted ware. A fixedEnch (from a
-   face-up Treasure) only lands on a ware that satisfies its keyword need, else the
-   gold fallback; without one a legal enchant is rolled (Rest Temper). */
-function grantEnchantKit(rng,fixedEnch){
-  rng=rng||G.rng;
-  const compat=function(d,e){const req=ENCH[e].need;return !req||(req==='dmg'?!!(d.fx&&d.fx.dmg):d.cd>0);};
-  for(let i=0;i<G.board.length;i++){
-    const it=G.board[i];if(it.ench)continue;const d=ITEMS[it.id];
-    const opts=fixedEnch?(compat(d,fixedEnch)?[fixedEnch]:[]):Object.keys(ENCH).filter(function(e){return compat(d,e);});
-    if(opts.length){const e=opts.length===1?opts[0]:opts[Math.floor(rng()*opts.length)];it.ench=e;toast(ENCH[e].n+' etched onto '+d.n);return;}
-  }
-  G.gold+=4;toast((fixedEnch?'No ware fits '+ENCH[fixedEnch].n+'. ':'No ware to enchant. ')+'4 gold instead.');
+
+function settleDecision(node,choiceId,targetIid,overlay){
+  return B.commitRouteDecision(node.id,choiceId,targetIid,function(result){
+    if(overlay)ovClose(overlay);
+    if(result.reward&&result.reward.toast)toast(result.reward.toast);
+  });
 }
-function applyTreasure(opt,cont,nodeId,offers){
-  B.metricEvent('event_choice',{nodeId:nodeId,kind:'treasure',choice:Object.assign({},opt),
-    offers:(offers||[]).map(function(o){return Object.assign({},o);})});
-  if(opt.kind==='ware'){grantFreeWare(eventRng(nodeId,'tware'),opt.id);cont();}
-  else if(opt.kind==='enchant'){grantEnchantKit(eventRng(nodeId,'tench'),opt.ench);cont();}
-  else if(opt.kind==='silver'){openGild('Raise one ware a rarity step.',cont);}
-  else{const cash=6+((G.A&&G.A.directEventGoldFlat)||0);G.gold+=cash;toast(cash+' gold.');cont();}
-}
-function routeTreasureCard(node){
-  const opts=(node.reward&&node.reward.options)?node.reward.options:[{kind:'gold'}];
-  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">Treasure</div>'
-   +'<h2 class="big">Choose Your Spoils</h2><p>Take one; the rest stay buried.</p>'
-   +'<div class="picks">'+opts.map(function(op,i){const v=treasureView(op);
-      return '<div class="pick" data-t="'+i+'"><div class="ph2">'+ic(v.g,'','width:28px;height:28px')+'</div><div class="pn">'+esc(v.t)+'</div><div class="pd">'+esc(v.d)+'</div></div>';
+
+function openDecisionGild(node,choiceId,msg){
+  const receipt=routeDecisionReceipt(G.run,node.id),targets=routeDecisionTargetOptions(G.run,receipt,choiceId);
+  if(!targets.length){settleDecision(node,choiceId,null,null);return;}
+  const o=ovOpen('<div class="card"><div class="rays"></div>'
+   +'<div class="kick gold">Gilding</div>'
+   +'<h2 class="big" style="font-size:23px">'+msg+'</h2>'
+   +'<div class="picks">'+targets.map(function(opt){
+      const it=G.board.filter(function(w){return w.iid===opt.iid;})[0];if(!it)return '';
+      const d=ITEMS[it.id];
+      return '<div class="pick" data-g="'+it.iid+'"'+(!opt.eligible?' style="opacity:.4"':'')+'><div class="ph2">'+ic('g-'+it.id,'','width:28px;height:28px')+'</div><div class="pn">'+RNAME[it.rarity]+' '+d.n+'</div><div class="pd">'+(!opt.eligible?'Already Diamond':('to '+RNAME[it.rarity+1]))+'</div></div>';
     }).join('')+'</div></div>');
   o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){
-    const opt=opts[+p.dataset.t];ovClose(o);
-    applyTreasure(opt,function(){B.dispatchRoute({type:'resolveEvent',outcome:'treasure'});},node.id,opts);
+    const target=targets.filter(function(t){return t.iid===+p.dataset.g;})[0];
+    if(target&&target.eligible)settleDecision(node,choiceId,target.iid,o);
+  };});
+}
+
+function openDecisionCastoff(node,choiceId){
+  if(!G.board.length){toast('You have no ware to cast off.');routeShrineCard(node);return;}
+  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">Choose a Ware</div>'
+   +'<h2 class="big" style="font-size:21px">Cast off which ware?</h2>'
+   +'<div class="picks">'+G.board.map(function(it){const d=ITEMS[it.id];
+      return '<div class="pick" data-i="'+it.iid+'"><div class="ph2">'+ic('g-'+it.id,'','width:28px;height:28px')+'</div><div class="pn">'+RNAME[it.rarity]+' '+d.n+'</div></div>';
+    }).join('')+'</div></div>');
+  o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){settleDecision(node,choiceId,+p.dataset.i,o);};});
+}
+
+function routeTreasureCard(node){
+  const receipt=routeDecisionReceipt(G.run,node.id);
+  const opts=receipt.offers;
+  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">Treasure</div>'
+   +'<h2 class="big">Choose Your Spoils</h2><p>Take one; the rest stay buried.</p>'
+   +'<div class="picks">'+opts.map(function(off){const v=treasureView(off.option);
+      return '<div class="pick" data-t="'+off.id+'"><div class="ph2">'+ic(v.g,'','width:28px;height:28px')+'</div><div class="pn">'+esc(v.t)+'</div><div class="pd">'+esc(v.d)+'</div></div>';
+    }).join('')+'</div></div>');
+  o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){
+    const off=opts.filter(function(x){return x.id===p.dataset.t;})[0];
+    if(off.option.kind==='silver'){ovClose(o);openDecisionGild(node,off.id,'Raise one ware a rarity step.');}
+    else settleDecision(node,off.id,null,o);
   };});
 }
 /* a generic pick-one card for route events; each choice runs its own effect and
@@ -246,43 +241,26 @@ function choiceCard(kick,title,sub,choices){
    +'<div class="picks">'+choices.map(function(c,i){
       return '<div class="pick" data-c="'+i+'"><div class="pn">'+esc(c.label)+'</div><div class="pd">'+esc(c.desc)+'</div></div>';
     }).join('')+'</div></div>');
-  o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){const c=choices[+p.dataset.c];ovClose(o);c.onPick();};});
+  o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){choices[+p.dataset.c].onPick(o);};});
 }
-/* pick one board ware (destroy, sell, etc.) */
-function pickWare(msg,onPick){
-  if(!G.board.length){toast('No wares to choose.');return false;}
-  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">Choose a Ware</div>'
-   +'<h2 class="big" style="font-size:21px">'+esc(msg)+'</h2>'
-   +'<div class="picks">'+G.board.map(function(it,i){const d=ITEMS[it.id];
-      return '<div class="pick" data-i="'+i+'"><div class="ph2">'+ic('g-'+it.id,'','width:28px;height:28px')+'</div><div class="pn">'+RNAME[it.rarity]+' '+d.n+'</div></div>';
-    }).join('')+'</div></div>');
-  o.querySelectorAll('.pick').forEach(function(p){p.onclick=function(){const i=+p.dataset.i;ovClose(o);onPick(i);};});
-  return true;
-}
-function completeEvent(t,delta,outcome){
-  const data={nodeId:routeState().pendingId,kind:t,resolveDelta:delta||0};
-  if(outcome)data.outcome=outcome;
-  B.metricEvent('event_choice',data);
-  B.dispatchRoute({type:'resolveEvent',resolveDelta:delta||0,outcome:t});}
 function routeRestCard(node){
   choiceCard('Rest',nodeLabel(node),'Choose one.',[
-    {label:'Mend',desc:'Restore 8 Resolve.',onPick:function(){toast('You make camp. +8 Resolve.');completeEvent('mend',8);}},
-    {label:'Temper',desc:'Etch a legal enchant onto a ware.',onPick:function(){grantEnchantKit(eventRng(node.id,'temper'));completeEvent('temper');}},
-    {label:'Refit',desc:'Next tier costs 4 less, plus a free reroll next market.',onPick:function(){G.tierCost=Math.max(1,G.tierCost-4);G.freeReroll=true;toast('Refit: a cheaper tier and a free reroll.');completeEvent('refit');}}
+    {label:'Mend',desc:'Restore 8 Resolve.',onPick:function(o){settleDecision(node,'mend',null,o);}},
+    {label:'Temper',desc:'Etch a legal enchant onto a ware.',onPick:function(o){settleDecision(node,'temper',null,o);}},
+    {label:'Refit',desc:'Next tier costs 4 less, plus a free reroll next market.',onPick:function(o){settleDecision(node,'refit',null,o);}}
   ]);
 }
 function routeShrineCard(node){
   choiceCard('Quqnus Shrine',nodeLabel(node),'The shrine asks a price.',[
-    {label:'From the Ashes',desc:'Restore 12 Resolve.',onPick:function(){toast('The Quqnus renews you. +12 Resolve.');completeEvent('ashes',12);}},
-    {label:'Trial by Flame',desc:'Lose 6 Resolve, gild one ware a rarity step.',onPick:function(){
-      openGild('Trial by Flame: gild one ware.',function(){completeEvent('trial',-6);});
+    {label:'From the Ashes',desc:'Restore 12 Resolve.',onPick:function(o){settleDecision(node,'ashes',null,o);}},
+    {label:'Trial by Flame',desc:'Lose 6 Resolve, gild one ware a rarity step.',onPick:function(o){
+      ovClose(o);openDecisionGild(node,'trial','Trial by Flame: gild one ware.');
     }},
-    {label:'Cast Off the Old',desc:'Destroy a ware: gain 8 gold and drop the next tier to 1.',onPick:function(){
+    {label:'Cast Off the Old',desc:'Destroy a ware: gain 8 gold and drop the next tier to 1.',onPick:function(o){
       /* no ware means nothing to cast off: pay nothing, do not consume the shrine
          (a committed event node cannot be re-entered), re-show so a real option can
          be taken instead of banking free gold for an empty board */
-      if(!G.board.length){toast('You have no ware to cast off.');routeShrineCard(node);return;}
-      pickWare('Cast off which ware?',function(i){G.board.splice(i,1);G.gold+=8;G.tierCost=1;toast('Cast off. +8 gold, next tier costs 1.');completeEvent('castoff');});
+      ovClose(o);openDecisionCastoff(node,'castoff');
     }}
   ]);
 }
@@ -293,13 +271,16 @@ function routeNegotiationCard(node){
   const per=PERSONAS[node.persona]||PERSONAS[0];
   const cash=directEventGold();
   choiceCard(per.n,'A Merchant Bargains','Accept one offer, or walk away.',[
-    {label:'Quick Sale',desc:'Take '+cash+' gold on the spot.',onPick:function(){G.gold+=cash;toast('+'+cash+' gold.');completeEvent('nego',0,'quick_sale');}},
-    {label:'Fresh Stock',desc:'Pay 3 gold for a free ware at the next market.',onPick:function(){
+    {label:'Quick Sale',desc:'Take '+cash+' gold on the spot.',onPick:function(o){settleDecision(node,'quick_sale',null,o);}},
+    {label:'Fresh Stock',desc:'Pay 3 gold for a free ware at the next market.',onPick:function(o){
       /* cannot afford: do not consume the merchant node, re-show so Quick Sale or
          Walk Away stay reachable instead of burning the node for nothing */
-      if(G.gold<3){toast('Not enough gold for that.');routeNegotiationCard(node);return;}
-      G.gold-=3;grantFreeWare(eventRng(node.id,'fresh'));completeEvent('nego',0,'fresh_stock');}},
-    {label:'Walk Away',desc:'Keep your coin and your wares.',onPick:function(){completeEvent('nego',0,'walk_away');}}
+      const result=settleDecision(node,'fresh_stock',null,o);
+      if(!result.ok&&result.reason==='not enough gold'){
+        ovClose(o);toast('Not enough gold for that.');routeNegotiationCard(node);
+      }
+    }},
+    {label:'Walk Away',desc:'Keep your coin and your wares.',onPick:function(o){settleDecision(node,'walk_away',null,o);}}
   ]);
 }
 export function routeEventCard(e){
@@ -308,7 +289,7 @@ export function routeEventCard(e){
   if(t==='rest')return routeRestCard(node);
   if(t==='shrine')return routeShrineCard(node);
   if(t==='negotiation')return routeNegotiationCard(node);
-  completeEvent(t);
+  settleDecision(node,t,null,null);
 }
 
 /* ---- the production map screen: a positioned braid over a painted district ---- */
