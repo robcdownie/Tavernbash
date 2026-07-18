@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-18",
-  "build": "0.99.2",
+  "build": "0.99.3",
   "reviewedHead": "15e8995cacf1cd15929978f103e1e9743f1a58ea",
   "deploy": {
     "target": "github-pages",
@@ -26,48 +26,8 @@
     "outcome": "Work is isolated, attributable, exact once, and safe for active runs.",
     "versions": ["0.99.1", "0.99.2", "0.99.3"]
   },
-  "reservations": [
-    {
-      "version": "0.99.2",
-      "project": "Launch L1",
-      "token": "launch-safe-ground",
-      "owner": "claude",
-      "branch": "launch-safe-ground",
-      "worktree": "C:/Robbie/bazaar-brawler",
-      "worktreeNote": "Single-writer bootstrap on a dedicated branch inside the main checkout; a sibling worktree path falls outside this session's sandboxed working directory. Codex takes 0.99.3 in its own separate worktree.",
-      "status": "frozen-for-review",
-      "base": "719da50c5efb5d3c109f22cc09a07b9b25c4813b",
-      "integrationCommit": "ff8fd931171bcc98bf0a7c4225a9969700fed3d6",
-      "verification": "npm test 515 of 515 pass (8 new content-epoch tests; the byte-identical map and combat parity goldens hold, proving the default generator path is unchanged); npm run build green; Playwright resume crash-recovery matrix 34 of 34 across both viewports (v1 saves migrate through v8, resume is byte-identical, rewards settle exactly once); layout suite 26 of 28, the 2 failures being a pre-existing stale Omen-count assertion from 0.98.0 unrelated to the content epoch.",
-      "files": [
-        "package.json",
-        "coordination/state.json",
-        "src/map.js",
-        "src/route-run.js",
-        "src/route-save.js",
-        "src/ui.js",
-        "src/route-ui.js",
-        "tests/content-epoch.test.js",
-        "tests/route-run.test.js",
-        "tests/route-save.test.js",
-        "e2e/resume.spec.js"
-      ]
-    },
-    {
-      "version": "0.99.3",
-      "project": "Launch L1",
-      "token": "launch-safe-ground",
-      "owner": "codex",
-      "branch": null,
-      "worktree": null,
-      "worktreeNote": "Codex creates its own separate worktree and branch from the frozen 0.99.2 commit ff8fd93. Claude and Codex do not edit the route persistence files concurrently.",
-      "status": "reserved",
-      "base": "ff8fd931171bcc98bf0a7c4225a9969700fed3d6",
-      "integrationCommit": null,
-      "scope": "Behavior-preserving route decision transaction seam over validation, deterministic generation, receipt creation, payment or reward mutation, report emission, and checkpoint ordering. No player-visible choice change.",
-      "gate": "Crash-point tests prove each payment and reward settles exactly once before and after reload; player-visible output and combat goldens unchanged; the content epoch and byte-identical resume from 0.99.2 stay intact; full tests and production build pass."
-    }
-  ],
+  "reservations": [],
+  "launchL1Status": "All three Launch L1 versions are integrated on launch-safe-ground at the 0.99.3 cherry-pick 490f14d (this state update sits on top). Awaiting Codex's Launch L1 technical gate signature and Robbie's on-device production smoke at platosd.com, then integration to main. Nothing is pushed; the branch is local only.",
   "reservationLedger": [
     {
       "version": "0.99.1",
@@ -81,6 +41,33 @@
       "integrationCommit": "719da50c5efb5d3c109f22cc09a07b9b25c4813b",
       "verification": "npm ci restored 52 packages from the committed lockfile with the lockfile unchanged; npm test passed 507 of 507 (13 new coordination tests); npm run build succeeded on vite 6.4.3.",
       "scope": "Canonical coordination state, reservation validator, explicit staging in ship.js, and doc reconciliation (AGENTS.md tracked and reduced, CLAUDE.md and ROADMAP.md pointers, roadmap refinements R1 and R2)."
+    },
+    {
+      "version": "0.99.2",
+      "project": "Launch L1",
+      "token": "launch-safe-ground",
+      "owner": "claude",
+      "branch": "launch-safe-ground",
+      "worktree": "C:/Robbie/bazaar-brawler",
+      "status": "done",
+      "base": "719da50c5efb5d3c109f22cc09a07b9b25c4813b",
+      "integrationCommit": "ff8fd931171bcc98bf0a7c4225a9969700fed3d6",
+      "verification": "npm test 515 of 515 (8 new content-epoch tests; byte-identical map and combat parity goldens hold); npm run build green; Playwright resume crash-recovery matrix 34 of 34 across both viewports; layout 26 of 28 (2 pre-existing stale Omen-count failures from 0.98.0, unrelated).",
+      "scope": "Content epoch decoupled from map retirement: CONTENT_EPOCH separate from MAP_VERSION and ROUTE_SAVE_VERSION, epoch-aware genMap, save v8 with migrateV7toV8, and readRouteSave retiring only on a map-structure mismatch."
+    },
+    {
+      "version": "0.99.3",
+      "project": "Launch L1",
+      "token": "launch-safe-ground",
+      "owner": "codex",
+      "branch": "launch-safe-ground-codex-0.99.3",
+      "worktree": "C:/tmp/bazaar-brawler-codex-0.99.3",
+      "status": "done-pending-gate-signature",
+      "base": "ff8fd931171bcc98bf0a7c4225a9969700fed3d6",
+      "sourceCommit": "4bfdb0a134ebc6bf81f7517c72ba8af3cf01e706",
+      "integrationCommit": "490f14d2fd5806cebe329c3964a1081339375f8b",
+      "verification": "Claude re-verified after cherry-pick: npm test 523 of 523; npm run build green; Playwright route-decisions recovery 2 of 2 and inherited resume matrix 34 of 34 across both viewports. Codex reported the same on its worktree. The seam changes no engine, data, map, or route-persistence file, so there is no combat, balance, or targeting change.",
+      "scope": "Behavior-preserving route decision transaction seam (src/route-decisions.js): a durable receipt freezes offers before display; commitRouteDecision validates before mutation, applies payment or reward, records the metric, advances the route, and marks the receipt in one synchronous transaction, with a duplicate guard for exact-once settlement across reload."
     }
   ],
   "decisions": {
