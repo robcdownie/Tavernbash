@@ -759,7 +759,6 @@ function paintFight(F){
     S.items.forEach(function(it,i){
       const c=$('fc-'+key+'-'+i);if(!c)return;
       if(!it.alive&&!c.classList.contains('dead')){c.classList.add('dead');}
-      if(it.alive&&it.cd>0){const r=c.querySelector('.ring');if(r)r.style.setProperty('--p',Math.min(1,it.timer/(it.cd+(it.nextCdFlat||0))));}
       const ig=$('fi-'+key+'-'+i);if(ig)ig.textContent=it.integ;
     });
   });
