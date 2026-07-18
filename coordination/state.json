@@ -3,7 +3,7 @@
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-18",
   "build": "0.99.3",
-  "reviewedHead": "15e8995cacf1cd15929978f103e1e9743f1a58ea",
+  "reviewedHead": "6d3ed775d6537bb6944f81fdbbbe96ee55de8551",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -20,14 +20,19 @@
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
-    "name": "Launch L1",
-    "token": "launch-safe-ground",
+    "name": "Launch L2",
+    "token": "launch-calibrated-challenge",
     "integrator": "claude",
-    "outcome": "Work is isolated, attributable, exact once, and safe for active runs.",
-    "versions": ["0.99.1", "0.99.2", "0.99.3"]
+    "outcome": "Calibrated challenge: tune the difficulty the Launch L1 smoke surfaced and remove dead hero and Omen pairings, without reopening settled combat, targeting, economy, map, or save semantics. Work stays isolated, attributable, and exact once.",
+    "versions": ["0.99.4"]
   },
   "reservations": [],
-  "launchL1Status": "CLOSED. All three Launch L1 versions (0.99.1 coordination, 0.99.2 content epoch, 0.99.3 route decisions) are integrated and deployed to https://platosd.com (origin/main). Codex signed the technical gate. Robbie's on-device smoke passed (full game playthrough, Long mode, Moneylender + Guild Charter, district 6 Ifrit loss, 4 gate retries, all checkpoints and decisions settled exactly once). Launch L1 exit criteria met.",
+  "launchL2Base": {
+    "productBaseline": "6d3ed775d6537bb6944f81fdbbbe96ee55de8551",
+    "reconciledOn": "2026-07-18",
+    "note": "The canonical Launch L2 base is the closed Launch L1 head at product baseline 6d3ed77 (docs: log the After Midnight storm wall as a Launch L2 difficulty input), a verified ancestor of the launch-safe-ground HEAD. Launch L1 is CLOSED (see launchL1Status): all three versions integrated and deployed and the gate signed, and the After Midnight storm-wall difficulty input (see launchL2Inputs) is recorded on this base for the calibrated-challenge work. No combat, targeting, economy, map, or save semantics change to reach this base; the reconciliation is canonical-state only."
+  },
+  "launchL1Status": "CLOSED. All three Launch L1 versions (0.99.1 coordination, 0.99.2 content epoch, 0.99.3 route decisions) are integrated and deployed to https://platosd.com (origin/main). Codex signed the technical gate. Robbie's on-device smoke passed (full game playthrough, Long mode, Moneylender + Guild Charter, district 6 Ifrit loss, 4 gate retries, all checkpoints and decisions settled exactly once). Launch L1 exit criteria met. The closure carries forward unchanged as the Launch L2 base (see launchL2Base).",
   "launchL2Inputs": [
     {
       "id": "after-midnight-storm-wall",
