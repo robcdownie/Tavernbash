@@ -19,8 +19,8 @@ function fight(a,b,rulesA,extraA){
   return createFight({a:side(a,rulesA,extraA),b:side(b,rulesA),seed:3,stormAt:999000,playerIs:'a'});
 }
 
-test('R8 Omens: twelve complete benefit and cost payloads replace the scalar-only set',()=>{
-  assert.equal(ANOMALIES.length,12);
+test('R8 Omens: sixteen complete benefit and cost payloads replace the scalar-only set',()=>{
+  assert.equal(ANOMALIES.length,16);
   for(const a of ANOMALIES){assert.ok(a.id&&a.n&&a.g&&a.d&&a.m,a.id||'Omen');}
   assert.equal(ANOMALIES.find(function(a){return a.id==='moon';}).m.hpMul,undefined,'Blood Moon no longer hides a second health penalty');
 });

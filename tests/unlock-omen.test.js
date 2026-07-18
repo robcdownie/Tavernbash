@@ -71,7 +71,7 @@ test('four starters: the pick is always one of the four starter omens, and all f
     seen.add(omen);
   }
   assert.equal(seen.size,STARTER_OMENS.length,'every starter omen is reachable');
-  /* 12 anomalies modulo 4 starters is exactly uniform: no starter can be skipped */
+  /* 16 anomalies modulo 4 starters is exactly uniform: no starter can be skipped */
   for(const id of STARTER_OMENS)assert.ok(seen.has(id),'starter '+id+' never rolled');
 });
 

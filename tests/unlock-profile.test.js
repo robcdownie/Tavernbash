@@ -42,7 +42,7 @@ test('with no profile, only starters read as unlocked',()=>{
   for(const h of STARTER_HEROES)assert.ok(heroUnlocked(s,h));
   for(const h of ['lender','architect','venom','silkblade','ash'])assert.equal(heroUnlocked(s,h),false);
   for(const o of STARTER_OMENS)assert.ok(omenUnlocked(s,o));
-  for(const o of ['moon','rapid','plague','fortified','narrow','silent','glass','auctionbell'])assert.equal(omenUnlocked(s,o),false);
+  for(const o of ['moon','rapid','plague','fortified','narrow','silent','glass','auctionbell','deep','patient','lean','charter'])assert.equal(omenUnlocked(s,o),false);
   for(const w of STARTER_SHOP_WARES)assert.ok(wareUnlocked(s,w));
   for(const w of LOCKED_START_WARES)assert.equal(wareUnlocked(s,w),false);
   assert.deepEqual(starterShopIds(),STARTER_SHOP_WARES);

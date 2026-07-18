@@ -103,7 +103,11 @@ const R8_OMEN_RULES={
   narrow:{version:"0.76.0",m:{slotCountFlat:-2,sizeCostOverride:{3:2}}},
   glass:{version:"0.76.0",m:{itemIntegrityMul:0.6,firstDeathrattleDouble:true}},
   silent:{version:"0.76.0",m:{shopN:6,rerollDisabled:true,freezeDurationRounds:2}},
-  auctionbell:{version:"0.76.0",m:{sellReturnsBaseCost:true,rerollCostPerSaleThisMarket:1}}
+  auctionbell:{version:"0.76.0",m:{sellReturnsBaseCost:true,rerollCostPerSaleThisMarket:1}},
+  deep:{version:"0.98.0",m:{shopN:6,shopItemCostFlat:1}},
+  patient:{version:"0.98.0",m:{freezeDurationRounds:3,rerollCost:2}},
+  lean:{version:"0.98.0",m:{shopN:3,sellReturnsBaseCost:true}},
+  charter:{version:"0.98.0",m:{pinTag:"hero"}}
 };
 
 /* The byte-identical fight-for-fight parity test was retired on 2026-07-12.

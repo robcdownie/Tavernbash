@@ -109,7 +109,7 @@ test('header counts split found and sealed for each gated category',()=>{
   assert.equal(h.total,8);
   const o=almanacCounts(s,'omens',omenIds);
   assert.deepEqual(o,{found:STARTER_OMENS.length,sealed:omenIds.length-STARTER_OMENS.length,total:omenIds.length});
-  assert.equal(o.total,12);
+  assert.equal(o.total,16);
   const w=almanacCounts(s,'wares',wareIds);
   assert.equal(w.total,64,'the reachable wares (income wares excluded): 60 classic plus the four payoff wares');
   assert.equal(w.found,24,'the 24 starter shop wares');
@@ -125,8 +125,8 @@ test('recording a descriptor moves it from sealed to found',()=>{
 
 /* --- the collection total --- */
 
-test('the collection count is 84 (purse and ledger excluded, monsters not counted)',()=>{
-  assert.equal(collectionTotal(),84);
+test('the collection count is 88 (purse and ledger excluded, monsters not counted)',()=>{
+  assert.equal(collectionTotal(),88);
   assert.equal(collectionTotal(),HEROES.length+ANOMALIES.length+wareIds.length);
 });
 

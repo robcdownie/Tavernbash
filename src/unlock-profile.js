@@ -68,7 +68,11 @@ export const OMEN_HINTS={
   glass:"The Glass Night tests the unbroken; fell three masters in one night without clearing the road and it settles on you.",
   narrow:"The Narrow Alleys open to the proven; clear a road under Lantern 2 and they wind your way.",
   silent:"The Silent Bazaar answers many hands; clear a road with three different merchants and its hush is yours.",
-  auctionbell:"The Auction Bell tolls for the bold; slay the Night Auctioneer at the Gate and it rings for you."
+  auctionbell:"The Auction Bell tolls for the bold; slay the Night Auctioneer at the Gate and it rings for you.",
+  deep:"Deep Shelves stock for a deep purse; end a night standing at Tier 5 and they fill for you.",
+  patient:"The Patient Merchant keeps late hours; return for a sixth night and he holds his wares through the frost for you.",
+  lean:"Lean Shelves reward the unburdened; clear two roads and the thin market opens to you.",
+  charter:"The Guild Charter honors a masterwork; end a night holding a Diamond ware and the guilds feature your trade."
 };
 
 /* The sealed-ware trigger hints for the eleven trigger-gated shop wares
@@ -188,7 +192,15 @@ const TRIGGERS=[
   {kind:'wares', id:'drummer',    cond:function(r){return maxFusionRarity(r,'dmg')>=1;}},
   {kind:'wares', id:'procession', cond:function(r){return maxFusionRarity(r,'poison')>=1;}},
   {kind:'wares', id:'march',      cond:function(r){return maxFusionRarity(r,'burn')>=1;}},
-  {kind:'wares', id:'round',      cond:function(r){return maxFusionRarity(r,'shield')>=1;}}
+  {kind:'wares', id:'round',      cond:function(r){return maxFusionRarity(r,'shield')>=1;}},
+  /* The 0.98.0 pool-shaping guild Omens: each earns on the economy feat it
+     teaches. Deep Shelves on a deep purse (end at Tier 5), the Patient Merchant
+     on sustained play (a sixth night), Lean Shelves on discipline (two cleared
+     roads), the Guild Charter on a masterwork held (a Diamond at night's end). */
+  {kind:'omens', id:'deep',       cond:function(r){return ((r.economy&&r.economy.tier)||0)>=5;}},
+  {kind:'omens', id:'patient',    cond:function(r,c){return c.runs>=6;}},
+  {kind:'omens', id:'lean',       cond:function(r,c){return c.clears>=2;}},
+  {kind:'omens', id:'charter',    cond:function(r){return boardHoldsRarity(r,3);}}
 ];
 
 function blankProfile(){

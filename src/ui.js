@@ -1168,7 +1168,14 @@ function newRoute(mode,heroId,lantern,replay){
   const replayAnom=replay&&anomPool.filter(function(a){return a.id===replay.omenId;})[0];
   const replayTags=replay&&Array.isArray(replay.tags)?replay.tags.filter(function(t){return CATN[t];}).slice(0,2):[];
   const anom=replayAnom||rolledAnom;
-  const tags=replayTags.length===2?replayTags:[cats[0],cats[1]];
+  let tags=replayTags.length===2?replayTags:[cats[0],cats[1]];
+  /* Guild Charter (m.pinTag "hero") features the hero's own trade tonight: its
+     tag plus the first rolled cat that differs. A replay carries recorded tags,
+     so this only shapes the fresh roll and history reproduces the feature free. */
+  if(replayTags.length!==2&&anom.m&&anom.m.pinTag==='hero'&&heroId){
+    const ht=(HEROES.filter(function(x){return x.id===heroId;})[0]||{}).tag;
+    if(ht)tags=[ht,cats.filter(function(c){return c!==ht;})[0]];
+  }
   const omenA=Object.assign({},ANONE,anom.m);
   setG({mode:'route',seed:seed,rng:rng,round:0,anom:anom,A:composeLantern(anom.id,omenA,lantern),A0:omenA,tags:tags,
      T:null,hero:null,

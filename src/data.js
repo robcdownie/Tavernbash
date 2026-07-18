@@ -382,7 +382,15 @@ export const ANOMALIES=[
  {id:"narrow",n:"Narrow Alleys",g:"g-bazaarcompass",d:"Every merchant has two fewer board slots, but Large wares occupy two slots instead of three.",m:{slotCountFlat:-2,sizeCostOverride:{3:2}}},
  {id:"glass",n:"Glass Night",g:"g-prism",d:"All wares have 40% less integrity. The first rattle triggered by each side resolves twice.",m:{itemIntegrityMul:0.6,firstDeathrattleDouble:true}},
  {id:"silent",n:"Silent Bazaar",g:"g-peacebinderchain",d:"Rerolls are disabled. Markets show six wares, and frozen wares remain through two market rolls.",m:{shopN:6,rerollDisabled:true,freezeDurationRounds:2}},
- {id:"auctionbell",n:"The Auction Bell",g:"g-gavel",d:"Wares sell for full base cost, but each sale raises reroll cost by 1 for the rest of that market.",m:{sellReturnsBaseCost:true,rerollCostPerSaleThisMarket:1}}
+ {id:"auctionbell",n:"The Auction Bell",g:"g-gavel",d:"Wares sell for full base cost, but each sale raises reroll cost by 1 for the rest of that market.",m:{sellReturnsBaseCost:true,rerollCostPerSaleThisMarket:1}},
+ /* 0.98.0 pool-shaping guild Omens. Each bends the market economy toward or away
+    from fusion through fields that already have shipped consumption sites, so
+    three are pure data. Guild Charter carries pinTag INSIDE m (pinned by the omen
+    parity ledger); newRoute reads it to feature the hero's own trade. */
+ {id:"deep",n:"Deep Shelves",g:"g-ledger",d:"Every stall shows six wares, but each costs 1 more gold.",m:{shopN:6,shopItemCostFlat:1}},
+ {id:"patient",n:"The Patient Merchant",g:"g-hourglass",d:"The frost holds wares through three market rolls, but rerolls cost 2 gold.",m:{freezeDurationRounds:3,rerollCost:2}},
+ {id:"lean",n:"Lean Shelves",g:"g-purse",d:"Markets show only three wares. Sell your wares back for full price.",m:{shopN:3,sellReturnsBaseCost:true}},
+ {id:"charter",n:"Guild Charter",g:"g-crown",d:"The guilds honor your craft: your own trade is featured tonight.",m:{pinTag:"hero"}}
 ];
 /* ============ THE LANTERN ============ */
 /* The post-clear difficulty ladder (design-lantern-0.89.md). Cumulative: at

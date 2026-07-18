@@ -61,6 +61,8 @@ test('shopN composes as a delta after the Omen with a floor of 3',()=>{
   assert.equal(composeLantern('none',ANONE,5).shopN,3,'base 4 minus 1');
   assert.equal(composeLantern('overstock',effA('overstock'),5).shopN,5,'Overstocked 6 minus 1');
   assert.equal(composeLantern('silent',effA('silent'),5).shopN,5,'Silent Bazaar 6 minus 1');
+  assert.equal(composeLantern('deep',effA('deep'),5).shopN,5,'Deep Shelves 6 minus 1');
+  assert.equal(composeLantern('lean',effA('lean'),5).shopN,3,'Lean Shelves 3 floors at 3, not 2');
   /* below L5 the Omen's own shopN is untouched */
   assert.equal(composeLantern('none',ANONE,4).shopN,ANONE.shopN);
   assert.equal(composeLantern('overstock',effA('overstock'),4).shopN,6);
@@ -70,6 +72,12 @@ test('the frost exemption keys on the Omen id, not inferred fields',()=>{
   assert.equal(composeLantern('none',ANONE,6).freezeDisabled,true);
   assert.equal(Object.hasOwn(composeLantern('silent',effA('silent'),6),'freezeDisabled'),false,
     'Silent Bazaar keeps its frost');
+  /* the Patient Merchant is not the frost-exempt Silent Bazaar, so L6 guts its
+     three-roll hold while the reroll tax stays: its benefit fails face-up */
+  assert.equal(composeLantern('patient',effA('patient'),6).freezeDisabled,true,
+    'the Patient Merchant frost fails at L6 like any non-Silent Omen');
+  assert.equal(composeLantern('patient',effA('patient'),6).freezeDurationRounds,3,
+    'but the three-roll field and its reroll tax remain on the composed object');
   /* an Omen that merely shares fields with Silent Bazaar is not exempt */
   const lookalike=Object.assign({},ANONE,{shopN:6,rerollDisabled:true,freezeDurationRounds:2});
   assert.equal(composeLantern('imposter',lookalike,6).freezeDisabled,true);
