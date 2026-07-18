@@ -26,7 +26,26 @@
     "outcome": "Calibrated challenge: tune the difficulty the Launch L1 smoke surfaced and remove dead hero and Omen pairings, without reopening settled combat, targeting, economy, map, or save semantics. Work stays isolated, attributable, and exact once.",
     "versions": ["0.99.4"]
   },
-  "reservations": [],
+  "reservations": [
+    {
+      "version": "0.99.4",
+      "project": "Launch L2",
+      "token": "launch-calibrated-challenge",
+      "owner": "claude",
+      "branch": "launch-calibrated-challenge-0.99.4",
+      "worktree": "C:/tmp/bazaar-brawler-l2-0.99.4",
+      "status": "in-progress",
+      "base": "6d3ed775d6537bb6944f81fdbbbe96ee55de8551",
+      "scope": "Hero and Omen compatibility. A fresh random run filters the unlocked eligible Omen pool before the single deterministic draw so the Apothecary never opens under Blood Moon, whose healing, regeneration, and lifesteal lockout nullifies the entire heal kit. No redraw loop and no extra rng draw, so every other hero and Omen selection stays byte-identical; explicit replay overrides, active or historical Apothecary plus Blood Moon runs, and the simulator's explicit Apothecary plus Blood Moon negative-control cell are all preserved. No combat, difficulty constant, src/data.js, targeting, economy, map, or save change.",
+      "files": [
+        "package.json",
+        "src/unlock-profile.js",
+        "src/ui.js",
+        "tests/unlock-omen.test.js",
+        "tests/route-sim.test.js"
+      ]
+    }
+  ],
   "launchL2Base": {
     "productBaseline": "6d3ed775d6537bb6944f81fdbbbe96ee55de8551",
     "reconciledOn": "2026-07-18",
