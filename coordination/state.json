@@ -27,7 +27,7 @@
     "versions": ["0.99.1", "0.99.2", "0.99.3"]
   },
   "reservations": [],
-  "launchL1Status": "All three Launch L1 versions are integrated on launch-safe-ground at the 0.99.3 cherry-pick 490f14d (this state update sits on top). Awaiting Codex's Launch L1 technical gate signature and Robbie's on-device production smoke at platosd.com, then integration to main. Nothing is pushed; the branch is local only.",
+  "launchL1Status": "CLOSED. All three Launch L1 versions (0.99.1 coordination, 0.99.2 content epoch, 0.99.3 route decisions) are integrated and deployed to https://platosd.com (origin/main). Codex signed the technical gate. Robbie's on-device smoke passed (full game playthrough, Long mode, Moneylender + Guild Charter, district 6 Ifrit loss, 4 gate retries, all checkpoints and decisions settled exactly once). Launch L1 exit criteria met.",
   "reservationLedger": [
     {
       "version": "0.99.1",
@@ -62,11 +62,13 @@
       "owner": "codex",
       "branch": "launch-safe-ground-codex-0.99.3",
       "worktree": "C:/tmp/bazaar-brawler-codex-0.99.3",
-      "status": "done-pending-gate-signature",
+      "status": "done",
       "base": "ff8fd931171bcc98bf0a7c4225a9969700fed3d6",
       "sourceCommit": "4bfdb0a134ebc6bf81f7517c72ba8af3cf01e706",
       "integrationCommit": "490f14d2fd5806cebe329c3964a1081339375f8b",
-      "verification": "Claude re-verified after cherry-pick: npm test 523 of 523; npm run build green; Playwright route-decisions recovery 2 of 2 and inherited resume matrix 34 of 34 across both viewports. Codex reported the same on its worktree. The seam changes no engine, data, map, or route-persistence file, so there is no combat, balance, or targeting change.",
+      "gateSignature": "codex-signed-2026-07-18",
+      "smokeVerification": "robbie-platosd-long-moneylender-2026-07-18",
+      "verification": "Claude re-verified after cherry-pick: npm test 523 of 523; npm run build green; Playwright route-decisions recovery 2 of 2 and inherited resume matrix 34 of 34 across both viewports. Codex reported the same on its worktree. Robbie's on-device smoke passed: full playthrough Long mode with Moneylender+Charter, reached district 6, lost to Ifrit after 4 retries, all checkpoint and decision transactions settled exactly once. The seam changes no engine, data, map, or route-persistence file, so there is no combat, balance, or targeting change.",
       "scope": "Behavior-preserving route decision transaction seam (src/route-decisions.js): a durable receipt freezes offers before display; commitRouteDecision validates before mutation, applies payment or reward, records the metric, advances the route, and marks the receipt in one synchronous transaction, with a duplicate guard for exact-once settlement across reload."
     }
   ],
