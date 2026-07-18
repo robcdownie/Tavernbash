@@ -71,7 +71,8 @@ export const OMEN_HINTS={
   auctionbell:"The Auction Bell tolls for the bold; slay the Night Auctioneer at the Gate and it rings for you."
 };
 
-/* The sealed-ware trigger hints for the seven R8 shop wares (LOCKED_START_WARES).
+/* The sealed-ware trigger hints for the eleven trigger-gated shop wares
+   (LOCKED_START_WARES): the seven R8 wares and the four 0.97.0 payoff wares.
    The 29 uniques take no trigger hint: they are discovery-gated and wear a
    channel hint instead (see wareChannelHint). Same voice, zero dashes. */
 export const WARE_HINTS={
@@ -81,7 +82,11 @@ export const WARE_HINTS={
   sapperspick:"The Sapper's Pick is earned in gold; forge your first Gold ware and it is set in your hand.",
   venomsiphon:"The Venom Siphon is drawn from the serpent queen; slay Shahmaran and it coils to you.",
   chirurgeonsscissors:"The Chirurgeon's Scissors are honed on the rarest work; forge your first Diamond and they are yours.",
-  surgeonhook:"The Surgeon's Hook waits past a cleared road; carry any road to its end and it hangs at your belt."
+  surgeonhook:"The Surgeon's Hook waits past a cleared road; carry any road to its end and it hangs at your belt.",
+  drummer:"The Drummer of the Souk keeps time for a stall of blades; forge any weapon to Silver and his rhythm falls in beside yours.",
+  procession:"The Poisoners' Procession files in behind a proven venom; forge any poison ware to Silver and the line marches for you.",
+  march:"The Torchbearers' March needs a tended flame; forge any burn ware to Silver and the column lights for you.",
+  round:"The Shieldwrights' Round gathers at a raised wall; forge any shield ware to Silver and the circle closes around you."
 };
 
 /* Pure render decisions for the hero picker, shared by openHeroPick in ui.js
@@ -107,13 +112,17 @@ export function heroConfirmView(locked){
   return {cls:locked?'btn stonehint':'btn gold',aria:locked?'true':null,text:locked?'Sealed Stall':'Take the Stall'};
 }
 
-/* The seven R8 shop wares gated behind triggers. Each is a stateful or
-   conditional hook ware whose concept is noise before the player has met the
-   situation it answers; they are variety and complexity unlocks, not power
-   unlocks (the sim shows the starter pool is slightly EASIER without them). */
+/* The trigger-gated shop wares: the seven R8 hook wares plus the four 0.97.0
+   synergy-count payoff wares. Each is a stateful or conditional hook ware whose
+   concept is noise before the player has met the situation it answers; they are
+   variety and complexity unlocks, not power unlocks (the sim shows the starter
+   pool is slightly EASIER without them). The payoff wares earn in on a forged
+   category, exactly when their count synergy begins to matter, so the proven
+   24-ware starter pool stays pristine. */
 export const LOCKED_START_WARES=[
   'surgeonhook','sapperspick','venomsiphon','kilnchain',
-  'saltward','rosewaterpump','chirurgeonsscissors'
+  'saltward','rosewaterpump','chirurgeonsscissors',
+  'drummer','procession','march','round'
 ];
 
 /* The trigger table (design-unlocks-0.92.md). Each entry names the descriptor
@@ -172,7 +181,14 @@ const TRIGGERS=[
   {kind:'omens', id:'narrow',     cond:function(r){return isClear(r)&&((r.lantern||0)>=2);}},
   {kind:'omens', id:'silent',     cond:function(r,c){return Object.keys(c.clearsByHero).length>=3;}},
   {kind:'omens', id:'auctionbell',cond:function(r){return slew(r,'auctioneer');}},
-  {kind:'heroes',id:'ash',        cond:function(r){return isLongClear(r);}}
+  {kind:'heroes',id:'ash',        cond:function(r){return isLongClear(r);}},
+  /* The 0.97.0 payoff wares: each earns in on a forged category, mirroring the
+     Kiln Chain's burn-Silver trigger. A forged category is exactly when the
+     count synergy the ware pays off on starts to be a build the player has. */
+  {kind:'wares', id:'drummer',    cond:function(r){return maxFusionRarity(r,'dmg')>=1;}},
+  {kind:'wares', id:'procession', cond:function(r){return maxFusionRarity(r,'poison')>=1;}},
+  {kind:'wares', id:'march',      cond:function(r){return maxFusionRarity(r,'burn')>=1;}},
+  {kind:'wares', id:'round',      cond:function(r){return maxFusionRarity(r,'shield')>=1;}}
 ];
 
 function blankProfile(){
@@ -352,8 +368,8 @@ export const WILD_FIND_EVENT='wild_find';
    wild_find event. Offered-but-untaken treasure (a face-up option not chosen)
    and free shelf exposures (an offer left unbought) are deliberately NOT
    possession, so they never leak an unlock. Only uniques are extracted here; the
-   seven R8 shop wares unlock through their own forge and feat triggers, not by
-   being handed to the player. */
+   trigger-gated shop wares unlock through their own forge and feat triggers, not
+   by being handed to the player. */
 function foundUniqueIds(record){
   const out={};
   const add=function(id){if(id&&ITEMS[id]&&ITEMS[id].unique)out[id]=1;};
@@ -397,12 +413,12 @@ function kindUnlocked(storage,kind,id){
   if(kind==='omens')return omenUnlocked(storage,id);
   return wareUnlocked(storage,id);
 }
-/* whether a locked ware is trigger-gated (one of the seven R8 shop wares) as
-   opposed to a discovery-gated unique. Heroes and omens are always trigger-gated. */
+/* whether a locked ware is trigger-gated (one of the eleven LOCKED_START_WARES)
+   as opposed to a discovery-gated unique. Heroes and omens are always trigger-gated. */
 function wareTriggerGated(id){return LOCKED_START_WARES.indexOf(id)>=0;}
 
 /* the plaque hint for a locked trigger-gated descriptor (hero, omen, or one of
-   the seven wares). Empty string only if a descriptor somehow lacks copy. */
+   the locked wares). Empty string only if a descriptor somehow lacks copy. */
 export function triggerHint(kind,id){
   if(kind==='heroes')return HERO_HINTS[id]||'';
   if(kind==='omens')return OMEN_HINTS[id]||'';
@@ -442,7 +458,7 @@ export function almanacTile(storage,kind,id,name,seen){
 }
 
 /* Header counts for one gated category: {found, sealed, total}. ids is the
-   category catalogue (heroes, omens, or the sixty non-income wares). Monsters
+   category catalogue (heroes, omens, or the reachable non-income wares). Monsters
    are seen-counted by the caller, not sealed, so they do not pass through here. */
 export function almanacCounts(storage,kind,ids){
   let found=0;
@@ -451,13 +467,13 @@ export function almanacCounts(storage,kind,ids){
 }
 
 /* The collection is heroes plus omens plus the reachable wares. The two income
-   wares (purse, ledger) are excluded and unreachable, so the catalogue is 80,
-   not 82. Derived from data so it cannot drift if a descriptor is ever added. */
+   wares (purse, ledger) are excluded and unreachable, so the catalogue is 84,
+   not 86. Derived from data so it cannot drift if a descriptor is ever added. */
 export function collectionTotal(){
   const wares=Object.keys(ITEMS).filter(function(id){return !ITEMS[id].inc;}).length;
   return HEROES.length+ANOMALIES.length+wares;
 }
-/* how many of the 80 the player holds right now (starters always count) */
+/* how many of the 84 the player holds right now (starters always count) */
 export function collectionFound(storage){
   let n=0;
   HEROES.forEach(function(h){if(heroUnlocked(storage,h.id))n++;});

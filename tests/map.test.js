@@ -22,16 +22,18 @@ test('genMap is deterministic: same seed yields identical maps',()=>{
 });
 
 test('the map ledger pins every Quick layout byte except the version stamp',()=>{
-  /* v11 changed the generator's signature, not its lantern-0 output, so the
-     v10 hashes stand: a version bump alone must never regenerate this ledger */
-  assert.equal(MAP_VERSION,11);
+  /* v12 regenerated the ledger on purpose: the 0.97.0 synergy-count payoff
+     wares are non-unique and tier-2, so they enter treasureWareIds for the
+     District II+ gates, shifting rollTreasure's picks for these fixed seeds.
+     An approved, recorded regeneration; every other layout byte is unchanged. */
+  assert.equal(MAP_VERSION,12);
   const ledger=new Map([
-    [0,'93e981cf2f14708f2fd0d8032f74fe0d31ff3141bf8fcf5c92437d3c389cef51'],
-    [1,'ce0c3229f804741c92b6c65377ae4a9eb195b881f466debcdac87af98c872540'],
-    [7,'930a6205cb9f2a367d8fb2ee769ceb34a405dcfd71fcff108d14ea335d9181c1'],
-    [1234567,'1b5ddf7aa44e2455b65c761b35616b8c31e7507548e39025a3eb4eda64815a5b'],
-    [2654435769,'6b3546ee27fce73d75064c70b24644bbb1e17b1c72173092ce65f681745028d7'],
-    [4294967295,'07045a7283115176134be1df5bc4fd12b5311eb4f9fc7f83a2f73ae03cd2cfb0']
+    [0,'3c404a5124ef02f713aee10887e9266d60b4e13f870bb848f1af4400edc16fb1'],
+    [1,'e89a436d5fac7ebc5d0d982bc9fc3e87449d85583b2e16d9cf7a8fd327b5cd22'],
+    [7,'ec545ee7a05bee6406dea5d79b1253f95a5d6b53b5270d94fc435ac0ee19e120'],
+    [1234567,'83cc5078d588cada6c5621b373c68ad6fb3efa35b7b28f3be9f7176a49e07c26'],
+    [2654435769,'b3b4a76303ba51cb080badc2f4a36b215cb071278e7aaa9e9133287f504cd120'],
+    [4294967295,'5c6d3b2bd483917a277d9ae86e3caf0b62b4537f7e0ade73bbd8564cfb903219']
   ]);
   for(const [seed,want] of ledger){
     const map=genMap(seed,'quick');delete map.version;

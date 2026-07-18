@@ -79,6 +79,15 @@ const R8_WARES={
   gravebell:{version:"0.74.0",batch:"utility",acquisition:"treasure"},
   bazaarcompass:{version:"0.74.0",batch:"utility",acquisition:"treasure"},
 };
+/* 0.97.0 synergy-count payoff wares. Non-unique shop wares that join the shop
+   and fusion economy (and the Treasure pool); recorded here on the R8_WARES
+   pattern so the new-item rule below admits them as fusible shop stock. */
+const PAYOFF_WARES={
+  drummer:{version:"0.97.0",batch:"payoff",acquisition:"shop"},
+  procession:{version:"0.97.0",batch:"payoff",acquisition:"shop"},
+  march:{version:"0.97.0",batch:"payoff",acquisition:"shop"},
+  round:{version:"0.97.0",batch:"payoff",acquisition:"shop"}
+};
 /* The 0.76.0 Omen rework is an approved replacement of all eight legacy
    anomaly modifiers plus four additions. Pin the complete rule payload here so
    no later data edit can silently turn a benefit or cost off. */
@@ -118,8 +127,15 @@ test('parity: data tables identical to the original outside the rebalance ledger
   }
   for(const k of Object.keys(ITEMS)){
     if(k in ORIG.ITEMS)continue;
-    if(R8_WARES[k]&&R8_WARES[k].acquisition==='shop')assert.equal(ITEMS[k].unique,undefined,'shop ware '+k+' must fuse');
+    const shopLedgered=(R8_WARES[k]&&R8_WARES[k].acquisition==='shop')||PAYOFF_WARES[k];
+    if(shopLedgered)assert.equal(ITEMS[k].unique,undefined,'shop ware '+k+' must fuse');
     else assert.ok(ITEMS[k].unique,'new item '+k+' must be flagged unique or explicitly shop-ledgered');
+  }
+  for(const [id,entry] of Object.entries(PAYOFF_WARES)){
+    assert.ok(ITEMS[id],'payoff ware '+id+' exists');
+    assert.equal(ITEMS[id].acquisition,entry.acquisition,'payoff ware '+id+' acquisition');
+    assert.equal(ITEMS[id].unique,undefined,'payoff ware '+id+' is non-unique');
+    assert.ok(Array.isArray(ITEMS[id].hooks)&&ITEMS[id].hooks.length>0,'payoff ware '+id+' rides combat hooks');
   }
   for(const [id,entry] of Object.entries(R8_WARES)){
     assert.ok(ITEMS[id],'R8 ware '+id+' exists');

@@ -27,9 +27,9 @@ const fusion=(id,rarity)=>({type:'fusion',data:{id,rarity}});
 test('the starter and locked lists reconcile with the real route shop pool',()=>{
   const fullPool=Object.keys(ITEMS).filter(id=>gateOK(ITEMS[id].tier,6)&&!ITEMS[id].unique&&!ITEMS[id].inc).sort();
   const combined=STARTER_SHOP_WARES.concat(LOCKED_START_WARES).sort();
-  assert.deepEqual(combined,fullPool,'starter 24 + locked 7 must equal the full non-unique non-inc shop pool');
+  assert.deepEqual(combined,fullPool,'starter 24 + locked 11 must equal the full non-unique non-inc shop pool');
   assert.equal(STARTER_SHOP_WARES.length,24);
-  assert.equal(LOCKED_START_WARES.length,7);
+  assert.equal(LOCKED_START_WARES.length,11);
   assert.equal(new Set(combined).size,combined.length,'no id appears in both lists');
   for(const id of STARTER_SHOP_WARES)assert.ok(ITEMS[id],'starter ware '+id+' exists');
   for(const id of LOCKED_START_WARES)assert.ok(ITEMS[id]&&!ITEMS[id].unique,'locked ware '+id+' exists and is non-unique');

@@ -1764,5 +1764,430 @@
     "cat": "dmg"
    }
   ]
+ },
+ "payoff-drummer-hastes-blades": {
+  "done": false,
+  "winner": null,
+  "t": 6000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Drummer",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 6000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "BladeL",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 6350,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "BladeR",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 6350,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 6000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 6000,
+    "k": "fire",
+    "side": "a",
+    "i": 0,
+    "cat": "util"
+   },
+   {
+    "t": 6000,
+    "k": "haste",
+    "side": "a",
+    "i": 1
+   },
+   {
+    "t": 6000,
+    "k": "haste",
+    "side": "a",
+    "i": 2
+   }
+  ]
+ },
+ "payoff-procession-third-poison": {
+  "done": false,
+  "winner": null,
+  "t": 3000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Procession",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 0,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Ticker",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 1000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 190,
+    "maxHp": 200,
+    "shield": 0,
+    "pois": 4,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 200,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 3000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 1000,
+    "k": "fire",
+    "side": "a",
+    "i": 1,
+    "cat": "poison"
+   },
+   {
+    "t": 1000,
+    "k": "pois",
+    "side": "b",
+    "amt": 2,
+    "val": 2
+   },
+   {
+    "t": 1000,
+    "k": "tickp",
+    "side": "b",
+    "amt": 2
+   },
+   {
+    "t": 2000,
+    "k": "fire",
+    "side": "a",
+    "i": 1,
+    "cat": "poison"
+   },
+   {
+    "t": 2000,
+    "k": "pois",
+    "side": "b",
+    "amt": 2,
+    "val": 3
+   },
+   {
+    "t": 2000,
+    "k": "tickp",
+    "side": "b",
+    "amt": 3
+   },
+   {
+    "t": 3000,
+    "k": "fire",
+    "side": "a",
+    "i": 1,
+    "cat": "poison"
+   },
+   {
+    "t": 3000,
+    "k": "pois",
+    "side": "b",
+    "amt": 2,
+    "val": 4
+   },
+   {
+    "t": 3000,
+    "k": "pois",
+    "side": "b",
+    "amt": 1,
+    "val": 5
+   },
+   {
+    "t": 3000,
+    "k": "tickp",
+    "side": "b",
+    "amt": 5
+   }
+  ]
+ },
+ "payoff-march-second-burn": {
+  "done": false,
+  "winner": null,
+  "t": 2000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "March",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 0,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Ember",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 1000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 192,
+    "maxHp": 200,
+    "shield": 0,
+    "pois": 0,
+    "burn": 3,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 2000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 1000,
+    "k": "fire",
+    "side": "a",
+    "i": 1,
+    "cat": "burn"
+   },
+   {
+    "t": 1000,
+    "k": "burn",
+    "side": "b",
+    "amt": 3,
+    "val": 3
+   },
+   {
+    "t": 1000,
+    "k": "tickb",
+    "side": "b",
+    "amt": 3
+   },
+   {
+    "t": 2000,
+    "k": "fire",
+    "side": "a",
+    "i": 1,
+    "cat": "burn"
+   },
+   {
+    "t": 2000,
+    "k": "burn",
+    "side": "b",
+    "amt": 3,
+    "val": 4
+   },
+   {
+    "t": 2000,
+    "k": "burn",
+    "side": "b",
+    "amt": 1,
+    "val": 5
+   },
+   {
+    "t": 2000,
+    "k": "tickb",
+    "side": "b",
+    "amt": 5
+   }
+  ]
+ },
+ "payoff-round-each-shield": {
+  "done": false,
+  "winner": null,
+  "t": 1000,
+  "guardTrips": 0,
+  "rng": [],
+  "final": {
+   "a": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 11,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Round",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 0,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     },
+     {
+      "nm": "Bulwarker",
+      "alive": true,
+      "integ": 20,
+      "rarity": 0,
+      "cd": 1000,
+      "timer": 0,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "b": {
+    "hp": 100,
+    "maxHp": 100,
+    "shield": 0,
+    "pois": 0,
+    "burn": 0,
+    "items": [
+     {
+      "nm": "Wall",
+      "alive": true,
+      "integ": 100,
+      "rarity": 0,
+      "cd": 9000000000,
+      "timer": 1000,
+      "frozen": 0,
+      "ammo": 0,
+      "lot": false
+     }
+    ]
+   },
+   "pocketed": 0,
+   "lotPaid": 0,
+   "stormOn": false
+  },
+  "events": [
+   {
+    "t": 1000,
+    "k": "fire",
+    "side": "a",
+    "i": 1,
+    "cat": "shield"
+   },
+   {
+    "t": 1000,
+    "k": "shield",
+    "side": "a",
+    "amt": 10,
+    "val": 10
+   },
+   {
+    "t": 1000,
+    "k": "shield",
+    "side": "a",
+    "amt": 1,
+    "val": 11
+   }
+  ]
  }
 }

@@ -11,6 +11,7 @@
    Regenerate the golden after an APPROVED behavior change: node scripts/capture-traces.js
    npm test only compares; it never regenerates. (Codex-designed R7, 2026-07-14.) */
 import {createFight} from '../src/engine.js';
+import {ITEMS} from '../src/data.js';
 
 const R = v => Math.round(v * 1e8) / 1e8;
 
@@ -218,4 +219,48 @@ export const FIXTURES = [
     cfg:{ seed:1, stormAt:9e9, playerIs:'a',
       a:side([ fi({nm:'Fizzle', cd:1000, charge:{t:5,s:1}, fx:{freeze:2, reload:1, disable:true}}) ], {hp:100}),
       b:side([], {hp:100}) } },
+
+  /* 0.97.0 payoff wares. Each pins the count-fake proc against a constructed
+     fight, riding the shipped ITEMS hooks so a retune of the ware moves its
+     golden on purpose. Drummer's own beat hastes every other active blade. */
+  { name:'payoff-drummer-hastes-blades',
+    dts:[6000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([
+        fi({nm:'Drummer', cat:'util', cd:6000, fx:{}, hooks:ITEMS.drummer.hooks}),
+        fi({nm:'BladeL', cat:'dmg', cd:9e9, integ:100, fx:{dmg:5}}),
+        fi({nm:'BladeR', cat:'dmg', cd:9e9, integ:100, fx:{dmg:5}})
+      ]),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:100}) ]) } },
+
+  /* Procession: every third OTHER poison activation adds a bronze poison to the
+     foe; the poison ticker carries the category but applies its own poison too */
+  { name:'payoff-procession-third-poison',
+    dts:[1000, 1000, 1000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([
+        fi({nm:'Procession', cat:'poison', cd:0, fx:{}, hooks:ITEMS.procession.hooks}),
+        fi({nm:'Ticker', cat:'poison', cd:1000, fx:{poison:2}})
+      ]),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:200}) ], {hp:200}) } },
+
+  /* March: every second OTHER burn activation adds a bronze burn to the foe */
+  { name:'payoff-march-second-burn',
+    dts:[1000, 1000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([
+        fi({nm:'March', cat:'util', cd:0, fx:{}, hooks:ITEMS.march.hooks}),
+        fi({nm:'Ember', cat:'burn', cd:1000, fx:{burn:3}})
+      ]),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:100}) ], {hp:200}) } },
+
+  /* Round: every OTHER shield activation raises one more shield for the owner */
+  { name:'payoff-round-each-shield',
+    dts:[1000],
+    cfg:{ seed:1, stormAt:9e9, playerIs:'a',
+      a:side([
+        fi({nm:'Round', cat:'util', cd:0, fx:{}, hooks:ITEMS.round.hooks}),
+        fi({nm:'Bulwarker', cat:'shield', cd:1000, fx:{shield:10}})
+      ]),
+      b:side([ fi({nm:'Wall', cd:9e9, integ:100}) ]) } },
 ];

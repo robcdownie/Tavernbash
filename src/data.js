@@ -267,7 +267,34 @@ export const ITEMS={
    hooks:[{on:"afterActivate",oncePerContext:"actorCategory",when:[{test:"actorSideIsOwner"},{test:"actorNotSource"}],actions:[
      {op:"haste",targets:{side:"owner",active:true,differentActorCategory:true,excludeSelf:true},amount:0.2}
    ]}],
-   d:"The first other activation of each category charges every active ware of a different category 0.2 seconds."}
+   d:"The first other activation of each category charges every active ware of a different category 0.2 seconds."},
+ /* 0.97.0 synergy-count payoff wares. Non-unique shop wares that fuse on the
+    standard ladder and enter the Treasure pool; each fakes a board count with
+    a plural-target action or category activation frequency, so no engine verb
+    is new. Torchbearers' March and Shieldwrights' Round are cat:"util" so a
+    leftmost copy can never claim the Kilnkeeper's Last Light or the Architect's
+    Living Rampart; they still count the target category through actorCategory,
+    which reads the activating ware's cat, not their own. */
+ drummer:{n:"Drummer of the Souk",size:2,tier:2,cat:"util",cd:6,fx:{},acquisition:"shop",
+   hooks:[{on:"afterActivate",when:{test:"actorIsSource"},actions:[
+     {op:"haste",targets:{side:"owner",category:"dmg",active:true,excludeSelf:true},amount:{from:"sourceRarity",values:[0.35,0.5,0.75,1.1]}}
+   ]}],
+   d:"Each beat sets every blade you field 0.35 ahead. More blades, more thunder."},
+ procession:{n:"Poisoners' Procession",size:1,tier:2,cat:"poison",cd:0,fx:{},acquisition:"shop",
+   hooks:[{on:"afterActivate",every:3,when:[{test:"actorSideIsOwner"},{test:"actorNotSource"},{test:"actorCategory",value:"poison"}],actions:[
+     {op:"poison",targetSide:"enemy",amount:{from:"sourceRarity",values:[1,2,3,4]}}
+   ]}],
+   d:"Every third poison activation in your stall adds 1 more to the foe."},
+ march:{n:"Torchbearers' March",size:1,tier:2,cat:"util",cd:0,fx:{},acquisition:"shop",
+   hooks:[{on:"afterActivate",every:2,when:[{test:"actorSideIsOwner"},{test:"actorNotSource"},{test:"actorCategory",value:"burn"}],actions:[
+     {op:"burn",targetSide:"enemy",amount:{from:"sourceRarity",values:[1,2,3,4]}}
+   ]}],
+   d:"Every second burn activation in your stall adds 1 burn."},
+ round:{n:"Shieldwrights' Round",size:1,tier:2,cat:"util",cd:0,fx:{},acquisition:"shop",
+   hooks:[{on:"afterActivate",when:[{test:"actorSideIsOwner"},{test:"actorNotSource"},{test:"actorCategory",value:"shield"}],actions:[
+     {op:"shield",side:"owner",amount:{from:"sourceRarity",values:[1,2,3,4]}}
+   ]}],
+   d:"Every shield activation in your stall raises 1 more."}
 };
 /* ============ HEROES ============ */
 /* Picked at run start. The personal tag weights your shop like a lobby

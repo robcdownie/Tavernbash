@@ -21,7 +21,9 @@ test('R8 acquisition split adds exactly seven tier-2 combat wares to the route s
   const routeShop=Object.keys(ITEMS).filter(function(id){
     return gateOK(ITEMS[id].tier,6)&&!ITEMS[id].unique&&!ITEMS[id].inc;
   });
-  assert.equal(routeShop.length,31);
+  /* 31 R8-era stock + the four 0.97.0 synergy-count payoff wares (drummer,
+     procession, march, round), all tier-2 non-unique shop stock */
+  assert.equal(routeShop.length,35);
   for(const id of SHOP_WARES){
     assert.equal(ITEMS[id].tier,2,id+' is tier-gated');
     assert.equal(ITEMS[id].unique,undefined,id+' is non-unique');

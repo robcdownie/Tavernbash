@@ -16,7 +16,7 @@ import {DISTRICTS, LONG_DISTRICTS, PERSONAS, ITEMS, ENCH, LANTERN} from './data.
 
 /* bump when the generator's output shape or rules change, so a saved run that
    regenerates its map from the seed can reject a stale layout */
-export const MAP_VERSION=11;   /* v11: genMap takes the Lantern level */
+export const MAP_VERSION=12;   /* v12: the 0.97.0 payoff wares enter the Treasure pool */
 
 export const COMBAT=new Set(['monster','elite','boss']);
 export function isCombat(n){return COMBAT.has(n.type);}
