@@ -188,7 +188,10 @@ F. The process fixes. Rule on sequencing for: worktree-per-agent plus a
 - Evidence available: node scripts/route-sim.js (now with hero=, omen=,
   uniques=hold, matrix, coverage), node scripts/variant-verify.mjs, the Cloud
   Ledger for real-run data, audit-2026-07-17.md, the design docs,
-  reflection-notes.md.
+  reflection-notes.md, and sim-matrix-2026-07-18.md (the completed 150-seed
+  hero x Omen matrix with findings: the confirmed apoth x moon collapse, kiln
+  weak in Long only, and hero and Omen variance dwarfing the proposed
+  district reshape; feed it into rulings B and E).
 
 Deliverable: the adversary review, the six rulings, and the single reconciled
 plan, in that order, as one dash-free markdown file committed to the repo.
