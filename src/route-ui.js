@@ -698,15 +698,23 @@ function dmgBreakdown(t){
   return parts.map(function(p){return '<span class="eff '+p[0]+'">'+ic(p[1],'mi')+' '+p[2]+'</span>';}).join('')||'<span class="eff util">nothing</span>';
 }
 function fightRecapHTML(won,foeName){
+  /* 0.110.0 result staging: the dealer's lit face and one consequence line
+     lead; the damage arithmetic waits behind Fight details. Numbers, rewards,
+     and settlement are computed exactly as before. */
   const R=G.recap||{a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
   const dealt=R.b.wpn+R.b.pois+R.b.burn+R.b.storm;
   const took=R.a.wpn+R.a.pois+R.a.burn+R.a.storm;
-  return '<div class="card recapcard"><div class="rays'+(won?'':' red')+'"></div>'
+  const hero=G&&G.hero?HEROES.filter(function(h){return h.id===G.hero;})[0]:null;
+  return '<div class="card recapcard '+(won?'rewin':'reloss')+'"><div class="rays'+(won?'':' red')+'"></div>'
    +'<div class="kick'+(won?' gold':'')+'">'+(won?'Victory':'Defeat')+'</div>'
+   +'<div class="reface">'+ic(won?(hero?hero.g:'p-0'):'g-skull','refp')+'</div>'
    +'<h2 class="big'+(won?'':' bad')+'">'+(won?esc(foeName)+' slain':'Driven off')+'</h2>'
-   +'<div class="recaprow"><div class="rlab">You dealt <b>'+Math.round(dealt)+'</b></div><div class="rchips">'+dmgBreakdown(R.b)+'</div></div>'
-   +'<div class="recaprow"><div class="rlab">You took <b>'+Math.round(took)+'</b></div><div class="rchips">'+dmgBreakdown(R.a)+'</div></div>'
-   +(R.a.dead.length?'<div class="recaplost">Destroyed this fight: '+R.a.dead.map(esc).join(', ')+'</div>':'')
+   +'<p class="recon">'+(won?'The way ahead is clear; your spoils settle as you return to the road.':'You slip back into the corridor to steady yourself.')+'</p>'
+   +'<details class="redetails"><summary>Fight details</summary>'
+     +'<div class="recaprow"><div class="rlab">You dealt <b>'+Math.round(dealt)+'</b></div><div class="rchips">'+dmgBreakdown(R.b)+'</div></div>'
+     +'<div class="recaprow"><div class="rlab">You took <b>'+Math.round(took)+'</b></div><div class="rchips">'+dmgBreakdown(R.a)+'</div></div>'
+     +(R.a.dead.length?'<div class="recaplost">Destroyed this fight: '+R.a.dead.map(esc).join(', ')+'</div>':'')
+   +'</details>'
    +'<button class="btn gold" id="recapGo" style="width:100%;margin-top:12px">Continue</button></div>';
 }
 export function showFightRecap(won,foeName,onDone){

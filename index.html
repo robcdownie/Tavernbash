@@ -33,6 +33,19 @@
     --e-out:cubic-bezier(.22,1,.36,1); --e-expo:cubic-bezier(.16,1,.3,1);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  /* 0.110.0 result staging: the dealer's face leads the recap */
+  .recapcard .reface{display:flex;justify-content:center;margin:4px 0 8px;}
+  .recapcard .reface .refp{width:108px;height:108px;border-radius:22px;}
+  .recapcard.rewin .reface .refp{box-shadow:inset 0 0 0 2px rgba(216,162,74,.75), 0 0 34px rgba(246,196,110,.5), 0 10px 24px rgba(0,0,0,.6);}
+  .recapcard.reloss .reface .refp{width:96px;height:96px;filter:grayscale(.4) brightness(.85);
+    box-shadow:inset 0 0 0 2px rgba(120,130,160,.5), 0 0 24px rgba(120,140,190,.3), 0 10px 24px rgba(0,0,0,.6);}
+  .recapcard .recon{font-size:13.5px;color:var(--parch);line-height:1.45;margin:2px 0 8px;}
+  .recapcard .redetails{margin-top:4px;text-align:left;}
+  .recapcard .redetails summary{cursor:pointer;list-style:none;font-size:11px;font-weight:800;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--dim);padding:7px 0;}
+  .recapcard .redetails summary::before{content:"+ ";color:var(--brass);}
+  .recapcard .redetails[open] summary::before{content:"- ";}
+
   /* 0.109.0 event rooms: Merchant, Rest, Shrine, and Treasure each open in
      their own painted room of the house. Backdrop only; the choice grid,
      settlement, and copy are byte-identical. */
