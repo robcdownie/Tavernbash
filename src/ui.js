@@ -141,7 +141,7 @@ function renderRibbon(){
   $('ribbon').innerHTML=
     '<div class="crestrow">'
      +'<div class="heroP">'+ic(H?H.g:'p-0','hpv')+'</div>'
-     +'<div class="crestwho"><span class="cnm">'+esc(H?H.n:'The Dealer')+'</span>'
+     +'<div class="crestwho"><span class="cnm">'+esc(H?H.n.replace(/^The /,''):'The Dealer')+'</span>'
        +'<span class="cfav">'+(H?'Favors '+H.tag:'Night trader')+'</span></div>'
      +'<div class="crestres">'
        +'<div class="chip hp"><span class="val">'+ic('g-heart','ci')+Math.max(0,st.resolve)+'</span></div>'
@@ -874,7 +874,7 @@ function startFight(me,foe,opts){
    fighterHTML(foe,'b')
   +'<div class="fx" id="fx-b"></div>'
   +'<div class="board combat bd-b">'+foe.items.map(function(fi,i){return fightCellHTML(fi,i,'b');}).join('')+pad(foe.items)+'</div>'
-  +'<div class="vsrow"><div class="vl"></div>'+ic('g-medallion','vm')
+  +'<div class="vsrow"><div class="lanelife" aria-hidden="true"><i class="flick"></i><i class="mote m1"></i><i class="mote m2"></i><i class="mote m3"></i><i class="mote m4"></i><i class="mote m5"></i></div><div class="vl"></div>'+ic('g-medallion','vm')
   +'<span class="stormchip" id="storm">'+ic('e-bolt','mi')+'<span id="stormT"></span></span>'
   +'<button class="spdbtn" id="spdB">'+FSPD+'x</button><div class="vl"></div></div>'
   +'<div class="board combat bd-a">'+me.items.map(function(fi,i){return fightCellHTML(fi,i,'a');}).join('')+pad(me.items)+'</div>'
