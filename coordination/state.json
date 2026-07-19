@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.115.1",
-  "reviewedHead": "f2aa5d3",
+  "build": "0.116.0",
+  "reviewedHead": "a8ec797",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -38,12 +38,26 @@
       "0.112.0",
       "0.113.0",
       "0.114.0",
-      "0.115.0"
+      "0.115.0",
+      "0.116.0"
     ],
     "status": "in-progress",
-    "note": "Sixteen manor versions 0.102.0 through 0.115.1 on local main, all tests green, every fix live-verified. The four playtest breakers are fixed at their root causes. Remaining polish queue: road and omen cards staged in rooms, gilded route paths, boss full-body layer, painted storm gauge, drape retry, landscape full-body pass. Deploy and CACHE_V bump wait on Robbie."
+    "note": "Seventeen manor versions 0.102.0 through 0.116.0 on local main. Paint, furniture, cast, rooms, and now motion. The S-tier gap list is recorded and each item has a recipe. Deploy waits on Robbie."
   },
   "reservations": [
+    {
+      "version": "0.116.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.110.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "done",
+      "sourceCommit": "8de24b7",
+      "integrationCommit": "a8ec797",
+      "scope": "The juice pass, answering Robbie still-not-S-tier verdict that motion is the remaining gap: ambient lane life in fights (candle flicker plus five drifting dust motes), the full-body dealer breathes on an idle loop planted at the feet, every section and card mounts with a 320ms settle instead of popping, combat float numbers punch with a scale hit, and the crest strips the article so hero names never truncate. All reduced-motion guarded, all decorative, no timing or engine change.",
+      "verification": "npm test 559 green via ship.js. Fight recording captured and QA framed; juice clip sent to Robbie. Remaining S-tier queue recorded: boss full-body layer, gilded route paths and jeweled nodes, painted storm gauge, sound design vocabulary, buy and reroll flight polish, landscape pass."
+    },
     {
       "version": "0.115.0",
       "project": "Manor Identity",
