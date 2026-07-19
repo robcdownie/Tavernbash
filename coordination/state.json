@@ -26,8 +26,10 @@
     "outcome": "Calibrated challenge: tune the difficulty the Launch L1 smoke surfaced and remove dead hero and Omen pairings, without reopening settled combat, targeting, economy, map, or save semantics. Work stays isolated, attributable, and exact once.",
     "versions": [
       "0.99.4",
-      "0.100.0"
-    ]
+      "0.100.0",
+      "0.101.0"
+    ],
+    "status": "closed"
   },
   "reservations": [
     {
