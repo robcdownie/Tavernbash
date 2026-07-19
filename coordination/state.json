@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.106.0",
-  "reviewedHead": "9ea1cb8",
+  "build": "0.107.0",
+  "reviewedHead": "382820b",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -30,12 +30,32 @@
       "0.104.0",
       "0.105.0",
       "0.106.0",
-      "0.107.0"
+      "0.107.0",
+      "0.108.0"
     ],
     "status": "in-progress",
     "note": "Robbie rejected core-loop-complete on 2026-07-19: art re-dress landed but screen STRUCTURE still reads early-phase versus the audit bar. The structural recomposition passes now proceed: hero crest HUD, combat anchors and action lane with bezel rings and log demotion, event rooms on their generated scenes, market detail demotion, victory staging, route reachable-emphasis and scout drawer anatomy."
   },
   "reservations": [
+    {
+      "version": "0.108.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.108.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "in_progress",
+      "base": "382820b",
+      "scope": "Combat recomposition per the approved proof: hero and foe become large lit anchors in the fight headers, the space between boards becomes a real action lane, the always-open log demotes behind a toggle on portrait, and the pocket-watch bezel files as a ui asset ringing fight cells. Presentation markup and CSS only; the engine, timing, targeting, and event stream untouched.",
+      "files": [
+        "index.html",
+        "src/ui.js",
+        "public/art/ui/*",
+        "tests/art.test.js",
+        "src/art-manifest.js",
+        "package.json"
+      ]
+    },
     {
       "version": "0.107.0",
       "project": "Manor Identity",
@@ -43,14 +63,17 @@
       "owner": "claude",
       "branch": "launch-manor-identity-0.107.0",
       "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
-      "status": "in_progress",
+      "status": "done",
       "base": "9e46b76",
       "scope": "Hero crest HUD: the draft ribbon becomes the dealer crest from the approved proof, hero portrait plus name plus favors line anchored left with Resolve and Gold chips attached, Tier and Omen demoted to a secondary strip. Presentation markup and CSS in ui.js ribbon render and index.html; no state, economy, or save change.",
       "files": [
         "index.html",
         "src/ui.js",
         "package.json"
-      ]
+      ],
+      "sourceCommit": "87ef9c5",
+      "integrationCommit": "382820b",
+      "verification": "npm test 559 of 559 green via ship.js. Live at 390x844: the draft ribbon is now the dealer crest, portrait plus name plus favors anchored left, Resolve and Gold attached as indigo pills, Tier and Omen demoted to the strip. Found and logged: payoff wares without painted art (Bellows Boy) expose empty ports, follow-up art batch needed."
     },
     {
       "version": "0.106.0",
