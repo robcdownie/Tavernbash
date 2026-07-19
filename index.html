@@ -45,10 +45,21 @@
   /* the dealer crest wears the carved frame */
   .art-frames #ribbon{border:11px solid transparent;border-radius:14px;
     border-image-source:var(--frame-bronze,var(--frame-gold));border-image-slice:135;border-image-width:12px;border-image-repeat:stretch;}
-  /* heroes with painted full-body art step into the duel */
-  html[data-hero="kiln"] body.fight #main.fight::before{content:"";position:absolute;left:-2%;bottom:23%;width:40%;max-width:230px;aspect-ratio:1;
-    background:url('/art/ui/hero_full_kiln.png') left bottom/contain no-repeat;z-index:3;pointer-events:none;
+  /* every dealer steps full-body into the duel, chosen by the hero stamp */
+  html[data-hero="kiln"]{--hf:url('/art/ui/hero_full_kiln.png');}
+  html[data-hero="venom"]{--hf:url('/art/ui/hero_full_venom.png');}
+  html[data-hero="architect"]{--hf:url('/art/ui/hero_full_architect.png');}
+  html[data-hero="silkblade"]{--hf:url('/art/ui/hero_full_silkblade.png');}
+  html[data-hero="ash"]{--hf:url('/art/ui/hero_full_ash.png');}
+  html[data-hero="apoth"]{--hf:url('/art/ui/hero_full_apoth.png');}
+  html[data-hero="knife"]{--hf:url('/art/ui/hero_full_knife.png');}
+  html[data-hero="lender"]{--hf:url('/art/ui/hero_full_lender.png');}
+  body.fight #main.fight::before{content:"";position:absolute;left:-2%;bottom:23%;width:40%;max-width:230px;aspect-ratio:1;
+    background:var(--hf,none) left bottom/contain no-repeat;z-index:3;pointer-events:none;
     filter:drop-shadow(0 0 26px rgba(232,120,40,.4));opacity:.96;}
+  /* occupied fight cells become carved slot cards, empties stay quiet */
+  .art-frames .combat .cell.it{border:7px solid transparent;border-radius:10px;
+    border-image:url('/art/ui/slot_frame.png') 120 fill / 7px;}
   #main.fight{position:relative;}
 
   /* 0.110.0 result staging: the dealer's face leads the recap */
