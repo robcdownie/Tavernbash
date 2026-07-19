@@ -854,9 +854,24 @@
   /* One wooden rail with brass keylines instead of seven loose boxes.
      Every segment shares the same anatomy: etched label above, value
      below. The right inset is the mute button's nest. */
-  #ribbon{display:flex;align-items:stretch;gap:0;margin-bottom:8px;border-radius:12px;overflow:hidden;padding:0 32px 0 0;
-    background:linear-gradient(180deg,#2c1f11,#1d1409 85%);
-    box-shadow:inset 0 1.5px 0 rgba(255,255,255,.09), inset 0 0 0 1px rgba(216,162,74,.22), 0 6px 14px rgba(0,0,0,.35);}
+  /* 0.107.0 dealer crest: two stacked rows, the hero row above a quiet strip */
+  #ribbon{display:flex;flex-direction:column;align-items:stretch;gap:0;margin-bottom:8px;border-radius:12px;overflow:hidden;padding:0 32px 0 0;
+    background:linear-gradient(180deg,#241c26,#171219 85%);
+    box-shadow:inset 0 1.5px 0 rgba(220,205,255,.08), inset 0 0 0 1px rgba(160,120,60,.28), 0 6px 14px rgba(0,0,0,.35);}
+  #ribbon .crestrow{display:flex;align-items:center;gap:10px;padding:7px 10px 6px;}
+  #ribbon .crestrow .heroP{display:block;flex:0 0 auto;width:44px;height:44px;border-radius:12px;overflow:hidden;
+    box-shadow:inset 0 0 0 1.5px rgba(216,162,74,.6), 0 0 12px rgba(232,140,60,.28), 0 3px 8px rgba(0,0,0,.5);}
+  #ribbon .crestrow .heroP .hpv{width:100%;height:100%;display:block;}
+  #ribbon .crestwho{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;}
+  #ribbon .crestwho .cnm{font-family:"Rakkas",serif;font-size:clamp(13px,4vw,16px);line-height:1;color:var(--brass-hi);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #ribbon .crestwho .cfav{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ember);font-weight:800;}
+  #ribbon .crestres{display:flex;gap:7px;flex:0 0 auto;}
+  #ribbon .crestres .chip{flex:0 0 auto;flex-direction:row;min-height:0;padding:6px 10px;border:0;border-radius:11px;
+    background:linear-gradient(160deg,#2a2f4e,#161a30 72%);
+    box-shadow:inset 0 1px 0 rgba(150,170,255,.13), inset 0 0 0 1px rgba(90,110,190,.32);}
+  #ribbon .crestres .chip .val{font-size:16px;}
+  #ribbon .creststrip{display:flex;align-items:stretch;gap:0;border-top:1px solid rgba(160,150,200,.12);}
   #ribbon .chip{flex:1 1 0;min-width:0;flex-direction:column;justify-content:center;gap:2px;padding:6px 4px;min-height:46px;
     background:none;border:0;border-radius:0;box-shadow:none;border-left:1px solid rgba(216,162,74,.16);}
   #ribbon .chip:first-child{border-left:0;}

@@ -135,14 +135,25 @@ function renderTrow(){$('trow').innerHTML='';}
 function renderRibbon(){
   const st=routeState();const H=heroOf();
   const debt=G.gold<0&&H&&H.mod&&H.mod.rerollBlockedInDebt?-G.gold:0;
+  /* 0.107.0 dealer crest: the hero is the HUD. Portrait, name, and favored
+     trade anchor the left; Resolve and Gold ride attached; Tier, Omen, and
+     Charms demote to a quieter strip below. Same data, new anatomy. */
   $('ribbon').innerHTML=
-    '<div class="heroP">'+ic(H?H.g:'p-0','hpv')+'</div>'
-   +'<div class="chip hp"><span class="lab">Resolve</span><span class="val">'+ic('g-heart','ci')+Math.max(0,st.resolve)+'</span></div>'
-   +'<div class="chip gold"><span class="lab">Gold</span><span class="val">'+ic('g-coin','ci')+G.gold+'</span></div>'
-   +(debt?'<div class="chip"><span class="lab">Debt due next reward</span><span class="val">'+debt+'g</span><span class="lab2">No rerolls. Unpaid debt costs '+H.mod.debtLobbyDamage+' Resolve per gold.</span></div>':'')
-   +'<div class="chip"><span class="lab">Tier</span><span class="val">'+ic('g-gem','ci')+G.tier+'</span></div>'
-   +'<button class="chip act grow" id="chipAno"><span class="lab">Omen</span><span class="lab2">'+G.anom.n+'</span></button>'
-   +(G.trinkets.length?'<button class="chip act" id="chipTrk"><span class="lab">Charms</span><span class="val">'+G.trinkets.map(function(t){return ic(t.g,'ci');}).join('')+'</span></button>':'');
+    '<div class="crestrow">'
+     +'<div class="heroP">'+ic(H?H.g:'p-0','hpv')+'</div>'
+     +'<div class="crestwho"><span class="cnm">'+esc(H?H.n:'The Dealer')+'</span>'
+       +'<span class="cfav">'+(H?'Favors '+H.tag:'Night trader')+'</span></div>'
+     +'<div class="crestres">'
+       +'<div class="chip hp"><span class="val">'+ic('g-heart','ci')+Math.max(0,st.resolve)+'</span></div>'
+       +'<div class="chip gold"><span class="val">'+ic('g-coin','ci')+G.gold+'</span></div>'
+     +'</div>'
+    +'</div>'
+   +'<div class="creststrip">'
+    +(debt?'<div class="chip"><span class="lab">Debt due next reward</span><span class="val">'+debt+'g</span><span class="lab2">No rerolls. Unpaid debt costs '+H.mod.debtLobbyDamage+' Resolve per gold.</span></div>':'')
+    +'<div class="chip"><span class="lab">Tier</span><span class="val">'+ic('g-gem','ci')+G.tier+'</span></div>'
+    +'<button class="chip act grow" id="chipAno"><span class="lab">Omen</span><span class="lab2">'+G.anom.n+'</span></button>'
+    +(G.trinkets.length?'<button class="chip act" id="chipTrk"><span class="lab">Charms</span><span class="val">'+G.trinkets.map(function(t){return ic(t.g,'ci');}).join('')+'</span></button>':'')
+   +'</div>';
   const ab=$('chipAno');if(ab)ab.onclick=openAnoInfo;
   const cb=$('chipTrk');if(cb)cb.onclick=openTrkInfo;
 }
