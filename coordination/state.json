@@ -1,9 +1,9 @@
 {
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
-  "updated": "2026-07-18",
-  "build": "0.100.0",
-  "reviewedHead": "6dbf27e5c6275797a98cc351aa234481d83831c0",
+  "updated": "2026-07-19",
+  "build": "0.101.0",
+  "reviewedHead": "a148a5866260a0349febac0c2d51f5a64256c2b9",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -15,7 +15,7 @@
   "schemas": {
     "saveSchema": 8,
     "mapSchema": 12,
-    "contentEpoch": 1,
+    "contentEpoch": 2,
     "cacheVersion": "bb-v73"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
@@ -24,7 +24,10 @@
     "token": "launch-calibrated-challenge",
     "integrator": "claude",
     "outcome": "Calibrated challenge: tune the difficulty the Launch L1 smoke surfaced and remove dead hero and Omen pairings, without reopening settled combat, targeting, economy, map, or save semantics. Work stays isolated, attributable, and exact once.",
-    "versions": ["0.99.4", "0.100.0"]
+    "versions": [
+      "0.99.4",
+      "0.100.0"
+    ]
   },
   "reservations": [
     {
@@ -34,14 +37,16 @@
       "owner": "difficulty-worker",
       "branch": "launch-calibrated-challenge-0.101.0",
       "worktree": "C:/tmp/bazaar-brawler-l2-0.101.0",
-      "status": "reserved",
+      "status": "closed",
       "base": "5d2570b225801314d6d6e907d15c8599a8316f07",
       "productBaseline": "6dbf27e5c6275797a98cc351aa234481d83831c0",
       "handoffApproval": "codex-approved-0.101.0-handoff-2026-07-18",
       "approvedHandoffCommit": "7335c4b80ea17d36c2d07ab68e76d701cde3be48",
       "startGate": "CLEAR. Gate 1 (Codex independently signs 0.100.0) is MET: Codex signed 0.100.0 on 2026-07-18. Gate 2 (Codex reviews and approves the final 0.101.0 handoff) is MET: Codex approved the final handoff at commit 7335c4b80ea17d36c2d07ab68e76d701cde3be48 on 2026-07-18 (approval codex-approved-0.101.0-handoff-2026-07-18). Both gates are clear, so the difficulty worker may now begin 0.101.0 on the reserved branch launch-calibrated-challenge-0.101.0 and worktree C:/tmp/bazaar-brawler-l2-0.101.0, following the approved handoff. This unblock changes no approved scope, file set, constant, or handoff specification.",
       "handoff": "handoff-difficulty-worker-0.101.0-2026-07-18.md; design authority difficulty-worker-notes-2026-07-18.md",
-      "exclusiveFiles": ["src/data.js"],
+      "exclusiveFiles": [
+        "src/data.js"
+      ],
       "note": "Reserved by the main integrator (Claude) as a handoff to the difficulty worker. Both start gates are now clear (see startGate); source work has not started yet but the difficulty worker may now begin. Reservation is anchored to canonical HEAD 5d2570b, whose ancestry contains the integrated 0.100.0 commit 6dbf27e. The dedicated branch launch-calibrated-challenge-0.101.0 and worktree C:/tmp/bazaar-brawler-l2-0.101.0 are created by the main integrator with no source changes; the difficulty worker is the sole writer of src/data.js for 0.101.0. Claude integrates the verified source and finalizes this state; Codex signs the evidence gate and does not implement the constants.",
       "scope": "Resolve-attrition curve reshape (difficulty worker owns the curve), corrected per Codex's rejection of the 2b933bc handoff. Primary trial: Azhdaha hasteMates 0.5 to exactly 0.30 on the base board, azhdaha_v1, and azhdaha_v2; Quick D2 power 1.12 and D3 power 1.18; Long D5 power 1.6 to 2.10. HELD in the primary trial: Long D6 power at 2.05 (D6 2.15 is a rejection control only, never the primary; if 2.05 stays storm-dominated, test a lower D6 separately) and vizier hp at 700 (660 only if the complete paired matrix proves it necessary, not optional polish). No hasteMates 0.25 lever. No scout-card or storm-clock telegraph in this version. District power (Quick D2, D3, Long D5) is an epoch-resolved map input, so it bumps CONTENT_EPOCH 1 to 2 and freezes epoch 1 into EPOCH_TABLES rather than retiring active runs (supersedes the design doc's MAP_VERSION save-retirement). The Azhdaha hasteMates change is an original-monster combat stat needing a parity-ledger entry; there is NO combat-golden regeneration (the fixtures are synthetic and reference no monster board, and the synthetic hasteMates 0.5 fixture must remain unchanged because it pins engine semantics). The hasteMates change moves the azhdaha_v1 and azhdaha_v2 traces (0.100.0 controls), which must re-confirm in band at 2,400 seeds. The difficulty worker must implement a new pure, deterministic, DOM-free verifier scripts/launch-l2-verify.mjs (route-sim output is insufficient) that runs live hero, Omen, shop, unlock, and combat rules (hero and Omen evidence is in scope, not out of scope), exits nonzero on any failed gate, invalid run, guard trip, timeout, route guard exit, pending action, unsupported active-run retirement, malformed artifact, or sample-count shortfall, and writes three JSON artifacts (baseline, candidate, comparison). The quantitative contract is in the handoff: expected Resolve bands with strictly falling whole-cohort point estimates and ended runs counting zero at later boundaries; district evidence (fight-duration p50 and p90, storm-reach fraction, player storm-damage p50 and p90, storm share of incoming damage, split by first attempt, retry, win, and loss); a 12-cell starter matrix at 150 paired seeds per cell per mode with aggregate regression at most 3 points, cell regression at most 5 points, and 60 percent Quick and 40 percent Long floors; and 1,200 paired fresh profiles through three Quick runs with the D3, Quick-clear, feat, and Lantern protections. Storm levers are forbidden: no global storm timing change, no district storm override, no new combat input; any storm lever needs a separate approval and reservation, so this version measures storm and adjusts only the authorized power trial. The hasteMates change moves both azhdaha_v1 and azhdaha_v2, so 44 of the 46 aspects must hold the 0.100.0 zero-breach result and the two azhdaha aspects re-confirm in band. Trial constants, not final approval.",
       "files": [
@@ -80,10 +85,11 @@
         "Bull Market applies adjustedVictoryIncome only to incomeGold (board, relic, and charm income), never to base bounty gold.",
         "Each run uses its frozen run.warePool snapshot (run.wareLock in code) for shop filtering, never the live profile mid-run.",
         "No constant change and no Vizier change during the seam work."
-      ]
+      ],
+      "closure": "CLOSED 2026-07-19 on Robbie's explicit Launch L2 completion approval. Integrated at canonical merge a148a5866260a0349febac0c2d51f5a64256c2b9 (final worker commit a3d8145ec0c6ae7bd761bf4566d68d79e227549c). Final 0.101.0 content: Azhdaha hasteMates 0.30 on base, v1, v2 with the azhdaha_v2 integ 52 retune (parity-ledgered); Long D5 power 2.10; Long D6 held 2.05; Vizier held 700; Quick district power ROLLED BACK to the 0.100.0 baseline per the pre-registered diagnostic consequence (every trial arm failed the frozen gates; T3 falsified the D2 hypothesis by reproducing the full pair's 0.81 run-1 reach with D3 power alone); CONTENT_EPOCH 2 with frozen epoch-1 tables so active runs regenerate their own maps; the Launch L2 verifier under the literal exit contract with computed seam-content tree identity; the live-market seam (market-core extraction, mp-1 walker, mode-specific coverage); the quick-arms and quickLossChip diagnostic machinery. Closure evidence: npm test 559 green, production build, 60 browser checks with the resume replay, 2,400-seed trace zero breaches across 46 aspects, closure artifacts at C:/tmp/launch-l2-0.101.0-{baseline,candidate,comparison}.json (compare exit 0, all 12 paired gates, seam hash f12faf45d1db20a9a9df0488fc2dc3245f39cf8a, evidence commits 4a4a0a7 baseline tree and a3d8145 candidate tree). ACCEPTED DEVIATIONS, recorded under Robbie's completion authority: the frozen gates that remain failed at close are resolve-bands-quick and first-attempt-descends-quick (the measured structural tension: door-power levers cannot land the quick D4 Resolve band without breaking the 90 percent run-1 reach floor; the quickLossChip lever class is staged for a future version), first-attempt-descends-long D6 to D7 at 20 (the Vizier 660 trial was never authorized), and the starter-cell floors plus fresh-clear-by-run3 (model-scale artifacts of the abstract calibration, failing at both constant sets under the live policy; mp-2 recalibration remains a documented proposal blocked on its 30-run corpus). 0.101.0 strictly improves the frozen gate set versus 0.100.0: both gate-elite-spread failures removed, none added, worst paired cell delta zero. Not deployed: push and deploy to platosd.com remain a separate explicit approval."
     }
   ],
-  "launchL2Status": "IN PROGRESS. 0.99.4 (Hero and Omen compatibility, Claude) integrated and deployed to platosd.com. 0.100.0 (Board Aspect repair, Claude) integrated locally on launch-safe-ground at 6dbf27e (2,400-seed variant-verify zero breaches across 46 aspects); not yet deployed, awaiting Robbie's deploy approval. 0.101.0 (Resolve-attrition curve plus Azhdaha hasteMates 0.3) is reserved and handed off to the difficulty worker per the recorded owner-split; the dedicated branch launch-calibrated-challenge-0.101.0 and worktree C:/tmp/bazaar-brawler-l2-0.101.0 are pre-created on canonical HEAD 5d2570b with no source changes. Codex independently signed 0.100.0 on 2026-07-18. START GATE for 0.101.0: gate 1 (Codex 0.100.0 signature) is MET; gate 2 (Codex approves the final 0.101.0 handoff) is NOT MET, because Codex reviewed the first handoff at commit 2b933bc and returned REJECT. The main integrator issued a correction commit that applies Codex's rejection corrections (D6 held at 2.05 with 2.15 as a rejection control only, vizier held at 700, no hasteMates 0.25 lever, no telegraph, a new required verifier scripts/launch-l2-verify.mjs replacing sole reliance on route-sim, and no combat-golden regeneration with the synthetic hasteMates 0.5 fixture preserved). Codex accepted those constant corrections but held the gate because the verifier contract was not yet quantitatively complete; a final correction commit supplies that contract (expected Resolve bands with strictly falling whole-cohort estimates, district storm evidence, a 12-cell starter matrix at 150 paired seeds with regression and floor gates, 1,200 paired fresh profiles through three Quick runs, forbidden storm levers, and three named verifier commands and JSON artifacts with nonzero-exit gating). Codex approved that final handoff at commit 7335c4b on 2026-07-18 (approval codex-approved-0.101.0-handoff-2026-07-18), so both start gates are now clear and the 0.101.0 reservation is unblocked (status reserved): the difficulty worker may now begin the curve work on the reserved branch and worktree following the approved handoff. Launch L2 does not exit until 0.101.0 is implemented and integrated, the verifier and 2,400-seed trace pass, the cohort expected-Resolve evidence is collected (Codex owns the cohort packet and gate ruling), and Codex signs the evidence gate. The cohort evidence and Codex's gate signature are external to the integrator session and cannot be produced here.",
+  "launchL2Status": "CLOSED 2026-07-19 on Robbie's explicit completion approval. Versions 0.99.4 (deployed), 0.100.0 (integrated), and 0.101.0 (integrated at a148a586) complete the calibrated-challenge arc: the dead hero-Omen pairing removed, the Board Aspect bands repaired and held at zero breaches, the Azhdaha snowball outlier fixed (Long Gate first-attempt 25 to about 53 percent), the Long D5 non-monotonic dip removed, the content-epoch machinery protecting active runs, and the evidence infrastructure (literal-contract verifier, live-market seam, tree-identity hashing) accepted by Codex as admissible. The accepted deviations and the staged next levers (quickLossChip Resolve pricing, mp-2 behavior calibration, the Vizier question) are recorded in the 0.101.0 reservation closure. Deploy of 0.100.0 plus 0.101.0 to platosd.com awaits Robbie's separate deploy approval.",
   "launchL2Base": {
     "productBaseline": "6d3ed775d6537bb6944f81fdbbbe96ee55de8551",
     "reconciledOn": "2026-07-18",
@@ -170,7 +176,9 @@
       "base": "13bcbde74912eadbfc204a8056664ae0cdc2ec77",
       "sourceCommit": "c09a4d6cb8af8e9cc0643840df7e7b0c65aefd42",
       "integrationCommit": "6dbf27e5c6275797a98cc351aa234481d83831c0",
-      "exclusiveFiles": ["src/data.js"],
+      "exclusiveFiles": [
+        "src/data.js"
+      ],
       "signedBy": "Codex independently signed 0.100.0 on 2026-07-18 (gate 1 of the 0.101.0 start gate). Codex had also signed 0.99.4 before this version opened.",
       "verification": "Data-only Board Aspect repair, verified on the dedicated worktree then re-verified after cherry-pick onto launch-safe-ground (source c09a4d6 and integration 6dbf27e are byte-identical trees). The independently reproduced base 2,400-seed variant-verify trace read 8 band breaches, exactly the eight repair targets; after the repairs the complete 2,400-seed trace read '0 band breaches across 46 aspects', 46 rows in band, zero BREACH rows (parsed from the printed result, not the always-zero exit code). The before-to-after trace diff is exactly the eight target rows plus the summary count; all 38 other aspects, including controls rats_v2 (+0.0/-1.1), lamassu_v1 (+0.0/+5.7), and azhdaha_v1 (-2.4/-0.1), are byte-identical and in band. Focused aspects+parity+combat-trace 53 of 53; Quick route sim 1200 clear 70.6%, Long 56.4%, both 0 invalid runs, 0 guard trips, 0 fight timeouts; full npm test 529 of 529; production build green on vite 6.4.3 (814 modules). No engine, encounter, targeting, combat-semantics, map-generation, save-semantics, or difficulty-constant change; contentEpoch stays 1; combat goldens and parity ledgers untouched.",
       "scope": "Reviewed candidate stat and board-order repairs to eight Board Aspects, data-only in src/data.js: matron_v2 regen 1->2, Venom Kiss poison 3->2, Grave Nail dmg 3->2; ghul_v2 both Rusted Hatchet cd 8->9; collector_v1 both Ledger Blade cd 8->8.5 integ 20->22; collector_v2 Counting Frame shield 8->3 cd 6->7 integ 14->6; peri_v2 both Shard Wings cd 2.5->2.6; golem_v2 both Coin Cannon cd 4->5; nasnas_v2 reordered to Bandage, Dagger, Vial, Torch, Buckler with shipped stats retained; simurgh_v1 Preen cd 8->9. Controls rats_v2, lamassu_v1, and azhdaha_v1 left unchanged."
