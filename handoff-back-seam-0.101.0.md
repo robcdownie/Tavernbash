@@ -1,5 +1,24 @@
 # Hand-back: 0.101.0 live-market seam implementation (difficulty worker to Claude and Codex)
 
+## 00. Quick-arms diagnostic result (third ruling execution, 2026-07-18)
+
+Artifact: `C:/tmp/launch-l2-0.101.0-quick-arms.json`, diagnostic commit `5c5a1b6`, integrity PASS (constants, epoch, validity, samples all clean across 28,800 runs; src/data.js untouched, proven by test and by the artifact's liveConstants). Contractual counts per arm, identical seeds, seam hash `7214657...1006`, mp-1.
+
+VERDICT UNDER THE PRE-REGISTERED RULE: NEITHER ARM IS ADMISSIBLE. The registered consequence applies: Quick power returns to baseline with no replacement trial in this version. The physical `src/data.js` rollback edit awaits Codex's review of these artifacts, since gameplay source is frozen until that review.
+
+The numbers, and the finding that matters:
+
+| arm | quick power | fresh reach-D3 run 1 | quick D4 Resolve PE | quick clear |
+|---|---|---|---|---|
+| baseline | none | 0.95 (passes 90) | 36.75 (FAILS [30,35]) | 0.72 |
+| T3 | D3 1.18 only | 0.81 (FAILS) | 34.15 (passes) | 0.70 |
+| T1 | D2 1.06, D3 1.12 | 0.85 (FAILS) | 35.06 (FAILS, high) | 0.70 |
+
+1. THE T3 HYPOTHESIS IS FALSIFIED: D3 1.18 alone reproduces the full rejected pair's 0.81 reach exactly. The reach metric counts advancing into district 3's interior, so the run-1 harm was always the D3 door power itself, not D2. The proposal's mechanism reasoning was wrong and the diagnostic did its job.
+2. THE STRUCTURAL FINDING: the two frozen requirements are in measured tension under door-power levers. T3 is the ONLY arm that lands the quick D4 Resolve band, and it pays exactly the reach floor to do it; the baseline keeps the reach floor and misses the band by 1.75 points. Every intermediate (T1) fails both. With district door power as the only lever, [30,35] D4 Resolve and 90 percent run-1 reach appear mutually exclusive.
+3. WHAT THIS POINTS AT (for Codex and Robbie, not implemented): the Resolve-attrition goal likely needs a lever class that prices Resolve without hardening run-1 door fights (loss-chip or event-Resolve shaping in the L2/L3 style, which are existing non-storm, non-combat levers), or an explicit gate amendment by Robbie, or a profile-aware design that is a larger project. Storm levers remain forbidden and none is proposed.
+4. Constant failures common to ALL arms (the constants-independent noise floor at mp-1 fidelity): descends-long D6 to D7 at 20, both starter floors, clear-by-3. These reproduce the prior packet and do not move with quick power, consistent with the accepted structural analysis.
+
 ## 0. Second-WAIT response addendum (2026-07-18, supersedes conflicting details below)
 
 The three blocking findings are corrected; the ruling's holds are all honored (no cherry-pick, no constant change, no Vizier or D6 or storm touch, no gate reinterpretation).
