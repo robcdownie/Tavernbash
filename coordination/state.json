@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.116.0",
-  "reviewedHead": "a8ec797",
+  "build": "0.117.0",
+  "reviewedHead": "8e4c1fe",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -39,12 +39,26 @@
       "0.113.0",
       "0.114.0",
       "0.115.0",
-      "0.116.0"
+      "0.116.0",
+      "0.117.0"
     ],
     "status": "in-progress",
-    "note": "Seventeen manor versions 0.102.0 through 0.116.0 on local main. Paint, furniture, cast, rooms, and now motion. The S-tier gap list is recorded and each item has a recipe. Deploy waits on Robbie."
+    "note": "Eighteen manor versions 0.102.0 through 0.117.0 on local main, every one tested and live-verified. Paint, furniture, cast, rooms, motion, and now boss duels. Deploy and CACHE_V bump wait on Robbie."
   },
   "reservations": [
+    {
+      "version": "0.117.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.110.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "done",
+      "sourceCommit": "161d152",
+      "integrationCommit": "8e4c1fe",
+      "scope": "Boss presence: five district lords (Rust Ghul, Ghul Matron, Ifrit, Grand Vizier, Azhdaha) painted full-body from their shipped portraits, QA approved, filed and wired through a foe glyph stamp mirroring the hero layer, with a slow looming idle; the QA-approved cobweb-chain garland dresses the fight top via screen blend; both duelists carry viewport-aware size caps so they hold opposite corners on any device. Reduced-motion guarded, presentation only.",
+      "verification": "npm test 559 green via ship.js. Live duel verified at 390x844 by stamping m-ghul then m-azhdaha in a real fight: both compositions hold, garland reads, no board overlap. Real boss fights stamp automatically from foe.portrait. Remaining queue after this session: gilded route paths and jeweled nodes, painted storm gauge, sound design vocabulary, landscape full-body pass."
+    },
     {
       "version": "0.116.0",
       "project": "Manor Identity",
