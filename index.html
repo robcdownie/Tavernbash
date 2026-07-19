@@ -60,7 +60,14 @@
   #main.fight .vsrow::before{content:"";position:absolute;left:0;bottom:0;height:94%;max-height:min(320px,56vw);aspect-ratio:1;
     background:var(--hf,none) left bottom/contain no-repeat;z-index:0;pointer-events:none;
     filter:drop-shadow(0 0 26px rgba(232,120,40,.4)) drop-shadow(0 6px 10px rgba(0,0,0,.6));opacity:.96;}
-  @media (orientation:landscape){#main.fight .vsrow::before{display:none;}}
+  /* 0.118.0 landscape duel: the figures flank the wide lane at reduced scale */
+  /* landscape has no vertical room for looming: the duelists stand fully
+     inside the lane, present but subordinate to the boards */
+  @media (orientation:landscape){
+    #main.fight .vsrow{min-height:170px;}
+    #main.fight .vsrow::before{height:94%;max-height:170px;left:1%;}
+    #main.fight .vsrow::after{height:94%;max-height:180px;right:1%;}
+  }
   /* occupied fight cells become carved slot cards, empties stay quiet */
   .art-frames .combat .cell.it{border:7px solid transparent;border-radius:10px;
     border-image:url('/art/ui/slot_frame.png') 120 fill / 7px;}
@@ -500,7 +507,10 @@
   .vsrow .vl{flex:1;height:1px;background:var(--line-s);}
   .vsrow .vm{width:36px;height:36px;}
   .vsrow .vt{font-family:"Rakkas",serif;color:var(--brass-d);font-size:13px;letter-spacing:3px;}
-  .stormchip{margin-left:8px;font-size:10px;font-weight:800;color:#e8c27a;display:inline-flex;align-items:center;gap:4px;}
+  /* 0.118.0: the storm clock wears the engraved brass housing */
+  .stormchip{margin-left:8px;font-size:11px;font-weight:800;color:#ffd9a6;display:inline-flex;align-items:center;gap:5px;
+    border:8px solid transparent;border-image:url('/art/ui/bar_housing.png') 118 190 118 190 fill / 7px 20px;
+    padding:2px 8px;text-shadow:0 1px 3px #000;}
   .stormchip.live{color:#ffb066;animation:stormpulse 1s ease-in-out infinite;}
   @keyframes stormpulse{0%,100%{opacity:1;}50%{opacity:.45;}}
   .fx{position:relative;height:0;}
@@ -1524,11 +1534,17 @@
   .rmdest{margin-left:auto;font-size:10px;color:#e6cfa0;opacity:.85;text-shadow:0 1px 3px rgba(0,0,0,.85);white-space:nowrap;}
   .rmplot{position:relative;flex:1 1 auto;min-height:0;}
   .rmedges{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;overflow:visible;}
+  /* 0.118.0 gilded paths: the roads through the estate are inlaid brass, not
+     wire. The dark under-stroke becomes a carved channel and the state stroke
+     rides inside it with a warm glow. */
   .rmedges .edge{fill:none;vector-effect:non-scaling-stroke;stroke-linecap:round;}
-  .rmedges .edge.under{stroke:rgba(0,0,0,.55);stroke-width:5;}
-  .rmedges .edge.done{stroke:#e7c058;stroke-width:3;}
-  .rmedges .edge.avail{stroke:#ffdf9b;stroke-width:2.5;stroke-dasharray:5 5;}
-  .rmedges .edge.future{stroke:rgba(120,92,58,.6);stroke-width:1.5;}
+  .rmedges .edge.under{stroke:rgba(10,6,4,.75);stroke-width:8;}
+  .rmedges .edge.done{stroke:#e7c058;stroke-width:4.5;filter:drop-shadow(0 0 3px rgba(231,192,88,.6));}
+  .rmedges .edge.avail{stroke:#ffdf9b;stroke-width:4;stroke-dasharray:7 6;filter:drop-shadow(0 0 5px rgba(255,223,155,.75));
+    animation:pathflow 1.6s linear infinite;}
+  @keyframes pathflow{to{stroke-dashoffset:-13;}}
+  .rmedges .edge.future{stroke:rgba(150,116,72,.5);stroke-width:2.5;}
+  @media (prefers-reduced-motion: reduce){.rmedges .edge.avail{animation:none;}}
   .rmnode{position:absolute;transform:translate(-50%,-50%);width:56px;height:64px;z-index:2;
     display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;
     border:0;background:none;padding:0;cursor:pointer;text-align:center;color:#f0e2c6;}

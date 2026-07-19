@@ -71,6 +71,14 @@ export function sHit(amt){
   noise(t,.004,big?.8:med?.55:.35,big?.16:.1,'bandpass',big?380:med?700:1200);
   tone('sine',big?150:med?190:240,big?55:med?75:95,t,.004,big?.7:.45,big?.17:.11);
 }
+export function sWhoosh(){
+  /* 0.118.0: the strike bolt gets a rising air sweep, landing just before the
+     impact transient so travel and hit read as one gesture */
+  if(!ok('whoosh',.05))return;
+  const t=ctx.currentTime;
+  noise(t,.002,.28,.14,'bandpass',900);
+  noise(t+.04,.002,.2,.1,'bandpass',1800);
+}
 export function sTick(){
   if(!ok('tick',.06))return;
   tone('square',1050,900,ctx.currentTime,.002,.12,.028);

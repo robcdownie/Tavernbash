@@ -26,7 +26,7 @@ import {ic} from './art.js';
 import {effChips,wareDetailHTML} from './cards.js';
 import {ART} from './art-manifest.js';
 import {fxHit,fxDestroy,fxForge,fxStorm} from './fx.js';
-import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxToggle,sfxMuted} from './sfx.js';
+import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sWhoosh,sfxToggle,sfxMuted} from './sfx.js';
 import {initMusic,music,musicMute,sting,musicNow} from './music.js';
 import pkg from '../package.json';
 import {G,setG,RM,setRM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
@@ -697,6 +697,7 @@ function streakFx(fromEl,toEl){
   const x1=a.left+a.width/2,y1=a.top+a.height/2,x2=b.left+b.width/2,y2=b.top+b.height/2;
   const len=Math.hypot(x2-x1,y2-y1);
   if(len<8)return;
+  sWhoosh();
   const s=document.createElement('div');s.className='streak';
   s.style.left=x1+'px';s.style.top=y1+'px';s.style.width=len+'px';
   s.style.transform='rotate('+(Math.atan2(y2-y1,x2-x1)*180/Math.PI)+'deg)';
