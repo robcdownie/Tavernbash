@@ -138,8 +138,16 @@ test('runAll is deterministic, carries every contract section, and the economy i
     assert.ok(a[k] != null, 'artifact carries ' + k);
   }
   assert.equal(a.starterMatrix.quick.length, 12);
-  assert.ok(a.gates.every(g => typeof g.pass === 'boolean' && typeof g.gating === 'boolean'), 'every gate reports pass and gating');
+  /* the LITERAL exit contract (second Codex ruling): every gate is gating on
+     every configuration, there is no nonGating scope, and ok is exactly
+     all-gates-pass, so ANY failed gate on ANY config produces the nonzero
+     exit main() derives from ok */
+  assert.ok(a.gates.every(g => g.gating === true), 'every gate is gating, no config scoping');
+  assert.equal(one.ok, a.gates.every(g => g.pass), 'ok is exactly the all-gates-pass conjunction');
+  assert.ok(a.gates.some(g => !g.pass), 'a tiny-sample pre-trial run fails target gates, deterministically');
+  assert.equal(one.ok, false, 'and therefore the whole run reports failure, the contract in action');
   assert.ok(a.gates.find(g => g.id === 'sample-counts').pass, 'sample accounting matches the request');
+  assert.ok(typeof a.identity.seamContentHash === 'string' && a.identity.seamContentHash.length === 40, 'the computed seam content hash is embedded');
   const d1 = a.curve.quick.districtEvidence[1];
   assert.ok(d1 && d1.all && d1.firstWin, 'district evidence carries the split cohorts');
   /* the NaN-gold regression guard: a broken economy zeroes every clear rate
@@ -171,12 +179,20 @@ test('compare: malformed artifacts and unpaired cells fail; a self-compare shape
   const asBase = JSON.parse(JSON.stringify(a)); asBase.configuration.name = 'baseline';
   const asCand = JSON.parse(JSON.stringify(a)); asCand.configuration.name = 'candidate';
   const cmp = V.runCompare(asBase, asCand, {});
-  for (const id of ['seam-policy-identical', 'starter-cells-paired', 'starter-aggregate-regression', 'starter-cell-regression',
+  for (const id of ['seam-content-hash-equal', 'seam-policy-identical', 'starter-cells-paired', 'starter-aggregate-regression', 'starter-cell-regression',
     'feat-total-drop', 'feat-family-survives', 'epoch1-active-run-preservation']) {
     const g = cmp.artifact.gates.find(x => x.id === id);
     assert.ok(g, 'compare carries ' + id);
     assert.ok(g.pass, id + ' passes on identical inputs: ' + (g.detail || []).join('; '));
   }
+  /* neither side's own gate outcomes are compare gates anymore: they are data */
+  assert.ok(!cmp.artifact.gates.find(x => x.id === 'candidate-gates-clean'), 'own-gate outcomes are data, not compare gates');
+  assert.ok(Array.isArray(cmp.artifact.inputs.baselineFailedGates), 'both sides failed-gate lists are reported as data');
+  /* a doctored hash fails the pair */
+  const tampered = JSON.parse(JSON.stringify(asCand)); tampered.identity.seamContentHash = 'not-the-hash';
+  const bad2 = V.runCompare(asBase, tampered, {});
+  assert.ok(!bad2.artifact.gates.find(x => x.id === 'seam-content-hash-equal').pass, 'hash inequality fails the compare');
+  assert.equal(bad2.ok, false);
 });
 
 test('artifacts carry the seam identity and both mode-specific coverage manifests', async () => {

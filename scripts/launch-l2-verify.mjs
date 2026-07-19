@@ -11,23 +11,28 @@
      node scripts/launch-l2-verify.mjs all --config candidate --seeds 1200 --cell-seeds 150 --profiles 1200 --out FILE
      node scripts/launch-l2-verify.mjs compare --baseline FILE --candidate FILE --out FILE
 
-   Exit code contract: nonzero for any failed GATING gate, invalid run, guard
-   trip, timeout, route guard exit, pending action, unsupported active-run
-   retirement, malformed artifact, or sample-count shortfall. Zero only for a
-   clean passing configuration. Gates are config-scoped: the section 4.1 curve
-   bands and the section 13 shape gates are the CANDIDATE's targets (the whole
-   point of the trial is that the baseline fails them), so on the baseline
-   config they are evaluated and reported but marked nonGating; constants-match,
-   validity, sample-count, and epoch gates are gating on every config. Every
-   gate appears in every artifact with an individual pass or fail, so the
-   comparison and Codex read one complete table per config.
+   Exit code contract (LITERAL, per the approved handoff section 4.5 and the
+   second Codex ruling): EVERY command exits nonzero for ANY failed gate,
+   invalid run, guard trip, timeout, route guard exit, pending action,
+   unsupported active-run retirement, malformed artifact, or sample-count
+   shortfall, on EVERY configuration. Zero only for a clean pass of every
+   gate. A pre-trial baseline is therefore EXPECTED to exit nonzero when it
+   fails the trial's target gates; its artifact still carries the complete
+   per-gate table, and the comparison reads both tables as data. There is no
+   nonGating scope anywhere.
+
+   Tree identity: each artifact embeds a seamContentHash computed at runtime
+   from the actual seam code files on disk (line endings normalized), and the
+   compare command REQUIRES hash equality across the pair. User-supplied
+   commit flags are recorded as labels only and prove nothing.
 
    Determinism: no wall clock, no Math.random, no filesystem reads outside the
    two artifact inputs of compare. The same invocation writes byte-identical
    artifacts. */
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import {pathToFileURL} from 'node:url';
+import {pathToFileURL,fileURLToPath} from 'node:url';
+import {dirname,join} from 'node:path';
 import {simRun, DEFAULT_CFG, coverageManifest} from './route-sim.js';
 import {POLICY_VERSION, POLICY} from './market-sim.js';
 import {genMap, CONTENT_EPOCH, contentTablesFor, snapshotContentTables} from '../src/map.js';
@@ -35,6 +40,21 @@ import {DISTRICTS, LONG_DISTRICTS, MONSTERS, ITEMS, HEROES} from '../src/data.js
 import {STARTER_HEROES, STARTER_OMENS, compatibleOmenPool, settleUnlocks, wareUnlocked} from '../src/unlock-profile.js';
 import {recordLanternClear, lanternHighest} from '../src/lantern-profile.js';
 import {ANOMALIES} from '../src/data.js';
+
+/* ---------- seam content identity (second ruling, finding 2) ----------
+   The hash covers the seam CODE files, never the constants files (data.js and
+   map.js differ between configs by design). Computed from disk at runtime with
+   CRLF normalized, so two evidence trees prove code identity by value. */
+export const SEAM_HASH_FILES=['src/market-core.js','src/ui.js','scripts/market-sim.js','scripts/route-sim.js','scripts/launch-l2-verify.mjs'];
+const REPO_ROOT=dirname(dirname(fileURLToPath(import.meta.url)));
+export function seamContentHash(){
+  const h=crypto.createHash('sha1');
+  for(const rel of SEAM_HASH_FILES){
+    h.update(rel+'\n');
+    h.update(fs.readFileSync(join(REPO_ROOT,rel),'utf8').replace(/\r\n/g,'\n'));
+  }
+  return h.digest('hex');
+}
 
 /* ---------- expected constants per config (handoff sections 5 and 7) ---------- */
 export const CONFIG_EXPECT = {
@@ -427,10 +447,11 @@ export function rejectionControl(seedsN) {
 export function runAll(opts) {
   const configName = opts.config;
   const gates = [];
-  const gate = (id, gating, pass, detail, extra) => { gates.push(Object.assign({id, gating: !!gating, pass: !!pass, detail: detail || []}, extra || {})); };
+  /* the LITERAL contract: every gate is gating on every configuration */
+  const gate = (id, pass, detail, extra) => { gates.push(Object.assign({id, gating: true, pass: !!pass, detail: detail || []}, extra || {})); };
 
   const cg = constantsGate(configName);
-  gate('constants-match-' + configName, true, cg.pass, cg.detail);
+  gate('constants-match-' + configName, cg.pass, cg.detail);
   /* a wrong-config tree invalidates every downstream number; stop here */
   if (!cg.pass) {
     return {ok: false, artifact: baseArtifact(opts, gates, {aborted: 'constants mismatch; no cohorts were run'})};
@@ -438,30 +459,28 @@ export function runAll(opts) {
 
   const curveQ = curveCohort('quick', opts.seeds);
   const curveL = curveCohort('long', opts.seeds);
-  const isCandidate = configName === 'candidate';
-  for (const g of curveGates(curveQ, 'quick')) gate(g.id, isCandidate, g.pass, g.detail, g.maxAdjacentDrop != null ? {maxAdjacentDrop: g.maxAdjacentDrop} : null);
-  for (const g of curveGates(curveL, 'long')) gate(g.id, isCandidate, g.pass, g.detail, g.maxAdjacentDrop != null ? {maxAdjacentDrop: g.maxAdjacentDrop} : null);
+  for (const g of curveGates(curveQ, 'quick')) gate(g.id, g.pass, g.detail, g.maxAdjacentDrop != null ? {maxAdjacentDrop: g.maxAdjacentDrop} : null);
+  for (const g of curveGates(curveL, 'long')) gate(g.id, g.pass, g.detail, g.maxAdjacentDrop != null ? {maxAdjacentDrop: g.maxAdjacentDrop} : null);
 
   const matrixQ = starterMatrix(opts.cellSeeds, 'quick');
   const matrixL = starterMatrix(opts.cellSeeds, 'long');
-  for (const g of starterMatrixGates(matrixQ, matrixL)) gate(g.id, g.id === 'starter-matrix-cell-count' ? true : isCandidate, g.pass, g.detail);
+  for (const g of starterMatrixGates(matrixQ, matrixL)) gate(g.id, g.pass, g.detail);
 
   const fp = freshProfiles(opts.profiles);
-  for (const g of freshProfileGates(fp)) gate(g.id, isCandidate, g.pass, g.detail);
+  for (const g of freshProfileGates(fp)) gate(g.id, g.pass, g.detail);
 
   const epoch = epochEvidence(configName);
-  for (const c of epoch.checks) gate(c.id, true, c.pass, c.detail);
+  for (const c of epoch.checks) gate(c.id, c.pass, c.detail);
 
-  const rc = isCandidate ? rejectionControl(Math.min(300, opts.seeds)) : null;
+  const rc = configName === 'candidate' ? rejectionControl(Math.min(300, opts.seeds)) : null;
 
-  /* validity roll-up: gating on every config */
   const validity = [curveQ.validity, curveL.validity, matrixQ.validity, matrixL.validity, fp.validity]
     .concat(rc ? [rc.validity] : [])
     .reduce((a, v) => { for (const k of Object.keys(a)) a[k] += v[k]; return a; }, newValidity());
-  gate('validity-clean', true, validity.invalidRuns === 0 && validity.guardTrips === 0 && validity.fightTimeouts === 0 && validity.routeGuardExits === 0 && validity.pendingActions === 0,
+  gate('validity-clean', validity.invalidRuns === 0 && validity.guardTrips === 0 && validity.fightTimeouts === 0 && validity.routeGuardExits === 0 && validity.pendingActions === 0,
     ['invalid ' + validity.invalidRuns + ' guardTrips ' + validity.guardTrips + ' timeouts ' + validity.fightTimeouts + ' routeGuardExits ' + validity.routeGuardExits + ' pendingActions ' + validity.pendingActions]);
   const expectRuns = opts.seeds * 2 + opts.cellSeeds * 24 + opts.profiles * 3 + (rc ? rc.seeds : 0);
-  gate('sample-counts', true, validity.runs === expectRuns, ['ran ' + validity.runs + ' expected ' + expectRuns]);
+  gate('sample-counts', validity.runs === expectRuns, ['ran ' + validity.runs + ' expected ' + expectRuns]);
 
   const artifact = baseArtifact(opts, gates, {
     curve: {quick: curveQ, long: curveL},
@@ -482,8 +501,13 @@ function baseArtifact(opts, gates, body) {
        versions baked into this build, the per-cohort market modes, and both
        mode-specific coverage manifests */
     identity: {
+      /* commit labels are caller-supplied CONTEXT ONLY; the computed
+         seamContentHash below is the tree verification (compare requires
+         equality across the pair) */
       sourceCommit: opts.sourceCommit || null,
       constantsCommit: opts.constantsCommit || null,
+      seamContentHash: seamContentHash(),
+      seamHashFiles: SEAM_HASH_FILES,
       seamPolicyVersion: POLICY_VERSION,
       policy: POLICY,
       cohortMarketModes: {curve: 'abstract', starterMatrix: 'live', freshProfiles: 'live', rejectionControl: 'abstract'}
@@ -520,20 +544,24 @@ export function runCompare(baseline, candidate, opts) {
     return {ok: false, artifact: {tool: 'launch-l2-verify', forVersion: '0.101.0', command: 'compare', rollback: ROLLBACK, gates}};
   }
 
-  /* the seam evidence requirement: identical seam code and policy version on
-     both sides, so the ONLY difference between the artifacts is the
-     authorized constants */
+  /* the seam evidence requirement: identical seam CODE (the computed content
+     hash, the tree verification) and identical policy on both sides, so the
+     ONLY difference between the artifacts is the authorized constants */
+  const bh = baseline.identity && baseline.identity.seamContentHash;
+  const ch = candidate.identity && candidate.identity.seamContentHash;
+  gate('seam-content-hash-equal', !!bh && bh === ch, ['baseline ' + bh + ' candidate ' + ch]);
   const sp = baseline.identity && candidate.identity
     && baseline.identity.seamPolicyVersion === candidate.identity.seamPolicyVersion
     && JSON.stringify(baseline.identity.policy) === JSON.stringify(candidate.identity.policy)
     && JSON.stringify(baseline.identity.cohortMarketModes) === JSON.stringify(candidate.identity.cohortMarketModes);
   gate('seam-policy-identical', !!sp, sp ? [] : ['baseline ' + (baseline.identity && baseline.identity.seamPolicyVersion) + ' candidate ' + (candidate.identity && candidate.identity.seamPolicyVersion)]);
 
-  /* candidate gating gates must all have passed in its own artifact */
-  const failedCand = candidate.gates.filter(g => g.gating && !g.pass).map(g => g.id);
-  gate('candidate-gates-clean', failedCand.length === 0, failedCand);
-  const failedBase = baseline.gates.filter(g => g.gating && !g.pass).map(g => g.id);
-  gate('baseline-gates-clean', failedBase.length === 0, failedBase);
+  /* both sides' own gate outcomes are DATA here, not compare gates: each
+     artifact's exit code already ruled on its own configuration under the
+     literal contract, and a pre-trial baseline failing the trial's target
+     gates is the expected shape */
+  const failedCand = candidate.gates.filter(g => !g.pass).map(g => g.id);
+  const failedBase = baseline.gates.filter(g => !g.pass).map(g => g.id);
 
   /* starter matrix regressions (section 4.3): aggregate <= 3 points, cell <= 5 */
   const cellRows = [];
@@ -581,10 +609,11 @@ export function runCompare(baseline, candidate, opts) {
     longFirstAttempt: {baseline: baseline.curve.long.firstAttempt, candidate: candidate.curve.long.firstAttempt},
     rejectionControl: candidate.rejectionControl
   };
-  const ok = gates.every(g => !g.gating || g.pass);
+  const ok = gates.every(g => g.pass);
   return {ok, artifact: {tool: 'launch-l2-verify', forVersion: '0.101.0', command: 'compare',
     inputs: {baselineConfig: baseline.configuration.name, candidateConfig: candidate.configuration.name,
       baselineIdentity: baseline.identity, candidateIdentity: candidate.identity,
+      baselineFailedGates: failedBase, candidateFailedGates: failedCand,
       seedCounts: {baseline: baseline.configuration.seedCounts, candidate: candidate.configuration.seedCounts}},
     rollback: ROLLBACK, cells: cellRows, headline, gates}};
 }
