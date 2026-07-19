@@ -26,7 +26,33 @@
     "outcome": "Calibrated challenge: tune the difficulty the Launch L1 smoke surfaced and remove dead hero and Omen pairings, without reopening settled combat, targeting, economy, map, or save semantics. Work stays isolated, attributable, and exact once.",
     "versions": ["0.99.4", "0.100.0"]
   },
-  "reservations": [],
+  "reservations": [
+    {
+      "version": "0.101.0",
+      "project": "Launch L2",
+      "token": "launch-calibrated-challenge",
+      "owner": "difficulty-worker",
+      "branch": "launch-calibrated-challenge-0.101.0",
+      "worktree": "C:/tmp/bazaar-brawler-l2-0.101.0",
+      "status": "reserved-blocked",
+      "base": "5d2570b225801314d6d6e907d15c8599a8316f07",
+      "productBaseline": "6dbf27e5c6275797a98cc351aa234481d83831c0",
+      "startGate": "BLOCKED. The difficulty worker does not start 0.101.0 until Codex independently signs 0.100.0 and reviews the final handoff (handoff-difficulty-worker-0.101.0-2026-07-18.md). Recorded by Robbie 2026-07-18. The dedicated branch and worktree are pre-created by the main integrator, but no 0.101.0 source work begins before both gates clear.",
+      "handoff": "handoff-difficulty-worker-0.101.0-2026-07-18.md; design authority difficulty-worker-notes-2026-07-18.md",
+      "exclusiveFiles": ["src/data.js"],
+      "note": "Reserved by the main integrator (Claude) as a handoff to the difficulty worker; work has not started and is gated (see startGate). Reservation is anchored to canonical HEAD 5d2570b, whose ancestry contains the integrated 0.100.0 commit 6dbf27e. The dedicated branch launch-calibrated-challenge-0.101.0 and worktree C:/tmp/bazaar-brawler-l2-0.101.0 are created by the main integrator with no source changes; the difficulty worker is the sole writer of src/data.js for 0.101.0 once the start gate clears. Claude integrates the verified source and finalizes this state; Codex signs the evidence gate and does not implement the constants.",
+      "scope": "Resolve-attrition curve reshape (difficulty worker owns the curve): Azhdaha hasteMates 0.5 to 0.3 on the base board and both aspects; Quick D2 power 1.12 and D3 power 1.18; Long D5 power 1.6 to 2.1 and D6 power 2.05 to 2.15; optional vizier hp 700 to 660. District power is an epoch-resolved map input, so the power change bumps CONTENT_EPOCH from 1 to 2 and freezes epoch 1 into EPOCH_TABLES rather than retiring active runs; this supersedes the design doc's MAP_VERSION save-retirement path. The Azhdaha and vizier combat-stat changes need parity-ledger and golden treatment, and the hasteMates change moves the azhdaha_v1 and azhdaha_v2 traces (0.100.0 controls), which must re-confirm in band at 2,400 seeds. Trial constants, not final approval: validate against the hero-by-Omen matrix and cohort Resolve evidence before finalizing.",
+      "files": [
+        "package.json",
+        "src/data.js",
+        "src/map.js",
+        "tests/parity.test.js",
+        "tests/map.test.js",
+        "tests/combat-traces.golden.json"
+      ]
+    }
+  ],
+  "launchL2Status": "IN PROGRESS. 0.99.4 (Hero and Omen compatibility, Claude) integrated and deployed to platosd.com. 0.100.0 (Board Aspect repair, Claude) integrated locally on launch-safe-ground at 6dbf27e (2,400-seed variant-verify zero breaches across 46 aspects); not yet deployed, awaiting Robbie's deploy approval. 0.101.0 (Resolve-attrition curve plus Azhdaha hasteMates 0.3) is reserved and handed off to the difficulty worker per the recorded owner-split; the dedicated branch launch-calibrated-challenge-0.101.0 and worktree C:/tmp/bazaar-brawler-l2-0.101.0 are pre-created on canonical HEAD 5d2570b with no source changes. START GATE: the difficulty worker does not begin 0.101.0 until Codex independently signs 0.100.0 and reviews the final handoff (handoff-difficulty-worker-0.101.0-2026-07-18.md; design authority difficulty-worker-notes-2026-07-18.md). Launch L2 does not exit until 0.101.0 is implemented and integrated, the 2,400-seed trace and route-sim bands pass, the cohort expected-Resolve evidence is collected (Codex owns the cohort packet and gate ruling), and Codex signs the evidence gate. Codex's 0.100.0 signature, the cohort evidence, and Codex's gate signature are external to the integrator session and cannot be produced here.",
   "launchL2Base": {
     "productBaseline": "6d3ed775d6537bb6944f81fdbbbe96ee55de8551",
     "reconciledOn": "2026-07-18",
