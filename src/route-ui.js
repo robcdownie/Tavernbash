@@ -99,7 +99,7 @@ function chooseRewardUnique(o,id){
    reward. The chosen ware becomes a free market offer, never an instant board
    mutation, so the player can still decide how to make room. */
 function openMidpointTreasure(pc){
-  const o=ovOpen('<div class="card midpointtreasure"><div class="rays"></div>'
+  const o=ovOpen('<div class="card evroom ev-treasure midpointtreasure"><div class="rays"></div>'
    +'<div class="kick gold">Midpoint Treasure</div>'
    +'<h2 class="big" style="font-size:23px">Choose one for the road ahead.</h2>'
    +'<p>Your pick waits as a free ware in the next Market.</p>'
@@ -211,7 +211,7 @@ function openDecisionGild(node,choiceId,msg){
 
 function openDecisionCastoff(node,choiceId){
   if(!G.board.length){toast('You have no ware to cast off.');routeShrineCard(node);return;}
-  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">Choose a Ware</div>'
+  const o=ovOpen('<div class="card evroom ev-treasure"><div class="rays"></div><div class="kick gold">Choose a Ware</div>'
    +'<h2 class="big" style="font-size:21px">Cast off which ware?</h2>'
    +'<div class="picks">'+G.board.map(function(it){const d=ITEMS[it.id];
       return '<div class="pick" data-i="'+it.iid+'"><div class="ph2">'+ic('g-'+it.id,'','width:28px;height:28px')+'</div><div class="pn">'+RNAME[it.rarity]+' '+d.n+'</div></div>';
@@ -222,7 +222,7 @@ function openDecisionCastoff(node,choiceId){
 function routeTreasureCard(node){
   const receipt=routeDecisionReceipt(G.run,node.id);
   const opts=receipt.offers;
-  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">Treasure</div>'
+  const o=ovOpen('<div class="card evroom ev-treasure"><div class="rays"></div><div class="kick gold">Treasure</div>'
    +'<h2 class="big">Choose Your Spoils</h2><p>Take one; the rest stay buried.</p>'
    +'<div class="picks">'+opts.map(function(off){const v=treasureView(off.option);
       return '<div class="pick" data-t="'+off.id+'"><div class="ph2">'+ic(v.g,'','width:28px;height:28px')+'</div><div class="pn">'+esc(v.t)+'</div><div class="pd">'+esc(v.d)+'</div></div>';
@@ -235,8 +235,10 @@ function routeTreasureCard(node){
 }
 /* a generic pick-one card for route events; each choice runs its own effect and
    completes the node through the controller */
-function choiceCard(kick,title,sub,choices){
-  const o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">'+esc(kick)+'</div>'
+/* 0.109.0: each decision happens in its own room of the house. The optional
+   room key only adds a backdrop class; choices and settlement are untouched. */
+function choiceCard(kick,title,sub,choices,room){
+  const o=ovOpen('<div class="card'+(room?' evroom ev-'+room:'')+'"><div class="rays"></div><div class="kick gold">'+esc(kick)+'</div>'
    +'<h2 class="big">'+esc(title)+'</h2>'+(sub?'<p>'+esc(sub)+'</p>':'')
    +'<div class="picks">'+choices.map(function(c,i){
       return '<div class="pick" data-c="'+i+'"><div class="pn">'+esc(c.label)+'</div><div class="pd">'+esc(c.desc)+'</div></div>';
@@ -248,7 +250,7 @@ function routeRestCard(node){
     {label:'Mend',desc:'Restore 8 Resolve.',onPick:function(o){settleDecision(node,'mend',null,o);}},
     {label:'Temper',desc:'Etch a legal enchant onto a ware.',onPick:function(o){settleDecision(node,'temper',null,o);}},
     {label:'Refit',desc:'Next tier costs 4 less, plus a free reroll next market.',onPick:function(o){settleDecision(node,'refit',null,o);}}
-  ]);
+  ],'rest');
 }
 function routeShrineCard(node){
   choiceCard('Quqnus Shrine',nodeLabel(node),'The shrine asks a price.',[
@@ -262,7 +264,7 @@ function routeShrineCard(node){
          be taken instead of banking free gold for an empty board */
       ovClose(o);openDecisionCastoff(node,'castoff');
     }}
-  ]);
+  ],'seance');
 }
 /* L2 Thin Oil: every event option that pays gold on the spot reads this one
    shared value, at grant time and in the card text, so they cannot disagree */
@@ -281,7 +283,7 @@ function routeNegotiationCard(node){
       }
     }},
     {label:'Walk Away',desc:'Keep your coin and your wares.',onPick:function(o){settleDecision(node,'walk_away',null,o);}}
-  ]);
+  ],'parlor');
 }
 export function routeEventCard(e){
   const node=e.node;const t=node.type;

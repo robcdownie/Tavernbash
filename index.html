@@ -33,6 +33,24 @@
     --e-out:cubic-bezier(.22,1,.36,1); --e-expo:cubic-bezier(.16,1,.3,1);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  /* 0.109.0 event rooms: Merchant, Rest, Shrine, and Treasure each open in
+     their own painted room of the house. Backdrop only; the choice grid,
+     settlement, and copy are byte-identical. */
+  .card.evroom{position:relative;overflow:hidden;}
+  .card.evroom::before{content:"";position:absolute;inset:0;z-index:0;
+    background:var(--room) center top/cover no-repeat;}
+  .card.evroom::after{content:"";position:absolute;inset:0;z-index:0;
+    background:linear-gradient(180deg,rgba(11,10,16,.6),rgba(11,10,16,.3) 34%,rgba(11,10,16,.85) 72%);}
+  .card.evroom>*{position:relative;z-index:1;}
+  .card.evroom .rays{display:none;}
+  .card.ev-parlor{--room:url('/art/ui/room_parlor.png');}
+  .card.ev-rest{--room:url('/art/ui/room_rest.png');}
+  .card.ev-seance{--room:url('/art/ui/room_seance.png');}
+  .card.ev-treasure{--room:url('/art/ui/room_treasure.png');}
+  .card.ev-cellar{--room:url('/art/ui/room_cellar.png');}
+  .card.evroom .pick{background:rgba(15,12,20,.78);
+    box-shadow:inset 0 1px 0 rgba(205,190,255,.08), inset 0 0 0 1px rgba(160,150,200,.3), 0 4px 10px rgba(0,0,0,.45);}
+
   /* 0.102.0 code light grade: one warm candle wash plus a cold vignette drawn
      over the whole composed scene. This is what fuses painted art and UI into
      one lit house. Purely decorative, never intercepts input. */
