@@ -261,7 +261,7 @@ export function starterCells() {
   }
   return cells;
 }
-export function starterMatrix(cellSeedsN, mode) {
+export function starterMatrix(cellSeedsN, mode, cfgExtra) {
   const cells = starterCells(), rows = [], validity = newValidity();
   cells.forEach((cell, ci) => {
     let clears = 0;
@@ -269,7 +269,7 @@ export function starterMatrix(cellSeedsN, mode) {
       /* market:'live' (the Codex seam directive): real market-core shops under
          the mp-1 policy; warePool 'starter' freezes the fresh-profile
          run.wareLock snapshot inside simRun */
-      const m = runOne(cellSeed(i, ci), {heroId: cell.hero, omenId: cell.omen, warePool: 'starter', market: 'live'}, mode);
+      const m = runOne(cellSeed(i, ci), Object.assign({heroId: cell.hero, omenId: cell.omen, warePool: 'starter', market: 'live'}, cfgExtra || {}), mode);
       if (m.result === 'won') clears++;
       foldValidity(validity, m);
     }
@@ -327,7 +327,7 @@ export function recordFromRun(m, meta) {
     }
   };
 }
-export function freshProfiles(profilesN) {
+export function freshProfiles(profilesN, cfgExtra) {
   const validity = newValidity();
   let reachD3Run1 = 0, clearBy3 = 0;
   const featByKind = {heroes: 0, omens: 0, wares: 0}, featById = {}, firstClearRuns = [];
@@ -341,7 +341,7 @@ export function freshProfiles(profilesN) {
       /* market:'live' with the profile storage: simRun freezes the run's
          wareLock snapshot from this storage at run start (the binding
          condition: unlocks recorded below affect the NEXT run only) */
-      const m = runOne(profileSeed(p, r), {heroId, omenId, market: 'live', storage: storage}, 'quick');
+      const m = runOne(profileSeed(p, r), Object.assign({heroId, omenId, market: 'live', storage: storage}, cfgExtra || {}), 'quick');
       foldValidity(validity, m);
       if (r === 1 && (m.district || 0) >= 3) reachD3Run1++;
       const record = recordFromRun(m, {reportId: 'p' + p + 'r' + r, heroId, omenId, lantern: 0});
@@ -524,6 +524,90 @@ function baseArtifact(opts, gates, body) {
   }, body);
 }
 
+/* ---------- the quick-arms diagnostic (third Codex ruling) ----------
+   Evidence-only: the approved T3 and T1 Quick trials plus their paired
+   rollback baseline, executed ENTIRELY through epoch content-table overrides
+   (src/data.js untouched), on identical seeds, seam hash, and mp-1 policy.
+   Every existing gate is evaluated and reported per arm, not only the three
+   selection criteria. EXIT SEMANTICS, stated for review: this command's exit
+   reflects DIAGNOSTIC INTEGRITY (constants, epoch, validity, sample counts,
+   artifact writes, and the arms completing); an arm failing a balance gate is
+   the measured RESULT the diagnostic exists to report, carried per arm in
+   the summary with the pre-registered decision rule applied. */
+export const QUICK_ARMS = [
+  {id: 'baseline', quickPower: {1: null, 2: null, 3: null, 4: null}, note: 'quick rollback: the paired baseline arm'},
+  {id: 'T3', quickPower: {1: null, 2: null, 3: 1.18, 4: null}, note: 'primary: D2 held at baseline, D3 1.18'},
+  {id: 'T1', quickPower: {1: null, 2: 1.06, 3: 1.12, 4: null}, note: 'control: the halved pair'}
+];
+export function armContent(arm) {
+  const c = snapshotContentTables();
+  c.power.quick = Object.assign({}, arm.quickPower);
+  return c;
+}
+/* the pre-registered admissibility rule from the ratified proposal: run-1
+   reach restored AND the quick Resolve bands AND descent protections hold */
+export function armAdmissible(gates) {
+  const need = ['fresh-reach-d3-run1', 'resolve-bands-quick', 'resolve-strict-fall-quick', 'first-attempt-descends-quick'];
+  return need.every(id => { const g = gates.find(x => x.id === id); return !!g && g.pass; });
+}
+export function runQuickArm(arm, opts) {
+  const gates = [];
+  const gate = (id, pass, detail, extra) => { gates.push(Object.assign({id, gating: true, pass: !!pass, detail: detail || []}, extra || {})); };
+  const content = armContent(arm);
+  const over = {content};
+  const cg = constantsGate('candidate');   /* the live tree stays the candidate tree, untouched */
+  gate('constants-match-candidate', cg.pass, cg.detail);
+  const curveQ = curveCohort('quick', opts.seeds, over);
+  const curveL = curveCohort('long', opts.seeds, over);
+  for (const g of curveGates(curveQ, 'quick')) gate(g.id, g.pass, g.detail, g.maxAdjacentDrop != null ? {maxAdjacentDrop: g.maxAdjacentDrop} : null);
+  for (const g of curveGates(curveL, 'long')) gate(g.id, g.pass, g.detail, g.maxAdjacentDrop != null ? {maxAdjacentDrop: g.maxAdjacentDrop} : null);
+  const matrixQ = starterMatrix(opts.cellSeeds, 'quick', over);
+  const matrixL = starterMatrix(opts.cellSeeds, 'long', over);
+  for (const g of starterMatrixGates(matrixQ, matrixL)) gate(g.id, g.pass, g.detail);
+  const fp = freshProfiles(opts.profiles, over);
+  for (const g of freshProfileGates(fp)) gate(g.id, g.pass, g.detail);
+  const epoch = epochEvidence('candidate');
+  for (const c of epoch.checks) gate(c.id, c.pass, c.detail);
+  const validity = [curveQ.validity, curveL.validity, matrixQ.validity, matrixL.validity, fp.validity]
+    .reduce((a, v) => { for (const k of Object.keys(a)) a[k] += v[k]; return a; }, newValidity());
+  gate('validity-clean', validity.invalidRuns === 0 && validity.guardTrips === 0 && validity.fightTimeouts === 0 && validity.routeGuardExits === 0 && validity.pendingActions === 0,
+    ['invalid ' + validity.invalidRuns + ' guardTrips ' + validity.guardTrips + ' timeouts ' + validity.fightTimeouts + ' routeGuardExits ' + validity.routeGuardExits + ' pendingActions ' + validity.pendingActions]);
+  const expectRuns = opts.seeds * 2 + opts.cellSeeds * 24 + opts.profiles * 3;
+  gate('sample-counts', validity.runs === expectRuns, ['ran ' + validity.runs + ' expected ' + expectRuns]);
+  return {arm: {id: arm.id, quickPower: arm.quickPower, note: arm.note},
+    admissible: armAdmissible(gates),
+    curve: {quick: curveQ, long: curveL}, starterMatrix: {quick: matrixQ.cells, long: matrixL.cells},
+    freshProfiles: fp, validity, gates};
+}
+const ARM_INTEGRITY = ['constants-match-candidate', 'validity-clean', 'sample-counts', 'starter-matrix-cell-count'];
+export function runQuickArms(opts) {
+  const arms = QUICK_ARMS.map(a => runQuickArm(a, opts));
+  const base = arms.find(a => a.arm.id === 'baseline');
+  const deltas = arms.filter(a => a.arm.id !== 'baseline').map(a => ({
+    arm: a.arm.id,
+    freshReachD3Run1: {baseline: base.freshProfiles.reachD3Run1Rate, arm: a.freshProfiles.reachD3Run1Rate, delta: r2(a.freshProfiles.reachD3Run1Rate - base.freshProfiles.reachD3Run1Rate)},
+    quickClear: {baseline: base.curve.quick.clearRate, arm: a.curve.quick.clearRate, delta: r2(a.curve.quick.clearRate - base.curve.quick.clearRate)},
+    quickD4Resolve: {baseline: base.curve.quick.resolve[4].pointEstimate, arm: a.curve.quick.resolve[4].pointEstimate, delta: r2(a.curve.quick.resolve[4].pointEstimate - base.curve.quick.resolve[4].pointEstimate)},
+    gateFlips: a.gates.filter(g => { const b = base.gates.find(x => x.id === g.id); return b && b.pass !== g.pass; })
+      .map(g => ({id: g.id, baseline: base.gates.find(x => x.id === g.id).pass, arm: g.pass}))
+  }));
+  const integrityOk = arms.every(a => a.gates.filter(g => ARM_INTEGRITY.indexOf(g.id) >= 0 || g.id.indexOf('epoch') === 0).every(g => g.pass));
+  const artifact = {
+    tool: 'launch-l2-verify', forVersion: '0.101.0', command: 'quick-arms',
+    ruling: 'third Codex ruling: diagnostic execution only; a passing arm is shape-admissible for further review, never auto-authorized; if neither trial arm passes, Quick power returns to baseline with no replacement trial in this version',
+    identity: {sourceCommit: opts.sourceCommit || null, constantsCommit: opts.constantsCommit || null,
+      seamContentHash: seamContentHash(), seamHashFiles: SEAM_HASH_FILES, seamPolicyVersion: POLICY_VERSION, policy: POLICY,
+      cohortMarketModes: {curve: 'abstract', starterMatrix: 'live', freshProfiles: 'live'}},
+    coverage: {abstract: coverageManifest('abstract'), live: coverageManifest('live')},
+    configuration: {seedCounts: {seeds: opts.seeds, cellSeeds: opts.cellSeeds, profiles: opts.profiles}, liveConstants: liveConstants()},
+    preRegisteredRule: 'admissible when fresh-reach-d3-run1 AND resolve-bands-quick AND resolve-strict-fall-quick AND first-attempt-descends-quick all pass',
+    arms, deltas,
+    verdict: {T3: arms.find(a => a.arm.id === 'T3').admissible, T1: arms.find(a => a.arm.id === 'T1').admissible,
+      baselineArmAdmissible: base.admissible}
+  };
+  return {ok: integrityOk, artifact};
+}
+
 /* ---------- the compare command ---------- */
 const REQUIRED_KEYS = ['tool', 'identity', 'coverage', 'configuration', 'rollback', 'gates', 'curve', 'starterMatrix', 'freshProfiles', 'epochEvidence', 'validity'];
 export function validateArtifact(a, wantConfig) {
@@ -647,6 +731,19 @@ export function main(argv) {
     console.log('launch-l2-verify all --config ' + opts.config + ': ' + (ok ? 'PASS' : 'FAIL') +
       ' (' + artifact.gates.length + ' gates, ' + failed.length + ' gating failures' + (opts.out ? ', artifact ' + opts.out : '') + ')');
     for (const g of failed) console.log('  FAIL ' + g.id + ': ' + (g.detail || []).slice(0, 3).join('; '));
+    return ok ? 0 : 1;
+  }
+  if (opts.command === 'quick-arms') {
+    if (!(opts.seeds > 0 && opts.cellSeeds > 0 && opts.profiles > 0)) { console.error('sample counts must be positive'); return 2; }
+    const {ok, artifact} = runQuickArms(opts);
+    if (opts.out) fs.writeFileSync(opts.out, JSON.stringify(artifact, null, 1));
+    console.log('launch-l2-verify quick-arms: integrity ' + (ok ? 'PASS' : 'FAIL')
+      + ' | T3 admissible: ' + artifact.verdict.T3 + ' | T1 admissible: ' + artifact.verdict.T1
+      + (opts.out ? ' | artifact ' + opts.out : ''));
+    for (const a of artifact.arms) {
+      console.log('  arm ' + a.arm.id + ': admissible ' + a.admissible + ' | failed gates: '
+        + (a.gates.filter(g => !g.pass).map(g => g.id).join(', ') || 'none'));
+    }
     return ok ? 0 : 1;
   }
   if (opts.command === 'compare') {

@@ -195,6 +195,50 @@ test('compare: malformed artifacts and unpaired cells fail; a self-compare shape
   assert.equal(bad2.ok, false);
 });
 
+test('quick-arms: the ratified arms, override-only execution, and the pre-registered rule', async () => {
+  const V = await load();
+  const M = await loadMap();
+  /* the three ratified arms with the exact approved powers */
+  assert.deepEqual(V.QUICK_ARMS.map(a => a.id), ['baseline', 'T3', 'T1']);
+  assert.deepEqual(V.QUICK_ARMS.find(a => a.id === 'T3').quickPower, {1: null, 2: null, 3: 1.18, 4: null});
+  assert.deepEqual(V.QUICK_ARMS.find(a => a.id === 'T1').quickPower, {1: null, 2: 1.06, 3: 1.12, 4: null});
+  /* the override reaches quick maps without touching data.js: T3 grades D3 only */
+  const t3map = M.genMap(7, 'quick', 0, V.armContent(V.QUICK_ARMS.find(a => a.id === 'T3')));
+  const d2 = t3map.districts.find(d => d.id === 2), d3 = t3map.districts.find(d => d.id === 3);
+  assert.equal(Object.hasOwn(d2, 'power'), false, 'T3 holds D2 at baseline');
+  assert.equal(d3.power, 1.18, 'T3 carries D3 1.18');
+  const basemap = M.genMap(7, 'quick', 0, V.armContent(V.QUICK_ARMS.find(a => a.id === 'baseline')));
+  for (const d of basemap.districts) assert.equal(Object.hasOwn(d, 'power'), false, 'the baseline arm is the full quick rollback');
+  /* the live tree constants are untouched by arm construction */
+  const live = M.genMap(7, 'quick');
+  assert.equal(live.districts.find(d => d.id === 2).power, 1.12, 'src/data.js remains the candidate tree');
+  /* the pre-registered rule reads exactly the four named gates */
+  const mk = ids => ids.map(id => ({id, pass: true}));
+  assert.ok(V.armAdmissible(mk(['fresh-reach-d3-run1', 'resolve-bands-quick', 'resolve-strict-fall-quick', 'first-attempt-descends-quick'])));
+  assert.ok(!V.armAdmissible(mk(['resolve-bands-quick', 'resolve-strict-fall-quick', 'first-attempt-descends-quick'])), 'a missing gate is not a pass');
+  const oneFail = mk(['fresh-reach-d3-run1', 'resolve-bands-quick', 'resolve-strict-fall-quick', 'first-attempt-descends-quick']);
+  oneFail[0].pass = false;
+  assert.ok(!V.armAdmissible(oneFail));
+});
+
+test('quick-arms: a tiny paired run carries per-arm gate tables, deltas, and identity', async () => {
+  const V = await load();
+  const res = V.runQuickArms({seeds: 2, cellSeeds: 1, profiles: 1});
+  const a = res.artifact;
+  assert.equal(a.arms.length, 3);
+  for (const arm of a.arms) {
+    assert.ok(arm.gates.length >= 15, 'every existing gate is reported for arm ' + arm.arm.id);
+    assert.ok(arm.gates.every(g => g.gating === true));
+    assert.ok(typeof arm.admissible === 'boolean');
+  }
+  assert.equal(a.deltas.length, 2, 'T3 and T1 each carry deltas against the baseline arm');
+  assert.ok(a.deltas.every(d => typeof d.freshReachD3Run1.delta === 'number'));
+  assert.ok(typeof a.identity.seamContentHash === 'string');
+  assert.ok(a.preRegisteredRule.indexOf('fresh-reach-d3-run1') >= 0);
+  const res2 = V.runQuickArms({seeds: 2, cellSeeds: 1, profiles: 1});
+  assert.deepEqual(res.artifact, res2.artifact, 'the diagnostic is deterministic');
+});
+
 test('artifacts carry the seam identity and both mode-specific coverage manifests', async () => {
   const V = await load();
   const cfg = V.constantsGate('baseline').pass ? 'baseline' : 'candidate';
