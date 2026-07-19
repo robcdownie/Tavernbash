@@ -24,9 +24,27 @@
     "token": "launch-calibrated-challenge",
     "integrator": "claude",
     "outcome": "Calibrated challenge: tune the difficulty the Launch L1 smoke surfaced and remove dead hero and Omen pairings, without reopening settled combat, targeting, economy, map, or save semantics. Work stays isolated, attributable, and exact once.",
-    "versions": ["0.99.4"]
+    "versions": ["0.99.4", "0.100.0"]
   },
-  "reservations": [],
+  "reservations": [
+    {
+      "version": "0.100.0",
+      "project": "Launch L2",
+      "token": "launch-calibrated-challenge",
+      "owner": "claude",
+      "branch": "launch-calibrated-challenge-0.100.0",
+      "worktree": "C:/tmp/bazaar-brawler-l2-0.100.0",
+      "status": "in-progress",
+      "base": "13bcbde74912eadbfc204a8056664ae0cdc2ec77",
+      "exclusiveFiles": ["src/data.js"],
+      "exclusivityNote": "Board Aspect repair is a data-only edit to src/data.js. This reservation is the sole active writer of src/data.js for 0.100.0; no other worker may touch it during this version.",
+      "scope": "Board Aspect repair (data-only). Apply the reviewed candidate stat and board-order repairs to eight Aspect boards (matron_v2, ghul_v2, collector_v1, collector_v2, peri_v2, golem_v2, nasnas_v2, simurgh_v1) so the 2,400-seed variant-verify trace reads zero band breaches across all 46 Aspects, with the high-sample controls rats_v2, lamassu_v1, and azhdaha_v1 unchanged and still in band. No engine, encounter, targeting, combat-semantics, map-generation, save-semantics, or difficulty-constant change; contentEpoch stays 1. Aspect boards are post-original, so combat goldens and parity ledgers are untouched.",
+      "files": [
+        "package.json",
+        "src/data.js"
+      ]
+    }
+  ],
   "launchL2Base": {
     "productBaseline": "6d3ed775d6537bb6944f81fdbbbe96ee55de8551",
     "reconciledOn": "2026-07-18",
