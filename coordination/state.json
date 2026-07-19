@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.113.0",
-  "reviewedHead": "9a73011",
+  "build": "0.114.0",
+  "reviewedHead": "c4cc2fd",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -36,12 +36,26 @@
       "0.110.0",
       "0.111.0",
       "0.112.0",
-      "0.113.0"
+      "0.113.0",
+      "0.114.0"
     ],
     "status": "in-progress",
     "note": "Ten manor versions 0.102.0 to 0.113.0 on local main. The furniture pass moved the fight from CSS chrome to painted chrome per Robbie references. Robbie fal balance roughly 8 dollars. Deploy waits on Robbie."
   },
   "reservations": [
+    {
+      "version": "0.114.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.110.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "done",
+      "sourceCommit": "1290726",
+      "integrationCommit": "c4cc2fd",
+      "scope": "The full cast spectacle layer: seven remaining full-body dealers generated with faces carried from their portraits, QA approved, filed and wired through the hero stamp variable; occupied fight cells wear the carved slot card frame. Presentation only.",
+      "verification": "npm test 559 green via ship.js. Live fight verified. Drape retry generated but unviewed so left unwired per the honest QA rule. Remaining optional polish recorded: boss full-body layer, painted storm gauge, gilded route paths, drape QA."
+    },
     {
       "version": "0.113.0",
       "project": "Manor Identity",
