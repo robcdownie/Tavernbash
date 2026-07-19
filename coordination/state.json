@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.108.0",
-  "reviewedHead": "fcf3b5a",
+  "build": "0.109.0",
+  "reviewedHead": "97ce416",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -32,12 +32,29 @@
       "0.106.0",
       "0.107.0",
       "0.108.0",
-      "0.109.0"
+      "0.109.0",
+      "0.110.0"
     ],
     "status": "in-progress",
     "note": "Robbie rejected core-loop-complete on 2026-07-19: art re-dress landed but screen STRUCTURE still reads early-phase versus the audit bar. The structural recomposition passes now proceed: hero crest HUD, combat anchors and action lane with bezel rings and log demotion, event rooms on their generated scenes, market detail demotion, victory staging, route reachable-emphasis and scout drawer anatomy."
   },
   "reservations": [
+    {
+      "version": "0.110.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.110.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "in_progress",
+      "base": "97ce416",
+      "scope": "Victory and defeat staging per the proof: the recap cards become result bands with the hero lit large, a one-line consequence, and the bounty anticipated before returning to the route; defeat mirrors with cold light and the Resolve cost. Presentation markup and CSS in the fight end cards only; rewards, spoils, receipts, and route consequences untouched.",
+      "files": [
+        "index.html",
+        "src/ui.js",
+        "package.json"
+      ]
+    },
     {
       "version": "0.109.0",
       "project": "Manor Identity",
@@ -45,7 +62,7 @@
       "owner": "claude",
       "branch": "launch-manor-identity-0.109.0",
       "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
-      "status": "in_progress",
+      "status": "done",
       "base": "fcf3b5a",
       "scope": "Event rooms: the five generated scenes (parlor, hearth nook, seance, treasure attic, cellar gate) file as ui assets and back the Merchant, Rest, Shrine, Treasure, and Gate Camp surfaces so each decision happens in its own room instead of a generic card. Overlay backdrop CSS and asset filing only; choice logic, offers, receipts, and exact-once semantics untouched.",
       "files": [
@@ -55,7 +72,10 @@
         "index.html",
         "src/route-ui.js",
         "package.json"
-      ]
+      ],
+      "sourceCommit": "9303d43",
+      "integrationCommit": "97ce416",
+      "verification": "npm test 559 of 559 green via ship.js. Playwright layout suite 62 passed, 2 failed on the documented pre-existing stale Omen-count assertion from 0.98.0 (expects 12 Omens, game has 16), unrelated to this diff. Five room scenes filed as ui assets with whitelist; Merchant, Rest, Shrine, and Treasure cards carry room classes threaded through choiceCard with zero choice or settlement change. Gate Camp room deferred: its render is a separate surface, recorded for the polish version."
     },
     {
       "version": "0.108.0",
