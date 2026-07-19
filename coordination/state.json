@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.104.0",
-  "reviewedHead": "a409b24",
+  "build": "0.105.0",
+  "reviewedHead": "688fb06",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -28,10 +28,27 @@
       "0.102.0",
       "0.103.0",
       "0.104.0",
-      "0.105.0"
+      "0.105.0",
+      "0.106.0"
     ]
   },
   "reservations": [
+    {
+      "version": "0.106.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.106.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "in_progress",
+      "base": "688fb06",
+      "scope": "Threshold scenes stage: the manor gates title painting to bg_intro, the estate vista to bg_intro_wide, and the curio hallway to bg_market, all same-slot overrides so the title screen and draft backdrop join the manor world. Presentation only.",
+      "files": [
+        "public/art/bg/*",
+        "src/art-manifest.js",
+        "package.json"
+      ]
+    },
     {
       "version": "0.105.0",
       "project": "Manor Identity",
@@ -39,7 +56,7 @@
       "owner": "claude",
       "branch": "launch-manor-identity-0.105.0",
       "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
-      "status": "in_progress",
+      "status": "done",
       "base": "a409b24",
       "scope": "Combat language stage: file the ballroom arena as the battle backdrop (bg_battle same-slot), strengthen the fight framing per the proof (hero and foe anchors via existing portrait slots, action legibility, storm label restyle groundwork), presentation only in index.html CSS and combat render strings; the engine, timing, targeting, and RNG remain untouched.",
       "files": [
@@ -48,7 +65,10 @@
         "index.html",
         "src/ui.js",
         "package.json"
-      ]
+      ],
+      "sourceCommit": "097a637",
+      "integrationCommit": "688fb06",
+      "verification": "npm test 559 of 559 green via ship.js. Live fight verified at 390x844 against Lamp Imp: the ballroom arena renders behind both boards with the chandelier and parquet visible and the manor hero portrait in the YOU strip. Same-slot bg swap only; no engine, timing, or targeting change."
     },
     {
       "version": "0.104.0",
