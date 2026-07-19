@@ -680,7 +680,9 @@ function toggleFreeze(){
 }
 /* ============ FIGHT UI ============ */
 function fighterHTML(s,side){
-  return '<div class="fighter" id="fg-'+side+'"><div class="fh">'+ic(s.portrait,'fp')
+  /* 0.113.0: the portrait sits inside a painted frame ring (span wrapper so
+     the frame can overlay the replaced element) */
+  return '<div class="fighter" id="fg-'+side+'"><div class="fh"><span class="fpw">'+ic(s.portrait,'fp')+'</span>'
    +'<span class="who">'+esc(s.nm)+'</span>'
    +'<span class="stt"><span class="sh" id="sh-'+side+'">'+ic('e-shield','mi')+' 0</span>'
    +'<span class="ps" id="ps-'+side+'">'+ic('e-skull','mi')+' 0</span>'
@@ -861,6 +863,9 @@ function startFight(me,foe,opts){
   G.recap={a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
   function pad(items){const u=items.reduce(function(s,x){return s+(x.slotSize||x.size);},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
   $('main').className='fight';
+  /* 0.113.0: stamp the hero id so heroes with painted full-body art step
+     into the duel as a fixed spectacle layer, purely decorative */
+  try{document.documentElement.dataset.hero=G.hero||'';}catch(e){}
   $('main').innerHTML=
    fighterHTML(foe,'b')
   +'<div class="fx" id="fx-b"></div>'
