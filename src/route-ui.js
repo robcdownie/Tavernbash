@@ -341,7 +341,9 @@ export function combatPreview(n){
       seed:vary?routeMap().seed:null,nodeId:vary?n.id:null});
     hp=foe.side.hp;items=foe.side.items;regen=foe.side.regen||0;def=foe.def;
   }catch(e){}
-  const board=items.map(function(fi){return '<div class="rmpw"><b>'+esc(fi.nm)+'</b> '+fightItemBrief(fi)+'</div>';}).join('');
+  /* 0.115.0: each scouted ware leads with its painted icon so the board reads
+     as objects, not form rows */
+  const board=items.map(function(fi){return '<div class="rmpw">'+ic(fi.g,'rmpic')+'<span><b>'+esc(fi.nm)+'</b> '+fightItemBrief(fi)+'</span></div>';}).join('');
   /* an active Aspect names itself under Health; any door whose resolved board
      races a simoom shows when it rises. Both read the resolved def, so they are
      absent on the shipped board except sandling, which has always stormed. */
