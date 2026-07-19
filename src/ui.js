@@ -283,7 +283,7 @@ function renderDraft(){
     h+=campTopHTML();
   }else{
     G._wfresh=G.shopFresh!==false;G.shopFresh=false;
-    h+='<div class="sec secmarket"><div class="label">The Market<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
+    h+='<div class="sec secmarket"><div class="label">The Curio Stall<span class="side">'+(G.tier<2?'Tier 2 wares locked':(G.tier<4?'Tier 4 wares locked':'All wares open'))+'</span></div>';
     h+='<div class="shop">'+G.shop.map(function(w,i){return wareHTML(w,i);}).join('')+'</div>';
     h+='<div class="controls">'
       +'<button class="btn" id="btnTier"'+((G.tier>=6||!canSpend(G.tierCost))?' disabled':'')+'>'+ic('g-gem','bi')+' '+(G.tier>=6?'Tier Max':((slotsNow(G.tier+1)>slotsNow()?'+1 slot &middot; ':'')+'Tier '+(G.tier+1)+' &middot; '+G.tierCost+'g'))+'</button>'

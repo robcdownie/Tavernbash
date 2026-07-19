@@ -201,19 +201,21 @@
 
   /* shop cards */
   .shop{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  /* 0.103.0 curio stall: offers rest on shadowed indigo textile inside the
+     carved manor frames, with a larger illustration port and quieter chrome */
   .ware{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;
-    background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--line);border-radius:14px;
-    padding:12px 8px 9px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
+    background:linear-gradient(165deg,#2b2334,#1a1523 74%);border:1px solid rgba(96,90,128,.34);border-radius:14px;
+    padding:12px 8px 9px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(205,190,255,.06), 0 6px 14px rgba(0,0,0,.35);
     transition:transform .12s var(--e-out), opacity .25s var(--e-out);animation:pop .3s var(--e-out) backwards;}
-  .ware::before{content:"";position:absolute;inset:3px;border:1px solid rgba(216,162,74,.12);border-radius:11px;pointer-events:none;}
+  .ware::before{content:"";position:absolute;inset:3px;border:1px solid rgba(160,150,200,.08);border-radius:11px;pointer-events:none;}
   .ware:active{transform:translateY(1px) scale(.985);}
   .ware.cant{opacity:.4;cursor:not-allowed;}
   .ware.gone{opacity:0;transform:scale(.82);pointer-events:none;animation:none;}
   @keyframes pop{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
-  .ware .ph{position:relative;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:6px;
-    background:radial-gradient(closest-side, color-mix(in srgb, var(--cat,#d8a24a) 24%, #140d08), #140d08 78%);
-    box-shadow:0 0 0 2px #6f4413, 0 0 0 3.5px rgba(216,162,74,.3), inset 0 2px 7px rgba(0,0,0,.75);}
-  .ware .ph .gi{width:38px;height:38px;}
+  .ware .ph{position:relative;width:64px;height:64px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:6px;
+    background:radial-gradient(closest-side, color-mix(in srgb, var(--cat,#d8a24a) 22%, #120c10), #120c10 80%);
+    box-shadow:0 0 0 1.5px #52565f, 0 0 0 3px rgba(40,36,50,.9), inset 0 2px 8px rgba(0,0,0,.8);}
+  .ware .ph .gi{width:46px;height:46px;}
   .ware .cost{position:absolute;top:-6px;left:-6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;}
   .ware .cost svg{position:absolute;inset:0;width:100%;height:100%;}
   .ware .cost b{position:relative;font-size:12.5px;color:#3a2506;text-shadow:0 1px 0 rgba(255,255,255,.35);}
@@ -554,13 +556,14 @@
   .cell.rar2 .fuse{background:linear-gradient(180deg,#ffd76a,#b07a1a);} .cell.rar3 .fuse{background:linear-gradient(180deg,#d6ecff,#6a92c4);}
   .ring{-webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
     mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));}
-  /* market cards */
+  /* market cards, 0.103.0 curio stall: shadowed indigo textile under the
+     carved manor frames, iron port ring instead of bright gold */
   .ware{border:0;border-radius:16px;padding:14px 8px 10px;
-    background:linear-gradient(180deg,#3d2d1d,#281b11 82%);
-    box-shadow:inset 0 1.5px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(216,162,74,.26), 0 9px 20px rgba(0,0,0,.5);}
-  .ware::before{inset:4px;border:1px solid rgba(216,162,74,.16);border-radius:12px;}
-  .ware .ph{width:64px;height:64px;
-    box-shadow:0 0 0 2.5px #7a4d16, 0 0 0 4.5px rgba(244,207,124,.45), inset 0 3px 9px rgba(0,0,0,.8), inset 0 -2px 5px rgba(255,255,255,.06), 0 6px 12px rgba(0,0,0,.5);}
+    background:linear-gradient(165deg,#2b2334,#191420 82%);
+    box-shadow:inset 0 1.5px 0 rgba(205,190,255,.09), inset 0 0 0 1px rgba(96,90,128,.3), 0 9px 20px rgba(0,0,0,.5);}
+  .ware::before{inset:4px;border:1px solid rgba(160,150,200,.10);border-radius:12px;}
+  .ware .ph{width:66px;height:66px;border-radius:15px;
+    box-shadow:0 0 0 2px #4c505a, 0 0 0 3.5px rgba(30,28,40,.9), inset 0 3px 9px rgba(0,0,0,.8), inset 0 -2px 5px rgba(255,255,255,.05), 0 6px 12px rgba(0,0,0,.5);}
   .ware .ph .gi{width:44px;height:44px;filter:drop-shadow(0 3px 3px rgba(0,0,0,.7));}
   .ware .cost{width:34px;height:34px;top:-8px;left:-8px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.55));}
   .ware .cost b{font-size:14px;}
