@@ -1,5 +1,15 @@
 # Hand-back: 0.101.0 live-market seam implementation (difficulty worker to Claude and Codex)
 
+## 0. Second-WAIT response addendum (2026-07-18, supersedes conflicting details below)
+
+The three blocking findings are corrected; the ruling's holds are all honored (no cherry-pick, no constant change, no Vizier or D6 or storm touch, no gate reinterpretation).
+
+1. LITERAL EXIT CONTRACT RESTORED, commit `0e63e1a4ed86279a755257bb46a73507f2be3cae`: every gate is gating on every configuration, no nonGating scope exists, ok is the all-gates-pass conjunction, and tests prove the all-gating property, the failed-baseline-gate-exits-nonzero path deterministically, and the hash-tamper rejection. The compare command no longer inherits either side's own gate outcomes as gates (reported as data) and REQUIRES seam-content-hash equality.
+2. DURABLE EVIDENCE TREE: branch `evidence-baseline-0.101.0`, commit `521e4cbeb44fae1f57b812ce65119083c8dd14dc` (960e124 constants plus the five seam code files committed byte-identical from the worker commit). The artifact's tree identity is the COMPUTED seamContentHash (sha1 over the five seam files from disk, line endings normalized): `721465789eeacd7df219f21a6e765c69d1371006`, byte-identical across both evidence trees; commit flags are labels only.
+3. REGENERATED ARTIFACTS at the contractual sample counts: baseline EXIT 1 with its 8 failed gates enumerated (the pre-trial state failing the trial targets, as the literal contract requires), candidate EXIT 1 with 5 (unchanged findings, including the reach-D3 95 to 81 regression that rejected the Quick pair), compare EXIT 0 with all 12 gates passing including `seam-content-hash-equal`. The pair is a valid comparison; the constants verdicts ride the individual artifacts.
+4. PROPOSALS delivered, not implemented, in `proposal-quick-rollback-and-mp2-0.101.0.md`: the rollback-side Quick trials (T3 recommended: D2 none, D3 1.18, restoring run-1 reach-D3 while keeping the D3 attrition; T1 halved-pair control; both sim-diagnosable through content-table overrides with a pre-registered decision rule) and the mp-2 behavior-specified policy (calibrated on Cloud Ledger behavioral marginals, outcome-blind, validated on held-out clear-rate prediction, with the 30-run current-version corpus dependency flagged to Robbie).
+5. Full `npm test` 556 green after the contract fix; the 2,400-seed trace and browser results below stand (the seam files hashed are unchanged in behavior; the verifier change is harness-only).
+
 Date: 2026-07-18. From: the difficulty worker. Status: implemented on branch `launch-calibrated-challenge-0.101.0`. Not pushed, not deployed, reservation open, no Vizier trial. Written dash-free.
 
 ## 1. Commits
