@@ -29,7 +29,7 @@ export function effChips(id,rarity){
    the real numbers plus integrity and cadence. Accepts any {id,rarity,ench}. */
 export function wareDetailHTML(it,anomaly){
   const d=ITEMS[it.id];const en=it.ench?ENCH[it.ench]:null;const rar=it.rarity||0;
-  return '<div class="st"><span class="ico" style="width:34px;height:34px">'+ic('g-'+it.id,'','width:100%;height:100%')+'</span>'
+  return '<div class="st"><span class="ico" style="width:64px;height:64px">'+ic('g-'+it.id,'','width:100%;height:100%')+'</span>'
    +'<div><div class="nm">'+RNAME[rar]+' '+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div>'
    +'<div class="ds">'+(en?en.d+' ':'')+d.d+'</div>'
    +'<div style="margin-top:5px">'+effChips(it.id,rar)+'<span class="eff util">'+ic('e-shield','mi')+' '+Math.round(integOf(it)*((anomaly&&anomaly.itemIntegrityMul)||1))+'</span>'

@@ -1500,8 +1500,8 @@ function openHeroPick(cont){
      selected rule card on short landscape screens. */
   const pool=HEROES;
   let sel=pool[0].id;
-  const o=ovOpen('<div class="card heropick"><div class="rays"></div>'
-   +'<div class="kick gold">Choose Your Merchant</div>'
+  const o=ovOpen('<div class="card heropick evroom ev-parlor"><div class="rays"></div>'
+   +'<div class="kick gold">Choose Your Dealer</div>'
    +'<div class="herorail" id="herorail"></div>'
    +'<div class="herodetail" id="herodetail"></div>'
    +'<button class="btn gold" id="heroGo" style="width:100%;margin-top:11px">Take the Stall</button></div>');
@@ -1573,6 +1573,14 @@ function openIntro(){
      flag, so the caption is hidden at that full unlock. */
   const hint=nextUnlockHint(store());
   const o=document.createElement('div');o.id='intro';
+  /* 0.115.0: fade the threshold up once the gates painting is decoded, with a
+     timeout fallback so a failed fetch never strands a blank screen */
+  (function(){
+    const im=new Image();let done=false;
+    const ready=function(){if(done)return;done=true;o.classList.add('bgready');};
+    im.onload=ready;im.onerror=ready;im.src='/art/bg/bg_intro.png';
+    setTimeout(ready,1400);
+  })();
   o.innerHTML='<div class="ititle">Tavern Bash</div>'
     +'<button class="btn introhistory" id="inHistory">'+ic('g-ledger','mi')+' Run History</button>'
     +'<div class="ibtns">'

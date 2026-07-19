@@ -64,6 +64,17 @@
   /* occupied fight cells become carved slot cards, empties stay quiet */
   .art-frames .combat .cell.it{border:7px solid transparent;border-radius:10px;
     border-image:url('/art/ui/slot_frame.png') 120 fill / 7px;}
+  /* 0.115.0: empty rails recede instead of reading as rows of coffins */
+  .combat .cell.empty,.combat .cell.lock{opacity:.32;}
+  .combat .cell.empty::before{display:none;}
+  /* the shared ware detail sheet joins the manor: a real illustration port */
+  .st .ico{border-radius:14px;padding:5px;flex:0 0 auto;
+    background:radial-gradient(closest-side, rgba(70,60,90,.5), #14101a 82%);
+    box-shadow:0 0 0 1.5px #4c505a, 0 0 0 3px rgba(30,28,40,.9), inset 0 2px 7px rgba(0,0,0,.75);}
+  .shopdet,.inspectcard .sheet{background:linear-gradient(165deg,#2b2334,#191420 82%);
+    border:1px solid rgba(96,90,128,.34);}
+  .shopdet .nm,.inspectcard .nm{font-size:15.5px;}
+  .shopdet .ds,.inspectcard .ds{font-size:13px;line-height:1.4;}
   #main.fight{position:relative;}
 
   /* 0.110.0 result staging: the dealer's face leads the recap */
@@ -82,11 +93,11 @@
   /* 0.109.0 event rooms: Merchant, Rest, Shrine, and Treasure each open in
      their own painted room of the house. Backdrop only; the choice grid,
      settlement, and copy are byte-identical. */
-  .card.evroom{position:relative;overflow:hidden;}
+  .card.evroom{position:relative;overflow:hidden;background:#14101a !important;}
   .card.evroom::before{content:"";position:absolute;inset:0;z-index:0;
-    background:var(--room) center top/cover no-repeat;}
+    background:var(--room) center top/cover no-repeat;filter:brightness(1.28) saturate(1.05);}
   .card.evroom::after{content:"";position:absolute;inset:0;z-index:0;
-    background:linear-gradient(180deg,rgba(11,10,16,.6),rgba(11,10,16,.3) 34%,rgba(11,10,16,.85) 72%);}
+    background:linear-gradient(180deg,rgba(11,10,16,.42),rgba(11,10,16,.12) 34%,rgba(11,10,16,.7) 72%);}
   .card.evroom>*{position:relative;z-index:1;}
   .card.evroom .rays{display:none;}
   .card.ev-parlor{--room:url('/art/ui/room_parlor.png');}
@@ -118,7 +129,8 @@
   /* painted big pieces: filled by applyBigArt when the manifest has them */
   #bgart{position:fixed;inset:0;z-index:0;pointer-events:none;display:none;
     background:center/cover no-repeat;}
-  #bgart::after{content:"";position:absolute;inset:0;background:rgba(18,11,7,.38);}
+  /* 0.115.0: the room stays visible behind the stall; the veil cools and lifts */
+  #bgart::after{content:"";position:absolute;inset:0;background:rgba(11,10,18,.22);}
   .art-board .board{background:var(--board-art) center/320px;border-radius:12px;}
   #embers{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;}
   .ember{position:absolute;bottom:-12px;width:4px;height:4px;border-radius:50%;background:var(--ember);filter:blur(.4px);animation:rise linear infinite;opacity:0;}
@@ -359,7 +371,7 @@
   .herochip.on{border-color:var(--brass-hi);box-shadow:0 0 13px rgba(244,207,124,.4);transform:translateY(-2px);}
   .herochip:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px;}
   .herodetail{display:flex;gap:13px;align-items:center;text-align:left;}
-  .hdportrait{width:96px;height:96px;flex:0 0 auto;border-radius:14px;overflow:hidden;
+  .hdportrait{width:128px;height:128px;flex:0 0 auto;border-radius:16px;overflow:hidden;
     border:2px solid color-mix(in srgb, var(--cat,#d8a24a) 60%, #6f4413);box-shadow:0 4px 12px rgba(0,0,0,.5);}
   .hdportrait .hpbig{width:100%;height:100%;}
   .hdbody{flex:1;min-width:0;}
@@ -1085,8 +1097,14 @@
   .tuthl{outline:2px solid var(--brass-hi);outline-offset:3px;border-radius:14px;animation:pairglim 2.1s ease-in-out infinite;}
   @media (prefers-reduced-motion: reduce){.tuthl,.coach{animation:none;}}
   /* the painted title screen */
-  #intro{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
-    background:#0d0805 url('/art/bg/bg_intro.png') center 18%/cover no-repeat;}
+  /* 0.115.0: the gates never pop in raw; the whole threshold fades up once the
+     painting is ready, and the lockup owns the lower third with room to breathe */
+  #intro{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+    background:#0b0c14 url('/art/bg/bg_intro.png') center 18%/cover no-repeat;
+    opacity:0;transition:opacity .7s ease;}
+  #intro.bgready{opacity:1;}
+  #intro .ititle{margin-top:0;margin-bottom:10px;}
+  #intro .ibtns{margin-top:4px;}
   /* an overlaid title reads sharp at any crop, so the portrait painting
      can frame the dragon in a landscape viewport without losing its name */
   /* 0.106.0: the manor gates painting carries no baked nameplate, so the
