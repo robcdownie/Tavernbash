@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {genMap, districtPaths, isCombat, treasureWareIds, MAP_VERSION} from '../src/map.js';
+import {genMap, districtPaths, isCombat, treasureWareIds, MAP_VERSION, CONTENT_EPOCH, contentTablesFor} from '../src/map.js';
 import {DISTRICTS, MONSTERS, PERSONAS, ITEMS, ENCH} from '../src/data.js';
 
 /* a broad seed spread so the structural rules are proven, not sampled */
@@ -25,9 +25,14 @@ test('the map ledger pins every Quick layout byte except the version stamp',()=>
   /* v12 regenerated the ledger on purpose: the 0.97.0 synergy-count payoff
      wares are non-unique and tier-2, so they enter treasureWareIds for the
      District II+ gates, shifting rollTreasure's picks for these fixed seeds.
-     An approved, recorded regeneration; every other layout byte is unchanged. */
+     0.101.0 (CONTENT_EPOCH 2) splits the ledger: the SAME six epoch-1 hashes
+     now pin the frozen epoch-1 regeneration (an active epoch-1 run must get
+     its exact old map back, byte for byte), and a new epoch-2 ledger pins the
+     graded-power live maps. The generator structure is unchanged, so
+     MAP_VERSION stays 12. */
   assert.equal(MAP_VERSION,12);
-  const ledger=new Map([
+  assert.equal(CONTENT_EPOCH,2);
+  const epoch1=new Map([
     [0,'3c404a5124ef02f713aee10887e9266d60b4e13f870bb848f1af4400edc16fb1'],
     [1,'e89a436d5fac7ebc5d0d982bc9fc3e87449d85583b2e16d9cf7a8fd327b5cd22'],
     [7,'ec545ee7a05bee6406dea5d79b1253f95a5d6b53b5270d94fc435ac0ee19e120'],
@@ -35,19 +40,42 @@ test('the map ledger pins every Quick layout byte except the version stamp',()=>
     [2654435769,'b3b4a76303ba51cb080badc2f4a36b215cb071278e7aaa9e9133287f504cd120'],
     [4294967295,'5c6d3b2bd483917a277d9ae86e3caf0b62b4537f7e0ade73bbd8564cfb903219']
   ]);
-  for(const [seed,want] of ledger){
-    const map=genMap(seed,'quick');delete map.version;
-    const got=createHash('sha256').update(JSON.stringify(map)).digest('hex');
-    assert.equal(got,want,'Quick map drifted for seed '+seed);
+  const epoch2=new Map([
+    [0,'d6dd5d76970d210f1292dd96ea4a689a1f6f790659c9f6e5572981014cc84213'],
+    [1,'911ecb53fd3292b637a59430d3997be0a645c93051332233a98f310da44f39d5'],
+    [7,'c35d14dcc887e4c759a4e5d8358e17ca6236fdfc45be161a85e8ea7acb963830'],
+    [1234567,'68f6346b93a446218b5a967e5e04d27169bf42170cd182e51c1582454db9442c'],
+    [2654435769,'65b9e75caf5c211f42d665e073be74beda05da6c35faad9a3f367b571f00a7a0'],
+    [4294967295,'9a26700fcba610ceb9ba888ce0bc9e77d57f9e4a8bfcf889e875cb5bf3e6d17d']
+  ]);
+  const hash=map=>{delete map.version;return createHash('sha256').update(JSON.stringify(map)).digest('hex');};
+  for(const [seed,want] of epoch1){
+    assert.equal(hash(genMap(seed,'quick',0,contentTablesFor(1))),want,'epoch-1 Quick regeneration drifted for seed '+seed);
+  }
+  for(const [seed,want] of epoch2){
+    assert.equal(hash(genMap(seed,'quick')),want,'epoch-2 Quick map drifted for seed '+seed);
   }
 });
 
-test('Quick maps omit Long power calibration on districts and nodes',()=>{
+test('Quick power is epoch-aware: epoch 2 grades D2 and D3, epoch 1 omits it everywhere',()=>{
   for(const s of SEEDS.slice(0,40)){
-    const map=genMap(s,'quick');
-    for(const d of map.districts){
-      assert.equal(Object.hasOwn(d,'power'),false,'Quick district '+d.id+' gained power');
-      for(const n of allNodes({districts:[d]}))assert.equal(Object.hasOwn(n,'power'),false,'Quick node '+n.id+' gained power');
+    const live=genMap(s,'quick');
+    for(const d of live.districts){
+      const want=d.id===2?1.12:(d.id===3?1.18:undefined);
+      if(want===undefined){
+        assert.equal(Object.hasOwn(d,'power'),false,'Quick district '+d.id+' gained power');
+      }else{
+        assert.equal(d.power,want,'Quick district '+d.id+' power');
+      }
+      for(const n of allNodes({districts:[d]})){
+        if(want!==undefined&&isCombat(n))assert.equal(n.power,want,n.id+' lost district power');
+        else assert.equal(Object.hasOwn(n,'power'),false,n.id+' should not carry power');
+      }
+    }
+    const old=genMap(s,'quick',0,contentTablesFor(1));
+    for(const d of old.districts){
+      assert.equal(Object.hasOwn(d,'power'),false,'epoch-1 Quick district '+d.id+' gained power');
+      for(const n of allNodes({districts:[d]}))assert.equal(Object.hasOwn(n,'power'),false,'epoch-1 Quick node '+n.id+' gained power');
     }
   }
 });

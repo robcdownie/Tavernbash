@@ -89,7 +89,10 @@ export function heroOfId(heroId){
   return h;
 }
 
-const DEFAULT_CFG = { startResolve: null, bossLossAdj: 0, treasureCash: 6, negoCash: 6, rewardGoldAdj: 0,
+/* exported (0.101.0): the launch-l2 verifier folds these defaults before every
+   direct simRun call, the same fold runBatch applies, so a partial cfg can
+   never leak an undefined economy knob into a NaN gold stream */
+export const DEFAULT_CFG = { startResolve: null, bossLossAdj: 0, treasureCash: 6, negoCash: 6, rewardGoldAdj: 0,
   reprisePower:1, reprisePowers:null, lantern: 0, affix: false, forceAffix: null, forceGild: false,
   heroId: null, omenId: 'none', uniques: 'cash' };
 const ROUTE_GUARD=400;
@@ -124,9 +127,14 @@ const COPIES_FOR = [1, 3, 6, 12];
    pre-knob behavior. */
 export function boardPool(tier, cfg, hero) {
   const starter = cfg && cfg.warePool === 'starter' ? new Set(starterShopIds()) : null;
+  /* cfg.allowedWareIds (0.101.0 verifier): an explicit allow-set computed by the
+     REAL unlock verdicts (wareUnlocked per profile), so the fresh-profile cohort
+     shops from the live unlock state instead of a fixed knob. Absent means no
+     restriction, so every existing caller is byte-identical. */
+  const allowed = cfg && cfg.allowedWareIds ? (cfg.allowedWareIds instanceof Set ? cfg.allowedWareIds : new Set(cfg.allowedWareIds)) : null;
   /* signature wares ride only their own hero's pool, exactly as rollShop gates
      them; with no hero the sig clause reduces to the pre-hero !sig filter */
-  return Object.keys(ITEMS).filter(id => gateOK(ITEMS[id].tier, tier) && !ITEMS[id].unique && (!ITEMS[id].sig || (hero && ITEMS[id].sig === hero.id)) && !ITEMS[id].inc && (!starter || starter.has(id)));
+  return Object.keys(ITEMS).filter(id => gateOK(ITEMS[id].tier, tier) && !ITEMS[id].unique && (!ITEMS[id].sig || (hero && ITEMS[id].sig === hero.id)) && !ITEMS[id].inc && (!starter || starter.has(id)) && (!allowed || allowed.has(id)));
 }
 export function buildBoard(tier, budget, rng, persona, cfg, cell, reservedCells) {
   const hero = cell && cell.hero || null, A = cell && cell.A || ANONE;
@@ -220,14 +228,28 @@ function simFight(board, node, gold, seed, cfg, mode, gate, affixHooks, cell) {
     rules: Object.assign({}, A, hero ? hero.mod : {}) };
   const metricBoard=board.board.map(function(w){return Object.assign({iid:w.uid},w);});
   const tally=beginCombatTally({district:node.district,nodeId:node.id,monId:node.monId},metricBoard,playerItems,foe.items);
+  /* Storm evidence (0.101.0 verifier, handoff section 4.2): fold the player's
+     merchant-layer incoming damage out of the same diagnostic facts the tally
+     already receives. A merchant-layer fact targets side a with no item uid
+     (item chips carry a wireRef with uid); storm damage is channel 'storm',
+     status ticks arrive as status_tick. Observational only: no rng, no events. */
+  const storm={dmg:0,incoming:0};
+  const tap=function(fact){
+    recordCombatDiagnostic(tally,fact);
+    if(fact&&fact.target&&fact.target.side==='a'&&fact.target.uid===undefined){
+      if(fact.kind==='damage'){storm.incoming+=fact.amount||0;if(fact.channel==='storm')storm.dmg+=fact.amount||0;}
+      else if(fact.kind==='status_tick'){storm.incoming+=fact.amount||0;}
+    }
+  };
   /* L4 through the composed offsets and the single existing floor; a Gate
      fight takes the plain Omen per the Gate contract */
   const stormA = gate ? A : composeLantern(cell.omenId, A, cfg.lantern || 0);
   const F = createFight({ a: me, b: foe, stormAt: adjustedStormAt(built.def.stormAt ? built.def.stormAt * 1000 : stormAt(node.threat), stormA), seed: seed >>> 0, playerIs: 'a',
-    hooks:affixHooks||undefined,diagnosticTap:function(fact){recordCombatDiagnostic(tally,fact);} });
+    hooks:affixHooks||undefined,diagnosticTap:tap });
   runHeadless(F);
   return { winner: F.done?F.winner:'b', survTier: F.survTiers('b'), t: F.t / 1000,
     meHp: Math.max(0, F.a.hp), foeHp: Math.max(0, F.b.hp),timeout:!F.done,
+    stormOn:!!F.stormOn,stormDmg:storm.dmg,incomingDmg:storm.incoming,
     guardTrips:F.diagnostics.guardTrips,guardCounts:Object.assign({},F.diagnostics.guardCounts),
     pendingActions:F.diagnostics.pendingActions||0,
     wares:Object.keys(tally.rows).map(function(k){return tally.rows[k];}) };
@@ -238,7 +260,11 @@ export function simRun(seed, cfg, mode) {
   mode=mode||'quick';
   const lantern = cfg.lantern || 0;
   const cell = { omenId: cfg.omenId || 'none', A: omenA(cfg.omenId), hero: heroOfId(cfg.heroId) };
-  const map = genMap(seed,mode,lantern);
+  /* cfg.content (0.101.0 verifier): explicit content tables for genMap, the same
+     epoch-resolution path a resumed run takes. Absent means live epoch, which is
+     byte-identical to the pre-knob call. The D6 rejection control and the
+     epoch-1 preservation gate both ride this, so no trial ever mutates data.js. */
+  const map = genMap(seed,mode,lantern,cfg.content);
   const rng = mulberry((seed ^ 0x5f3759df) >>> 0);
   const persona = PERSONAS[seed % PERSONAS.length];
   let st = initRoute(seed,mode,lantern);
@@ -271,7 +297,13 @@ export function simRun(seed, cfg, mode) {
     districtCount:map.districts.length,fights: [], retries: 0, goldEarned: 0, goldSpent: 6,
     resolveStart:st.resolveMax,minResolve: st.resolveMax, tierMax: 1,guardTrips:0,guardCounts:{},fightTimeouts:0,
     combatPendingActions:0,routeGuardExits:0,pendingActions:[],duplicateUniqueCash:0,heldUniques:held,
+    /* boundary Resolve (0.101.0 verifier, handoff 4.1): st.resolve the first time
+       the walk commits into each district, keyed by district id. Entry into D1 is
+       the start value; a district never reached simply has no key, which the
+       cohort estimator reads as the zero contribution the bands require. */
+    resolveAt:{1:st.resolve},
     midpointTreasure:{reached:false,offered:[],selected:null,fallbackGold:0,contribution:'abstracted'} };
+  let maxDistrictSeen = 1;
 
   let guard = 0;
   while (st.phase !== 'won' && st.phase !== 'lost' && guard<ROUTE_GUARD) {
@@ -280,6 +312,7 @@ export function simRun(seed, cfg, mode) {
     if (st.phase === 'map') {
       const fr = frontier(st, map); if (!fr.length) {m.pendingActions.push('empty_frontier');break;}
       const node = nodeOf(map, fr[Math.floor(rng() * fr.length)]);   /* seeded-random path: samples both D4 elites and varied lanes */
+      if (node.district > maxDistrictSeen) { maxDistrictSeen = node.district; m.resolveAt[node.district] = st.resolve; }
       st = transition(st, map, { type: 'commit', nodeId: node.id, choice: 'challenge' }).state;
     } else if (st.phase === 'encounter') {
       const node = nodeOf(map, st.pendingId);
@@ -296,9 +329,10 @@ export function simRun(seed, cfg, mode) {
         affixHooks=affixFightHooks(aff);
       }
       const r = simFight(board, node, gold, st.fightSeed,cfg,mode,gateOf(node),affixHooks,cell);
-      m.fights.push({ threat: node.threat, band: node.district, type: node.type, mon: node.monId,
+      m.fights.push({ threat: node.threat, band: node.district, type: node.type, mon: node.monId, node: node.id,
         won: r.winner === 'a', t: r.t, margin: r.winner === 'a' ? r.meHp : r.foeHp, first: first,
         gilded: !!node.gilded, reprise: !!(dist&&dist.reprise),
+        stormOn:r.stormOn,stormDmg:r.stormDmg,incomingDmg:r.incomingDmg,
         wares:r.wares,guardTrips:r.guardTrips,timeout:r.timeout });
       m.guardTrips+=r.guardTrips;if(r.timeout)m.fightTimeouts++;
       m.combatPendingActions+=r.pendingActions;
@@ -384,10 +418,15 @@ export function simRun(seed, cfg, mode) {
   m.result = st.phase;
   m.district = currentDistrict(st, map);
   m.resolveEnd = st.resolve;
+  /* the exit boundary: a cleared run's final Resolve; a lost run has none and
+     contributes zero at exit, per the whole-cohort rule */
+  if (st.phase === 'won') m.resolveExit = st.resolve;
   m.path = st.path.length;
   m.goldHeld = gold;
   m.tierEnd = tier;
   m.topRarity = topRarity(board);
+  /* final board snapshot for record synthesis (unlock feat evidence) */
+  m.board = board.board.map(function(w){ return { id: w.id, rarity: w.rarity }; });
   m.valid=m.fightTimeouts===0&&m.routeGuardExits===0&&m.guardTrips===0&&m.combatPendingActions===0;
   return m;
 }

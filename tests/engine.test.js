@@ -220,10 +220,12 @@ test('The Azhdaha: each fallen head halves the survivors, and a rich board still
   }}
   assert.equal(F.winner,'a','a silver round 10 board slays the boss');
   assert.ok(enrages>=2,'the rage triggered, got '+enrages+' enrage events');
-  /* the hasteMates rattle permanently cuts survivor cooldowns below the 8 s
-     base; overflow can now change which head dies first, so we assert the
-     mechanic rather than a fixed kill order */
-  assert.ok(minSurvCd<8000,'a surviving head was hastened below its 8 s base, saw '+minSurvCd);
+  /* the hasteMates rattle permanently cuts survivor cooldowns; overflow can
+     change which head dies first, so we assert the mechanic rather than a
+     fixed kill order. 0.101.0 trial: at hasteMates 0.30 a single rattle cuts
+     the 12 s head to 8400 ms (12000 times 0.7), so the threshold sits just
+     above one cut where the old 0.5 threshold (8000) sat below one. */
+  assert.ok(minSurvCd<8500,'a surviving head was hastened below its 12 s print, saw '+minSurvCd);
 });
 
 test('Grand Vizier of Ash: the full kit boss falls to a gold round 12 board',()=>{
