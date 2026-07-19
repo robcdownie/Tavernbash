@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.112.0",
-  "reviewedHead": "bc4da4c",
+  "build": "0.113.0",
+  "reviewedHead": "9a73011",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -35,12 +35,26 @@
       "0.109.0",
       "0.110.0",
       "0.111.0",
-      "0.112.0"
+      "0.112.0",
+      "0.113.0"
     ],
     "status": "in-progress",
-    "note": "Nine manor production versions shipped 0.102.0 through 0.112.0 on local main, every one tested green and live-verified. Structural recomposition done after Robbie rejected the re-dress: dealer crest HUD, ballroom combat with large anchors and demoted log, event rooms, staged recaps, complete painted catalog, landscape scenes. Deploy and CACHE_V bump wait on Robbie. Remaining recorded polish: Gate Camp room surface, fight-class medallion consumers, ingest matcher refresh for post-R7 ids, Suno re-pass, display-name pass."
+    "note": "Ten manor versions 0.102.0 to 0.113.0 on local main. The furniture pass moved the fight from CSS chrome to painted chrome per Robbie references. Robbie fal balance roughly 8 dollars. Deploy waits on Robbie."
   },
   "reservations": [
+    {
+      "version": "0.113.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.110.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "done",
+      "sourceCommit": "e9a1eec",
+      "integrationCommit": "9a73011",
+      "scope": "The furniture pass, answering Robbie 50 percent verdict that CSS chrome missed the reference bar: engraved brass bar housings on all health bars via 9-slice, carved oval frame rings on fight portraits, the carved frame on the dealer crest, and the first full-body hero spectacle layer (Kilnkeeper with burning chain) stamped by hero id in fights. Assets generated, cut, QA approved; drape strip rejected at QA. No engine or timing change.",
+      "verification": "npm test 559 green via ship.js. Live Souk Rats fight verified at 390x844: housings, oval rings, crest frame, and the full-body dealer all render; overlap of his own board first cell accepted as reference-style staging. Follow-up recorded: full-body art for the other seven heroes, drape retry, route path gilding."
+    },
     {
       "version": "0.111.0",
       "project": "Manor Identity",
