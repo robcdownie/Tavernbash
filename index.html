@@ -982,8 +982,12 @@
     background:#0d0805 url('/art/bg/bg_intro.png') center 18%/cover no-repeat;}
   /* an overlaid title reads sharp at any crop, so the portrait painting
      can frame the dragon in a landscape viewport without losing its name */
-  #intro .ititle{display:none;font-family:"Rakkas",serif;color:var(--brass-hi);letter-spacing:1px;
-    margin-top:calc(14px + env(safe-area-inset-top));text-shadow:0 3px 16px rgba(0,0,0,.95), 0 0 30px rgba(224,134,58,.4);}
+  /* 0.106.0: the manor gates painting carries no baked nameplate, so the
+     code-rendered title returns, floating inside the iron arch. The pending
+     rename costs nothing because the word lives here, not in the art. */
+  #intro .ititle{display:block;font-family:"Rakkas",serif;font-size:clamp(40px,11vw,64px);line-height:.95;color:var(--brass-hi);letter-spacing:1px;
+    margin-top:calc(58px + env(safe-area-inset-top));text-align:center;
+    text-shadow:0 3px 16px rgba(0,0,0,.95), 0 0 34px rgba(246,196,110,.45);}
   #intro .ibtns{display:flex;gap:14px;width:min(92vw,470px);margin-bottom:calc(20px + env(safe-area-inset-bottom));}
   .stonebtn{flex:1;height:58px;border:0;cursor:pointer;color:var(--brass-hi);
     font-family:"Rakkas",serif;font-size:21px;letter-spacing:1px;text-shadow:0 2px 8px rgba(0,0,0,.9);

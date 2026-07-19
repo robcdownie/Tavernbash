@@ -3,7 +3,7 @@ export const ART={
  "bg-battle":"art/bg/bg_battle.png",
  "bg-intro":"art/bg/bg_intro.png",
  "bg-intro-wide":"art/bg/bg_intro_wide.png",
- "bg-market":"art/bg/bg_market.webp",
+ "bg-market":"art/bg/bg_market.png",
  "bg-route-back-alleys":"art/bg/bg_route_back_alleys.png",
  "bg-route-dragon-gate":"art/bg/bg_route_dragon_gate.png",
  "bg-route-palace":"art/bg/bg_route_palace.png",
