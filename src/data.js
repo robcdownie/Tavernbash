@@ -590,11 +590,17 @@ export const MONSTERS={
  golem:{n:"Mint Golem",band:3,hp:320,tag:"dmg",glyph:"m-golem",fl:"It pays out in bruises.",
    bounty:{items:["coincannon","coinhopper"]},
    board:[{nm:"Coin Cannon",g:"g-coincannon",size:3,cd:3,integ:38,fx:{dmg:14},ammo:5},{nm:"Coin Hopper",g:"g-coinhopper",size:1,cd:8,integ:14,fx:{reload:2}}]},
+ /* 0.101.0 primary trial: hasteMates 0.5 to 0.30 on all three Azhdaha
+    definitions (base, v1, v2). The 0.5 snowball made the Long Gate azhdaha a
+    25 percent first-attempt outlier against the auctioneer's 60 (1200-seed
+    baseline artifact); softening the survivor rage narrows the Gate elite
+    choice toward the 12-point contract. Recorded in REBALANCED_MONSTERS. The
+    player's azhfang ware keeps its own 0.5; the trial scopes monsters only. */
  azhdaha:{n:"The Azhdaha",band:4,hp:550,tag:"dmg",glyph:"m-azhdaha",fl:"Cut one head. Ask the other two.",
    bounty:{items:["azhfang"],gold:5},
-   board:[{nm:"First Head",g:"g-azhfang",size:3,cd:12,integ:50,fx:{dmg:20},rattle:{hasteMates:0.5}},
-          {nm:"Second Head",g:"g-azhfang",size:3,cd:12,integ:50,fx:{dmg:20},rattle:{hasteMates:0.5}},
-          {nm:"Third Head",g:"g-azhfang",size:3,cd:12,integ:50,fx:{dmg:20},rattle:{hasteMates:0.5}}]},
+   board:[{nm:"First Head",g:"g-azhfang",size:3,cd:12,integ:50,fx:{dmg:20},rattle:{hasteMates:0.3}},
+          {nm:"Second Head",g:"g-azhfang",size:3,cd:12,integ:50,fx:{dmg:20},rattle:{hasteMates:0.3}},
+          {nm:"Third Head",g:"g-azhfang",size:3,cd:12,integ:50,fx:{dmg:20},rattle:{hasteMates:0.3}}]},
  auctioneer:{n:"Night Auctioneer",band:4,hp:500,tag:"util",glyph:"m-auctioneer",fl:"Everything must go. Including yours.",
    bounty:{items:["gavel"]},
    board:[{nm:"The Gavel",g:"g-gavel",size:2,cd:5,integ:40,fx:{dmg:12}},{nm:"Lot Caller",g:"g-ledger",size:2,cd:6,integ:14,fx:{disable:true},pay:3,flying:true}]},
@@ -693,8 +699,17 @@ Object.assign(MONSTERS,{
  ifrit_v1:aspect("ifrit","Backdraft",[{nm:"Bellows",g:"g-hourglass",size:2,cd:5,integ:22,fx:{},charge:{t:1,s:2}},{nm:"Kiln Heart",g:"g-magma",size:3,cd:6,integ:34,fx:{burn:8}}]),
  ifrit_v2:aspect("ifrit","Twin Kilns",[{nm:"Kiln Heart",g:"g-magma",size:2,cd:9,integ:28,fx:{burn:6}},{nm:"Kiln Heart",g:"g-magma",size:2,cd:9,integ:28,fx:{burn:6}}]),
  /* District 4, The Dragon Gate */
- azhdaha_v1:aspect("azhdaha","Elder Heads",[{nm:"First Head",g:"g-azhfang",size:3,cd:14,integ:45,fx:{dmg:26},rattle:{hasteMates:0.5}},{nm:"Second Head",g:"g-azhfang",size:3,cd:14,integ:45,fx:{dmg:26},rattle:{hasteMates:0.5}},{nm:"Third Head",g:"g-azhfang",size:3,cd:14,integ:45,fx:{dmg:26},rattle:{hasteMates:0.5}}]),
- azhdaha_v2:aspect("azhdaha","Young Hydra",[{nm:"First Head",g:"g-fangs",size:2,cd:10,integ:55,fx:{dmg:16},rattle:{hasteMates:0.5}},{nm:"Second Head",g:"g-fangs",size:2,cd:10,integ:55,fx:{dmg:16},rattle:{hasteMates:0.5}},{nm:"Third Head",g:"g-fangs",size:2,cd:10,integ:55,fx:{dmg:16},rattle:{hasteMates:0.5}}]),
+ /* 0.101.0: both azhdaha aspects carry the same 0.30 rattle as the base (the
+    trial names all three sites), so the 2,400-seed trace re-verifies their
+    paired rows; 0.100.0 had left v1 as the unchanged high-sample control.
+    Retune with the rattle change (handoff section 11: a breach joins the
+    version): at 0.30 the softened snowball lifts the base more than the Young
+    Hydra's faster, tankier heads, so v2's gilded delta slipped to minus 5.8,
+    past the Gate elite band. Head integ 55 to 52 restores the pair: 2,400-seed
+    family trace reads v2 plain +1.8, gilded minus 4.3, both in band, v1
+    untouched at +1.4 and minus 3.6. The cd 10 young-heads identity is kept. */
+ azhdaha_v1:aspect("azhdaha","Elder Heads",[{nm:"First Head",g:"g-azhfang",size:3,cd:14,integ:45,fx:{dmg:26},rattle:{hasteMates:0.3}},{nm:"Second Head",g:"g-azhfang",size:3,cd:14,integ:45,fx:{dmg:26},rattle:{hasteMates:0.3}},{nm:"Third Head",g:"g-azhfang",size:3,cd:14,integ:45,fx:{dmg:26},rattle:{hasteMates:0.3}}]),
+ azhdaha_v2:aspect("azhdaha","Young Hydra",[{nm:"First Head",g:"g-fangs",size:2,cd:10,integ:52,fx:{dmg:16},rattle:{hasteMates:0.3}},{nm:"Second Head",g:"g-fangs",size:2,cd:10,integ:52,fx:{dmg:16},rattle:{hasteMates:0.3}},{nm:"Third Head",g:"g-fangs",size:2,cd:10,integ:52,fx:{dmg:16},rattle:{hasteMates:0.3}}]),
  auctioneer_v1:aspect("auctioneer","Eager Gavel",[{nm:"The Gavel",g:"g-gavel",size:2,cd:4,integ:40,fx:{dmg:11}},{nm:"Lot Caller",g:"g-ledger",size:2,cd:7,integ:14,fx:{disable:true},pay:4,flying:true}]),
  auctioneer_v2:aspect("auctioneer","Double Lots",[{nm:"The Gavel",g:"g-gavel",size:2,cd:5,integ:40,fx:{dmg:11}},{nm:"Lot Caller",g:"g-ledger",size:2,cd:5.5,integ:14,fx:{disable:true},pay:2,flying:true}]),
  /* District 4 boss */
@@ -765,6 +780,11 @@ export const MONCHIP={1:2,2:4,3:6,4:8};
    Resolve. This deliberately differs from the legacy MONBAND/band grouping; the
    route uses these tables, combat still reads MONSTERS for stats. Threat: early
    is columns 1 to 2, late is columns 3 to 5, boss is its own value. */
+/* 0.101.0 rollback verdict: Quick district power stays at the 0.100.0 baseline.
+   The D2 1.12 plus D3 1.18 trial, the D3-only 1.18 arm, and the halved arm all
+   failed the pre-registered fresh-profile or curve gates. CONTENT_EPOCH remains
+   2 for the accepted Long and Azhdaha data changes; epoch-1 runs continue to
+   regenerate their frozen maps from EPOCH_TABLES (map.js). */
 export const DISTRICTS=[
  {id:1,name:"Back Alleys",boss:"matron",threatEarly:1,threatLate:2,threatBoss:3,slip:3,
   normals:["imp","rats","samovar","sandling","monkey"],elites:["ghul"]},
@@ -789,7 +809,12 @@ export const LONG_DISTRICTS=[
   normals:DISTRICTS[2].normals,elites:DISTRICTS[2].elites},
  {id:4,sourceId:1,name:"Back Alleys After Midnight",boss:"matron",threatEarly:10,threatLate:11,threatBoss:12,slip:8,lossChip:6,power:2.9,
   normals:DISTRICTS[0].normals,elites:DISTRICTS[0].elites,forceGilded:true,reprise:true},
- {id:5,sourceId:2,name:"The Souk After Midnight",boss:"collector",threatEarly:13,threatLate:14,threatBoss:15,slip:9,lossChip:7,power:1.6,
+ /* 0.101.0 primary trial: D5 1.6 to 2.10 removes the non-monotonic dip the
+    baseline measured (D4 78.6 then D5 80.2 first-attempt). D6 HOLDS at 2.05:
+    the storm-wall evidence (r1slbuqc; 75 percent of D6 incoming player damage
+    is storm at 97 percent storm reach) says D6 is storm-dominated, so raising
+    it is forbidden and 2.15 exists only as the verifier's rejection control. */
+ {id:5,sourceId:2,name:"The Souk After Midnight",boss:"collector",threatEarly:13,threatLate:14,threatBoss:15,slip:9,lossChip:7,power:2.10,
   normals:DISTRICTS[1].normals,elites:DISTRICTS[1].elites,forceGilded:true,reprise:true},
  {id:6,sourceId:3,name:"Palace Quarter After Midnight",boss:"ifrit",threatEarly:16,threatLate:17,threatBoss:18,slip:10,lossChip:8,power:2.05,
   normals:DISTRICTS[2].normals,elites:DISTRICTS[2].elites,forceGilded:true,reprise:true},

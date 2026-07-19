@@ -43,6 +43,16 @@ const REBALANCED_MONSTERS={
   /* 0.87.0: live Long runs cleared both Debt Collector appearances in 6.8
      to 16 seconds, so his printed baseline rises without changing scaling. */
   collector:{hp:200},
+  /* 0.101.0 primary trial: the hasteMates snowball 0.5 to 0.30. The Long Gate
+     azhdaha sat at 25 percent first-attempt against the auctioneer's 60 in the
+     1200-seed baseline artifact; softening the survivor rage narrows the Gate
+     elite choice. Full board replacement: the ledger merge is shallow and the
+     board is an array. Everything except the three hasteMates values matches
+     the original byte for byte. Vizier is held at 700, so no entry. */
+  azhdaha:{board:[
+    {nm:"First Head",g:"g-azhfang",size:3,cd:12,integ:50,fx:{dmg:20},rattle:{hasteMates:0.3}},
+    {nm:"Second Head",g:"g-azhfang",size:3,cd:12,integ:50,fx:{dmg:20},rattle:{hasteMates:0.3}},
+    {nm:"Third Head",g:"g-azhfang",size:3,cd:12,integ:50,fx:{dmg:20},rattle:{hasteMates:0.3}}]},
 };
 const RENAMED_TRINKETS={
   venomancer:{n:"Poisonmonger"},

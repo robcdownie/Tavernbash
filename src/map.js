@@ -26,12 +26,24 @@ export const MAP_VERSION=12;   /* v12: the 0.97.0 payoff wares enter the Treasur
    being retired. genMap resolves treasure pools, district power, and the enchant
    pool through these tables; the current epoch computes live, so a run at the
    current epoch stays byte-identical to the pre-epoch generator. */
-export const CONTENT_EPOCH=1;
+export const CONTENT_EPOCH=2;
 
-/* frozen snapshots for supported past epochs; empty at 0.99.2 because epoch 1 is
-   current and computes live. A future version that bumps CONTENT_EPOCH stores
-   snapshotContentTables() under the epoch number it is leaving. */
-export const EPOCH_TABLES={};
+/* frozen snapshots for supported past epochs. Epoch 1 was frozen by 0.101.0
+   (the graded-power primary trial): the literal below is snapshotContentTables()
+   captured at the last epoch-1 commit, so an epoch-1 active run regenerates its
+   own powerless Quick map and 1.6-power Long D5 byte-identical instead of being
+   retired. The current epoch (2) computes live. */
+export const EPOCH_TABLES={
+ 1:{epoch:1,treasure:{
+  1:["dagger","sword","vial","torch","buckler","brassbuckler","bandage"],
+  2:["dagger","sword","fangs","mace","crossbow","serpent","vial","torch","bomb","buckler","brassbuckler","barricade","tower","bandage","salve","chalice","whetstone","hourglass","surgeonhook","sapperspick","venomsiphon","kilnchain","saltward","rosewaterpump","chirurgeonsscissors","smoketaxstamp","drummer","procession","march","round"],
+  3:["dagger","sword","fangs","mace","crossbow","hammer","serpent","vial","venom","torch","bomb","magma","buckler","brassbuckler","barricade","tower","aegis","bandage","salve","chalice","sanctum","whetstone","hourglass","adren","viperverdict","cinderhook","brassreclaimer","surgeonhook","sapperspick","blacklotuspress","antidotethief","venomsiphon","ashencenser","kilnchain","phoenixbell","coinplatedram","saltward","breakwaterbuckler","rosewaterpump","chirurgeonsscissors","mendersbell","smoketaxstamp","peacebinderchain","gravebell","bazaarcompass","drummer","procession","march","round"],
+  4:["dagger","sword","fangs","mace","crossbow","hammer","serpent","vial","venom","torch","bomb","magma","buckler","brassbuckler","barricade","tower","aegis","bandage","salve","chalice","sanctum","whetstone","hourglass","adren","viperverdict","cinderhook","brassreclaimer","surgeonhook","sapperspick","blacklotuspress","serpentsdue","antidotethief","venomsiphon","funeralbrazier","ashencenser","kilnchain","phoenixbell","coinplatedram","mirrorbastion","saltward","breakwaterbuckler","rosewaterpump","chirurgeonsscissors","bloodpricechalice","mendersbell","smoketaxstamp","peacebinderchain","gravebell","bazaarcompass","drummer","procession","march","round"],
+  5:["dagger","sword","fangs","mace","crossbow","hammer","serpent","vial","venom","torch","bomb","magma","buckler","brassbuckler","barricade","tower","aegis","bandage","salve","chalice","sanctum","whetstone","hourglass","adren","viperverdict","cinderhook","brassreclaimer","surgeonhook","sapperspick","blacklotuspress","serpentsdue","antidotethief","venomsiphon","funeralbrazier","ashencenser","kilnchain","phoenixbell","coinplatedram","mirrorbastion","saltward","breakwaterbuckler","rosewaterpump","chirurgeonsscissors","bloodpricechalice","mendersbell","smoketaxstamp","peacebinderchain","gravebell","bazaarcompass","drummer","procession","march","round"],
+  6:["dagger","sword","fangs","mace","crossbow","hammer","serpent","vial","venom","torch","bomb","magma","buckler","brassbuckler","barricade","tower","aegis","bandage","salve","chalice","sanctum","whetstone","hourglass","adren","viperverdict","cinderhook","brassreclaimer","surgeonhook","sapperspick","blacklotuspress","serpentsdue","antidotethief","venomsiphon","funeralbrazier","ashencenser","kilnchain","phoenixbell","coinplatedram","mirrorbastion","saltward","breakwaterbuckler","rosewaterpump","chirurgeonsscissors","bloodpricechalice","mendersbell","smoketaxstamp","peacebinderchain","gravebell","bazaarcompass","drummer","procession","march","round"],
+  7:["dagger","sword","fangs","mace","crossbow","hammer","serpent","vial","venom","torch","bomb","magma","buckler","brassbuckler","barricade","tower","aegis","bandage","salve","chalice","sanctum","whetstone","hourglass","adren","viperverdict","cinderhook","brassreclaimer","surgeonhook","sapperspick","blacklotuspress","serpentsdue","antidotethief","venomsiphon","funeralbrazier","ashencenser","kilnchain","phoenixbell","coinplatedram","mirrorbastion","saltward","breakwaterbuckler","rosewaterpump","chirurgeonsscissors","bloodpricechalice","mendersbell","smoketaxstamp","peacebinderchain","gravebell","bazaarcompass","drummer","procession","march","round"]
+ },power:{quick:{1:null,2:null,3:null,4:null},long:{1:null,2:null,3:null,4:2.9,5:1.6,6:2.05,7:1.6}},enchIds:["fiery","venomous","icy","stout","swift","winged"]}
+};
 
 /* the live content tables the generator would use right now, ready to be frozen
    under the outgoing epoch the moment a content change bumps CONTENT_EPOCH */

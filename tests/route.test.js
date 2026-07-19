@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {genMap,isCombat} from '../src/map.js';
+import {genMap,isCombat,contentTablesFor} from '../src/map.js';
 import {initRoute,transition,frontier,fightSeed,lossDamage,validRoute,BASE_GOLD,currentDistrict,classifyEdges} from '../src/route.js';
 import {MONCHIP,DISTRICTS} from '../src/data.js';
 
@@ -43,15 +43,25 @@ function stateBeforeNode(map,node,mode){
   return st;
 }
 
-test('Quick fight effects use neutral power without changing the map payload',()=>{
+test('Quick fight effects stay neutral after the rejected power rollback',()=>{
+  /* The pre-registered 0.101.0 diagnostic rejected every Quick power arm.
+     Current and epoch-1 Quick maps therefore both stay fully neutral. */
   for(const s of SEEDS.slice(0,10)){
     const map=genMap(s,'quick');
     for(const d of map.districts){
       const nodes=d.columns.flat().concat([d.boss]).filter(isCombat);
       for(const node of nodes){
-        assert.equal(Object.hasOwn(node,'power'),false);
+        assert.equal(Object.hasOwn(node,'power'),false,node.id+' gained Quick power');
         const r=transition(stateBeforeNode(map,node,'quick'),map,{type:'commit',nodeId:node.id,choice:'challenge'});
-        assert.equal(r.effects[0].power,1,node.id+' Quick effect was not neutral');
+        assert.equal(r.effects[0].power,1,node.id+' Quick effect power');
+      }
+    }
+    const old=genMap(s,'quick',0,contentTablesFor(1));
+    for(const d of old.districts){
+      for(const node of d.columns.flat().concat([d.boss]).filter(isCombat)){
+        assert.equal(Object.hasOwn(node,'power'),false,'epoch-1 '+node.id+' gained power');
+        const r=transition(stateBeforeNode(old,node,'quick'),old,{type:'commit',nodeId:node.id,choice:'challenge'});
+        assert.equal(r.effects[0].power,1,'epoch-1 '+node.id+' effect was not neutral');
       }
     }
   }

@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {genMap, districtPaths, isCombat, treasureWareIds, MAP_VERSION} from '../src/map.js';
+import {genMap, districtPaths, isCombat, treasureWareIds, MAP_VERSION, CONTENT_EPOCH, contentTablesFor} from '../src/map.js';
 import {DISTRICTS, MONSTERS, PERSONAS, ITEMS, ENCH} from '../src/data.js';
 
 /* a broad seed spread so the structural rules are proven, not sampled */
@@ -25,9 +25,15 @@ test('the map ledger pins every Quick layout byte except the version stamp',()=>
   /* v12 regenerated the ledger on purpose: the 0.97.0 synergy-count payoff
      wares are non-unique and tier-2, so they enter treasureWareIds for the
      District II+ gates, shifting rollTreasure's picks for these fixed seeds.
-     An approved, recorded regeneration; every other layout byte is unchanged. */
+     0.101.0 (CONTENT_EPOCH 2) splits the ledger: the SAME six epoch-1 hashes
+     now pin the frozen epoch-1 regeneration (an active epoch-1 run must get
+     its exact old map back, byte for byte), and a new epoch-2 ledger pins the
+     accepted live maps after the rejected Quick power rollback. The generator
+     structure is unchanged, so
+     MAP_VERSION stays 12. */
   assert.equal(MAP_VERSION,12);
-  const ledger=new Map([
+  assert.equal(CONTENT_EPOCH,2);
+  const epoch1=new Map([
     [0,'3c404a5124ef02f713aee10887e9266d60b4e13f870bb848f1af4400edc16fb1'],
     [1,'e89a436d5fac7ebc5d0d982bc9fc3e87449d85583b2e16d9cf7a8fd327b5cd22'],
     [7,'ec545ee7a05bee6406dea5d79b1253f95a5d6b53b5270d94fc435ac0ee19e120'],
@@ -35,19 +41,36 @@ test('the map ledger pins every Quick layout byte except the version stamp',()=>
     [2654435769,'b3b4a76303ba51cb080badc2f4a36b215cb071278e7aaa9e9133287f504cd120'],
     [4294967295,'5c6d3b2bd483917a277d9ae86e3caf0b62b4537f7e0ade73bbd8564cfb903219']
   ]);
-  for(const [seed,want] of ledger){
-    const map=genMap(seed,'quick');delete map.version;
-    const got=createHash('sha256').update(JSON.stringify(map)).digest('hex');
-    assert.equal(got,want,'Quick map drifted for seed '+seed);
+  const epoch2=new Map([
+    [0,'3c404a5124ef02f713aee10887e9266d60b4e13f870bb848f1af4400edc16fb1'],
+    [1,'e89a436d5fac7ebc5d0d982bc9fc3e87449d85583b2e16d9cf7a8fd327b5cd22'],
+    [7,'ec545ee7a05bee6406dea5d79b1253f95a5d6b53b5270d94fc435ac0ee19e120'],
+    [1234567,'83cc5078d588cada6c5621b373c68ad6fb3efa35b7b28f3be9f7176a49e07c26'],
+    [2654435769,'b3b4a76303ba51cb080badc2f4a36b215cb071278e7aaa9e9133287f504cd120'],
+    [4294967295,'5c6d3b2bd483917a277d9ae86e3caf0b62b4537f7e0ade73bbd8564cfb903219']
+  ]);
+  const hash=map=>{delete map.version;return createHash('sha256').update(JSON.stringify(map)).digest('hex');};
+  for(const [seed,want] of epoch1){
+    assert.equal(hash(genMap(seed,'quick',0,contentTablesFor(1))),want,'epoch-1 Quick regeneration drifted for seed '+seed);
+  }
+  for(const [seed,want] of epoch2){
+    assert.equal(hash(genMap(seed,'quick')),want,'epoch-2 Quick map drifted for seed '+seed);
   }
 });
 
-test('Quick maps omit Long power calibration on districts and nodes',()=>{
+test('Quick power rollback is neutral in both epochs',()=>{
   for(const s of SEEDS.slice(0,40)){
-    const map=genMap(s,'quick');
-    for(const d of map.districts){
+    const live=genMap(s,'quick');
+    for(const d of live.districts){
       assert.equal(Object.hasOwn(d,'power'),false,'Quick district '+d.id+' gained power');
-      for(const n of allNodes({districts:[d]}))assert.equal(Object.hasOwn(n,'power'),false,'Quick node '+n.id+' gained power');
+      for(const n of allNodes({districts:[d]})){
+        assert.equal(Object.hasOwn(n,'power'),false,n.id+' should not carry power');
+      }
+    }
+    const old=genMap(s,'quick',0,contentTablesFor(1));
+    for(const d of old.districts){
+      assert.equal(Object.hasOwn(d,'power'),false,'epoch-1 Quick district '+d.id+' gained power');
+      for(const n of allNodes({districts:[d]}))assert.equal(Object.hasOwn(n,'power'),false,'epoch-1 Quick node '+n.id+' gained power');
     }
   }
 });
