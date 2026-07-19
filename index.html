@@ -54,9 +54,13 @@
   html[data-hero="apoth"]{--hf:url('/art/ui/hero_full_apoth.png');}
   html[data-hero="knife"]{--hf:url('/art/ui/hero_full_knife.png');}
   html[data-hero="lender"]{--hf:url('/art/ui/hero_full_lender.png');}
-  body.fight #main.fight::before{content:"";position:absolute;left:-2%;bottom:23%;width:40%;max-width:230px;aspect-ratio:1;
-    background:var(--hf,none) left bottom/contain no-repeat;z-index:3;pointer-events:none;
-    filter:drop-shadow(0 0 26px rgba(232,120,40,.4));opacity:.96;}
+  /* the dealer stands INSIDE the action lane, anchored to its floor, so he
+     can never overlap the boards regardless of device proportions */
+  #main.fight .vsrow{position:relative;align-items:flex-start;padding-top:4px;}
+  #main.fight .vsrow::before{content:"";position:absolute;left:0;bottom:0;height:94%;max-height:340px;aspect-ratio:1;
+    background:var(--hf,none) left bottom/contain no-repeat;z-index:0;pointer-events:none;
+    filter:drop-shadow(0 0 26px rgba(232,120,40,.4)) drop-shadow(0 6px 10px rgba(0,0,0,.6));opacity:.96;}
+  @media (orientation:landscape){#main.fight .vsrow::before{display:none;}}
   /* occupied fight cells become carved slot cards, empties stay quiet */
   .art-frames .combat .cell.it{border:7px solid transparent;border-radius:10px;
     border-image:url('/art/ui/slot_frame.png') 120 fill / 7px;}
