@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.117.0",
-  "reviewedHead": "8e4c1fe",
+  "build": "0.118.0",
+  "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -40,12 +40,26 @@
       "0.114.0",
       "0.115.0",
       "0.116.0",
-      "0.117.0"
+      "0.117.0",
+      "0.118.0"
     ],
-    "status": "in-progress",
-    "note": "Eighteen manor versions 0.102.0 through 0.117.0 on local main, every one tested and live-verified. Paint, furniture, cast, rooms, motion, and now boss duels. Deploy and CACHE_V bump wait on Robbie."
+    "status": "deployed",
+    "note": "NINETEEN manor versions 0.102.0 through 0.118.0 DEPLOYED to platosd.com per Robbie push it instruction of 2026-07-19: first push at 0.117.0 (bb-v75, CI green run 29702993160), second push with the final four polish at 0.118.0 (bb-v76). The manor identity program is live. fal key rotation still owed by Robbie."
   },
   "reservations": [
+    {
+      "version": "0.118.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.110.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "done",
+      "sourceCommit": "dd69be9",
+      "integrationCommit": "eb0c163",
+      "scope": "The final four from Robbie: gilded route paths (carved 8px channels with warm inlaid state strokes and a flowing dash on reachable edges), the storm clock wears the engraved brass housing, the strike bolt gains a synthesized air whoosh landing before the impact transient, and the landscape duel pass (figures contained inside a 170px lane after the looming variant broke the enemy header at 390px tall, recorded honestly). All reduced-motion and mute guarded.",
+      "verification": "npm test 559 green via ship.js. Gilded paths verified over the estate at 390x844; landscape verified at 844x390 after one composition correction. Deployed with the batch."
+    },
     {
       "version": "0.117.0",
       "project": "Manor Identity",
