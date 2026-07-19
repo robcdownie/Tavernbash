@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.105.0",
-  "reviewedHead": "688fb06",
+  "build": "0.106.0",
+  "reviewedHead": "9ea1cb8",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -30,7 +30,9 @@
       "0.104.0",
       "0.105.0",
       "0.106.0"
-    ]
+    ],
+    "status": "core-loop-complete",
+    "note": "The manor visual core loop is COMPLETE and verified live on the worktree: title at the gates, manor cast hero picker, Curio Stall market with indigo cards under carved frames, four estate wing route maps, ballroom combat, foundation tokens and light grade everywhere. Recorded remaining polish for follow-up versions: event scene wiring (parlor, hearth, seance, attic, cellar art is generated and backed up), victory card staging, scout drawer anatomy, fight-class medallion ids with consuming markup, pocket-watch bezel rings in combat cells, and the Suno music re-pass. Deploy to platosd.com waits on Robbie explicit approval per the deploy ruling."
   },
   "reservations": [
     {
@@ -40,14 +42,17 @@
       "owner": "claude",
       "branch": "launch-manor-identity-0.106.0",
       "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
-      "status": "in_progress",
+      "status": "done",
       "base": "688fb06",
       "scope": "Threshold scenes stage: the manor gates title painting to bg_intro, the estate vista to bg_intro_wide, and the curio hallway to bg_market, all same-slot overrides so the title screen and draft backdrop join the manor world. Presentation only.",
       "files": [
         "public/art/bg/*",
         "src/art-manifest.js",
         "package.json"
-      ]
+      ],
+      "sourceCommit": "c6dac98",
+      "integrationCommit": "9ea1cb8",
+      "verification": "npm test 559 of 559 green via ship.js. Title verified at all three viewports: the manor gates painting with the code-rendered nameplate in the lower third above the stone plaques, estate vista as the wide intro, curio hallway behind the draft. Same-slot art plus one CSS block; the display name remains a code string so the pending rename stays free."
     },
     {
       "version": "0.105.0",
