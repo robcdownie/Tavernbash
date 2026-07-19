@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.114.2",
-  "reviewedHead": "9b3d39f",
+  "build": "0.115.1",
+  "reviewedHead": "f2aa5d3",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -37,12 +37,26 @@
       "0.111.0",
       "0.112.0",
       "0.113.0",
-      "0.114.0"
+      "0.114.0",
+      "0.115.0"
     ],
     "status": "in-progress",
-    "note": "Ten manor versions 0.102.0 to 0.113.0 on local main. The furniture pass moved the fight from CSS chrome to painted chrome per Robbie references. Robbie fal balance roughly 8 dollars. Deploy waits on Robbie."
+    "note": "Sixteen manor versions 0.102.0 through 0.115.1 on local main, all tests green, every fix live-verified. The four playtest breakers are fixed at their root causes. Remaining polish queue: road and omen cards staged in rooms, gilded route paths, boss full-body layer, painted storm gauge, drape retry, landscape full-body pass. Deploy and CACHE_V bump wait on Robbie."
   },
   "reservations": [
+    {
+      "version": "0.115.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.110.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "done",
+      "sourceCommit": "7aeaab7",
+      "integrationCommit": "f2aa5d3",
+      "scope": "The four playtest breakers from the full-run assessment plus their root causes: title fades up only when the gates painting is decoded (timeout fallback), the hero picker becomes the parlor with a 128px portrait and Dealer copy, the room-layer invisibility root cause fixed (the old card-art darkening layer killed every event room; evroom now owns its background), the market veil lifted and cooled, empty fight rails recede to 0.32, and the shared ware detail sheet joins the manor with a real illustration port. PATCH 0.115.1: dusk and dawn transitions carry the estate painting instead of a black void, and scouted monster boards lead each row with the painted ware icon (fixed to the g glyph field after live verification showed the id field empty).",
+      "verification": "npm test 559 green at each step. Live verified: parlor picker renders the room, fight empties recede, scout rows show painted fangs and mace, detail sheet ports enlarged. Full-run recording and frame-sheet assessment preceded the fixes; both clips sent to Robbie by phone."
+    },
     {
       "version": "0.114.0",
       "project": "Manor Identity",
