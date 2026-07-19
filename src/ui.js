@@ -700,6 +700,10 @@ function streakFx(fromEl,toEl){
   const s=document.createElement('div');s.className='streak';
   s.style.left=x1+'px';s.style.top=y1+'px';s.style.width=len+'px';
   s.style.transform='rotate('+(Math.atan2(y2-y1,x2-x1)*180/Math.PI)+'deg)';
+  /* 0.114.2: the landing flashes at the target, purely decorative */
+  const im=document.createElement('div');im.className='impactfx';
+  im.style.left=x2+'px';im.style.top=y2+'px';
+  document.body.appendChild(im);setTimeout(function(){im.remove();},360);
   document.body.appendChild(s);
   setTimeout(function(){s.remove();},230);
 }
