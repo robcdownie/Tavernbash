@@ -171,10 +171,28 @@ test('compare: malformed artifacts and unpaired cells fail; a self-compare shape
   const asBase = JSON.parse(JSON.stringify(a)); asBase.configuration.name = 'baseline';
   const asCand = JSON.parse(JSON.stringify(a)); asCand.configuration.name = 'candidate';
   const cmp = V.runCompare(asBase, asCand, {});
-  for (const id of ['starter-cells-paired', 'starter-aggregate-regression', 'starter-cell-regression',
+  for (const id of ['seam-policy-identical', 'starter-cells-paired', 'starter-aggregate-regression', 'starter-cell-regression',
     'feat-total-drop', 'feat-family-survives', 'epoch1-active-run-preservation']) {
     const g = cmp.artifact.gates.find(x => x.id === id);
     assert.ok(g, 'compare carries ' + id);
     assert.ok(g.pass, id + ' passes on identical inputs: ' + (g.detail || []).join('; '));
   }
+});
+
+test('artifacts carry the seam identity and both mode-specific coverage manifests', async () => {
+  const V = await load();
+  const cfg = V.constantsGate('baseline').pass ? 'baseline' : 'candidate';
+  const a = V.runAll({command: 'all', config: cfg, seeds: 2, cellSeeds: 1, profiles: 1, sourceCommit: 'testsrc', constantsCommit: 'testconst'}).artifact;
+  assert.equal(a.identity.sourceCommit, 'testsrc');
+  assert.equal(a.identity.constantsCommit, 'testconst');
+  assert.ok(typeof a.identity.seamPolicyVersion === 'string' && a.identity.seamPolicyVersion.length > 0);
+  assert.equal(a.identity.cohortMarketModes.starterMatrix, 'live');
+  assert.equal(a.identity.cohortMarketModes.curve, 'abstract');
+  assert.ok(Array.isArray(a.coverage.abstract) && Array.isArray(a.coverage.live));
+  const liveShop = a.coverage.live.find(r => r.mechanic.indexOf('fusion economy and shopping') >= 0);
+  const absShop = a.coverage.abstract.find(r => r.mechanic.indexOf('fusion economy and shopping') >= 0);
+  assert.equal(liveShop.status, 'full', 'live shopping reads FULL');
+  assert.equal(absShop.status, 'proxy', 'abstract shopping stays proxy: coverage is mode-specific');
+  const bell = a.coverage.live.find(r => r.mechanic.indexOf('Auction Bell') >= 0);
+  assert.ok(bell, 'the unexercised mechanic is named in the live manifest');
 });

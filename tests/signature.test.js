@@ -75,12 +75,18 @@ test('the Gate Camp Quartermaster never offers a foreign signature',()=>{
 
 test('the sig gate is wired at every grant pool and the treasure exclusion holds',()=>{
   const ui=readFileSync(join(root,'src','ui.js'),'utf8');
+  const core=readFileSync(join(root,'src','market-core.js'),'utf8');
   const routeDecisions=readFileSync(join(root,'src','route-decisions.js'),'utf8');
   const routeRun=readFileSync(join(root,'src','route-run.js'),'utf8');
   const map=readFileSync(join(root,'src','map.js'),'utf8');
-  /* rollShop and the opening offense seed both carry the hero clause in ui.js */
+  /* 0.101.0 live-market seam: the rollShop sig clause lives in the extracted
+     market-core candidate filter, and ui.js's wrapper binds the hero into it;
+     the opening offense seed keeps its own inline clause in ui.js. The gate is
+     therefore pinned at BOTH sites plus the wrapper binding that joins them. */
   const uiGates=(ui.match(/ITEMS\[id\]\.sig===G\.hero/g)||[]).length;
-  assert.ok(uiGates>=2,'ui.js gates both rollShop and the opening offense seed (found '+uiGates+')');
+  assert.ok(uiGates>=1,'ui.js gates the opening offense seed (found '+uiGates+')');
+  assert.ok(/heroId:G\.hero/.test(ui),'ui.js rollShop wrapper binds the hero into the market core');
+  assert.ok(/ITEMS\[id\]\.sig===ctx\.heroId/.test(core),'market-core.js gates the shop candidate filter');
   assert.ok(/!d\.sig\|\|d\.sig===heroId/.test(routeDecisions),'route-decisions.js gates Fresh Stock');
   assert.ok(/ITEMS\[id\]\.sig===heroId/.test(routeRun),'route-run.js gates the Quartermaster');
   assert.ok(/!item\.sig/.test(map),'map.js excludes signatures from Treasure');

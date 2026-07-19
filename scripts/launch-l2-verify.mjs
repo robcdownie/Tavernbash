@@ -28,7 +28,8 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import {pathToFileURL} from 'node:url';
-import {simRun, DEFAULT_CFG} from './route-sim.js';
+import {simRun, DEFAULT_CFG, coverageManifest} from './route-sim.js';
+import {POLICY_VERSION, POLICY} from './market-sim.js';
 import {genMap, CONTENT_EPOCH, contentTablesFor, snapshotContentTables} from '../src/map.js';
 import {DISTRICTS, LONG_DISTRICTS, MONSTERS, ITEMS, HEROES} from '../src/data.js';
 import {STARTER_HEROES, STARTER_OMENS, compatibleOmenPool, settleUnlocks, wareUnlocked} from '../src/unlock-profile.js';
@@ -245,7 +246,10 @@ export function starterMatrix(cellSeedsN, mode) {
   cells.forEach((cell, ci) => {
     let clears = 0;
     for (let i = 0; i < cellSeedsN; i++) {
-      const m = runOne(cellSeed(i, ci), {heroId: cell.hero, omenId: cell.omen, warePool: 'starter'}, mode);
+      /* market:'live' (the Codex seam directive): real market-core shops under
+         the mp-1 policy; warePool 'starter' freezes the fresh-profile
+         run.wareLock snapshot inside simRun */
+      const m = runOne(cellSeed(i, ci), {heroId: cell.hero, omenId: cell.omen, warePool: 'starter', market: 'live'}, mode);
       if (m.result === 'won') clears++;
       foldValidity(validity, m);
     }
@@ -294,7 +298,10 @@ export function recordFromRun(m, meta) {
     progress: {districtId: m.district || 0, bossesBeaten: bossNodes.size},
     economy: {tier: m.tierEnd || 1, board: m.board || [], vault: []},
     metrics: {
-      events: (m.board || []).filter(w => (w.rarity || 0) >= 1).map(w => ({type: 'fusion', data: {id: w.id, rarity: w.rarity}})),
+      /* live runs carry the REAL forge events (the exact metric shape ui.js
+         fuseStamp emits); the board-derived synthesis remains the abstract
+         fallback */
+      events: m.fusionEvents ? m.fusionEvents : (m.board || []).filter(w => (w.rarity || 0) >= 1).map(w => ({type: 'fusion', data: {id: w.id, rarity: w.rarity}})),
       fights: m.fights.map(f => ({monsterId: f.mon, winner: f.won ? 'a' : 'b'})),
       wares
     }
@@ -311,8 +318,10 @@ export function freshProfiles(profilesN) {
       const heroId = STARTER_HEROES[(p + r) % STARTER_HEROES.length];
       const omenPool = compatibleOmenPool(ANOMALIES.filter(a => STARTER_OMENS.indexOf(a.id) >= 0), heroId);
       const omenId = omenPool[(p * 3 + r) % omenPool.length].id;
-      const allowed = Object.keys(ITEMS).filter(id => wareUnlocked(storage, id));
-      const m = runOne(profileSeed(p, r), {heroId, omenId, allowedWareIds: allowed}, 'quick');
+      /* market:'live' with the profile storage: simRun freezes the run's
+         wareLock snapshot from this storage at run start (the binding
+         condition: unlocks recorded below affect the NEXT run only) */
+      const m = runOne(profileSeed(p, r), {heroId, omenId, market: 'live', storage: storage}, 'quick');
       foldValidity(validity, m);
       if (r === 1 && (m.district || 0) >= 3) reachD3Run1++;
       const record = recordFromRun(m, {reportId: 'p' + p + 'r' + r, heroId, omenId, lantern: 0});
@@ -468,6 +477,18 @@ export function runAll(opts) {
 function baseArtifact(opts, gates, body) {
   return Object.assign({
     tool: 'launch-l2-verify', forVersion: '0.101.0', command: opts.command,
+    /* artifact identity (the seam evidence contract): the exact source and
+       constants commits (caller-supplied at invocation), the seam and policy
+       versions baked into this build, the per-cohort market modes, and both
+       mode-specific coverage manifests */
+    identity: {
+      sourceCommit: opts.sourceCommit || null,
+      constantsCommit: opts.constantsCommit || null,
+      seamPolicyVersion: POLICY_VERSION,
+      policy: POLICY,
+      cohortMarketModes: {curve: 'abstract', starterMatrix: 'live', freshProfiles: 'live', rejectionControl: 'abstract'}
+    },
+    coverage: {abstract: coverageManifest('abstract'), live: coverageManifest('live')},
     configuration: {
       name: opts.config || null,
       expectedConstants: opts.config ? CONFIG_EXPECT[opts.config] : null,
@@ -480,7 +501,7 @@ function baseArtifact(opts, gates, body) {
 }
 
 /* ---------- the compare command ---------- */
-const REQUIRED_KEYS = ['tool', 'configuration', 'rollback', 'gates', 'curve', 'starterMatrix', 'freshProfiles', 'epochEvidence', 'validity'];
+const REQUIRED_KEYS = ['tool', 'identity', 'coverage', 'configuration', 'rollback', 'gates', 'curve', 'starterMatrix', 'freshProfiles', 'epochEvidence', 'validity'];
 export function validateArtifact(a, wantConfig) {
   const bad = [];
   if (!a || typeof a !== 'object') return ['artifact is not an object'];
@@ -498,6 +519,15 @@ export function runCompare(baseline, candidate, opts) {
   if (mb.length || mc.length) {
     return {ok: false, artifact: {tool: 'launch-l2-verify', forVersion: '0.101.0', command: 'compare', rollback: ROLLBACK, gates}};
   }
+
+  /* the seam evidence requirement: identical seam code and policy version on
+     both sides, so the ONLY difference between the artifacts is the
+     authorized constants */
+  const sp = baseline.identity && candidate.identity
+    && baseline.identity.seamPolicyVersion === candidate.identity.seamPolicyVersion
+    && JSON.stringify(baseline.identity.policy) === JSON.stringify(candidate.identity.policy)
+    && JSON.stringify(baseline.identity.cohortMarketModes) === JSON.stringify(candidate.identity.cohortMarketModes);
+  gate('seam-policy-identical', !!sp, sp ? [] : ['baseline ' + (baseline.identity && baseline.identity.seamPolicyVersion) + ' candidate ' + (candidate.identity && candidate.identity.seamPolicyVersion)]);
 
   /* candidate gating gates must all have passed in its own artifact */
   const failedCand = candidate.gates.filter(g => g.gating && !g.pass).map(g => g.id);
@@ -554,13 +584,15 @@ export function runCompare(baseline, candidate, opts) {
   const ok = gates.every(g => !g.gating || g.pass);
   return {ok, artifact: {tool: 'launch-l2-verify', forVersion: '0.101.0', command: 'compare',
     inputs: {baselineConfig: baseline.configuration.name, candidateConfig: candidate.configuration.name,
+      baselineIdentity: baseline.identity, candidateIdentity: candidate.identity,
       seedCounts: {baseline: baseline.configuration.seedCounts, candidate: candidate.configuration.seedCounts}},
     rollback: ROLLBACK, cells: cellRows, headline, gates}};
 }
 
 /* ---------- CLI ---------- */
 export function parseArgs(argv) {
-  const out = {command: argv[0] || null, config: null, seeds: 1200, cellSeeds: 150, profiles: 1200, out: null, baseline: null, candidate: null};
+  const out = {command: argv[0] || null, config: null, seeds: 1200, cellSeeds: 150, profiles: 1200, out: null, baseline: null, candidate: null,
+    sourceCommit: null, constantsCommit: null};
   for (let i = 1; i < argv.length; i++) {
     const a = argv[i], v = argv[i + 1];
     if (a === '--config') { out.config = v; i++; }
@@ -570,6 +602,8 @@ export function parseArgs(argv) {
     else if (a === '--out') { out.out = v; i++; }
     else if (a === '--baseline') { out.baseline = v; i++; }
     else if (a === '--candidate') { out.candidate = v; i++; }
+    else if (a === '--source-commit') { out.sourceCommit = v; i++; }
+    else if (a === '--constants-commit') { out.constantsCommit = v; i++; }
   }
   return out;
 }

@@ -30,6 +30,7 @@ import {sHit,sTick,sDestroy,sForge,sCoin,sFanfare,sWin,sLose,sCreak,sStorm,sfxTo
 import {initMusic,music,musicMute,sting,musicNow} from './music.js';
 import pkg from '../package.json';
 import {G,setG,RM,setRM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
+import {rollShopOffers,pullVaultForges} from './market-core.js';
 import {lockedWareComplement,runWareAllowed,omenUnlocked,compatibleOmenPool,heroUnlocked,HERO_HINTS,heroChipAttrs,heroPortraitClass,heroConfirmView,WILD_FIND_EVENT,nextUnlockHint,devAllOpen} from './unlock-profile.js';
 import {wireRouteUI,routeMap,routeState,renderRouteMap,combatPreview,showFightRecap,
         prepareRouteDecision,routeEventCard,openRewardChoice,routeEnd,openRouteContinue,openUniquePick,
@@ -535,33 +536,21 @@ function rerollAllowed(){
    pull leaves the stall over capacity, the newest piece rests in the
    vault slots the copies just freed. */
 function fuseWithVault(){
-  let forgedAny=false,guard=0;
-  while(guard++<8){
-    let pulled=false;
-    for(const it of G.board.slice()){
-      if(it.rarity>=3)continue;
-      const need=fuseNeed(it.rarity);
-      const onB=G.board.filter(function(x){return x.id===it.id&&x.rarity===it.rarity;}).length;
-      const inV=G.vault.filter(function(x){return x.id===it.id&&x.rarity===it.rarity;}).length;
-      if(onB>=need||onB+inV<need)continue;
-      for(let k=0;k<need-onB;k++){
-        const vi=G.vault.findIndex(function(x){return x.id===it.id&&x.rarity===it.rarity;});
-        G.board.push(G.vault.splice(vi,1)[0]);
+  /* 0.101.0 live-market seam: the pull-and-forge body lives in market-core.js
+     (pullVaultForges). The stampForged hook runs at the exact former
+     fuseStamp site, so forged-iid allocation order and the fusion metric are
+     unchanged; toasts and the forge sting stay here in the wrapper. */
+  return pullVaultForges(G.board,G.vault,{slots:slotsNow(),usedCells:usedNow},{
+    stampForged:function(forged){
+      forged.forEach(function(f){f.iid=allocId(G.run);
+        metricEvent('fusion',{id:f.id,rarity:f.rarity,iid:f.iid});});
+      if(forged.length){
+        forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});
+        sForge();sting('forgesting');
       }
-      pulled=true;
-    }
-    const forged=fuseStamp(G.board);
-    if(forged.length){
-      forged.forEach(function(f){toast('Forged: '+RNAME[f.rarity]+' '+ITEMS[f.id].n);});
-      sForge();sting('forgesting');forgedAny=true;
-    }
-    if(!pulled&&!forged.length)break;
-  }
-  while(usedNow(G.board)>slotsNow()&&G.vault.length<3){
-    const last=G.board.pop();G.vault.push(last);
-    toast(ITEMS[last.id].n+' waits in the vault: no room on the stall');
-  }
-  return forgedAny;
+    },
+    onOverflow:function(last){toast(ITEMS[last.id].n+' waits in the vault: no room on the stall');}
+  });
 }
 /* inspect then commit: tapping a ware opens a floating detail card (the same
    overlay pattern as the fight inspect) with the full rule and a prominent Buy
@@ -644,43 +633,20 @@ function reroll(){
   rollShop();renderRibbon();renderDraft();
 }
 function rollShop(){
-  /* free bounty cards always carry over; a frozen shop keeps its paid
-     cards too, counted against the roll, then the freeze is spent */
-  const freeKeep=G.shop?G.shop.filter(function(w){return w.free&&!w.bought;}):[];
-  const frozen=advanceFrozenOffers(G.shop,G.frozen),frozenKeep=frozen.offers;
-  G.frozen=frozen.active;
-  const n=Math.max(0,G.A.shopN-frozenKeep.length);
-  /* income wares are dead in route mode (income() never runs), so keep them out
-     of route shops until the approved rework gives them route semantics */
-  const ids=Object.keys(ITEMS).filter(function(id){return gateOK(ITEMS[id].tier,G.tier)&&!ITEMS[id].unique&&(!ITEMS[id].sig||ITEMS[id].sig===G.hero)&&(G.mode!=='route'||!ITEMS[id].inc)&&runWareAllowed(store(),G.run,id);});
-  const hTag=heroOf()?heroOf().tag:null;
-  const out=[];
-  for(let k=0;k<n;k++){
-    let tot=0;
-    const ws=ids.map(function(id){
-      const d=ITEMS[id];
-      let w=d.tier===1?8:(d.tier===2?7:6);
-      w*=shopTagWeight(d.cat,G.tags,hTag);
-      const own=G.board.filter(function(x){return x.id===id&&x.rarity===0;}).length;
-      if(own===1||own===2)w*=1.6;
-      tot+=w;return w;
-    });
-    let r=G.rng()*tot,pick=ids[0];
-    for(let i=0;i<ids.length;i++){r-=ws[i];if(r<=0){pick=ids[i];break;}}
-    let ench=null;
-    /* no enchanted wares in the Back Alleys (early Threat): early gold is
-       too tight to ever afford the premium */
-    if(runThreat()>=4&&G.rng()<ENCH_CHANCE){
-      const d2=ITEMS[pick];
-      const opts=Object.keys(ENCH).filter(function(e){
-        const req=ENCH[e].need;
-        return !req||(req==='dmg'?!!(d2.fx&&d2.fx.dmg):d2.cd>0);
-      });
-      if(opts.length){ench=opts[Math.floor(G.rng()*opts.length)];}
-    }
-    out.push(mkOffer({id:pick,free:false,bought:false,ench:ench}));
-  }
-  G.shop=frozenKeep.concat(out).concat(freeKeep);
+  /* 0.101.0 live-market seam: the selection body lives in market-core.js
+     (rollShopOffers), extracted verbatim so the simulator and this wrapper
+     share ONE implementation. The wrapper binds G, the storage, and the
+     mkOffer id allocator (called by the core per new offer at the exact old
+     site, so offer-id order is unchanged), then keeps the G writes and the
+     shop_roll metric exactly as before. Free bounty cards always carry over;
+     a frozen shop keeps its paid cards too, counted against the roll, then
+     the freeze is spent; income wares stay out of route shops until the
+     approved rework gives them route semantics. */
+  const rolled=rollShopOffers({tier:G.tier,heroId:G.hero,heroTag:heroOf()?heroOf().tag:null,
+    featuredTags:G.tags,board:G.board,mode:G.mode,storage:store(),run:G.run,A:G.A,
+    threat:runThreat(),priorShop:G.shop,frozen:G.frozen},G.rng,{mkOffer:mkOffer});
+  G.frozen=rolled.frozenActive;
+  G.shop=rolled.offers;
   G.shopFresh=true;
   metricEvent('shop_roll',{nodeId:G.route&&G.route.market&&G.route.market.nodeId,
     rollIndex:G.route&&G.route.market?G.route.market.rollIndex:0,gold:G.gold,

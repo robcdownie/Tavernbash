@@ -63,7 +63,9 @@ import {ITEMS, MONSTERS, DISTRICTS, PERSONAS, HEROES, ANOMALIES, ANONE, COST, TI
 import {planReward} from '../src/route-rewards.js';
 import {beginCombatTally, recordCombatDiagnostic} from '../src/route-metrics.js';
 import {midpointTreasureOptions, MIDPOINT_FALLBACK_GOLD} from '../src/route-runtime.js';
-import {starterShopIds} from '../src/unlock-profile.js';
+import {starterShopIds, lockedWareComplement} from '../src/unlock-profile.js';
+import {wareSaleValue} from '../src/anomaly-rules.js';
+import {marketVisit, newMarketState, grantFreeWare, victoryIncome, POLICY_VERSION} from './market-sim.js';
 import {pathToFileURL} from 'node:url';
 
 export function parseSimArgs(argv){
@@ -94,7 +96,12 @@ export function heroOfId(heroId){
    never leak an undefined economy knob into a NaN gold stream */
 export const DEFAULT_CFG = { startResolve: null, bossLossAdj: 0, treasureCash: 6, negoCash: 6, rewardGoldAdj: 0,
   reprisePower:1, reprisePowers:null, lantern: 0, affix: false, forceAffix: null, forceGild: false,
-  heroId: null, omenId: 'none', uniques: 'cash' };
+  heroId: null, omenId: 'none', uniques: 'cash',
+  /* 0.101.0 live-market seam: market:'live' walks real market-core shops under
+     the mp-1 policy (scripts/market-sim.js); 'abstract' is the unchanged
+     invested-budget default. storage carries an unlock profile for the frozen
+     run.wareLock snapshot; null means the legacy full pool. */
+  market: 'abstract', storage: null };
 const ROUTE_GUARD=400;
 const DAMAGE_CHANNELS=['weapon','poison','burn','hook','other'];
 
@@ -287,7 +294,35 @@ export function simRun(seed, cfg, mode) {
     held.push(id);return true;
   };
   invested += 6; gold = 0;             /* opening stall: the six starting gold */
+  /* 0.101.0 live-market seam. market:'live' replaces the invested-budget board
+     policy with the real market walk: every shop is a market-core roll from
+     the keyed stream, every buy pays warePurchaseCost under canSpendGold,
+     fusion runs fuseScan and the vault pull, and the run shops through its
+     frozen run.wareLock snapshot (condition: unlocks affect the NEXT run
+     only). The abstract default path below is byte-identical to before. */
+  const live = cfg.market === 'live';
+  let ms = null, liveRun = null, relicIncome = 0;
+  const mctxOf = function(nodeId, threat){
+    return {runSeed: seed, nodeId: nodeId, run: liveRun, storage: cfg.storage || null,
+      A: cell.A, heroId: cfg.heroId || null, heroTag: cell.hero ? cell.hero.tag : null,
+      /* the policy's focus trade: the hero's own, else the persona archetype,
+         the same concentration choice the abstract buildBoard made */
+      arch: cell.hero ? cell.hero.tag : persona.arch,
+      featuredTags: [], threat: threat, hero: cell.hero,
+      districtCap: Math.min(6, currentDistrict(st, map) + 1)};
+  };
+  if (live) {
+    const lock = cfg.storage !== null && cfg.storage !== undefined ? lockedWareComplement(cfg.storage)
+      : (cfg.warePool === 'starter' ? lockedWareComplement(null) : undefined);
+    liveRun = {ids: {nextItem: 1}};
+    if (lock !== undefined) liveRun.wareLock = lock;
+    ms = newMarketState(6, 1);
+    if (cell.hero && cell.hero.start && ITEMS[cell.hero.start]) grantFreeWare(ms, mctxOf('opening', 1), cell.hero.start, 0);
+    marketVisit(ms, mctxOf('opening', 1));
+    gold = ms.gold; tier = ms.tier;
+  }
   const rebuild = function(){
+    if (live) return {board: ms.board};
     const b = buildBoard(tier, invested, rng, persona, cfg, cell, heldCells());
     for(const id of held) b.board.push(makeItem(id, 0));
     return b;
@@ -345,18 +380,28 @@ export function simRun(seed, cfg, mode) {
       }
     } else if (st.phase === 'reward') {
       const node = nodeOf(map, st.pendingId);
-      const plan = planReward(MONSTERS[node.monId].bounty || {}, { baseGold: Math.max(0, BASE_GOLD[node.type] + cfg.rewardGoldAdj), gilded: !!node.gilded, enteredGold: gold, pocketed: 0, minGold: 0, board: board.board });
+      /* live victory income: the exact ui.js expression, and the ONLY term
+         Bull Market's goldMul may scale (binding seam condition). It enters
+         planReward as ctx.incomeGold; base bounty gold is never scaled. */
+      const income = live ? victoryIncome(ms.board, relicIncome, [], cell.A) : 0;
+      const plan = planReward(MONSTERS[node.monId].bounty || {}, { baseGold: Math.max(0, BASE_GOLD[node.type] + cfg.rewardGoldAdj), incomeGold: income, gilded: !!node.gilded, enteredGold: gold, pocketed: 0, minGold: 0, board: board.board });
       gold += plan.gold; m.goldEarned += plan.gold;
+      if (live && plan.relic) relicIncome += 1;
       if (plan.items && plan.items.length) {
         plan.items.forEach(function(id){
           if(ITEMS[id]&&ITEMS[id].unique&&ownedUniques.has(id)){
             gold+=3;m.goldEarned+=3;m.duplicateUniqueCash+=3;
           }else{
             if(ITEMS[id]&&ITEMS[id].unique)ownedUniques.add(id);
+            if(live){
+              /* a granted ware lands as the game lands one: board, vault, or
+                 its sale value in gold */
+              ms.gold=gold;grantFreeWare(ms,mctxOf(node.id,node.threat),id,wareSaleValue(ITEMS[id].size,cell.A));gold=ms.gold;
+            }
             /* under uniques=hold a new unique joins the board with its hooks
                live; otherwise (or when the hold cap is hit) it melts into the
                invested budget as before */
-            if(!holdUnique(id))invested += ITEMS[id]?(COST[ITEMS[id].size]||2):2;
+            else if(!holdUnique(id))invested += ITEMS[id]?(COST[ITEMS[id].size]||2):2;
           }
         });
         board = rebuild();
@@ -367,16 +412,30 @@ export function simRun(seed, cfg, mode) {
         m.midpointTreasure=Object.assign({reached:true},pivot);
         if(pivot.selected){
           ownedUniques.add(pivot.selected);
-          if(holdUnique(pivot.selected)){m.midpointTreasure.contribution='held';board=rebuild();}
+          if(live){
+            ms.gold=gold;grantFreeWare(ms,mctxOf(node.id,node.threat),pivot.selected,wareSaleValue(ITEMS[pivot.selected].size,cell.A));gold=ms.gold;
+            m.midpointTreasure.contribution='held';board=rebuild();
+          }
+          else if(holdUnique(pivot.selected)){m.midpointTreasure.contribution='held';board=rebuild();}
         }
         else if(pivot.fallbackGold){gold+=pivot.fallbackGold;m.goldEarned+=pivot.fallbackGold;}
       }
     } else if (st.phase === 'market') {
-      /* fusion-first: tier up only toward a district-appropriate cap (players win
-         at tier 1-5, not by maxing), reserving gold so the board keeps fusing */
-      const cap = Math.min(6, currentDistrict(st, map) + 2);
-      while (tier < cap && gold >= tierCost(tier + 1, cfg) + 2) { const tc = tierCost(tier + 1, cfg); gold -= tc; m.goldSpent += tc; tier++; }
-      const spend = Math.max(0, gold - 2); gold -= spend; invested += spend; m.goldSpent += spend;
+      if (live) {
+        /* the real market walk: keyed rolls, real prices, policy decisions */
+        const node = nodeOf(map, st.pendingId);
+        ms.gold = gold; ms.tier = tier;
+        const before = ms.gold;
+        marketVisit(ms, mctxOf(node.id, node.threat));
+        m.goldSpent += Math.max(0, before - ms.gold);
+        gold = ms.gold; tier = ms.tier;
+      } else {
+        /* fusion-first: tier up only toward a district-appropriate cap (players win
+           at tier 1-5, not by maxing), reserving gold so the board keeps fusing */
+        const cap = Math.min(6, currentDistrict(st, map) + 2);
+        while (tier < cap && gold >= tierCost(tier + 1, cfg) + 2) { const tc = tierCost(tier + 1, cfg); gold -= tc; m.goldSpent += tc; tier++; }
+        const spend = Math.max(0, gold - 2); gold -= spend; invested += spend; m.goldSpent += spend;
+      }
       if (tier > m.tierMax) m.tierMax = tier;
       board = rebuild();
       st = transition(st, map, { type: 'leaveMarket' }).state;
@@ -401,9 +460,22 @@ export function simRun(seed, cfg, mode) {
       m.retries++;
       if (mendGate !== st.pendingId) { mendGate = st.pendingId; mendUsed = false; }
       /* Last Reserve when a loss could be fatal (once per run); Mend when it helps */
-      if (!lastReserveUsed && st.resolve > 6 && st.resolve <= 16) { st.resolve -= 6; st.resolveMax -= 6; invested += 6; lastReserveUsed = true; }
+      if (!lastReserveUsed && st.resolve > 6 && st.resolve <= 16) { st.resolve -= 6; st.resolveMax -= 6; if (live) gold += 6; else invested += 6; lastReserveUsed = true; }
       if (!mendUsed && gold >= 3 && st.resolve < st.resolveMax) { gold -= 3; m.goldSpent += 3; st.resolve = Math.min(st.resolveMax, st.resolve + 4); mendUsed = true; }
-      const spend = Math.max(0, gold - 1); gold -= spend; invested += spend; m.goldSpent += spend;
+      if (live) {
+        /* the camp shop rides a distinct keyed stream per gate, salted by the
+           retry count so a beaten player is not offered the identical shelf
+           into the identical fight; a policy proxy for the quartermaster,
+           deterministic across runs */
+        const node = nodeOf(map, st.pendingId);
+        ms.gold = gold; ms.tier = tier;
+        const before = ms.gold;
+        marketVisit(ms, mctxOf(node.id + ':camp' + m.retries, node.threat));
+        m.goldSpent += Math.max(0, before - ms.gold);
+        gold = ms.gold; tier = ms.tier;
+      } else {
+        const spend = Math.max(0, gold - 1); gold -= spend; invested += spend; m.goldSpent += spend;
+      }
       board = rebuild();
       st = transition(st, map, { type: 'startBossRetry' }).state;
     } else {m.pendingActions.push('unhandled_'+st.phase);break;}
@@ -427,6 +499,15 @@ export function simRun(seed, cfg, mode) {
   m.topRarity = topRarity(board);
   /* final board snapshot for record synthesis (unlock feat evidence) */
   m.board = board.board.map(function(w){ return { id: w.id, rarity: w.rarity }; });
+  m.marketMode = live ? 'live' : 'abstract';
+  if (live) {
+    m.policyVersion = POLICY_VERSION;
+    m.marketMetrics = Object.assign({}, ms.metrics);
+    /* REAL fusion events from the live forges (the exact metric shape the
+       unlock feat triggers read), replacing the synthetic board derivation */
+    m.fusionEvents = ms.events.slice();
+    m.vault = ms.vault.map(function(w){ return { id: w.id, rarity: w.rarity }; });
+  }
   m.valid=m.fightTimeouts===0&&m.routeGuardExits===0&&m.guardTrips===0&&m.combatPendingActions===0;
   return m;
 }
@@ -682,40 +763,68 @@ export function matrixTable(options){
    measures. full = the real engine or controller runs it; proxy = a policy
    stands in for the player; blind = invisible to the harness, so sim numbers
    say NOTHING about it. Printed by the coverage command and asserted by
-   tests so the labels cannot silently rot. ---- */
-export function coverageManifest(){
-  return [
+   tests so the labels cannot silently rot.
+   0.101.0: MODE-SPECIFIC per the binding seam condition. The abstract policy
+   keeps every proxy and blind row it always had; market:'live' rows read FULL
+   only for mechanics the live walker actually executes (the extracted
+   market-core rolls, real prices, rerolls, freezes, fusion, credit, and the
+   live victory-income expression), and anything the mp-1 policy does not
+   exercise (sells, so the Auction Bell escalation; deliberate vault parking;
+   Charter's featured pin; the opening-offense guarantee) stays proxy or
+   blind with the reason named. ---- */
+export function coverageManifest(marketMode){
+  const shared=[
     {mechanic:'combat engine (weapons, poison, burn, shield, heal, freeze, flying, crit, ammo, rattles, R7 hooks)',status:'full',note:'the real engine.js runs every fight'},
     {mechanic:'monster boards, gilding, door power, Gate exemptions',status:'full',note:'shared buildFoe constructor'},
     {mechanic:'storm timing with Omen and Lantern offsets',status:'full',note:'adjustedStormAt + composeLantern, Gate contract honored'},
     {mechanic:'route control, Resolve, retries, Gate camp',status:'full',note:'the real route.js transitions'},
     {mechanic:'reward gold and bounty planning',status:'full',note:'the real planReward'},
     {mechanic:'hero fight mods (7 of 8 heroes)',status:'full',note:'side.rules built exactly as ui.js line 1297'},
-    {mechanic:'hero start ware and signature-ware pool',status:'full',note:'free start ware; sig wares in the owning hero pool only'},
     {mechanic:'Omen fight rules (moon, wildfire, plague, molasses, fortified, rapid, glass)',status:'full',note:'A rides both sides as in the game'},
-    {mechanic:'Omen board economy (narrow slots, bull and deep copy cost)',status:'full',note:'anomaly-rules cost helpers in the board policy'},
     {mechanic:'district Affixes',status:'full',note:'behind cfg.affix, hash-picked as the game wires them'},
     {mechanic:'board Aspects',status:'proxy',note:'off here; variant-verify.mjs measures each variant directly'},
-    {mechanic:'Treasure and bounty uniques',status:'proxy',note:'uniques=hold fights them for real under a half-board policy cap; default cash melts them into budget'},
-    {mechanic:'fusion economy and shopping',status:'proxy',note:'invested-budget board policy, no shop rolls, no reroll or freeze decisions'},
-    {mechanic:'hero shop pull',status:'proxy',note:'arch concentration 3.5 on the hero tag; real weights are 1.5 hero / 2.2 featured on actual rolls'},
     {mechanic:'events and personas',status:'proxy',note:'flat gold and Resolve deltas; midpoint records the real offer'},
     {mechanic:'board regen and lifesteal wares',status:'blind',note:'player side regen and lifesteal fixed at 0'},
-    {mechanic:'shop mechanics Omens (overstock, silent, auctionbell, patient, lean, charter)',status:'blind',note:'no shop roll to apply them to; matrix columns read as baseline'},
-    {mechanic:'Moneylender economy (credit, debt, reroll ban)',status:'blind',note:'lender cells measure fight baseline plus tag pull only'},
-    {mechanic:'goldMul victory income (bull)',status:'blind',note:'the policy has no income wares to scale'},
-    {mechanic:'enchants, Vault, slip play, matchup routing',status:'blind',note:'the stated competent-baseline exclusions'}
+    {mechanic:'slip play and matchup routing',status:'blind',note:'the stated competent-baseline exclusions'}
   ];
+  if(marketMode!=='live'){
+    return shared.concat([
+      {mechanic:'hero start ware and signature-ware pool',status:'full',note:'free start ware; sig wares in the owning hero pool only'},
+      {mechanic:'Omen board economy (narrow slots, bull and deep copy cost)',status:'full',note:'anomaly-rules cost helpers in the board policy'},
+      {mechanic:'Treasure and bounty uniques',status:'proxy',note:'uniques=hold fights them for real under a half-board policy cap; default cash melts them into budget'},
+      {mechanic:'fusion economy and shopping',status:'proxy',note:'invested-budget board policy, no shop rolls, no reroll or freeze decisions'},
+      {mechanic:'hero shop pull',status:'proxy',note:'arch concentration 3.5 on the hero tag; real weights are 1.5 hero / 2.2 featured on actual rolls'},
+      {mechanic:'shop mechanics Omens (overstock, silent, auctionbell, patient, lean, charter)',status:'blind',note:'no shop roll to apply them to; matrix columns read as baseline'},
+      {mechanic:'Moneylender economy (credit, debt, reroll ban)',status:'blind',note:'lender cells measure fight baseline plus tag pull only'},
+      {mechanic:'goldMul victory income (bull)',status:'blind',note:'the policy has no income wares to scale'},
+      {mechanic:'enchants and Vault',status:'blind',note:'the stated competent-baseline exclusions'}
+    ]);
+  }
+  return shared.concat([
+    {mechanic:'hero start ware and signature-ware pool',status:'full',note:'free start ware; sig wares roll only in the owning hero live shop (market-core)'},
+    {mechanic:'fusion economy and shopping',status:'full',note:'live market-core rolls, real warePurchaseCost buys and wareSaleValue sells, fuseScan and vault pulls, policy decisions'},
+    {mechanic:'hero shop pull',status:'full',note:'the real 1.5 hero and 2.2 featured shopTagWeight on actual market-core rolls'},
+    {mechanic:'goldMul victory income (bull)',status:'full',note:'the live ui.js victory-income expression each win; income sources present in sim: relic income (no charms, no board income wares in route)'},
+    {mechanic:'shop count and copy-cost Omens (overstock, deep, lean shopN; bull and deep surcharge)',status:'full',note:'A.shopN and warePurchaseCost ride every live roll and buy'},
+    {mechanic:'freeze Omens (patient hold, silent reroll ban)',status:'full',note:'setFrozenOffers and advanceFrozenOffers holds; rerollDisabled honored by the policy'},
+    {mechanic:'Moneylender credit and debt reroll ban',status:'full',note:'canSpendGold on every live buy and tier; rerollBlockedInDebt honored'},
+    {mechanic:'enchanted shop offers and premium buys',status:'full',note:'live enchant rolls at threat 4+; the policy pays the real premium when an enchanted offer scores best'},
+    {mechanic:'Auction Bell per-sale reroll escalation',status:'full',note:'sell-to-upgrade sales feed the real rerollPrice per-sale escalation within a market'},
+    {mechanic:'Guild Charter featured pin',status:'proxy',note:'featuredTags flow to the real weights, but the sim does not model the Charter pin selection'},
+    {mechanic:'opening-offense guarantee',status:'proxy',note:'the run opens on a keyed opening market, not the ensureOpeningOffense seed'},
+    {mechanic:'Treasure and bounty uniques',status:'proxy',note:'granted into the live board when room permits; acquisition policy is the walker, not a player'},
+    {mechanic:'deliberate Vault parking',status:'proxy',note:'the live path vaults only through the real overflow spill and forge pulls'}
+  ]);
 }
-export function printCoverage(){
-  console.log('== SIM MECHANIC COVERAGE ==');
-  for(const row of coverageManifest())console.log('  '+pad(row.status.toUpperCase(),7)+row.mechanic+'\n         '+row.note);
+export function printCoverage(marketMode){
+  console.log('== SIM MECHANIC COVERAGE ('+(marketMode==='live'?'market:live':'abstract policy')+') ==');
+  for(const row of coverageManifest(marketMode))console.log('  '+pad(row.status.toUpperCase(),7)+row.mechanic+'\n         '+row.note);
   console.log('\nRead sim numbers only through this manifest: a blind mechanic has NO sim evidence.');
 }
 
 export function main(argv){
   const o=parseSimArgs(argv);
-  if(o.coverage){printCoverage();return {invalid:0};}
+  if(o.coverage){printCoverage((argv||[]).includes('live')?'live':'abstract');return {invalid:0};}
   if(o.matrix){matrixTable(o);return {invalid:0};}
   const cfg={heroId:o.heroId,omenId:o.omenId||'none',uniques:o.uniques||'cash'};
   const validity=o.ab?abTable(o):detailed(runBatch(cfg,{runs:o.runs,mode:o.mode}));
