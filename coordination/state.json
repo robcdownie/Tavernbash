@@ -29,12 +29,29 @@
       "0.103.0",
       "0.104.0",
       "0.105.0",
-      "0.106.0"
+      "0.106.0",
+      "0.107.0"
     ],
-    "status": "core-loop-complete",
-    "note": "The manor visual core loop is COMPLETE and verified live on the worktree: title at the gates, manor cast hero picker, Curio Stall market with indigo cards under carved frames, four estate wing route maps, ballroom combat, foundation tokens and light grade everywhere. Recorded remaining polish for follow-up versions: event scene wiring (parlor, hearth, seance, attic, cellar art is generated and backed up), victory card staging, scout drawer anatomy, fight-class medallion ids with consuming markup, pocket-watch bezel rings in combat cells, and the Suno music re-pass. Deploy to platosd.com waits on Robbie explicit approval per the deploy ruling."
+    "status": "in-progress",
+    "note": "Robbie rejected core-loop-complete on 2026-07-19: art re-dress landed but screen STRUCTURE still reads early-phase versus the audit bar. The structural recomposition passes now proceed: hero crest HUD, combat anchors and action lane with bezel rings and log demotion, event rooms on their generated scenes, market detail demotion, victory staging, route reachable-emphasis and scout drawer anatomy."
   },
   "reservations": [
+    {
+      "version": "0.107.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.107.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "in_progress",
+      "base": "9e46b76",
+      "scope": "Hero crest HUD: the draft ribbon becomes the dealer crest from the approved proof, hero portrait plus name plus favors line anchored left with Resolve and Gold chips attached, Tier and Omen demoted to a secondary strip. Presentation markup and CSS in ui.js ribbon render and index.html; no state, economy, or save change.",
+      "files": [
+        "index.html",
+        "src/ui.js",
+        "package.json"
+      ]
+    },
     {
       "version": "0.106.0",
       "project": "Manor Identity",
