@@ -644,7 +644,7 @@ Object.assign(MONSTERS,{
     dmg-1 bodies (cd 2, integ 7), which traces at +0/+0 plain and gilded. */
  rats_v2:aspect("rats","The Swarm",[{nm:"Rat Fangs",g:"g-fangs",size:1,cd:2,integ:7,fx:{dmg:1}},{nm:"Rat Fangs",g:"g-fangs",size:1,cd:2,integ:7,fx:{dmg:1}},{nm:"Rat Fangs",g:"g-fangs",size:1,cd:2,integ:7,fx:{dmg:1}},{nm:"Rat Fangs",g:"g-fangs",size:1,cd:2,integ:7,fx:{dmg:1}},{nm:"Rat Fangs",g:"g-fangs",size:1,cd:2,integ:7,fx:{dmg:1}}]),
  ghul_v1:aspect("ghul","Patient Cleaver",[{nm:"Corroded Cleaver",g:"g-hammer",size:3,cd:12,integ:22,fx:{dmg:26},targeting:"maxinteg"}]),
- ghul_v2:aspect("ghul","Rusted Pair",[{nm:"Rusted Hatchet",g:"g-hammer",size:2,cd:8,integ:14,fx:{dmg:9},targeting:"maxinteg"},{nm:"Rusted Hatchet",g:"g-hammer",size:2,cd:8,integ:14,fx:{dmg:9},targeting:"maxinteg"}]),
+ ghul_v2:aspect("ghul","Rusted Pair",[{nm:"Rusted Hatchet",g:"g-hammer",size:2,cd:9,integ:14,fx:{dmg:9},targeting:"maxinteg"},{nm:"Rusted Hatchet",g:"g-hammer",size:2,cd:9,integ:14,fx:{dmg:9},targeting:"maxinteg"}]),
  samovar_v1:aspect("samovar","Double Boiler",[{nm:"Boiling Spout",g:"g-chalice",size:1,cd:6,integ:12,fx:{burn:2}},{nm:"Boiling Spout",g:"g-chalice",size:1,cd:6,integ:12,fx:{burn:2}}]),
  samovar_v2:aspect("samovar","Overboiled",[{nm:"Boiling Spout",g:"g-chalice",size:2,cd:8,integ:20,fx:{dmg:4,burn:5}}]),
  sandling_v1:aspect("sandling","Deep Sand",[],{regen:2,stormAt:14}),
@@ -658,7 +658,7 @@ Object.assign(MONSTERS,{
     matron who kisses more often instead (poison 3 held, cd 4 to 3.5) traces at
     +0/+0, in band. Poison decay caps the faster cadence at shipped difficulty. */
  matron_v1:aspect("matron","Doting",[{nm:"Venom Kiss",g:"g-serpent",size:2,cd:3.5,integ:24,fx:{poison:3}}],{regen:2}),
- matron_v2:aspect("matron","Spiteful",[{nm:"Venom Kiss",g:"g-serpent",size:2,cd:4,integ:24,fx:{poison:3}},{nm:"Grave Nail",g:"g-dagger",size:1,cd:4,integ:12,fx:{dmg:3}}],{regen:1}),
+ matron_v2:aspect("matron","Spiteful",[{nm:"Venom Kiss",g:"g-serpent",size:2,cd:4,integ:24,fx:{poison:2}},{nm:"Grave Nail",g:"g-dagger",size:1,cd:4,integ:12,fx:{dmg:2}}],{regen:2}),
  /* District 2, The Souk */
  lamassu_v1:aspect("lamassu","Thick Wall",[{nm:"Bulwark Bull",g:"g-brassbuckler",size:3,cd:0,integ:80,fx:{},bulwark:true},{nm:"Horn Chime",g:"g-mace",size:1,cd:4,integ:12,fx:{dmg:8}}]),
  lamassu_v2:aspect("lamassu","Twin Chimes",[{nm:"Bulwark Bull",g:"g-brassbuckler",size:3,cd:0,integ:45,fx:{},bulwark:true},{nm:"Horn Chime",g:"g-mace",size:1,cd:5,integ:10,fx:{dmg:7}},{nm:"Horn Chime",g:"g-mace",size:1,cd:5,integ:10,fx:{dmg:7}}]),
@@ -668,27 +668,27 @@ Object.assign(MONSTERS,{
     with margin. The kill-order fight the aspect is built around is intact. */
  kark_v1:aspect("kark","Pawing Charge",[{nm:"Pawing Hooves",g:"g-hourglass",size:1,cd:6,integ:10,fx:{},charge:{t:1,s:1}},{nm:"Gore Horn",g:"g-hammer",size:3,cd:13,integ:30,fx:{dmg:55}}]),
  kark_v2:aspect("kark","Second Answer",[{nm:"Gore Horn",g:"g-hammer",size:3,cd:9,integ:34,fx:{dmg:38}}]),
- collector_v1:aspect("collector","Two Ledgers",[{nm:"Ledger Blade",g:"g-sword",size:2,cd:8,integ:20,fx:{dmg:4}},{nm:"Ledger Blade",g:"g-sword",size:2,cd:8,integ:20,fx:{dmg:4}}]),
- collector_v2:aspect("collector","The Counting Frame",[{nm:"Ledger Blade",g:"g-sword",size:2,cd:5,integ:24,fx:{dmg:6}},{nm:"Counting Frame",g:"g-ledger",size:1,cd:6,integ:14,fx:{shield:8}}]),
+ collector_v1:aspect("collector","Two Ledgers",[{nm:"Ledger Blade",g:"g-sword",size:2,cd:8.5,integ:22,fx:{dmg:4}},{nm:"Ledger Blade",g:"g-sword",size:2,cd:8.5,integ:22,fx:{dmg:4}}]),
+ collector_v2:aspect("collector","The Counting Frame",[{nm:"Ledger Blade",g:"g-sword",size:2,cd:5,integ:24,fx:{dmg:6}},{nm:"Counting Frame",g:"g-ledger",size:1,cd:7,integ:6,fx:{shield:3}}]),
  icebox_v1:aspect("icebox","Double Glazed",[{nm:"Frost Vent",g:"g-tower",size:2,cd:5,integ:30,fx:{freeze:2}},{nm:"Frost Vent",g:"g-tower",size:2,cd:5,integ:30,fx:{freeze:2}}]),
  icebox_v2:aspect("icebox","Cold Cellar",[{nm:"Cold Shank",g:"g-dagger",size:1,cd:4,integ:14,fx:{dmg:6}},{nm:"Frost Vent",g:"g-tower",size:2,cd:7,integ:45,fx:{freeze:4}}]),
  peri_v1:aspect("peri","Mirror Shards",[{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:5,fx:{dmg:4},crit:0.35},{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:5,fx:{dmg:4},crit:0.35},{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:5,fx:{dmg:4},crit:0.35},{nm:"Shard Wings",g:"g-fangs",size:1,cd:3,integ:5,fx:{dmg:4},crit:0.35}]),
- peri_v2:aspect("peri","One Perfect Pane",[{nm:"Shard Wings",g:"g-crossbow",size:1,cd:2.5,integ:12,fx:{dmg:7},crit:0.5},{nm:"Shard Wings",g:"g-crossbow",size:1,cd:2.5,integ:12,fx:{dmg:7},crit:0.5}]),
+ peri_v2:aspect("peri","One Perfect Pane",[{nm:"Shard Wings",g:"g-crossbow",size:1,cd:2.6,integ:12,fx:{dmg:7},crit:0.5},{nm:"Shard Wings",g:"g-crossbow",size:1,cd:2.6,integ:12,fx:{dmg:7},crit:0.5}]),
  qareen_v1:aspect("qareen","Fevered Reflection",[],{regen:1}),
  qareen_v2:aspect("qareen","Restless Glass",[],{stormAt:20}),
  /* District 3, Palace Quarter */
  nasnas_v1:aspect("nasnas","The Other Half",[{nm:"Half Buckler",g:"g-buckler",size:1,cd:4,integ:14,fx:{shield:14}},{nm:"Half Dagger",g:"g-dagger",size:1,cd:3,integ:14,fx:{dmg:14}},{nm:"Half Torch",g:"g-torch",size:1,cd:3,integ:14,fx:{burn:4}},{nm:"Half Vial",g:"g-vial",size:1,cd:3,integ:14,fx:{poison:4}},{nm:"Half Bandage",g:"g-bandage",size:1,cd:4,integ:14,fx:{heal:16}}]),
- nasnas_v2:aspect("nasnas","Reordered",[{nm:"Half Bandage",g:"g-bandage",size:1,cd:4,integ:14,fx:{heal:24}},{nm:"Half Vial",g:"g-vial",size:1,cd:3,integ:14,fx:{poison:4}},{nm:"Half Torch",g:"g-torch",size:1,cd:3,integ:14,fx:{burn:6}},{nm:"Half Dagger",g:"g-dagger",size:1,cd:3,integ:14,fx:{dmg:12}},{nm:"Half Buckler",g:"g-buckler",size:1,cd:4,integ:14,fx:{shield:20}}]),
+ nasnas_v2:aspect("nasnas","Reordered",[{nm:"Half Bandage",g:"g-bandage",size:1,cd:4,integ:14,fx:{heal:24}},{nm:"Half Dagger",g:"g-dagger",size:1,cd:3,integ:14,fx:{dmg:12}},{nm:"Half Vial",g:"g-vial",size:1,cd:3,integ:14,fx:{poison:4}},{nm:"Half Torch",g:"g-torch",size:1,cd:3,integ:14,fx:{burn:6}},{nm:"Half Buckler",g:"g-buckler",size:1,cd:4,integ:14,fx:{shield:20}}]),
  roc_v1:aspect("roc","Thin Shell",[{nm:"The Egg",g:"g-rocegg",size:3,cd:12,integ:60,fx:{},selfdestruct:true,rattle:{spawn:{nm:"Roc Hatchling",g:"g-hatchling",cd:2,integ:30,fx:{dmg:18}}}}]),
  roc_v2:aspect("roc","Watched Nest",[{nm:"Broodwatcher",g:"g-fangs",size:1,cd:3,integ:12,fx:{dmg:4}},{nm:"The Egg",g:"g-rocegg",size:3,cd:15,integ:70,fx:{},selfdestruct:true,rattle:{spawn:{nm:"Roc Hatchling",g:"g-hatchling",cd:2,integ:30,fx:{dmg:22}}}}]),
- simurgh_v1:aspect("simurgh","Molting",[{nm:"Tail Feather",g:"g-feather",size:1,cd:2,integ:10,fx:{dmg:6}},{nm:"Tail Feather",g:"g-feather",size:1,cd:2,integ:10,fx:{dmg:6}},{nm:"Preen",g:"g-hatchling",size:2,cd:8,integ:24,fx:{hasteAll:2}}]),
+ simurgh_v1:aspect("simurgh","Molting",[{nm:"Tail Feather",g:"g-feather",size:1,cd:2,integ:10,fx:{dmg:6}},{nm:"Tail Feather",g:"g-feather",size:1,cd:2,integ:10,fx:{dmg:6}},{nm:"Preen",g:"g-hatchling",size:2,cd:9,integ:24,fx:{hasteAll:2}}]),
  simurgh_v2:aspect("simurgh","Preening Twice",[{nm:"Tail Feather",g:"g-feather",size:1,cd:2.5,integ:14,fx:{dmg:9}},{nm:"Preen",g:"g-hatchling",size:2,cd:5,integ:20,fx:{hasteAll:1.5}}]),
  shahmaran_v1:aspect("shahmaran","The Court Convenes",[{nm:"Serpent Crown",g:"g-serpentcrown",size:2,cd:6,integ:24,fx:{poison:3}},{nm:"Coiled Court",g:"g-sanctum",size:2,cd:6,integ:18,fx:{heal:7}},{nm:"Court Adder",g:"g-serpent",size:1,cd:4,integ:12,fx:{dmg:5}}]),
  shahmaran_v2:aspect("shahmaran","Crowned Twice",[{nm:"Serpent Crown",g:"g-serpentcrown",size:2,cd:7,integ:20,fx:{poison:5}},{nm:"Serpent Crown",g:"g-serpentcrown",size:2,cd:7,integ:20,fx:{poison:5}}]),
  marid_v1:aspect("marid","High Tide",[{nm:"Tide Wall",g:"g-tidewall",size:2,cd:6,integ:30,fx:{shield:15}},{nm:"Tide Wall",g:"g-tidewall",size:2,cd:6,integ:30,fx:{shield:15}},{nm:"Drip",g:"g-vial",size:1,cd:3,integ:10,fx:{dmg:4}}]),
  marid_v2:aspect("marid","Undertow",[{nm:"Tide Wall",g:"g-tidewall",size:3,cd:7,integ:36,fx:{shield:25}},{nm:"Spring",g:"g-chalice",size:2,cd:5,integ:22,fx:{heal:10}},{nm:"Undertow",g:"g-vial",size:1,cd:4,integ:12,fx:{poison:2}}]),
  golem_v1:aspect("golem","Stoked Hopper",[{nm:"Coin Hopper",g:"g-coinhopper",size:1,cd:6,integ:20,fx:{reload:2}},{nm:"Coin Cannon",g:"g-coincannon",size:3,cd:3,integ:38,fx:{dmg:12},ammo:3}]),
- golem_v2:aspect("golem","Double Barrels",[{nm:"Coin Cannon",g:"g-coincannon",size:3,cd:4,integ:30,fx:{dmg:10},ammo:4},{nm:"Coin Hopper",g:"g-coinhopper",size:1,cd:8,integ:14,fx:{reload:2}},{nm:"Coin Cannon",g:"g-coincannon",size:3,cd:4,integ:30,fx:{dmg:10},ammo:4}]),
+ golem_v2:aspect("golem","Double Barrels",[{nm:"Coin Cannon",g:"g-coincannon",size:3,cd:5,integ:30,fx:{dmg:10},ammo:4},{nm:"Coin Hopper",g:"g-coinhopper",size:1,cd:8,integ:14,fx:{reload:2}},{nm:"Coin Cannon",g:"g-coincannon",size:3,cd:5,integ:30,fx:{dmg:10},ammo:4}]),
  /* District 3 boss */
  ifrit_v1:aspect("ifrit","Backdraft",[{nm:"Bellows",g:"g-hourglass",size:2,cd:5,integ:22,fx:{},charge:{t:1,s:2}},{nm:"Kiln Heart",g:"g-magma",size:3,cd:6,integ:34,fx:{burn:8}}]),
  ifrit_v2:aspect("ifrit","Twin Kilns",[{nm:"Kiln Heart",g:"g-magma",size:2,cd:9,integ:28,fx:{burn:6}},{nm:"Kiln Heart",g:"g-magma",size:2,cd:9,integ:28,fx:{burn:6}}]),
