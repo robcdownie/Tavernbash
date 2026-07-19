@@ -711,14 +711,25 @@
   .bark.out{opacity:0;transform:translateY(8px);}
   @keyframes barkin{from{opacity:0;transform:translateY(10px) scale(.96);}to{opacity:1;transform:none;}}
 
-  /* ===== V11 DUEL PASS: a fight between faces ===== */
-  .fh .fp{width:46px;height:46px;border-radius:50%;
-    box-shadow:0 0 0 2px #7a4d16, 0 0 0 3.5px rgba(244,207,124,.35), 0 8px 16px rgba(0,0,0,.55);}
-  .fh .who{font-family:"Rakkas",serif;font-size:16.5px;letter-spacing:.4px;color:var(--brass-hi);}
-  #fg-b .fp{box-shadow:0 0 0 2px #6e2417, 0 0 0 3.5px rgba(200,64,46,.4), 0 8px 16px rgba(0,0,0,.55);}
-  .streak{position:fixed;height:2.5px;transform-origin:0 50%;z-index:24;pointer-events:none;border-radius:2px;
-    background:linear-gradient(90deg,transparent 8%,rgba(244,207,124,.95));box-shadow:0 0 8px rgba(244,207,124,.5);
-    animation:streakfade .22s ease-out forwards;}
+  /* ===== 0.108.0 COMBAT RECOMPOSITION: a duel between large lit faces
+     across a real action lane, with the log demoted behind a tap ===== */
+  .fh .fp{width:64px;height:64px;border-radius:16px;
+    box-shadow:inset 0 0 0 2px rgba(216,162,74,.7), 0 0 22px rgba(232,140,60,.4), 0 8px 18px rgba(0,0,0,.6);}
+  .fh .who{font-family:"Rakkas",serif;font-size:20px;letter-spacing:.4px;color:var(--brass-hi);}
+  #fg-b .fp{box-shadow:inset 0 0 0 2px rgba(216,74,52,.7), 0 0 22px rgba(216,74,52,.4), 0 8px 18px rgba(0,0,0,.6);}
+  #fg-b .who{color:#f0b9ac;}
+  #main.fight .vsrow{min-height:12vh;margin:4px 0;}
+  #main.fight .vsrow .vl{background:linear-gradient(90deg,transparent,rgba(216,162,74,.25),transparent);}
+  .combat .cell{transition:transform .16s var(--e-out), box-shadow .16s var(--e-out);}
+  .combat .cell.fire{transform:translateY(-5px) scale(1.06);}
+  #main.fight .log{height:46px;overflow:hidden;cursor:pointer;position:relative;transition:height .25s var(--e-out);}
+  #main.fight .log::after{content:"";position:absolute;left:0;right:0;bottom:0;height:22px;pointer-events:none;
+    background:linear-gradient(transparent,rgba(10,8,14,.9));}
+  #main.fight .log.open{height:180px;overflow-y:auto;}
+  #main.fight .log.open::after{display:none;}
+  .streak{position:fixed;height:3.5px;transform-origin:0 50%;z-index:24;pointer-events:none;border-radius:2px;
+    background:linear-gradient(90deg,transparent 8%,rgba(255,176,96,.95) 60%,#fff);box-shadow:0 0 12px rgba(255,150,60,.7);
+    animation:streakfade .3s ease-out forwards;}
   @keyframes streakfade{from{opacity:.95;}to{opacity:0;}}
   @media (prefers-reduced-motion: reduce){.streak{display:none;}}
 
@@ -813,7 +824,11 @@
   @media (orientation:portrait){
     body.fight #app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;}
     body.fight #main{flex:1;display:flex;flex-direction:column;min-height:0;}
-    #main.fight .log{flex:1 1 auto;height:auto;min-height:110px;font-size:12px;}
+    /* 0.108.0: the ACTION LANE takes the spare height so the duel breathes
+       through the ballroom; the log holds a collapsed strip until tapped */
+    #main.fight .vsrow{flex:1 1 auto;min-height:12vh;}
+    #main.fight .log{flex:0 0 auto;height:46px;font-size:12px;}
+    #main.fight .log.open{height:180px;}
   }
 
   /* ===== V23 SHELF PASS: the market becomes furniture ===== */

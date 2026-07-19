@@ -878,6 +878,10 @@ function startFight(me,foe,opts){
     metricPhase('combat_'+FSPD+'x');
     try{window.localStorage.setItem('bb-speed',String(FSPD));}catch(e){}
   };
+  /* 0.108.0: on the phone the log opens on demand instead of owning the
+     lower screen; purely a viewing toggle, the feed itself is unchanged */
+  const lg=$('log');
+  if(lg)lg.onclick=function(){lg.classList.toggle('open');};
   paintFight(F);
   /* the pulse: every active ware shows its cooldown filling live, brass
      while charging, frost while frozen, dust while a magazine sits dry */
