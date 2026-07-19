@@ -55,7 +55,26 @@
         "scripts/route-sim.js",
         "tests/route-sim.test.js",
         "tests/aspects.test.js",
-        "tests/engine.test.js"
+        "tests/engine.test.js",
+        "tests/route.test.js",
+        "handoff-back-difficulty-worker-0.101.0.md",
+        "coordination/state.json",
+        "seam-proposal-live-market-0.101.0.md",
+        "src/market-core.js",
+        "src/ui.js",
+        "scripts/market-sim.js",
+        "tests/market-core.test.js",
+        "tests/market-sim.test.js",
+        "tests/unlock-shop.test.js"
+      ],
+      "codexRuling": "WAIT on source commit b094ae1a66d4d182ca43849d0559f58505601094, recorded 2026-07-18 and carried to canonical by the main integrator. Do not cherry-pick b094ae1, do not close 0.101.0, do not open follow-up versions; the reservation stays active. RATIFIED into the file set: tests/route.test.js (a necessary epoch-aware test) and handoff-back-difficulty-worker-0.101.0.md (the evidence hand-back); coordination/state.json carries the ruling records. Vizier 660 is NOT authorized: the paired starter evidence is not accepted while route-sim coverage labels Bull Market victory income blind, Overstocked shop behavior blind, shopping and fusion proxy, and hero shop pull proxy, with no live shop rolls, rerolls, or freeze decisions; the Kilnkeeper plus Bull Market 35 percent result is therefore not accepted as a real floor failure.",
+      "seamApproval": "Codex approves the live-market seam proposal seam-proposal-live-market-0.101.0.md at worker commit 12e6d248f58509c84d916c5d4950382ca9d33c52, with the binding conditions in seamConditions. The reservation file set above is expanded accordingly (the seam proposal document plus the six implementation files it names). Implementation was blocked until canonical state carried this record and the worker branch received the identical reservation state; this commit is that correction. The difficulty worker may implement the seam strictly within the expanded file set and under the binding conditions. b094ae1 remains uningested on canonical and 0.101.0 remains open.",
+      "seamConditions": [
+        "Coverage is mode-specific: the abstract policy's manifest rows remain proxy or blind; market:'live' rows may read FULL only where the live path is proven.",
+        "Exact offer order, offer ids, RNG draw count, enchant draws, freeze carryover, and rollIndex replay remain unchanged by the extraction.",
+        "Bull Market applies adjustedVictoryIncome only to incomeGold (board, relic, and charm income), never to base bounty gold.",
+        "Each run uses its frozen run.warePool snapshot (run.wareLock in code) for shop filtering, never the live profile mid-run.",
+        "No constant change and no Vizier change during the seam work."
       ]
     }
   ],
