@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.102.0",
-  "reviewedHead": "4aad5aa",
+  "build": "0.103.0",
+  "reviewedHead": "ce38924",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -26,10 +26,30 @@
     "outcome": "Production implementation of the approved haunted-manor visual system from STYLE.md and the composite proof: asset filing through the established art pipeline, presentation foundation, then staged screen rebuilds. One presentation system per version; engine, saves, balance, and route semantics untouched.",
     "versions": [
       "0.102.0",
-      "0.103.0"
+      "0.103.0",
+      "0.104.0"
     ]
   },
   "reservations": [
+    {
+      "version": "0.104.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.104.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "in_progress",
+      "base": "ce38924",
+      "scope": "Route and threshold stage: file the estate route backgrounds (bake-vista-manor and manor-vista-midnight to bg slots) and the four new fight-class medallions (route_fight, route_elite, route_boss, route_camp ui ids with art test whitelist), swap the route backdrop CSS to the estate scenes, and restyle the scout panel to the proof drawer anatomy. Presentation only; no map, node, or route-choice semantics change.",
+      "files": [
+        "public/art/bg/*",
+        "public/art/ui/*",
+        "tests/art.test.js",
+        "index.html",
+        "src/route-ui.js",
+        "package.json"
+      ]
+    },
     {
       "version": "0.103.0",
       "project": "Manor Identity",
@@ -37,14 +57,17 @@
       "owner": "claude",
       "branch": "launch-manor-identity-0.103.0",
       "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
-      "status": "in_progress",
+      "status": "done",
       "base": "4aad5aa",
       "scope": "Market and inventory stage per the approved composite proof: indigo-to-shadowed-wood offer cards with concise anatomy (illustration port, name, price, one effect chip, meta line), the selected-ware detail strip, grouped control rail, wood board tray treatment, and Curio Stall labeling. Same-slot presentation only inside index.html CSS and ui.js render strings; no economy, pricing, reroll, freeze, fusion, or save semantics change.",
       "files": [
         "index.html",
         "src/ui.js",
         "package.json"
-      ]
+      ],
+      "sourceCommit": "c5686ad",
+      "integrationCommit": "ce38924",
+      "verification": "npm test 559 of 559 green via ship.js. Live verification on the worktree dev server at 390x844: Curio Stall label, indigo textile cards under the carved manor frames at both cascade layers, iron port rings, effect chips legible. Presentation-only diff (index.html CSS plus one ui.js label string); no economy, roll, or save change."
     },
     {
       "version": "0.102.0",
