@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.101.0",
-  "reviewedHead": "a148a5866260a0349febac0c2d51f5a64256c2b9",
+  "build": "0.102.0",
+  "reviewedHead": "4aad5aa",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -20,18 +20,54 @@
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
-    "name": "Launch L2",
-    "token": "launch-calibrated-challenge",
+    "name": "Manor Identity",
+    "token": "launch-manor-identity",
     "integrator": "claude",
-    "outcome": "Calibrated challenge: tune the difficulty the Launch L1 smoke surfaced and remove dead hero and Omen pairings, without reopening settled combat, targeting, economy, map, or save semantics. Work stays isolated, attributable, and exact once.",
+    "outcome": "Production implementation of the approved haunted-manor visual system from STYLE.md and the composite proof: asset filing through the established art pipeline, presentation foundation, then staged screen rebuilds. One presentation system per version; engine, saves, balance, and route semantics untouched.",
     "versions": [
-      "0.99.4",
-      "0.100.0",
-      "0.101.0"
-    ],
-    "status": "closed"
+      "0.102.0",
+      "0.103.0"
+    ]
   },
   "reservations": [
+    {
+      "version": "0.103.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.103.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "in_progress",
+      "base": "4aad5aa",
+      "scope": "Market and inventory stage per the approved composite proof: indigo-to-shadowed-wood offer cards with concise anatomy (illustration port, name, price, one effect chip, meta line), the selected-ware detail strip, grouped control rail, wood board tray treatment, and Curio Stall labeling. Same-slot presentation only inside index.html CSS and ui.js render strings; no economy, pricing, reroll, freeze, fusion, or save semantics change.",
+      "files": [
+        "index.html",
+        "src/ui.js",
+        "package.json"
+      ]
+    },
+    {
+      "version": "0.102.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.102.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "done",
+      "base": "9e7492390d4900c0e869fba941dd1417558403d0",
+      "scope": "Manor asset batch A (same-slot replacements only: 8 hero portraits, 4 rarity frames, 5 route event icons, all QA-approved from the generated kit with originals backed up to art-source/manor) plus the presentation foundation system: manor palette tokens, code light grade, and pocket-watch cooldown ring styling groundwork. No layout rework, no background swaps (those belong to the staged screen versions), no engine or data change.",
+      "files": [
+        "public/art/portraits/*",
+        "public/art/frames/*",
+        "public/art/ui/route_*",
+        "src/art-manifest.js",
+        "index.html",
+        "package.json"
+      ],
+      "sourceCommit": "05b45e5",
+      "integrationCommit": "4aad5aa",
+      "verification": "npm test 559 of 559 green in the dedicated worktree before and after the foundation CSS. Batch A art filed through ingest and art-prep with manifest regeneration; all 17 assets QA-approved via contact sheet before filing; full-res originals backed up to art-source/manor (35 files, local only). Live verification on the worktree dev server: hero picker renders the manor cast, market renders the carved-wood frames as 9-slice borders, colder ground and light grade active. No engine, data, save, or route file touched."
+    },
     {
       "version": "0.101.0",
       "project": "Launch L2",
@@ -216,6 +252,11 @@
       "ruling": "GitHub Pages only at platosd.com via git push origin main. Robbie approves each push at every deploy gate.",
       "by": "robbie",
       "date": "2026-07-18"
+    },
+    "manorProduction": {
+      "ruling": "The game re-themes to the haunted Victorian manor (cozy-spooky, never gory) and visual production begins now, inserted before Launch L3 Market Agency, which shifts later along with Launch L4 and Launch L5. Display-layer pivot only via the established rename-ledger pattern: no engine, save, map, targeting, or economy change. Robbie granted Claude standing autonomy on the visual work; deploy still requires Robbie approval per the deploy ruling. The final display name stays a separate pending ruling.",
+      "by": "robbie",
+      "date": "2026-07-19"
     }
   },
   "reviewRulings": {
