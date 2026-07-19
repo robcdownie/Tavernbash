@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-19",
-  "build": "0.109.0",
-  "reviewedHead": "97ce416",
+  "build": "0.112.0",
+  "reviewedHead": "bc4da4c",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -33,12 +33,39 @@
       "0.107.0",
       "0.108.0",
       "0.109.0",
-      "0.110.0"
+      "0.110.0",
+      "0.111.0",
+      "0.112.0"
     ],
     "status": "in-progress",
-    "note": "Robbie rejected core-loop-complete on 2026-07-19: art re-dress landed but screen STRUCTURE still reads early-phase versus the audit bar. The structural recomposition passes now proceed: hero crest HUD, combat anchors and action lane with bezel rings and log demotion, event rooms on their generated scenes, market detail demotion, victory staging, route reachable-emphasis and scout drawer anatomy."
+    "note": "Nine manor production versions shipped 0.102.0 through 0.112.0 on local main, every one tested green and live-verified. Structural recomposition done after Robbie rejected the re-dress: dealer crest HUD, ballroom combat with large anchors and demoted log, event rooms, staged recaps, complete painted catalog, landscape scenes. Deploy and CACHE_V bump wait on Robbie. Remaining recorded polish: Gate Camp room surface, fight-class medallion consumers, ingest matcher refresh for post-R7 ids, Suno re-pass, display-name pass."
   },
   "reservations": [
+    {
+      "version": "0.111.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.110.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "done",
+      "sourceCommit": "05c3367",
+      "scope": "The complete painted catalog: the 20 unpainted wares (payoff, R7, and district additions) generated via style-anchored edit chains, cut out, QA approved on a contact sheet, and filed. 82 of 82 items and 69 of 69 monsters now painted.",
+      "verification": "npm test 559 green. Live market verified: Bellows Boy and siblings render painted ports. Ingest matcher predates these ids so art-prep filed them; matcher refresh recorded as follow-up."
+    },
+    {
+      "version": "0.112.0",
+      "project": "Manor Identity",
+      "token": "launch-manor-identity",
+      "owner": "claude",
+      "branch": "launch-manor-identity-0.110.0",
+      "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
+      "status": "done",
+      "sourceCommit": "b73eeb5",
+      "integrationCommit": "bc4da4c",
+      "scope": "Landscape threshold scenes (wide manor gates intro, wide gallery market) and the stall panel made translucent so the painted hallway breathes through.",
+      "verification": "npm test 559 green after filing. Both wides are same-slot overrides; landscape is the declared primary orientation."
+    },
     {
       "version": "0.110.0",
       "project": "Manor Identity",
@@ -46,14 +73,16 @@
       "owner": "claude",
       "branch": "launch-manor-identity-0.110.0",
       "worktree": "C:/tmp/bazaar-brawler-manor-0.102.0",
-      "status": "in_progress",
+      "status": "done",
       "base": "97ce416",
       "scope": "Victory and defeat staging per the proof: the recap cards become result bands with the hero lit large, a one-line consequence, and the bounty anticipated before returning to the route; defeat mirrors with cold light and the Resolve cost. Presentation markup and CSS in the fight end cards only; rewards, spoils, receipts, and route consequences untouched.",
       "files": [
         "index.html",
         "src/ui.js",
         "package.json"
-      ]
+      ],
+      "sourceCommit": "75903e6",
+      "verification": "npm test 559 green, layout 62 passed with only the documented pre-existing Omen-count failures. The recap leads with the dealer lit face and one consequence line; damage detail folds behind Fight details."
     },
     {
       "version": "0.109.0",
