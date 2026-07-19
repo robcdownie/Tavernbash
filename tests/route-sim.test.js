@@ -1,7 +1,7 @@
 "use strict";
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseSimArgs,damageShareRows,encounterRows,encounterWin,batchValidity,simMidpointTreasure,midpointSummary,runBatch,omenA,heroOfId,coverageManifest} from '../scripts/route-sim.js';
+import {parseSimArgs,damageShareRows,encounterRows,encounterWin,batchValidity,simMidpointTreasure,midpointSummary,runBatch,omenA,heroOfId,coverageManifest,applyQuickLossChip} from '../scripts/route-sim.js';
 import {ITEMS,ANONE,ANOMALIES,HEROES} from '../src/data.js';
 
 const NOARGS={ab:false,matrix:false,coverage:false,mode:'quick',runs:600,heroId:null,omenId:null,uniques:null};
@@ -13,6 +13,15 @@ test('route sim arguments accept mode, ab, and seed count in any order',()=>{
   assert.deepEqual(parseSimArgs(['hero=kiln','omen=moon','uniques=hold']),Object.assign({},NOARGS,{heroId:'kiln',omenId:'moon',uniques:'hold'}));
   assert.deepEqual(parseSimArgs(['matrix','40','long']),Object.assign({},NOARGS,{matrix:true,mode:'long',runs:40}));
   assert.deepEqual(parseSimArgs(['coverage']),Object.assign({},NOARGS,{coverage:true}));
+});
+
+test('Quick loss-chip diagnostic override is isolated to the simulator map',()=>{
+  const quick={districts:[{id:1},{id:2},{id:3},{id:4}]};
+  assert.equal(applyQuickLossChip(quick,{2:5,3:7},'quick'),quick);
+  assert.deepEqual(quick.districts.map(d=>d.lossChip),[undefined,5,7,undefined]);
+  const long={districts:[{id:2}]};
+  applyQuickLossChip(long,{2:99},'long');
+  assert.equal(Object.hasOwn(long.districts[0],'lossChip'),false);
 });
 
 test('omen and hero cells resolve exactly as the game builds them',()=>{

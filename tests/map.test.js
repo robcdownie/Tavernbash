@@ -28,7 +28,8 @@ test('the map ledger pins every Quick layout byte except the version stamp',()=>
      0.101.0 (CONTENT_EPOCH 2) splits the ledger: the SAME six epoch-1 hashes
      now pin the frozen epoch-1 regeneration (an active epoch-1 run must get
      its exact old map back, byte for byte), and a new epoch-2 ledger pins the
-     graded-power live maps. The generator structure is unchanged, so
+     accepted live maps after the rejected Quick power rollback. The generator
+     structure is unchanged, so
      MAP_VERSION stays 12. */
   assert.equal(MAP_VERSION,12);
   assert.equal(CONTENT_EPOCH,2);
@@ -41,12 +42,12 @@ test('the map ledger pins every Quick layout byte except the version stamp',()=>
     [4294967295,'5c6d3b2bd483917a277d9ae86e3caf0b62b4537f7e0ade73bbd8564cfb903219']
   ]);
   const epoch2=new Map([
-    [0,'d6dd5d76970d210f1292dd96ea4a689a1f6f790659c9f6e5572981014cc84213'],
-    [1,'911ecb53fd3292b637a59430d3997be0a645c93051332233a98f310da44f39d5'],
-    [7,'c35d14dcc887e4c759a4e5d8358e17ca6236fdfc45be161a85e8ea7acb963830'],
-    [1234567,'68f6346b93a446218b5a967e5e04d27169bf42170cd182e51c1582454db9442c'],
-    [2654435769,'65b9e75caf5c211f42d665e073be74beda05da6c35faad9a3f367b571f00a7a0'],
-    [4294967295,'9a26700fcba610ceb9ba888ce0bc9e77d57f9e4a8bfcf889e875cb5bf3e6d17d']
+    [0,'3c404a5124ef02f713aee10887e9266d60b4e13f870bb848f1af4400edc16fb1'],
+    [1,'e89a436d5fac7ebc5d0d982bc9fc3e87449d85583b2e16d9cf7a8fd327b5cd22'],
+    [7,'ec545ee7a05bee6406dea5d79b1253f95a5d6b53b5270d94fc435ac0ee19e120'],
+    [1234567,'83cc5078d588cada6c5621b373c68ad6fb3efa35b7b28f3be9f7176a49e07c26'],
+    [2654435769,'b3b4a76303ba51cb080badc2f4a36b215cb071278e7aaa9e9133287f504cd120'],
+    [4294967295,'5c6d3b2bd483917a277d9ae86e3caf0b62b4537f7e0ade73bbd8564cfb903219']
   ]);
   const hash=map=>{delete map.version;return createHash('sha256').update(JSON.stringify(map)).digest('hex');};
   for(const [seed,want] of epoch1){
@@ -57,19 +58,13 @@ test('the map ledger pins every Quick layout byte except the version stamp',()=>
   }
 });
 
-test('Quick power is epoch-aware: epoch 2 grades D2 and D3, epoch 1 omits it everywhere',()=>{
+test('Quick power rollback is neutral in both epochs',()=>{
   for(const s of SEEDS.slice(0,40)){
     const live=genMap(s,'quick');
     for(const d of live.districts){
-      const want=d.id===2?1.12:(d.id===3?1.18:undefined);
-      if(want===undefined){
-        assert.equal(Object.hasOwn(d,'power'),false,'Quick district '+d.id+' gained power');
-      }else{
-        assert.equal(d.power,want,'Quick district '+d.id+' power');
-      }
+      assert.equal(Object.hasOwn(d,'power'),false,'Quick district '+d.id+' gained power');
       for(const n of allNodes({districts:[d]})){
-        if(want!==undefined&&isCombat(n))assert.equal(n.power,want,n.id+' lost district power');
-        else assert.equal(Object.hasOwn(n,'power'),false,n.id+' should not carry power');
+        assert.equal(Object.hasOwn(n,'power'),false,n.id+' should not carry power');
       }
     }
     const old=genMap(s,'quick',0,contentTablesFor(1));

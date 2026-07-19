@@ -67,7 +67,7 @@ export const CONFIG_EXPECT = {
   },
   candidate: {
     contentEpoch: 2,
-    quickPower: {1: null, 2: 1.12, 3: 1.18, 4: null},
+    quickPower: {1: null, 2: null, 3: null, 4: null},
     longPower: {1: null, 2: null, 3: null, 4: 2.9, 5: 2.10, 6: 2.05, 7: 1.6},
     hasteMates: 0.30,
     vizierHp: 700
@@ -412,7 +412,7 @@ export function epochEvidence(configName) {
               if (has !== (expect == null ? null : expect)) bad.push(n.id + ' power ' + has + ' wants ' + expect);
             }
           }
-          out.checks.push({id: 'epoch2-quick-graded-power:' + s, pass: bad.length === 0, detail: bad.slice(0, 4)});
+          out.checks.push({id: 'epoch2-quick-rollback-power:' + s, pass: bad.length === 0, detail: bad.slice(0, 4)});
         }
       }
     }

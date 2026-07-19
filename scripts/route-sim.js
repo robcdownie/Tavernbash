@@ -262,6 +262,15 @@ function simFight(board, node, gold, seed, cfg, mode, gate, affixHooks, cell) {
     wares:Object.keys(tally.rows).map(function(k){return tally.rows[k];}) };
 }
 
+/* Evidence-only map override used by Launch L2 diagnostics. */
+export function applyQuickLossChip(map,quickLossChip,mode){
+  if(mode!=='quick'||!quickLossChip)return map;
+  for(const d of map.districts){
+    if(Object.hasOwn(quickLossChip,d.id))d.lossChip=quickLossChip[d.id];
+  }
+  return map;
+}
+
 /* ---- one full run under a tuning cfg ---- */
 export function simRun(seed, cfg, mode) {
   mode=mode||'quick';
@@ -272,6 +281,11 @@ export function simRun(seed, cfg, mode) {
      byte-identical to the pre-knob call. The D6 rejection control and the
      epoch-1 preservation gate both ride this, so no trial ever mutates data.js. */
   const map = genMap(seed,mode,lantern,cfg.content);
+  /* Launch L2 diagnostic-only Resolve-cost override. This mutates only the
+     freshly generated simulator map, never data.js or a live run. It lets the
+     verifier isolate pre-D4 loss pricing from door strength before any data
+     constant is proposed. Absent means byte-identical behavior. */
+  applyQuickLossChip(map,cfg.quickLossChip,mode);
   const rng = mulberry((seed ^ 0x5f3759df) >>> 0);
   const persona = PERSONAS[seed % PERSONAS.length];
   let st = initRoute(seed,mode,lantern);

@@ -211,7 +211,8 @@ test('quick-arms: the ratified arms, override-only execution, and the pre-regist
   for (const d of basemap.districts) assert.equal(Object.hasOwn(d, 'power'), false, 'the baseline arm is the full quick rollback');
   /* the live tree constants are untouched by arm construction */
   const live = M.genMap(7, 'quick');
-  assert.equal(live.districts.find(d => d.id === 2).power, 1.12, 'src/data.js remains the candidate tree');
+  assert.equal(Object.hasOwn(live.districts.find(d => d.id === 2),'power'), false,
+    'src/data.js carries the authorized Quick rollback');
   /* the pre-registered rule reads exactly the four named gates */
   const mk = ids => ids.map(id => ({id, pass: true}));
   assert.ok(V.armAdmissible(mk(['fresh-reach-d3-run1', 'resolve-bands-quick', 'resolve-strict-fall-quick', 'first-attempt-descends-quick'])));

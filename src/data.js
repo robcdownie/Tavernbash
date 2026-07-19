@@ -780,17 +780,17 @@ export const MONCHIP={1:2,2:4,3:6,4:8};
    Resolve. This deliberately differs from the legacy MONBAND/band grouping; the
    route uses these tables, combat still reads MONSTERS for stats. Threat: early
    is columns 1 to 2, late is columns 3 to 5, boss is its own value. */
-/* 0.101.0 primary trial: graded Quick mid-district power (D2 1.12, D3 1.18)
-   builds the Resolve-attrition ramp the 1200-seed baseline lacks (quick died-in
-   D1-D3 under 1 percent, D4 expected Resolve 36.75 against the 30-35 band). An
-   epoch-resolved map input: CONTENT_EPOCH 2 resolves these live, epoch-1 runs
-   regenerate their own powerless Quick maps from EPOCH_TABLES (map.js). */
+/* 0.101.0 rollback verdict: Quick district power stays at the 0.100.0 baseline.
+   The D2 1.12 plus D3 1.18 trial, the D3-only 1.18 arm, and the halved arm all
+   failed the pre-registered fresh-profile or curve gates. CONTENT_EPOCH remains
+   2 for the accepted Long and Azhdaha data changes; epoch-1 runs continue to
+   regenerate their frozen maps from EPOCH_TABLES (map.js). */
 export const DISTRICTS=[
  {id:1,name:"Back Alleys",boss:"matron",threatEarly:1,threatLate:2,threatBoss:3,slip:3,
   normals:["imp","rats","samovar","sandling","monkey"],elites:["ghul"]},
- {id:2,name:"The Souk",boss:"collector",threatEarly:4,threatLate:5,threatBoss:6,slip:5,power:1.12,
+ {id:2,name:"The Souk",boss:"collector",threatEarly:4,threatLate:5,threatBoss:6,slip:5,
   normals:["lamassu","icebox","peri","qareen"],elites:["kark"]},
- {id:3,name:"Palace Quarter",boss:"ifrit",threatEarly:7,threatLate:8,threatBoss:9,slip:7,power:1.18,
+ {id:3,name:"Palace Quarter",boss:"ifrit",threatEarly:7,threatLate:8,threatBoss:9,slip:7,
   normals:["nasnas","roc","simurgh"],elites:["shahmaran","marid","golem"]},
  {id:4,name:"The Dragon Gate",boss:"vizier",threatEarly:10,threatLate:11,threatBoss:12,slip:0,
   normals:[],elites:["azhdaha","auctioneer"]}
