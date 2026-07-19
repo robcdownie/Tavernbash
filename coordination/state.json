@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-18",
-  "build": "0.99.4",
-  "reviewedHead": "f4a91f609f12f1de930627ec7d6de8563ce1c5dc",
+  "build": "0.100.0",
+  "reviewedHead": "6dbf27e5c6275797a98cc351aa234481d83831c0",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -26,25 +26,7 @@
     "outcome": "Calibrated challenge: tune the difficulty the Launch L1 smoke surfaced and remove dead hero and Omen pairings, without reopening settled combat, targeting, economy, map, or save semantics. Work stays isolated, attributable, and exact once.",
     "versions": ["0.99.4", "0.100.0"]
   },
-  "reservations": [
-    {
-      "version": "0.100.0",
-      "project": "Launch L2",
-      "token": "launch-calibrated-challenge",
-      "owner": "claude",
-      "branch": "launch-calibrated-challenge-0.100.0",
-      "worktree": "C:/tmp/bazaar-brawler-l2-0.100.0",
-      "status": "in-progress",
-      "base": "13bcbde74912eadbfc204a8056664ae0cdc2ec77",
-      "exclusiveFiles": ["src/data.js"],
-      "exclusivityNote": "Board Aspect repair is a data-only edit to src/data.js. This reservation is the sole active writer of src/data.js for 0.100.0; no other worker may touch it during this version.",
-      "scope": "Board Aspect repair (data-only). Apply the reviewed candidate stat and board-order repairs to eight Aspect boards (matron_v2, ghul_v2, collector_v1, collector_v2, peri_v2, golem_v2, nasnas_v2, simurgh_v1) so the 2,400-seed variant-verify trace reads zero band breaches across all 46 Aspects, with the high-sample controls rats_v2, lamassu_v1, and azhdaha_v1 unchanged and still in band. No engine, encounter, targeting, combat-semantics, map-generation, save-semantics, or difficulty-constant change; contentEpoch stays 1. Aspect boards are post-original, so combat goldens and parity ledgers are untouched.",
-      "files": [
-        "package.json",
-        "src/data.js"
-      ]
-    }
-  ],
+  "reservations": [],
   "launchL2Base": {
     "productBaseline": "6d3ed775d6537bb6944f81fdbbbe96ee55de8551",
     "reconciledOn": "2026-07-18",
@@ -119,6 +101,22 @@
       "integrationCommit": "f4a91f609f12f1de930627ec7d6de8563ce1c5dc",
       "verification": "Verified on the dedicated worktree then re-verified after cherry-pick onto launch-safe-ground. Focused tests (node --test tests/unlock-omen.test.js tests/route-sim.test.js) 20 of 20, including six new: five in unlock-omen (compatibleOmenPool shape; a fresh Apothecary run never rolls Blood Moon at full unlock while the rest of the pool stays reachable; non-Apothecary fresh runs byte-identical to the pre-0.99.4 roll and Blood Moon still reachable; the exclusion consumes no rng so the cat shuffle stream is unchanged; a replay preserves an Apothecary plus Blood Moon run) and one negative-control guard in route-sim (Apothecary plus Blood Moon still constructible by explicit omenId). Full npm test 529 of 529 (523 baseline plus 6). npm run build green on vite 6.4.3 (814 modules). The change touches only the fresh run-start Omen draw and a pure helper, so combat parity goldens and every existing determinism pin hold unchanged.",
       "scope": "Hero and Omen compatibility. compatibleOmenPool (pure, in src/unlock-profile.js, with the data block OMEN_HERO_INCOMPAT={apoth:['moon']}) drops a hero's incompatible Omens from the already-eligible pool in place order, skipping the drop when it would empty the pool. newRoute filters the unlocked eligible pool with it BEFORE the single deterministic draw, on the fresh run-start path only. No redraw loop and no extra rng draw: the draw still spends one rng() call, so every unaffected hero and Omen selection and the following shuffle stream are byte-identical. Explicit replay overrides keep the full unlocked pool and their recorded Omen overrides the roll; restored active runs never touch this draw; the simulator builds cells by explicit omenId, so Apothecary plus Blood Moon stays a negative-control cell. No combat, difficulty constant, src/data.js, targeting, economy, map, or save change."
+    },
+    {
+      "version": "0.100.0",
+      "project": "Launch L2",
+      "token": "launch-calibrated-challenge",
+      "owner": "claude",
+      "branch": "launch-calibrated-challenge-0.100.0",
+      "worktree": "C:/tmp/bazaar-brawler-l2-0.100.0",
+      "status": "done",
+      "base": "13bcbde74912eadbfc204a8056664ae0cdc2ec77",
+      "sourceCommit": "c09a4d6cb8af8e9cc0643840df7e7b0c65aefd42",
+      "integrationCommit": "6dbf27e5c6275797a98cc351aa234481d83831c0",
+      "exclusiveFiles": ["src/data.js"],
+      "signedBy": "Codex signed Launch L2 0.99.4 before this version opened.",
+      "verification": "Data-only Board Aspect repair, verified on the dedicated worktree then re-verified after cherry-pick onto launch-safe-ground (source c09a4d6 and integration 6dbf27e are byte-identical trees). The independently reproduced base 2,400-seed variant-verify trace read 8 band breaches, exactly the eight repair targets; after the repairs the complete 2,400-seed trace read '0 band breaches across 46 aspects', 46 rows in band, zero BREACH rows (parsed from the printed result, not the always-zero exit code). The before-to-after trace diff is exactly the eight target rows plus the summary count; all 38 other aspects, including controls rats_v2 (+0.0/-1.1), lamassu_v1 (+0.0/+5.7), and azhdaha_v1 (-2.4/-0.1), are byte-identical and in band. Focused aspects+parity+combat-trace 53 of 53; Quick route sim 1200 clear 70.6%, Long 56.4%, both 0 invalid runs, 0 guard trips, 0 fight timeouts; full npm test 529 of 529; production build green on vite 6.4.3 (814 modules). No engine, encounter, targeting, combat-semantics, map-generation, save-semantics, or difficulty-constant change; contentEpoch stays 1; combat goldens and parity ledgers untouched.",
+      "scope": "Reviewed candidate stat and board-order repairs to eight Board Aspects, data-only in src/data.js: matron_v2 regen 1->2, Venom Kiss poison 3->2, Grave Nail dmg 3->2; ghul_v2 both Rusted Hatchet cd 8->9; collector_v1 both Ledger Blade cd 8->8.5 integ 20->22; collector_v2 Counting Frame shield 8->3 cd 6->7 integ 14->6; peri_v2 both Shard Wings cd 2.5->2.6; golem_v2 both Coin Cannon cd 4->5; nasnas_v2 reordered to Bandage, Dagger, Vial, Torch, Buckler with shipped stats retained; simurgh_v1 Preen cd 8->9. Controls rats_v2, lamassu_v1, and azhdaha_v1 left unchanged."
     }
   ],
   "decisions": {
