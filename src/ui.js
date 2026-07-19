@@ -869,7 +869,9 @@ function startFight(me,foe,opts){
   $('main').className='fight';
   /* 0.113.0: stamp the hero id so heroes with painted full-body art step
      into the duel as a fixed spectacle layer, purely decorative */
-  try{document.documentElement.dataset.hero=G.hero||'';}catch(e){}
+  try{document.documentElement.dataset.hero=G.hero||'';
+    /* bosses with painted full bodies loom on the foe side, keyed by glyph */
+    document.documentElement.dataset.foe=(foe&&foe.portrait)||'';}catch(e){}
   $('main').innerHTML=
    fighterHTML(foe,'b')
   +'<div class="fx" id="fx-b"></div>'

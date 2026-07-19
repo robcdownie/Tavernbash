@@ -57,7 +57,7 @@
   /* the dealer stands INSIDE the action lane, anchored to its floor, so he
      can never overlap the boards regardless of device proportions */
   #main.fight .vsrow{position:relative;align-items:flex-start;padding-top:4px;}
-  #main.fight .vsrow::before{content:"";position:absolute;left:0;bottom:0;height:94%;max-height:340px;aspect-ratio:1;
+  #main.fight .vsrow::before{content:"";position:absolute;left:0;bottom:0;height:94%;max-height:min(320px,56vw);aspect-ratio:1;
     background:var(--hf,none) left bottom/contain no-repeat;z-index:0;pointer-events:none;
     filter:drop-shadow(0 0 26px rgba(232,120,40,.4)) drop-shadow(0 6px 10px rgba(0,0,0,.6));opacity:.96;}
   @media (orientation:landscape){#main.fight .vsrow::before{display:none;}}
@@ -76,6 +76,23 @@
   .shopdet .nm,.inspectcard .nm{font-size:15.5px;}
   .shopdet .ds,.inspectcard .ds{font-size:13px;line-height:1.4;}
   #main.fight{position:relative;}
+
+  /* ===== 0.117.0 BOSS PRESENCE: the district lords loom in person ===== */
+  html[data-foe="m-ghul"]{--ff:url('/art/ui/boss_full_ghul.png');}
+  html[data-foe="m-matron"]{--ff:url('/art/ui/boss_full_matron.png');}
+  html[data-foe="m-ifrit"]{--ff:url('/art/ui/boss_full_ifrit.png');}
+  html[data-foe="m-vizier"]{--ff:url('/art/ui/boss_full_vizier.png');}
+  html[data-foe="m-azhdaha"]{--ff:url('/art/ui/boss_full_azhdaha.png');}
+  #main.fight .vsrow::after{content:"";position:absolute;right:0;bottom:0;height:96%;max-height:min(370px,64vw);aspect-ratio:1;
+    background:var(--ff,none) right bottom/contain no-repeat;z-index:0;pointer-events:none;
+    filter:drop-shadow(0 0 30px rgba(216,74,52,.45)) drop-shadow(0 6px 12px rgba(0,0,0,.65));opacity:.97;
+    animation:bossloom 4.6s ease-in-out infinite alternate;transform-origin:50% 100%;}
+  @keyframes bossloom{from{transform:translateY(0) scale(1);}to{transform:translateY(-4px) scale(1.012);}}
+  /* the cobweb garland dresses the top of every duel, blended into the scene */
+  #main.fight::after{content:"";position:absolute;left:0;right:0;top:-6px;height:88px;z-index:2;pointer-events:none;
+    background:url('/art/ui/drape_web.png') center top/cover no-repeat;mix-blend-mode:screen;opacity:.75;}
+  #main.fight{position:relative;}
+  @media (prefers-reduced-motion: reduce){#main.fight .vsrow::after{animation:none;}}
 
   /* ===== 0.116.0 THE JUICE PASS: the game is alive every second ===== */
   /* the ballroom lane breathes: candle flicker from above, dust motes rising */
