@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-20",
-  "build": "0.127.0",
+  "build": "0.128.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -47,6 +47,21 @@
     "note": "NINETEEN manor versions 0.102.0 through 0.118.0 DEPLOYED to platosd.com per Robbie push it instruction of 2026-07-19: first push at 0.117.0 (bb-v75, CI green run 29702993160), second push with the final four polish at 0.118.0 (bb-v76). The manor identity program is live. fal key rotation still owed by Robbie."
   },
   "reservations": [
+    {
+      "version": "0.128.0",
+      "project": "Void Defect Class",
+      "token": "shop-fit-pass",
+      "owner": "claude",
+      "branch": null,
+      "worktree": null,
+      "status": "done",
+      "sourceCommit": null,
+      "planFile": "C:/Users/sidzb/.claude/plans/drifting-sparking-pine.md",
+      "trigger": "Robbie on 2026-07-20, with a device screenshot (IMG_2344, Deep Shelves omen): a crowded market forces scrolling to see every ware in both orientations, and again for the free bounty cards granted after a win. He asked to fold this pass in instead of the low-visibility overlay hug.",
+      "scope": "System 3 of the void-defect program, redirected by Robbie from the overlay hug to the higher-value shop-fit pass. The market shop grid now fits every ware on screen without an internal scroll at both target sizes, so a six-ware omen (Overstocked, Deep Shelves, Silent Bazaar), a Lantern-reduced five, or a market topped with free bounty cards after a win never clips a row behind the controls. The shop count drives two classes stamped in renderDraft on the .shop element: tight at five-plus wares, wide at seven-plus (the seven-plus case is a six-ware market plus free bounty cards, which the audit confirmed render in the same .shop grid via rollShopOffers concatenating freeKeep into offers). LANDSCAPE lays the shelf as ONE row regardless of count (grid-auto-flow column, grid-auto-columns minmax(0,1fr)), so cards shrink to fit the width and a second row can never clip; a four-ware market is byte-identical to before (one row of four). PORTRAIT keeps the two-up shelf for four wares, goes three across for five to six (two rows), and four across for seven to eight (two rows), with the illustration port shrinking per tier so the rows fit the tall shelf. The description (.wd) drops to the tap-detail on any tight shelf so each card stays short; the effect chip, price, slot pips, name, and art all remain. Presentation only in index.html CSS and one ui.js class stamp; no engine, data, save, economy, or shop-roll change (the offers, order, ids, and rng are untouched, only the grid that lays them out). CACHE_V bb-v85.",
+      "verification": "npm test 559 green, production build green, npm run shots green at both 844x390 and 390x844 with zero console errors and zero selector misses (the normal four-ware market confirmed unchanged in the full walk). The overflow was reproduced first at the target sizes by forcing A.shopN via the dev hook (shop6.mjs, no game code touched): six wares clipped a second row behind the controls at 844x390 and scrolled a third row at 390x844, matching Robbie's device shot. After the fix, six wares verified in one landscape row and a portrait three-by-two; an eight-ware stress (a six-ware market plus two free bounty cards, FREE badges confirming free cards sit in the same grid) verified in one landscape row and a portrait four-by-two, all without scrolling. Bridge note: committed locally as part of the batch (deploy at the end per Robbie); not pushed. sourceCommit set at commit time.",
+      "note": "This closes the void-defect program's visible work per Robbie's direction (kit, board rule, shop fit). The planned overlay hug pass (history and cloud cards that fix to about 100dvh, plus .framed) was deferred as low-visibility; it remains available as a future one-off. Batch ready for deploy approval: 0.126.0, 0.127.0, 0.128.0 (0.125.0 duel staging already deployed)."
+    },
     {
       "version": "0.127.0",
       "project": "Void Defect Class",

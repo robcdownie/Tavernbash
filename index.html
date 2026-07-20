@@ -459,6 +459,10 @@
   .eff.mt{color:#bfe0ff;background:rgba(120,170,220,.18);}
   .ware .wd{font-size:9px;line-height:1.25;color:var(--dim);margin-top:3px;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  /* 0.128.0 shop-fit: a crowded shelf (5 to 6 wares) drops the description to
+     the tap detail so every ware stays fully visible without scrolling; the
+     art, name, slot pips, effect chip, and price all stay on the card. */
+  .shop.tight .ware .wd{display:none;}
   /* inspect then buy: the selected ware and its stable detail panel */
   .ware.sel{border-color:var(--brass-hi);box-shadow:0 0 16px rgba(244,207,124,.4), inset 0 1px 0 rgba(255,255,255,.06);}
   .ware:focus-visible,.cell.it:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px;}
@@ -1148,6 +1152,20 @@
     .secmarket .ware .wn{font-size:14px;}
     .secmarket .ware .chips .eff{font-size:10.5px;}
     .secmarket .ware .wd{font-size:11.5px;}
+    /* 0.128.0 shop-fit: a crowded portrait shelf (5 to 6 wares) goes three
+       across with a smaller port, so six wares are two rows that fit the tall
+       shelf without scrolling instead of a clipped three-row stack. */
+    .secmarket .shop.tight{grid-template-columns:repeat(3,1fr);gap:6px;align-content:start;}
+    .secmarket .shop.tight .ware .ph{width:66px;height:66px;margin-bottom:4px;}
+    .secmarket .shop.tight .ware .ph .gi{width:48px;height:48px;}
+    .secmarket .shop.tight .ware .wn{font-size:11.5px;}
+    .secmarket .shop.tight .ware .wr{display:none;}
+    /* seven-plus wares (a six-ware market topped with free bounty cards after a
+       win) go four across so it stays two rows, never a scrolling stack */
+    .secmarket .shop.wide{grid-template-columns:repeat(4,1fr);}
+    .secmarket .shop.wide .ware .ph{width:54px;height:54px;}
+    .secmarket .shop.wide .ware .ph .gi{width:40px;height:40px;}
+    .secmarket .shop.wide .ware .wn{font-size:10.5px;}
     body.run:not(.fight) #app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;}
     body.run:not(.fight) #main{flex:1;display:flex;flex-direction:column;}
     /* 0.123.0 shelf pass, superseding the 0.48.3 stretch: the panel HUGS its
@@ -1593,7 +1611,10 @@
     #bd.hug{grid-auto-columns:50px;}
     #bd.hug.empty{min-height:46px;}
     body.run .rv b{line-height:1;display:block;}
-    .secmarket .shop{grid-template-columns:repeat(4,1fr);gap:6px;}
+    /* 0.128.0 shop-fit: landscape lays the shelf as ONE row (columns follow the
+       ware count) so a six-ware market never clips a second row behind the
+       controls; minmax(0,1fr) shrinks the cards to fit the width, never scrolls. */
+    .secmarket .shop{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;}
     .secdoors .doors{display:grid;grid-template-columns:3fr 2fr;gap:8px;align-items:start;}
     .ware{padding:6px 5px 5px;}
     .ware .ph .gi{width:30px;height:30px;}
