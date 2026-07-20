@@ -110,13 +110,18 @@ function cellHTML(it,i,sel){
   +'</div>';
 }
 function boardHTML(board,slots,selIdx){
+  /* 0.127.0 board unused-slot rule (stall side): the stall HUGS its wares plus
+     one lit next-slot instead of padding a row of holes to 10, so the counter
+     art breathes in the freed space. Remaining and locked future capacity read
+     from the "N / M slots" caption, not from dark recesses. An empty board
+     keeps a modest strip so the "fight from here" hint still has room. */
+  if(!board.length){
+    return '<div class="board hug empty" id="bd"><div class="bhint">Your wares fight from here</div></div>';
+  }
   let h='';
-  if(!board.length){h+='<div class="bhint">Your wares fight from here</div>';}
   board.forEach(function(it,i){h+=cellHTML(it,i,i===selIdx);});
-  const used=usedNow(board);
-  for(let c=used;c<slots;c++){h+='<div class="cell empty'+(c===used?' nxt':'')+'"></div>';}
-  for(let c=slots;c<10;c++){h+='<div class="cell lock"></div>';}
-  return '<div class="board" id="bd">'+h+'</div>';
+  if(usedNow(board)<slots){h+='<div class="cell empty nxt"></div>';}
+  return '<div class="board hug" id="bd">'+h+'</div>';
 }
 function fightCellHTML(fi,i,side){
   const ps=primStat(fi);const col=CATC[fi.cat]||CATC.util;

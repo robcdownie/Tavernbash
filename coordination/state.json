@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-20",
-  "build": "0.126.0",
+  "build": "0.127.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -47,6 +47,21 @@
     "note": "NINETEEN manor versions 0.102.0 through 0.118.0 DEPLOYED to platosd.com per Robbie push it instruction of 2026-07-19: first push at 0.117.0 (bb-v75, CI green run 29702993160), second push with the final four polish at 0.118.0 (bb-v76). The manor identity program is live. fal key rotation still owed by Robbie."
   },
   "reservations": [
+    {
+      "version": "0.127.0",
+      "project": "Void Defect Class",
+      "token": "board-unused-slot-rule",
+      "owner": "claude",
+      "branch": null,
+      "worktree": null,
+      "status": "done",
+      "sourceCommit": null,
+      "planFile": "C:/Users/sidzb/.claude/plans/drifting-sparking-pine.md",
+      "designCall": "Robbie chose the HYBRID treatment on 2026-07-20 from a still mock (board-options.png: current vs A recede vs C strip vs B hug rendered on the live stall board): hug the draft stall, recede the fight boards.",
+      "scope": "System 2 of the void-defect program (taken before the overlay hug pass because Robbie asked for the visually-best-impacting work next, and the empty board cells are the symptom he named most directly). The board rule, split by context per Robbie's mock call. STALL (hug): boardHTML in ui.js no longer pads the draft board with empty and locked cells to 10; it renders the wares plus one lit next-slot affordance (the existing .cell.empty.nxt) when capacity allows, and #bd carries a hug class so the wood tray sizes to fit-content (grid-auto-flow column, fixed cell tracks, left aligned, a full stall scrolls inside itself). The remaining and locked future capacity now read from the existing N-of-M slots caption, not a row of dark recesses, so the painted counter (already lit by the System 1 stage pool and the market art) breathes in the freed space. An empty board keeps a modest 240px strip so the your-wares-fight-from-here hint still has room. FIGHT (recede): the 0.115 combat recede on surplus cells deepens from opacity .32 to .16 so the district backdrop shows through instead of a row of dim recesses, while the board frame and the 0.122 light pool keep the combat band composed (recede, not hug, was chosen so the 0.125 duel composition is untouched). The surplus cells were confirmed purely decorative before removal: ware selection uses data-i on .cell.it, reordering is via the Move buttons, and buying appends to G.board, so nothing depended on the empty or locked placeholders. The vault (its own locked-shelf design from L9) is deliberately left alone. Presentation only in index.html CSS and one ui.js render function; no engine, data, save, economy, targeting, or route-semantics change. CACHE_V bb-v84.",
+      "verification": "npm test 559 green, production build green, npm run shots green at both 844x390 and 390x844 with zero console errors and zero selector misses. Stall hug verified on the market shot at both sizes: three wares plus one lit next-slot hug left and the painted counter fills the freed space where a row of holes used to sit. Fight recede verified on the combat frames: the surplus cells fade into the wood band while the duelists and the centered board band stay composed. The mock that drove Robbie's design call was rendered by injecting the candidate CSS on the live stall board (no game code touched) and is saved as board-options.png. Bridge note: committed locally as part of the batch (deploy at the end per Robbie); not pushed. sourceCommit set at commit time.",
+      "note": "One system per version. Remaining in the program: the hug pass on the history and cloud overlay cards that fix to about 100dvh (Cause A), plus the .framed card treatment, which becomes the next version. Vault locked-shelf left as its own intentional design."
+    },
     {
       "version": "0.126.0",
       "project": "Void Defect Class",
