@@ -1,4 +1,4 @@
-import {test, expect} from '@playwright/test';
+import {test, expect} from './fixtures.js';
 
 /* Crash-recovery matrix: reach a phase, reload the page (an iOS tab-kill leaves
    only localStorage), continue, and assert the real restoreRoute/resumeRoutePhase

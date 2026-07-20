@@ -1,4 +1,4 @@
-import {test, expect} from '@playwright/test';
+import {test, expect} from './fixtures.js';
 
 /* drive a fresh route to the map screen through the real UI, using the
    localhost-only BBDEV-free path (plain clicks) so the test exercises what a
