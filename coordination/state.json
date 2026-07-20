@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-20",
-  "build": "0.125.0",
+  "build": "0.126.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -47,6 +47,20 @@
     "note": "NINETEEN manor versions 0.102.0 through 0.118.0 DEPLOYED to platosd.com per Robbie push it instruction of 2026-07-19: first push at 0.117.0 (bb-v75, CI green run 29702993160), second push with the final four polish at 0.118.0 (bb-v76). The manor identity program is live. fal key rotation still owed by Robbie."
   },
   "reservations": [
+    {
+      "version": "0.126.0",
+      "project": "Void Defect Class",
+      "token": "negative-space-kit",
+      "owner": "claude",
+      "branch": null,
+      "worktree": null,
+      "status": "done",
+      "sourceCommit": null,
+      "planFile": "C:/Users/sidzb/.claude/plans/drifting-sparking-pine.md (approved 2026-07-20)",
+      "scope": "System 1 of the approved three-version program to kill content-floating-in-a-void as a defect class (foundation first, then the hug pass, then the board unused-slot rule). This version ships the negative-space kit: three :root tokens naming the recurring composition recipes so any empty region reads as composed manor light instead of an accidental void. --pool-lantern is the warm candle pool low (the 0.123 .stage pool value), --vignette-cold is a soft cold edge (the 0.122 fight backdrop grade lightened for local reuse), --backdrop-warm is a graceful gradient fill (the --card-art and --fightbg fallback). Applied to the two genuine gaps the audit found: the landscape left rail lower half (#ribbon::after filler, which carried a barely-there .06 warm wash) now takes the full --pool-lantern so the rail's empty lower half reads as a candlelit alcove on every landscape draft and map screen; and an unrouted fight (tutorial, classic, no data-fightbg stamp) now takes a composed --backdrop-warm plus --vignette-cold backdrop instead of the plain hall, overridden by the higher-specificity routed html[data-fightbg] rule for normal route fights. Two deliberate refinements to the plan, both recorded: (1) the standard treatment ships as reusable tokens applied inside each region's own background, NOT as .lit or .framed utility classes, because a generic background class loses to element specificity and a generic overlay-pseudo class would override child positioning such as the sticky market controls; the .framed card treatment moves to System 2 where its real consumer, the overlay cards, lives. (2) .sec.secmarket was left alone: the 0.123 shelf hug already prevents a void there, its flatness is backdrop-dependent and low-severity, so dressing it would be an unnecessary change. Presentation only in index.html; no engine, data, save, economy, targeting, or route-semantics change. CACHE_V bb-v83.",
+      "verification": "npm test 559 green, production build green, npm run shots green at both 844x390 and 390x844 with zero console errors and zero selector misses. The rail win verified on a before-and-after crop of the landscape route-map rail: the flat dead lower half now carries a warm candle pool at its base. Composed screens unchanged by construction: the tokens are unused outside the two edits, the rail ::after only paints the rail, and the base #main.fight fallback only applies to unrouted fights (every harness fight is routed and overrides it), so fight, victory, run-end, and every other screen render identically. Honest note: System 1 is the foundation (the token vocabulary Systems 2 and 3 reuse); its visible impact is modest and subtle by design (manor candlelight), and the unrouted-fight fallback is not exercised by the seeded harness (all harness fights carry a district stamp), so it was verified by scoped reasoning rather than a harness frame. Bridge note: not committed or deployed; sourceCommit stays null until Robbie approves. Held for Robbie's review before System 2; System 3 (board unused slots) needs a still mock and his design call first per the plan.",
+      "note": "One system per version. Next: System 2 (0.127) the hug pass (history and cloud overlay cards that fix to ~100dvh, plus .framed), then System 3 (0.128) the board unused-slot rule, mock and approval first."
+    },
     {
       "version": "0.125.0",
       "project": "Presentation Audit",

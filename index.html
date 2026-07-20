@@ -31,6 +31,17 @@
     --line:rgba(216,162,74,0.22); --line-s:rgba(216,162,74,0.10);
     --r:14px; --r-s:10px;
     --e-out:cubic-bezier(.22,1,.36,1); --e-expo:cubic-bezier(.16,1,.3,1);
+    /* 0.126.0 negative-space kit: the recurring composition recipes named once,
+       so any container that owns empty space reads as composed manor light
+       instead of an accidental void. --pool-lantern is a warm candle pool low
+       (the 0.123 shelf pool at .stage); --vignette-cold is a soft cold edge
+       (the fight backdrop grade, lightened for local reuse); --backdrop-warm is
+       a graceful gradient fill (the --card-art and --fightbg fallback). Applied
+       inside a region's own background so no class fights element specificity. */
+    --pool-lantern:radial-gradient(46% 26% at 50% 97%, rgba(240,180,84,.14), transparent 72%),
+      radial-gradient(130% 70% at 50% 108%, transparent 55%, rgba(10,6,3,.32) 92%);
+    --vignette-cold:radial-gradient(120% 92% at 50% 46%, transparent 40%, rgba(10,7,12,.52) 94%);
+    --backdrop-warm:radial-gradient(120% 100% at 50% 0%, #3a2a1a, #241812);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   /* ===== 0.113.0 THE FURNITURE PASS: painted chrome replaces CSS chrome ===== */
@@ -142,6 +153,13 @@
   html[data-fightbg="souk"]{--fightbg:url('/art/bg/bg_route_souk.webp');}
   html[data-fightbg="palace"]{--fightbg:url('/art/bg/bg_route_palace.webp');}
   html[data-fightbg="dragon_gate"]{--fightbg:url('/art/bg/bg_route_dragon_gate.webp');}
+  /* 0.126.0 negative-space kit: a fight with NO district stamp (tutorial,
+     classic) used to be a plain hall with no dedicated backdrop; it now takes a
+     composed gradient backdrop from the kit so the duel always happens
+     somewhere. A routed fight overrides this via the higher specificity
+     html[data-fightbg] rule below. */
+  #main.fight{background:var(--vignette-cold), var(--backdrop-warm) center/cover no-repeat;
+    border-radius:14px;box-shadow:inset 0 0 60px rgba(0,0,0,.6);}
   /* 0.122.0 duel recomposition: the district painting is the WHOLE duel's
      backdrop now (full bleed behind every row, vignetted hard at the edges),
      and the vs row shrinks to a carved divider strip between the two boards */
@@ -1698,7 +1716,7 @@
     /* the rail's empty lower half grounds itself with a quiet lantern wash
        instead of reading as an unfinished strip */
     body.run #ribbon::after{content:"";flex:1 1 auto;min-height:24px;
-      background:linear-gradient(180deg,transparent 30%,rgba(216,162,74,.06));
+      background:var(--pool-lantern);
       border-top:1px solid rgba(216,162,74,.14);}
     /* fights hide the rail and reclaim its column; this must sit after
        the body.run #ribbon rule above to win on source order */
