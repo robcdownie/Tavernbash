@@ -974,7 +974,13 @@
   .dock .cell.it{background:rgba(10,5,2,.24);}
   .dock .cell.it .gi{filter:drop-shadow(0 5px 4px rgba(0,0,0,.55));}
   .dock .cell.empty,.dock .cell.lock{background:rgba(10,5,2,.32);box-shadow:inset 0 3px 8px rgba(0,0,0,.5);}
-  .stage{background:linear-gradient(180deg, rgba(27,19,47,.14), transparent 26%);}
+  /* 0.123.0 shelf pass: the stage below a hugging shelf is not dead panel;
+     a warm lantern pool gathers low over the counter art and the edges
+     vignette softly, so remaining negative space reads as the lit shop */
+  .stage{background:
+    radial-gradient(46% 26% at 50% 97%, rgba(240,180,84,.14), transparent 72%),
+    radial-gradient(130% 70% at 50% 108%, transparent 55%, rgba(10,6,3,.32) 92%),
+    linear-gradient(180deg, rgba(27,19,47,.14), transparent 26%);}
   /* painted doors carry their own arch now, so the card is a clean
      rounded rect; the big 44px top curve used to clip the health text */
   .door{border-radius:16px;padding:12px 13px;}
@@ -1091,6 +1097,7 @@
   .ware .ph .gi{border-radius:50%;}
   @media (orientation:portrait){
     .secmarket .shop{grid-template-columns:1fr 1fr;gap:8px;}
+    /* 0.123.0 shelf pass: the panel HUGS its cards (rules further down) */
     /* 0.120.0 presence pass: portrait shelf slack goes into BIGGER wares, not
        wider air; the illustration port carries the card the way the painted
        art deserves at phone size */
@@ -1101,13 +1108,17 @@
     .secmarket .ware .wd{font-size:11.5px;}
     body.run:not(.fight) #app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;}
     body.run:not(.fight) #main{flex:1;display:flex;flex-direction:column;}
+    /* 0.123.0 shelf pass, superseding the 0.48.3 stretch: the panel HUGS its
+       cards, so few slots never leave a void inside the shelf; the controls
+       pull up under the cards. A full shelf still grows and, past the stage
+       height, scrolls (the stage owns overflow). The freed stage below reads
+       as the lantern-lit counter, not dead panel. */
     #main.draft .stage{flex:1;display:flex;flex-direction:column;min-height:0;}
-    #main.draft .stage .sec.secmarket{flex:1;display:flex;flex-direction:column;min-height:0;}
-    /* the grid is the flexible zone: slack spreads between rows so
-       cards reach the rail; excess scrolls inside the shelf and the
-       controls and stall never move */
-    #main.draft .secmarket .shop{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;align-content:space-evenly;}
+    #main.draft .stage .sec.secmarket{flex:0 1 auto;display:flex;flex-direction:column;min-height:0;}
+    #main.draft .secmarket .shop{flex:0 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
     #main.draft .secmarket .controls{margin-top:11px;}
+    /* sold crates stay squat on the tall portrait cards */
+    .ware.gone{max-height:150px;}
   }
 
   /* ===== V22 CREST PASS: the ribbon becomes one carved bar ===== */
@@ -1549,7 +1560,9 @@
     .ware .wr{display:none;}
     .secmarket .controls{position:sticky;bottom:0;z-index:4;margin-top:4px;padding-top:4px;
       background:linear-gradient(180deg,transparent,#171017 40%);}
-    .secmarket .shop{padding-bottom:44px;}
+    /* 0.123.0 shelf pass: the 44px reserve only matters when the panel
+       scrolls; on a short shelf it read as one more dead band */
+    .secmarket .shop{padding-bottom:6px;}
     .vault .cell{height:40px;}
     .controls .btn{min-height:36px;padding:7px 8px;font-size:12px;}
     .ware .wn{font-size:10px;line-height:1.2;}
@@ -1600,12 +1613,12 @@
     .card.reveal .bigic{width:64px;height:64px;}
     .card.reveal .big{font-size:32px;}
     .card.reveal p{margin:5px 0;}
-    /* the landscape shelf mirrors the portrait slack rule: the panel owns the
-       stage and spreads its slack inside the grid, so a short roll no longer
-       leaves one dead band between the cards and the docked controls */
+    /* 0.123.0 shelf pass: landscape hugs too; the panel ends at its controls
+       and the counter art breathes below it (see the stage lantern pool).
+       Overflow scrolls INSIDE the shop, so the controls never leave view. */
     #main.draft .stage{display:flex;flex-direction:column;}
-    #main.draft .stage .sec.secmarket{flex:1;display:flex;flex-direction:column;min-height:0;}
-    #main.draft .secmarket .shop{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;align-content:space-evenly;}
+    #main.draft .stage .sec.secmarket{flex:0 1 auto;display:flex;flex-direction:column;min-height:0;}
+    #main.draft .secmarket .shop{flex:0 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
     .scout{max-width:660px;margin:auto;}
     .scout .board .cell{height:44px;}
     .card .big{font-size:29px;margin-bottom:4px;}

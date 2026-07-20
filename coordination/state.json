@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-20",
-  "build": "0.122.0",
+  "build": "0.123.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -47,6 +47,18 @@
     "note": "NINETEEN manor versions 0.102.0 through 0.118.0 DEPLOYED to platosd.com per Robbie push it instruction of 2026-07-19: first push at 0.117.0 (bb-v75, CI green run 29702993160), second push with the final four polish at 0.118.0 (bb-v76). The manor identity program is live. fal key rotation still owed by Robbie."
   },
   "reservations": [
+    {
+      "version": "0.123.0",
+      "project": "Presentation Audit",
+      "token": "shelf-hug-pass",
+      "owner": "claude",
+      "branch": null,
+      "worktree": null,
+      "status": "done",
+      "sourceCommit": "2a835e9",
+      "scope": "The shelf pass, superseding the 0.48.3 stretch rule with Robbie's direction: the Curio Stall panel HUGS its cards at both orientations, so a tier-1 roll never leaves a void inside the shelf and the controls pull up under the cards; overflow scrolls INSIDE the shop grid, so a full shelf grows and the label and controls never leave view; the landscape 44px scroll reserve drops to 6px on the short shelf; sold crates cap at 150px against the tall portrait cards; and the freed stage below the panel reads as the lantern-lit counter (a warm pool low over the counter art plus a soft edge vignette on .stage). The FAVORS BURN rail clip Robbie flagged was fixed by the 0.120 crest stacking and is confirmed intact at both sizes in this pass's shots. CSS only; engine and economy untouched. CACHE_V bb-v80.",
+      "verification": "npm test 559 green, build green, npm run shots green at both 844x390 and 390x844, zero console errors, zero selector misses. Iterated once on real frames: the first hug clipped the portrait controls below the stage fold because the internal scroll valve left with the stretch; restored as shop-internal overflow. Verified the short shelf (05, two live cards) hugs at both sizes and the fuller shelf (12, four cards) grows correctly with the counter art breathing below. Before and after tiles delivered at both viewports."
+    },
     {
       "version": "0.122.0",
       "project": "Presentation Audit",
