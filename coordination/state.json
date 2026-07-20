@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-20",
-  "build": "0.124.0",
+  "build": "0.125.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -47,6 +47,19 @@
     "note": "NINETEEN manor versions 0.102.0 through 0.118.0 DEPLOYED to platosd.com per Robbie push it instruction of 2026-07-19: first push at 0.117.0 (bb-v75, CI green run 29702993160), second push with the final four polish at 0.118.0 (bb-v76). The manor identity program is live. fal key rotation still owed by Robbie."
   },
   "reservations": [
+    {
+      "version": "0.125.0",
+      "project": "Presentation Audit",
+      "token": "landscape-duel-staging",
+      "owner": "claude",
+      "branch": null,
+      "worktree": null,
+      "status": "done",
+      "sourceCommit": null,
+      "scope": "Finishing the 0.122.0 duel recomposition at 844x390. Confirmed first against npm run shots: in landscape BOTH duelists were crammed into the single 176px right rail (the foe a medium medallion high, the dealer full body low and cropped), leaving the whole left of the stage bare, so nothing framed the boards and the enemy read as an afterthought against the hero's full body. Root cause: the 0.122.0 landscape block pinned fig-a and fig-b both to the right (right:6px and right:1%) because the fight grid carried only one scenery rail. Fix, CSS only inside the landscape media query (index.html), no ui.js or engine change needed: #main.fight becomes a three column grid (158px flank, centered boards, 158px flank) with a scenery flank on EACH side, so the duel reads as a versus screen. The foe stands the LEFT flank (a large round medallion for a non boss, a full body for a boss), the dealer the RIGHT flank with his art facing inward, boards centered near 50px cells with the vs divider slimmed. Both figures are painted from 768 square art (hero_full and boss_full are 768 squares, the foe medallions fill their own frame), so the earlier narrow contain box fit the centered figure by width and rendered it tiny; the flanks now COVER a tall box and center on the figure, clipping only the dead side margins of the square, which is exactly why the portrait square box already reads well. Five boss selectors (ghul, matron, ifrit, vizier, azhdaha) get the same tall cover treatment so a boss duel mirrors instead of pitting a big dealer against a small looming foe. All figures stay z 0 under every bar, name, board, and log; the foe box drops its bossloom animation so the vertical centering transform cannot be clobbered. Engine, targeting, timing, economy, and route semantics untouched. CACHE_V bb-v82.",
+      "verification": "npm test 559 green, production build green, npm run shots green at both 844x390 and 390x844 with zero console errors and zero selector misses. Landscape before and after tiles delivered: the foe medallion and the dealer now flank a centered board band framing the stage instead of stacking on the right rail. Portrait (390x844) before and after confirmed pixel identical, since every change is scoped to the landscape media query. Iterated twice on real frames: the first attempt rendered the dealer tiny because a narrow contain box fits a 768 square by width, discovered by measuring the eight hero_full art files (seven are 768 squares); switching the flank to cover plus center bottom filled it at full height. The boss case, which the seeded harness never reaches (its opener is the non boss Pilfer Monkey), was verified with a scratch Playwright driver that stamps data-foe m-ifrit onto the live fight DOM: the Ifrit stands the left flank at the dealer's scale, mirroring. Bridge note: not committed or deployed; sourceCommit stays null until Robbie commits and approves the push to platosd.com. Recommend npm run test:layout on device before deploy.",
+      "note": "One presentation system: the landscape duel composition. Portrait was already strong and is untouched. Deferred nothing; the four unpainted monsters (golem, roc, sandling, simurgh) still cast no foe figure exactly as before, since they have no art."
+    },
     {
       "version": "0.124.0",
       "project": "Presentation Audit",

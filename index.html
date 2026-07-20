@@ -1590,33 +1590,59 @@
     /* fights stack full width: enemy board on top, yours on the bottom,
        the versus medallion between. Cells roughly double vs the old
        side-by-side split and fill the floor that used to sit empty. */
-    /* 0.122.0 duel recomposition: the boards own a centered combat column at
-       ~60px cells while the right rail is a full-height scenery band where
-       the foe (high) and the dealer (low) flank the stage. Slack pools in the
-       slim divider, so the boards hold the vertical center. */
-    #main.fight{display:grid;grid-template-columns:minmax(0,1fr) 176px;gap:2px 6px;
-      grid-template-rows:auto auto minmax(40px,1fr) auto auto auto;
-      grid-template-areas:"fgb fgb" "bdb scn" "vs scn" "bda scn" "fga fga" "log log";}
+    /* 0.125.0 landscape duel staging: the wide stage becomes a proper versus
+       screen. The boards hold a centered combat column with a full-height
+       scenery FLANK on each side, so BOTH duelists frame the band instead of
+       stacking into one right rail as an afterthought. The foe stands the left
+       flank as a large medallion or looming body, the dealer the right flank
+       (his art faces inward), each anchored to its outer edge and floor. Both
+       are z 0, so every bar, name, board, and log paints cleanly over them. */
+    #main.fight{display:grid;grid-template-columns:158px minmax(0,1fr) 158px;gap:2px 6px;
+      grid-template-rows:auto auto minmax(32px,1fr) auto auto auto;
+      grid-template-areas:"fgb fgb fgb" "scb bdb sca" "scb vs sca" "scb bda sca" "fga fga fga" "log log log";}
     #fg-b{grid-area:fgb;}
     #fg-a{grid-area:fga;}
     .bd-b{grid-area:bdb;}
     .bd-a{grid-area:bda;}
     #fx-b{grid-area:bdb;}
     #fx-a{grid-area:bda;}
-    #main.fight .vsrow{grid-area:vs;margin:1px 0;min-height:40px;}
-    .duelfig.fig-b{top:15%;right:1%;height:min(142px,var(--ffmax,142px));}
-    .duelfig.fig-a{left:auto;right:6px;bottom:13%;height:142px;
-      background-position:right bottom;}
+    #main.fight .vsrow{grid-area:vs;margin:1px 0;min-height:32px;}
+    /* the flank figures: id-scoped so they outrank the base per-foe left/right
+       rules (the foe otherwise pins right). Both are painted from square art
+       (hero_full and the foe medallion are 768 squares), so a narrow flank box
+       with a contain/left fit would render the centered figure tiny. Instead we
+       COVER the tall flank box and center on the figure, clipping only the dead
+       side-margins of the square, so each duelist fills its flank at full height
+       exactly as the portrait square box already does. The foe stays a round
+       medallion (its --ff art fills the frame); a boss body covers the same box. */
+    #main.fight .duelfig.fig-b{left:1px;right:auto;bottom:auto;top:50%;
+      transform:translateY(-50%);height:min(152px,42vh);width:auto;aspect-ratio:1;
+      background-position:left center;animation:none;}
+    #main.fight .duelfig.fig-a{left:auto;right:0;top:auto;bottom:2%;
+      width:158px;height:min(260px,84vh);aspect-ratio:auto;
+      background-size:cover;background-position:center bottom;}
+    /* a district lord is a body, not a medallion: the five bosses (their art is
+       the same 768 square as the hero) stand the LEFT flank at full height with
+       the same tall cover box, so a boss duel mirrors instead of pitting a big
+       dealer against a small foe. Non-boss foes keep the round medallion above. */
+    html[data-foe="m-ghul"] #main.fight .duelfig.fig-b,
+    html[data-foe="m-matron"] #main.fight .duelfig.fig-b,
+    html[data-foe="m-ifrit"] #main.fight .duelfig.fig-b,
+    html[data-foe="m-vizier"] #main.fight .duelfig.fig-b,
+    html[data-foe="m-azhdaha"] #main.fight .duelfig.fig-b{
+      left:0;right:auto;top:auto;bottom:2%;transform:none;
+      width:158px;height:min(260px,84vh);aspect-ratio:auto;border-radius:0;
+      background-size:cover;background-position:center bottom;}
     #main.fight .log{grid-area:log;height:46px;min-height:0;margin-top:2px;}
     #main.fight .log.open{height:150px;}
     #main.fight .fighter{margin-bottom:2px;}
     #main.fight .fh{margin:0 2px 2px;}
     #main.fight .fh .fp{width:36px;height:36px;}
     #main.fight .board.combat{padding:4px;gap:4px;}
-    #main.fight .cell.f{height:64px;}
-    #main.fight .cell.f .gi{width:42px;height:42px;}
-    #main.fight .cell.f.s2 .gi{width:52px;height:52px;}
-    #main.fight .cell.f.s3 .gi{width:60px;height:60px;}
+    #main.fight .cell.f{height:56px;}
+    #main.fight .cell.f .gi{width:36px;height:36px;}
+    #main.fight .cell.f.s2 .gi{width:44px;height:44px;}
+    #main.fight .cell.f.s3 .gi{width:50px;height:50px;}
     .card{max-width:520px;padding:18px 26px;}
     /* 0.120.0 presence pass: eight dealer chips fit one landscape row instead
        of wrapping a lone orphan onto a second line */
