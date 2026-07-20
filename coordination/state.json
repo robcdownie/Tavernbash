@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-20",
-  "build": "0.123.0",
+  "build": "0.124.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -47,6 +47,18 @@
     "note": "NINETEEN manor versions 0.102.0 through 0.118.0 DEPLOYED to platosd.com per Robbie push it instruction of 2026-07-19: first push at 0.117.0 (bb-v75, CI green run 29702993160), second push with the final four polish at 0.118.0 (bb-v76). The manor identity program is live. fal key rotation still owed by Robbie."
   },
   "reservations": [
+    {
+      "version": "0.124.0",
+      "project": "Presentation Audit",
+      "token": "combat-legibility-pass",
+      "owner": "claude",
+      "branch": null,
+      "worktree": null,
+      "status": "done",
+      "sourceCommit": null,
+      "scope": "Combat text legibility and a juice grading pass, confirmed first against npm run shots at both sizes: at 844x390 the ability and damage floats stacked directly across the enemy health bar (Lit 6 burn, -6, -17 overprinting 36 / 90) and a pair of Charged readouts garbled into the storm pill row. Root cause: the float layer (.fx) was a zero height anchor sharing its board's grid area, so any upward drift crossed straight into the health bar row above or the storm pill row above that with no gap between them. Fix: .fx is now position absolute, inset zero, overflow hidden, clipped exactly to its own side's board box (index.html), so a float physically cannot reach a neighboring row. fltFx in ui.js walks a fixed five lane, two row grid inside that box, alternating row on every single spawn so two events fired in the same tick never share a row even when the text is long; once eight floats are live the oldest fades out fast (.flt.evict) instead of the old silent drop at twelve. The punch keyframe's rise shortened from 46px to 28px so it stays inside the clipped box through its own fade. Juice grading from the captured frames: cooldown rings, the cell fire and chip flashes, and the fighter hit pulse all read well and were left alone; screen shake was flat, gated at 30 damage, so most of this exact fight's hits (6 to 27 damage) never shook the screen at all, and a kill had zero screen level punctuation, only particles and sound. Shake now scales in two CSS tiers (shk and the new shkbig) driven from a big argument on shake(), firing lightly from 8 damage and heavily from 32; the heavy tier plus a screen flash now also fire on every destroy event, so a kill reads as the strongest beat instead of the weakest. Both tiers stay behind the existing RM guard in shake()/flashScr() and the prefers-reduced-motion block. Engine, targeting, and combat timing untouched; every change lives in the float spawn function, the shake/flash helpers, and the two handleEvents call sites in ui.js, plus the .fx/.flt/#app.shake rules in index.html CSS.",
+      "verification": "npm test 559 green, build green, npm run shots green at both 844x390 and 390x844, zero console errors, zero selector misses. Confirmed the reported bug first on a clean baseline capture (before tiles saved), then verified the fix on frames 08 through 10 at both viewports: the enemy health bar and the storm pill stay fully clean through the whole fight, and a same-tick pair of Charged Bellows Boy readouts that first collided into a single garbled line after the initial fix now lands on two separate readable rows once row alternation was added per spawn instead of every five. Portrait was already using its wide scenery band as an accidental buffer and was re-checked for regression; it reads at least as clean as before, now scoped tightly to the board instead of drifting into the foe portrait's scenery space. Remaining minor nit, not fixed here: lane 0 sits close enough to the board's own leftmost occupied cell that a float can start over that cell's art rather than clear air; this is inherited from the 0.121.0 five lane layout (same lane math), is not a regression, and reads as acceptable overlap with the player's own board rather than the health bar or pill collision this pass targeted. Bridge note: the device command tools used in prior passes to write files and commits to Robbie's machine and run git there were unavailable this session (only device info, not device bash or file staging); this pass is delivered as the changed files and a patch for Robbie to apply, and sourceCommit stays null here until he commits it himself. CACHE_V bb-v81."
+    },
     {
       "version": "0.123.0",
       "project": "Presentation Audit",

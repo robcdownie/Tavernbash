@@ -58,7 +58,10 @@ function reviveOffer(o){const c=Object.assign({},o);if(c.offerId==null)c.offerId
 function fuseStamp(board){const forged=fuseScan(board);forged.forEach(function(f){f.iid=allocId(G.run);
   metricEvent('fusion',{id:f.id,rarity:f.rarity,iid:f.iid});});return forged;}
 function shuffle(a,rng){for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;}
-function shake(){if(RM)return;const a=$('app');a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake');}
+/* 0.124.0 juice pass: shake scales in two tiers so ordinary hits still
+   register instead of only the rare big swing; big passes true for the
+   heavier shake, used on large hits and on every kill. */
+function shake(big){if(RM)return;const a=$('app');a.classList.remove('shake');a.classList.toggle('big',!!big);void a.offsetWidth;a.classList.add('shake');}
 function flashScr(){if(RM)return;const f=$('flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');}
 
 function metricDistrict(phase){
@@ -709,19 +712,32 @@ function streakFx(fromEl,toEl){
   setTimeout(function(){s.remove();},230);
 }
 function fltFx(side,txt,color,mini,big){
-  const lay=$('fx-'+side);if(!lay||lay.children.length>11)return;
+  const lay=$('fx-'+side);if(!lay)return;
+  /* 0.124.0 legibility pass: the float layer is now clipped to this side's
+     OWN board box (index.html scopes #fx-a/#fx-b to their board's grid
+     area with overflow hidden), so nothing can climb into the health bar
+     row or the storm pill above it any more. Floats walk a fixed 5-lane,
+     2-row grid inside that box instead of stacking ever higher; once the
+     grid is full the oldest float fades immediately to make room, so a
+     burst of events staggers legibly instead of garbling into a stack. */
+  const CAP=8;
+  if(lay.children.length>=CAP){
+    const old=lay.firstChild;
+    if(old){old.classList.add('evict');setTimeout(function(){old.remove();},150);}
+  }
   const d=document.createElement('div');d.className='flt';
   d.style.color=color;
-  d.style.fontSize=(typeof big==='number')?Math.min(26,Math.max(12,Math.round(11+big*0.3)))+'px':(big?'20px':'13px');
-  /* 0.121.0 recommendations pass: floats walk five lanes instead of rolling
-     random x, and each concurrent float starts a step higher, so simultaneous
-     readouts ("Lit 4 burn" over "-11") no longer overprint into garble. The
-     jitter stays cosmetic; the sim never reads any of this. */
-  lay._ln=((lay._ln||0)+1)%5;
-  d.style.left=(7+lay._ln*16+Math.random()*5)+'%';
-  d.style.top=(-4-lay.children.length*13)+'px';
+  d.style.fontSize=(typeof big==='number')?Math.min(24,Math.max(11,Math.round(10+big*0.26)))+'px':(big?'18px':'12px');
+  /* row alternates every single spawn (not every five) so two events fired
+     in the same tick, like a pair of "Charged X" readouts, always land on
+     different rows even though they share the lane cycle; long item names
+     collided when consecutive spawns could still share a row. */
+  lay._n=((lay._n||0)+1)%10;
+  const row=lay._n%2,lane=Math.floor(lay._n/2)%5;
+  d.style.left=(9+lane*17+Math.random()*4)+'%';
+  d.style.top=(row===0?'32%':'64%');
   d.innerHTML=(mini?ic(mini,'mi'):'')+txt;
-  lay.appendChild(d);setTimeout(function(){d.remove();},1000);
+  lay.appendChild(d);setTimeout(function(){d.remove();},820);
 }
 function cellFx(side,i,cls){
   const c=$('fc-'+side+'-'+i);if(!c)return;
@@ -769,14 +785,21 @@ function handleEvents(F,evs){
       else{cellFx(e.side,e.i,'chip');
         if(lastFire&&lastFire.side!==e.side){streakFx($('fc-'+lastFire.side+'-'+lastFire.i),$('fc-'+e.side+'-'+e.i));}
         const p=ctrOf($('fc-'+e.side+'-'+e.i));if(p&&!RM)fxHit(p.x,p.y,e.amt);sHit(e.amt);}}
-    else if(e.k==='destroy'){if(G.recap)G.recap[e.side].dead.push(e.nm);const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('dead');logLine('<b class="r">'+esc(e.nm)+'</b> destroyed','e-skull','#ff8d76');const p=ctrOf(c);if(p&&!RM)fxDestroy(p.x,p.y);sDestroy();}
+    else if(e.k==='destroy'){if(G.recap)G.recap[e.side].dead.push(e.nm);const c=$('fc-'+e.side+'-'+e.i);if(c)c.classList.add('dead');logLine('<b class="r">'+esc(e.nm)+'</b> destroyed','e-skull','#ff8d76');const p=ctrOf(c);if(p&&!RM)fxDestroy(p.x,p.y);sDestroy();
+      /* 0.124.0 juice pass: a kill was the one beat with no screen-level
+         punctuation at all (particles and sound only); it now gets the
+         same big shake and flash a heavy hit gets, every time. */
+      shake(true);flashScr();}
     else if(e.k==='hhit'){
       if(G.recap)G.recap[e.side].wpn+=e.amt;
       fltFx(e.side,'-'+e.amt,'#ff8d76','e-blade',e.amt);
       const fg=$('fg-'+e.side);if(fg){fg.classList.remove('hit');void fg.offsetWidth;fg.classList.add('hit');}
       if(lastFire&&lastFire.side!==e.side){streakFx($('fc-'+lastFire.side+'-'+lastFire.i),fg);}
       const p=ctrOf(fg);if(p&&!RM)fxHit(p.x,p.y,e.amt);sHit(e.amt);
-      if(e.amt>=30)shake();if(e.amt>=46)flashScr();
+      /* 0.124.0 juice pass: shake used to gate at 30 damage, which left most
+         ordinary swings (this fight's weapons hit for 6 to 27) weightless.
+         Every real hit now shakes lightly; only the heavy tier also flashes. */
+      if(e.amt>=8)shake(e.amt>=32);if(e.amt>=32)flashScr();
       if(e.amt>=18)logLine((e.side==='a'?'You take ':'They take ')+'<b class="r">'+e.amt+'</b>','e-blade','#ff8d76');
     }
     else if(e.k==='storm'){if(G.recap)G.recap[e.side].storm+=e.amt;fltFx(e.side,'-'+e.amt,'#e8c27a','e-bolt',e.amt);}
@@ -879,8 +902,14 @@ function startFight(me,foe,opts){
   try{document.documentElement.dataset.hero=G.hero||'';
     /* bosses with painted full bodies loom on the foe side, keyed by glyph */
     document.documentElement.dataset.foe=(foe&&foe.portrait)||'';}catch(e){}
+  /* 0.122.0 duel recomposition: two scenery layers stand BEHIND the boards
+     (hero low left, foe high right), so the combat band owns the center and
+     the figures inhabit the negative space instead of a lane owning it.
+     Purely decorative, painted from the same data-hero / data-foe stamps. */
   $('main').innerHTML=
-   fighterHTML(foe,'b')
+   '<div class="duelfig fig-b" aria-hidden="true"></div>'
+  +'<div class="duelfig fig-a" aria-hidden="true"></div>'
+  +fighterHTML(foe,'b')
   +'<div class="fx" id="fx-b"></div>'
   +'<div class="board combat bd-b">'+foe.items.map(function(fi,i){return fightCellHTML(fi,i,'b');}).join('')+pad(foe.items)+'</div>'
   +'<div class="vsrow"><div class="lanelife" aria-hidden="true"><i class="flick"></i><i class="mote m1"></i><i class="mote m2"></i><i class="mote m3"></i><i class="mote m4"></i><i class="mote m5"></i></div><div class="vl"></div>'+ic('g-medallion','vm')
