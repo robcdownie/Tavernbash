@@ -1161,7 +1161,12 @@ function newRoute(mode,heroId,lantern,replay){
   if(!heroId){openHeroPick(function(hid){newRoute(mode,hid,lantern||0);});return;}
   lantern=Math.max(0,Math.min(10,lantern||0));
   const now=Date.now();
-  const seed=replay&&replay.seed!=null?(replay.seed>>>0):(((Date.now()>>>0)^0x9e3779b9)>>>0);
+  /* tooling hook (0.119.0): ?seed=N pins a fresh run's seed so the screenshot
+     harness (scripts/shots.mjs) reproduces byte-identical runs. A replay's
+     recorded seed still wins; without the param nothing changes. */
+  let urlSeed=null;
+  try{const m=/[?&]seed=(\d+)/.exec(location.search);if(m)urlSeed=(parseInt(m[1],10)>>>0);}catch(e){}
+  const seed=replay&&replay.seed!=null?(replay.seed>>>0):(urlSeed!=null?urlSeed:(((Date.now()>>>0)^0x9e3779b9)>>>0));
   const rng=mulberry(seed);
   const anomPool=ANOMALIES;
   /* One rng draw over the whole Omen catalogue, then map into the player's

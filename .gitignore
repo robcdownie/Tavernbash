@@ -17,6 +17,9 @@ test-results/
 playwright-report/
 debug.log
 
+# Screenshot harness output (scripts/shots.mjs); regenerate with npm run shots
+shots/
+
 # Codex working files, never committed (per the R7 handoff)
 .agents/
 .tmp/
