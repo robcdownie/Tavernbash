@@ -1,8 +1,8 @@
 {
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
-  "updated": "2026-07-19",
-  "build": "0.118.0",
+  "updated": "2026-07-20",
+  "build": "0.120.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -47,6 +47,30 @@
     "note": "NINETEEN manor versions 0.102.0 through 0.118.0 DEPLOYED to platosd.com per Robbie push it instruction of 2026-07-19: first push at 0.117.0 (bb-v75, CI green run 29702993160), second push with the final four polish at 0.118.0 (bb-v76). The manor identity program is live. fal key rotation still owed by Robbie."
   },
   "reservations": [
+    {
+      "version": "0.120.0",
+      "project": "Presentation Audit",
+      "token": "presentation-audit-pass",
+      "owner": "claude",
+      "branch": null,
+      "worktree": null,
+      "status": "done",
+      "sourceCommit": "ca68c55",
+      "scope": "The presence pass, one presentation system from the first full screenshot audit (both device sizes, every screen, file:line grounded). All render-surface CSS in index.html; engine, economy, targeting, and route semantics untouched. Fights: every non-boss monster with painted art now steps into the action lane as a framed medallion on the enemy side (14 foes via the same ::after layer the bosses use; golem, roc, sandling, simurgh stay absent until painted), the landscape fight grid hands its spare height to the action lane instead of the collapsed log, and the dead 0.118 landscape figure block (outranked by a later global rule, never applied) was removed and rebuilt live inside the landscape layout block. Market: bought cards leave a quiet SOLD crate instead of an invisible ghost so the shelf never reads as torn-out dead space; the landscape shelf mirrors the portrait slack rule; portrait ware cards grew their illustration port to 92px. Rail: the landscape crest stacks vertically (the wide crestrow was clipping FAVORS BURN into the portrait on every draft and map screen) and the rail's empty lower half takes a quiet lantern wash. Overlays: eight dealer chips fit one landscape row; the reveal card trims to hold inside 390px landscape height. Route map: future doors lifted from .34 to .52 opacity for legibility. Bark raised above the dock band. CACHE_V bb-v77.",
+      "verification": "npm test 559 green. npm run shots (now 13 screens per viewport including a BBDEV run-end capture) green at both 844x390 and 390x844, zero console errors, zero selector misses, before and after tiles reviewed by eye. A fresh-context art director subagent that had not seen the findings list confirmed the fight, shelf, and rail calls and contributed five adopted fixes (medallion overlap, SOLD crate dominance, future node legibility, reveal card overflow, bark occlusion). The repo Playwright layout suite could not complete in the cloud sandbox: an A/B run against the pristine index.html fails identically (the dev-server path stalls on the blocked font CDN), so those failures are environmental; the scoped tests that did complete passed. Robbie should run npm run test:layout on device before deploy."
+    },
+    {
+      "version": "0.119.0",
+      "project": "Shots Harness",
+      "token": "tooling-shots-harness",
+      "owner": "claude",
+      "branch": null,
+      "worktree": null,
+      "status": "done",
+      "sourceCommit": "eb0c163",
+      "scope": "Device-accurate screenshot harness, tooling only: scripts/shots.mjs plus npm run shots (preshots builds dist). Serves dist/ on localhost, Playwright Chromium at 844x390 and 390x844 with deviceScaleFactor 3, isMobile, hasTouch, and walks a full seeded run through the real UI: intro, New Game, hero pick, road pick, omen reveal, opening market (offense-first buys), route map, monster scout, the fight (three frames about 600ms apart), victory recap, and a route market. Writes shots/<viewport>/<NN-screen>.png, a shots/index.html contact sheet, and shots/console-log.json with per-screen console and page errors. Resilient: a missing selector is logged and shot anyway, never fatal. Companion two-line tooling hook in ui.js newRoute: ?seed=N pins a fresh run's seed (SHOTS_SEED env override, default 13, chosen so the first fight is winnable and a market is reachable after it); replays and normal play unchanged. Webfont requests proxy through Node fetch so locked-down CI still renders Rakkas and Hanken Grotesk. shots/ is gitignored. Engine, combat, economy, and route semantics untouched.",
+      "verification": "npm test 559 green with the ui.js seed hook in place. Full harness run in a clean container: 24 shots across both viewports at seed 13, zero console errors, zero selector misses, victory plus market return reached at both viewports. Contact sheet and console log inspected by eye. Known finding the harness surfaced: the landscape rail clips a label over the hero portrait on route and market screens."
+    },
     {
       "version": "0.118.0",
       "project": "Manor Identity",
