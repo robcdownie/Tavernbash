@@ -879,8 +879,14 @@ function startFight(me,foe,opts){
   try{document.documentElement.dataset.hero=G.hero||'';
     /* bosses with painted full bodies loom on the foe side, keyed by glyph */
     document.documentElement.dataset.foe=(foe&&foe.portrait)||'';}catch(e){}
+  /* 0.122.0 duel recomposition: two scenery layers stand BEHIND the boards
+     (hero low left, foe high right), so the combat band owns the center and
+     the figures inhabit the negative space instead of a lane owning it.
+     Purely decorative, painted from the same data-hero / data-foe stamps. */
   $('main').innerHTML=
-   fighterHTML(foe,'b')
+   '<div class="duelfig fig-b" aria-hidden="true"></div>'
+  +'<div class="duelfig fig-a" aria-hidden="true"></div>'
+  +fighterHTML(foe,'b')
   +'<div class="fx" id="fx-b"></div>'
   +'<div class="board combat bd-b">'+foe.items.map(function(fi,i){return fightCellHTML(fi,i,'b');}).join('')+pad(foe.items)+'</div>'
   +'<div class="vsrow"><div class="lanelife" aria-hidden="true"><i class="flick"></i><i class="mote m1"></i><i class="mote m2"></i><i class="mote m3"></i><i class="mote m4"></i><i class="mote m5"></i></div><div class="vl"></div>'+ic('g-medallion','vm')

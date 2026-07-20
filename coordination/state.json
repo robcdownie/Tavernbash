@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-20",
-  "build": "0.121.0",
+  "build": "0.122.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -47,6 +47,18 @@
     "note": "NINETEEN manor versions 0.102.0 through 0.118.0 DEPLOYED to platosd.com per Robbie push it instruction of 2026-07-19: first push at 0.117.0 (bb-v75, CI green run 29702993160), second push with the final four polish at 0.118.0 (bb-v76). The manor identity program is live. fal key rotation still owed by Robbie."
   },
   "reservations": [
+    {
+      "version": "0.122.0",
+      "project": "Presentation Audit",
+      "token": "duel-recomposition",
+      "owner": "claude",
+      "branch": null,
+      "worktree": null,
+      "status": "done",
+      "sourceCommit": "cbb6265",
+      "scope": "The duel recomposition, one screen: the fight. Confirmed against npm run shots first: both boards sat as thin strips at the screen edges with the empty hall owning the center at both device sizes. Now the boards pull to the vertical center as one lit combat band around a slim carved divider (storm pill and speed toggle kept), the district painting goes full bleed behind every row with a hard edge vignette and a light pool on the boards, and the duelists become .duelfig scenery layers (two decorative divs stamped in startFight) standing in the negative space: portrait puts the foe high right and the dealer tall low left with every bar, name, and log painting above them; landscape gives the boards a centered ~60px cell column and a 176px right rail where foe (high) and dealer (low) flank the stage. Cell sizes: 72px portrait, 64px landscape, so cooldown rings and hit streaks read. Root cause fixed along the way: body.fight #main display:flex outranked the fight grid by specificity, which is why earlier centering attempts never engaged in portrait. Engine, targeting, and timing untouched; markup change is two aria-hidden scenery divs in ui.js startFight.",
+      "verification": "npm test 559 green, build green, npm run shots green at both 844x390 and 390x844 with zero console errors and zero selector misses. Iterated three times on real frames: portrait figure anchors corrected so no head hides behind a board, paint order fixed so the YOU nameplate and status chips read over the figures. Before and after tiles delivered at both viewports. CACHE_V bb-v79. Robbie should run npm run test:layout on device before pushing."
+    },
     {
       "version": "0.121.0",
       "project": "Presentation Audit",
