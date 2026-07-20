@@ -32,7 +32,7 @@ import pkg from '../package.json';
 import {G,setG,RM,setRM,store,$,esc,ovOpen,ovClose,toast} from './ui-core.js';
 import {rollShopOffers,pullVaultForges} from './market-core.js';
 import {lockedWareComplement,runWareAllowed,omenUnlocked,compatibleOmenPool,heroUnlocked,HERO_HINTS,heroChipAttrs,heroPortraitClass,heroConfirmView,WILD_FIND_EVENT,nextUnlockHint,devAllOpen} from './unlock-profile.js';
-import {wireRouteUI,routeMap,routeState,renderRouteMap,combatPreview,showFightRecap,
+import {wireRouteUI,routeMap,routeState,renderRouteMap,combatPreview,showFightRecap,districtBgToken,
         prepareRouteDecision,routeEventCard,openRewardChoice,routeEnd,openRouteContinue,openUniquePick,
         openRunHistory} from './route-ui.js';
 import {initCloudLedger} from './cloud-ledger.js';
@@ -713,7 +713,13 @@ function fltFx(side,txt,color,mini,big){
   const d=document.createElement('div');d.className='flt';
   d.style.color=color;
   d.style.fontSize=(typeof big==='number')?Math.min(26,Math.max(12,Math.round(11+big*0.3)))+'px':(big?'20px':'13px');
-  d.style.left=(6+Math.random()*72)+'%';d.style.top='-4px';
+  /* 0.121.0 recommendations pass: floats walk five lanes instead of rolling
+     random x, and each concurrent float starts a step higher, so simultaneous
+     readouts ("Lit 4 burn" over "-11") no longer overprint into garble. The
+     jitter stays cosmetic; the sim never reads any of this. */
+  lay._ln=((lay._ln||0)+1)%5;
+  d.style.left=(7+lay._ln*16+Math.random()*5)+'%';
+  d.style.top=(-4-lay.children.length*13)+'px';
   d.innerHTML=(mini?ic(mini,'mi'):'')+txt;
   lay.appendChild(d);setTimeout(function(){d.remove();},1000);
 }
@@ -1277,9 +1283,9 @@ function runEffects(effects,i,ctx){
     const e=effects[i];
     if(e.type==='fight'){G.route.combat={nodeId:e.nodeId,enteredGold:G.gold,threat:e.threat,pocketed:0,attempt:(routeState().attempts[e.nodeId]||0)};checkpointActiveRun();startRouteFight(e);return;}
     else if(e.type==='wonFight'){const node=nodeOf(routeMap(),e.nodeId);checkpointActiveRun();
-      metricPhase('recap');showFightRecap(true,MONSTERS[node.monId].n,function(){dispatchRoute({type:'settleReward'},ctx);});return;}
+      metricPhase('recap');showFightRecap(true,MONSTERS[node.monId].n,function(){dispatchRoute({type:'settleReward'},ctx);},MONSTERS[node.monId].glyph);return;}
     else if(e.type==='lostFight'){const node=nodeOf(routeMap(),e.nodeId);const rest=effects,ni=i+1;checkpointActiveRun();
-      metricPhase('recap');showFightRecap(false,MONSTERS[node.monId].n,function(){runEffects(rest,ni,ctx);});return;}
+      metricPhase('recap');showFightRecap(false,MONSTERS[node.monId].n,function(){runEffects(rest,ni,ctx);},MONSTERS[node.monId].glyph);return;}
     else if(e.type==='reward'){metricPhase('reward');settleRouteReward(e);return;}
     else if(e.type==='slip'){toast('You slip past. Lost '+e.cost+' Resolve.');checkpointActiveRun();}
     else if(e.type==='market'){enterRouteMarket(e.nodeId);return;}
@@ -1306,6 +1312,10 @@ function startRouteFight(e){
   const node=nodeOf(routeMap(),e.nodeId);
   const dist=routeMap().districts.filter(function(x){return x.id===node.district;})[0];
   const gate=isGateDistrict(dist);
+  /* 0.121.0 recommendations pass: stamp the district so the fight lane wears
+     its painted backdrop (Robbie's call: the environment is the presence).
+     Purely decorative; cleared implicitly by the next fight's stamp. */
+  try{document.documentElement.dataset.fightbg=districtBgToken(dist)||'';}catch(e){}
   /* the district Affix, injected as engine cfg.hooks, applies to monster and elite
      doors only, never bosses (the boss prices the district) nor the Dragon Gate (the
      Gate contract). It rides the affix stamp, so pre-stamp runs pass no hooks and

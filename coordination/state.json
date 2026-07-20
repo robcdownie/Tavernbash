@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-20",
-  "build": "0.120.0",
+  "build": "0.121.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -47,6 +47,18 @@
     "note": "NINETEEN manor versions 0.102.0 through 0.118.0 DEPLOYED to platosd.com per Robbie push it instruction of 2026-07-19: first push at 0.117.0 (bb-v75, CI green run 29702993160), second push with the final four polish at 0.118.0 (bb-v76). The manor identity program is live. fal key rotation still owed by Robbie."
   },
   "reservations": [
+    {
+      "version": "0.121.0",
+      "project": "Presentation Audit",
+      "token": "audit-recommendations-pass",
+      "owner": "claude",
+      "branch": null,
+      "worktree": null,
+      "status": "done",
+      "sourceCommit": "7d1a9ca",
+      "scope": "The recommendations pass, applying the audit items Robbie approved on 2026-07-20. One: the district stage, the fight action lane inherits its district's painted backdrop (route-ui districtBgToken, stamped as data-fightbg in startRouteFight, vignetted in index.html CSS); fights outside a route keep the plain hall. Two: the trophy, a victory recap crowns the SLAIN FOE's glyph instead of the dealer's face, a Robbie-approved reversal of the 0.110 dealer-face staging (defeat keeps the skull); showFightRecap gains a foeGlyph argument threaded from both callers. Three: float lanes, combat readouts walk five lanes with per-burst vertical stagger in fltFx so simultaneous numbers no longer overprint. Four: the scout opener, renderRouteMap pre-selects the first reachable door whenever no valid selection exists, so the map never opens with an empty panel; selection stays presentation-only state. Engine, economy, targeting, and route semantics untouched. CACHE_V bb-v78. Deferred by design: the landscape board recomposition (changes how capacity information displays; needs a mock and Robbie's call first).",
+      "verification": "npm test 559 green, build green, npm run shots green at both viewports, zero console errors, zero selector misses. Victory recap verified showing the Pilfer Monkey trophy, route map verified opening with the first door scouted, both fight lanes verified wearing the Back Alleys painting. Deploy needs Robbie: git push origin main from his terminal (the bridge has no network), then npm run test:layout on device remains recommended."
+    },
     {
       "version": "0.120.0",
       "project": "Presentation Audit",

@@ -130,6 +130,21 @@
   #main.fight{position:relative;}
   @media (prefers-reduced-motion: reduce){#main.fight .vsrow::after{animation:none;}}
 
+  /* ===== 0.121.0 RECOMMENDATIONS PASS: every duel happens SOMEWHERE ===== */
+  /* the action lane inherits its district's painted backdrop (stamped by
+     startRouteFight as data-fightbg), behind a legibility vignette; fights
+     outside a route (no stamp) keep the plain hall exactly as before */
+  html[data-fightbg="back_alleys"]{--fightbg:url('/art/bg/bg_route_back_alleys.webp');}
+  html[data-fightbg="souk"]{--fightbg:url('/art/bg/bg_route_souk.webp');}
+  html[data-fightbg="palace"]{--fightbg:url('/art/bg/bg_route_palace.webp');}
+  html[data-fightbg="dragon_gate"]{--fightbg:url('/art/bg/bg_route_dragon_gate.webp');}
+  html[data-fightbg="back_alleys"] #main.fight .vsrow,html[data-fightbg="souk"] #main.fight .vsrow,
+  html[data-fightbg="palace"] #main.fight .vsrow,html[data-fightbg="dragon_gate"] #main.fight .vsrow{
+    background:linear-gradient(180deg,rgba(10,7,12,.78),rgba(10,7,12,.34) 30%,rgba(10,7,12,.34) 68%,rgba(12,8,6,.8)),
+      var(--fightbg) center 60%/cover no-repeat;
+    border-radius:12px;border:1px solid rgba(216,162,74,.16);
+    box-shadow:inset 0 0 44px rgba(0,0,0,.55);}
+
   /* ===== 0.116.0 THE JUICE PASS: the game is alive every second ===== */
   /* the ballroom lane breathes: candle flicker from above, dust motes rising */
   .lanelife{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1;}

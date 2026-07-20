@@ -146,6 +146,9 @@ function nodeGlyph(n){return isCombat(n)?MONSTERS[n.monId].glyph:(NODEGLYPH[n.ty
 const DBG={1:'back_alleys',2:'souk',3:'palace',4:'dragon_gate'};
 const DISTRICT_SOURCE_NAME={1:'Back Alleys',2:'The Souk',3:'Palace Quarter',4:'The Dragon Gate'};
 function districtSource(D){return D&&((D.sourceId!=null?D.sourceId:D.id));}
+/* 0.121.0 recommendations pass: the fight lane inherits its district's painted
+   backdrop, so ui.js can stamp the token without knowing the bg table */
+export function districtBgToken(D){return DBG[districtSource(D)]||null;}
 function districtForNode(n){return routeMap().districts[n.district-1];}
 /* the % anchors for the positioned route plot (Codex geometry) */
 function nodeAnchor(n,D){
@@ -400,7 +403,14 @@ function routeNodePreviewHTML(n,state){
 export function renderRouteMap(){
   const map=routeMap(),st=routeState();
   const di=currentDistrict(st,map),D=map.districts[di];
-  const fr=frontier(st,map),frS=new Set(fr),vis=visitedSet(st),sel=G.route.selectedId;
+  const fr=frontier(st,map),frS=new Set(fr),vis=visitedSet(st);
+  /* 0.121.0 recommendations pass: the map opens mid-story instead of with an
+     empty scout panel; the first reachable door is pre-selected whenever no
+     valid selection exists. A commit clears the selection, so the next render
+     pre-selects on the new frontier too. Selection is presentation state only
+     (never saved, never dispatched), so route semantics are untouched. */
+  let sel=G.route.selectedId;
+  if(!sel||!map.nodes[sel]){sel=fr[0]||null;G.route.selectedId=sel;}
   const beaten=st.path.filter(function(id){return /boss$/.test(id);}).length;
   const stateOf=function(id){return vis.has(id)?'done':(frS.has(id)?'reach':'future');};
   const nodeBtn=function(n){
@@ -699,17 +709,18 @@ function dmgBreakdown(t){
   if(t.storm>0)parts.push(['util','e-bolt',Math.round(t.storm)]);
   return parts.map(function(p){return '<span class="eff '+p[0]+'">'+ic(p[1],'mi')+' '+p[2]+'</span>';}).join('')||'<span class="eff util">nothing</span>';
 }
-function fightRecapHTML(won,foeName){
-  /* 0.110.0 result staging: the dealer's lit face and one consequence line
-     lead; the damage arithmetic waits behind Fight details. Numbers, rewards,
-     and settlement are computed exactly as before. */
+function fightRecapHTML(won,foeName,foeGlyph){
+  /* 0.121.0 recommendations pass, Robbie-approved reversal of the 0.110
+     dealer-face staging: a victory crowns the SLAIN FOE as the trophy, so
+     "Pilfer Monkey slain" shows the monkey, not your own lit face (the old
+     read suggested the player had died). A defeat keeps the skull. Numbers,
+     rewards, and settlement are computed exactly as before. */
   const R=G.recap||{a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
   const dealt=R.b.wpn+R.b.pois+R.b.burn+R.b.storm;
   const took=R.a.wpn+R.a.pois+R.a.burn+R.a.storm;
-  const hero=G&&G.hero?HEROES.filter(function(h){return h.id===G.hero;})[0]:null;
   return '<div class="card recapcard '+(won?'rewin':'reloss')+'"><div class="rays'+(won?'':' red')+'"></div>'
    +'<div class="kick'+(won?' gold':'')+'">'+(won?'Victory':'Defeat')+'</div>'
-   +'<div class="reface">'+ic(won?(hero?hero.g:'p-0'):'g-skull','refp')+'</div>'
+   +'<div class="reface">'+ic(won?(foeGlyph||'g-crown'):'g-skull','refp'+(won?' retrophy':''))+'</div>'
    +'<h2 class="big'+(won?'':' bad')+'">'+(won?esc(foeName)+' slain':'Driven off')+'</h2>'
    +'<p class="recon">'+(won?'The way ahead is clear; your spoils settle as you return to the road.':'You slip back into the corridor to steady yourself.')+'</p>'
    +'<details class="redetails"><summary>Fight details</summary>'
@@ -719,8 +730,8 @@ function fightRecapHTML(won,foeName){
    +'</details>'
    +'<button class="btn gold" id="recapGo" style="width:100%;margin-top:12px">Continue</button></div>';
 }
-export function showFightRecap(won,foeName,onDone){
-  const o=ovOpen(fightRecapHTML(won,foeName));
+export function showFightRecap(won,foeName,onDone,foeGlyph){
+  const o=ovOpen(fightRecapHTML(won,foeName,foeGlyph));
   const b=o.querySelector('#recapGo');if(b)b.onclick=function(){ovClose(o);onDone();};
 }
 
