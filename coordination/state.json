@@ -27,7 +27,7 @@
     "versions": [
       "0.135.0"
     ],
-    "status": "active",
+    "status": "done",
     "note": "Robbie requested the full presentation audit and authorized the next push. Version 0.135.0 is one presentation system: full-height manor ceremony frames for hero, road, and Omen setup in portrait. The previously planned overlay exit and route-native dawn systems move to 0.136.0 and 0.137.0."
   },
   "reservations": [
@@ -38,12 +38,12 @@
       "owner": "codex",
       "branch": "presentation-audit-0.135.0",
       "worktree": "C:/tmp/bazaar-brawler-presentation-0.135.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "c2d0ea1",
       "trigger": "Robbie on 2026-07-21: audit every screen at both phone viewports, fix safe spacing and hierarchy issues now, preserve larger recompositions as recommendations, save the reusable presentation-audit skill, and push the completed result to main.",
       "scope": "One presentation system: manor ceremony frames. Hero pick, road pick, and Omen reveal share one setupcard treatment that fills the portrait viewport inside the existing carved frame and reuses the existing parlor and seance room paintings. Landscape setup composition is unchanged. Market, map, scout, fight, recap, and run-end layouts are audit-only in this version because the requested screenshots show no safe severe defect there. No engine, targeting, deterministic timing, save, balance, economy, or route-semantics change.",
-      "verification": "In progress.",
-      "note": "The exact 0.134.0 base was captured immediately before this version at both 844x390 and 390x844. The baseline is preserved outside the repo at C:/tmp/bb-transitions-0.134-after-final/shots."
+      "verification": "Complete locally on 2026-07-21. npm test passed 559 of 559. npm run build passed with 815 modules transformed and only the standing chunk-size advisory. The intended portrait hero-frame drift was inspected and recorded with npm run shots:baseline; a separate npm run shots:check then passed 26 screens with zero missing, zero blank, zero console errors, and zero layout drift beyond tolerance. Final npm run shots passed at 844x390 and 390x844 with 60 stills, 48 filmstrips, zero console errors, zero selector misses, and only the two expected deep-run boss or gate states unreachable. No engine, targeting, deterministic timing, save, balance, economy, or route-semantics file changed.",
+      "note": "The exact 0.134.0 base was captured immediately before this version at both 844x390 and 390x844. The baseline is preserved outside the repo at C:/tmp/bb-transitions-0.134-after-final/shots. Final after artifacts are at C:/tmp/bazaar-brawler-presentation-0.135.0/shots, including six before-and-after comparison PNGs under shots/compare. The tracked presentation-audit skill now includes the visual-gate and intentional re-baseline procedure; a local Codex mirror lives under .agents/skills/presentation-audit."
     },
     {
       "version": "0.134.0",
