@@ -196,15 +196,54 @@ function openTrkInfo(){
   o.onclick=function(){ovClose(o);};
 }
 /* ============ MARKET ============ */
+/* 0.129/0.130 forge-aware landing: simulate dropping a ware onto the board and
+   letting the same pull-and-forge the live buy path runs resolve, on clones so
+   the live board and vault are never touched. Reports whether a forge fires
+   (drives the shop glow) and whether the board fits the result (a completing buy
+   frees its own space, so it is never blocked for room). The fit is measured
+   BEFORE any vault spill, so a non-forging buy that only "fits" by shoving the
+   new ware back into the vault is correctly judged as not fitting. Pure: no iid
+   stamping, no metrics, no side effects. */
+function landResolve(board,vault){
+  let forged=false,guard=0;
+  while(guard++<8){
+    let pulled=false;
+    for(const it of board.slice()){
+      if(it.rarity>=3)continue;
+      const need=fuseNeed(it.rarity);
+      const onB=board.filter(function(x){return x.id===it.id&&x.rarity===it.rarity;}).length;
+      const inV=vault.filter(function(x){return x.id===it.id&&x.rarity===it.rarity;}).length;
+      if(onB>=need||onB+inV<need)continue;
+      for(let k=0;k<need-onB;k++){const vi=vault.findIndex(function(x){return x.id===it.id&&x.rarity===it.rarity;});board.push(vault.splice(vi,1)[0]);}
+      pulled=true;
+    }
+    const f=fuseScan(board);
+    if(f.length)forged=true;
+    if(!pulled&&!f.length)break;
+  }
+  return forged;
+}
+function landSim(add,vaultClone){
+  const b=G.board.slice();b.push(add);
+  const forges=landResolve(b,vaultClone);
+  return {forges:forges,fits:usedNow(b)<=slotsNow()};
+}
+function buyOutcome(id,ench){const d=ITEMS[id];return landSim({id:id,rarity:0,size:d.size,ench:ench||null},G.vault.slice());}
+function vaultOutOutcome(vi){const it=G.vault[vi];const v=G.vault.slice();v.splice(vi,1);
+  return landSim({id:it.id,rarity:it.rarity,size:it.size,ench:it.ench||null},v);}
 function wareHTML(w,i){
   const d=ITEMS[w.id];
   const cost=w.free?0:buyCost(d.size,!!w.ench);
   const footprint=slotCost(d.size);
+  const outcome=w.bought?{forges:false,fits:false}:buyOutcome(w.id,w.ench);
   const can=!w.bought&&(w.free||canSpend(cost))&&(usedNow(G.board)+footprint<=slotsNow());
-  const own=G.board.filter(function(x){return x.id===w.id&&x.rarity===0;}).length
-    +G.vault.filter(function(x){return x.id===w.id&&x.rarity===0;}).length;
-  const trip=own>=2&&!w.bought;
-  const match=own===1&&!w.bought;
+  /* own counts copies that can still combine (Bronze/Silver/Gold, never a maxed
+     Diamond) across board and vault, so a lone Diamond stops the glow while a
+     fresh lower-rarity copy relights a new sequence. */
+  const own=G.board.filter(function(x){return x.id===w.id&&x.rarity<3;}).length
+    +G.vault.filter(function(x){return x.id===w.id&&x.rarity<3;}).length;
+  const trip=!w.bought&&outcome.forges;   /* gold glow: this buy forges on landing */
+  const match=!w.bought&&!trip&&own>=1;   /* blue glow: you already own one, on a track */
   let gems='';for(let g=0;g<d.tier;g++){gems+=ic('g-gem');}
   let pips='';for(let s=1;s<=3;s++){pips+='<i class="'+(s<=footprint?'on':'')+'"></i>';}
   const en=w.ench?ENCH[w.ench]:null;
@@ -215,10 +254,10 @@ function wareHTML(w,i){
    +'<div class="tg">'+gems+'</div>'
    +'<div class="wn">'+(en?'<span style="color:'+en.c+'">'+en.n+'</span> ':'')+d.n+'</div>'
    +'<div class="sz">'+pips+'<span class="szl">'+(footprint===1?'1 slot':footprint+' slots')+'</span></div>'
-   +'<div class="chips">'+effChips(w.id,0)+(en?'<span class="eff util" style="color:'+en.c+'">'+ic('e-bolt','mi')+' '+en.d+'</span>':'')+(w.hold?'<span class="eff util">'+ic('e-frost','mi')+' Held '+w.hold+' more market'+(w.hold===1?'':'s')+'</span>':'')+(trip?'<span class="eff trip">'+ic('e-bolt','mi')+' Forges Silver</span>':(match?'<span class="eff mt">'+ic('e-bolt','mi')+' You own 1</span>':''))+'</div>'
+   +'<div class="chips">'+effChips(w.id,0)+(en?'<span class="eff util" style="color:'+en.c+'">'+ic('e-bolt','mi')+' '+en.d+'</span>':'')+(w.hold?'<span class="eff util">'+ic('e-frost','mi')+' Held '+w.hold+' more market'+(w.hold===1?'':'s')+'</span>':'')+(G.tut?(trip?'<span class="eff trip">'+ic('e-bolt','mi')+' Forges on buy</span>':(match?'<span class="eff mt">'+ic('e-bolt','mi')+' You own '+own+'</span>':'')):'')+'</div>'
    +'<div class="wd">'+esc(d.d)+'</div>'
    +'<div class="wr">'+(d.cd>0?ic('e-clock','mi')+' every '+d.cd+'s':'<span>passive</span>')+'<span>'+ic('e-shield','mi')+' '+Math.round(BASEINTEG[d.size]*(d.integMul||1)*(G.A.itemIntegrityMul||1))+'</span></div>'
-   +(own>0?'<div class="own">'+own+'/3</div>':'')
+   +(G.tut&&own>0?'<div class="own">'+own+'</div>':'')
   +'</div>';
 }
 function renderVaultSheet(sh){
