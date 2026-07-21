@@ -41,7 +41,7 @@
       "branch": "manor-stage-handoffs-0.134.0",
       "worktree": "C:/tmp/bazaar-brawler-transitions-0.134.0",
       "status": "done",
-      "sourceCommit": null,
+      "sourceCommit": "2bad05e",
       "trigger": "Robbie on 2026-07-21: inventory and extend the existing motion work, then make the night continuous instead of a slideshow, with the haunted Victorian manor as the visual truth.",
       "scope": "One presentation system: connective stage handoffs. Add one shared short candle-carry cover for true stage changes, reuse pathflow for route-path arrival, settle the in-place scout preview, and assemble the duel stage beneath the existing Dusk Falls sweep. Every moving treatment is tap-skippable, guarded by prefers-reduced-motion, and instant when reduced motion is active. The Dusk Falls cover remains the sole fight-start curtain and continues to own the existing sim hold. No overlay exit work and no route-native dawn rollover in this version. No engine, targeting, combat-step timing, save, balance, economy, or route-semantics change.",
       "verification": "Complete locally on 2026-07-21. npm test passed 559 of 559. npm run build passed with 815 modules transformed and only the standing chunk-size advisory. npm run shots:check passed 26 screens with zero missing, zero blank, zero console errors, and zero layout drift beyond tolerance. Final npm run shots passed at 844x390 and 390x844 with 60 stills, 48 filmstrips, zero console errors, zero selector misses, and only the expected deep-run boss or gate state unreachable at each viewport. Reduced-motion filmstrips show instant cuts. No push or deploy.",
