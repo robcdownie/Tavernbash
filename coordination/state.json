@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-20",
-  "build": "0.132.0",
+  "build": "0.133.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -47,6 +47,20 @@
     "note": "NINETEEN manor versions 0.102.0 through 0.118.0 DEPLOYED to platosd.com per Robbie push it instruction of 2026-07-19: first push at 0.117.0 (bb-v75, CI green run 29702993160), second push with the final four polish at 0.118.0 (bb-v76). The manor identity program is live. fal key rotation still owed by Robbie."
   },
   "reservations": [
+    {
+      "version": "0.133.0",
+      "project": "Presentation Gate",
+      "token": "shots-motion-capture",
+      "owner": "claude",
+      "branch": null,
+      "worktree": null,
+      "status": "done",
+      "sourceCommit": null,
+      "trigger": "Robbie on 2026-07-21: upgrade the shots harness to review motion and edge states, not just resting stills, to unblock the transitions work which cannot be judged from single frames.",
+      "scope": "Tooling only, no engine or game logic touched, all motion work opt-in so the 0.132 gate path (walkViewport with no opts) stays still-only, fast, and metric-identical (the gate still passes with 0 drift). shots.mjs extensions: (1) MOTION capture: a filmstrip helper captures a rapid frame burst across each transition boundary (intro-hero, hero-road, road-omen, omen-market, market-map, map-scout, scout-fight, victory-market, and the dawn-rollover on market entry) plus a filmstripUntil for the time-based fight-to-victory, and a full-fight filmstrip; each burst is stitched by sharp into one wide labeled PNG (per-frame indices, before to after) because a filmstrip is the reviewable deliverable. (2) A reduced-motion pass: the whole walk runs a second time per viewport with prefers-reduced-motion emulated, every artifact tagged -rm, to verify the game stays legible with motion off. (3) A webm video of the full walk per viewport via context.recordVideo (bonus, renamed to shots/<vp>/walk.webm). (4) Extra states, motion pass only, each best effort with unreachable logged and skipped: a full shop shelf (dev hook raises gold and shelf count, buy until the board fills), an empty-board fight and the defeat it produces, a boss or gate camp if the dev hook exposes it, and an offline load. (5) contactSheetHTML regrouped BY SCREEN, each screen showing its stills, filmstrips, and reduced-motion variants together, with the walk video linked. Fixed seed (SHOTS_SEED default 13) keeps every filmstrip reproducible; console and page errors still captured. shots/ stays gitignored so the PNGs, filmstrips, and webm are regenerable artifacts, not repo churn. No runtime asset changed, so CACHE_V stays bb-v88.",
+      "verification": "npm run shots produced 60 stills, 48 filmstrips, 0 console errors, 0 selector misses, 2 states unreachable, both walk videos (~22MB webm each). BOTH viewports produce a filmstrip for every boundary (intro-hero, hero-road, road-omen, omen-market, market-map, map-scout, scout-fight, full-fight, fight-victory, victory-market, dawn-rollover) in BOTH the normal and the reduced-motion (-rm) variant (24 filmstrips per viewport). Spot-checked: omen-market shows the omen card dissolving into the shop; scout-fight shows scout preview to Dusk Falls to combat to slain; the reduced-motion omen-market snaps straight to the final legible market (no in-between motion) which is exactly the motion-off check; the full-fight strip was fixed after a first pass caught only the victory (the opener resolves in about a second) by shortening scout-fight and capturing full-fight generously the moment the board appears, and now shows the combat board then the recap. Extra states captured as stills: a full shop (sold-out shelf, 5 of 5 stall including a forged Silver), an empty-board fight, the defeat it produced, and an offline load; boss or gate is logged unreachable from the seeded opener (no dev hook) on both viewports. The contact sheet groups by screen (15 groups per viewport) with stills, filmstrips, reduced-motion variants, and the walk video linked. The 0.132 gate is unaffected: the no-motion walkViewport path is byte-identical (motion opts ignored), so npm run shots:check still passes with 0 drift and the baseline is unchanged. npm test 559 green. Zero em or en dashes. Bridge note: committed locally; deploy on Robbie's word. sourceCommit set at commit time.",
+      "note": "One system per version (tooling). Builds on the 0.132 gate: same single walk, now motion-aware. The gate keeps calling walkViewport with no opts, so it stays fast and deterministic. Boss fight and offline are best-effort (logged if unreachable from the seeded opener)."
+    },
     {
       "version": "0.132.0",
       "project": "Presentation Gate",
