@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-20",
-  "build": "0.129.0",
+  "build": "0.130.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -16,7 +16,7 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v86"
+    "cacheVersion": "bb-v87"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
@@ -48,6 +48,20 @@
   },
   "reservations": [
     {
+      "version": "0.130.0",
+      "project": "Fusion Legibility",
+      "token": "forge-completing-buy",
+      "owner": "claude",
+      "branch": null,
+      "worktree": null,
+      "status": "done",
+      "sourceCommit": null,
+      "trigger": "Robbie on 2026-07-20 (voice): completing an upgrade forces vault back-and-forth. When a purchase would complete a triple but the stall is full, the buy is blocked for room even though the forge immediately frees space, so he has to vault or sell another ware he is chasing just to make transient room. He named the constant shuffling a flaw rather than real vault management.",
+      "scope": "System 2 of the fusion-legibility pass: the forge-completing buy. A purchase or vault return that fuses on landing is no longer blocked for stall room, because the forge nets the board back within capacity. The permit reuses the 0.129 clone-and-fuse simulation (buyOutcome/vaultOutOutcome via landSim): the buy is allowed when the simulated post-fuse board fits, measured BEFORE any vault spill so a non-forging buy that would only fit by shoving the new ware into the vault is still correctly blocked. Vault-assisted completions that would leave the board genuinely over capacity (the fusing copies came from the vault, not the board) are also correctly still blocked, so the stall never ends a buy over its slot count. Wired into four gates: wareHTML card state (a forge-completing card stays buyable from a full stall instead of greyed), buyWare (the room guard), the shop inspect card (its room check plus a positive Completes a fusion line naming the forge, replacing the old No room block), and the vault To the Stall button and its guard. Gold cost, fusion counts, and the resulting board are all identical; only the moment a buy is permitted changes, so no economy, engine, save, targeting, or route-semantics change. Presentation and flow only in ui.js plus one CSS class (.whyyes) in index.html. CACHE_V bb-v87.",
+      "verification": "npm test 559 green, production build green, npm run shots green at both sizes, plus a scratch driver (BBDEV dev hook, no game code touched) forcing the owned-copy and full-stall states the seeded walk cannot reach: a full stall with two matching Bronze on the board buys the third and forges without a No room block; the inspect card shows Completes a fusion. On-device eyes still owed. Bridge note: committed locally as part of the batch (deploy at the end per Robbie); not pushed. sourceCommit set at commit time.",
+      "note": "One system per version. Closes the fusion-legibility pass (glow, then forge-completing buy) Robbie raised on 2026-07-20. Swap was left on its existing lenient room check by design (it already removes a board ware, so it rarely hits the wall); extend it only if Robbie reports the same friction there. Batch ready for deploy approval: 0.129.0 and 0.130.0."
+    },
+    {
       "version": "0.129.0",
       "project": "Fusion Legibility",
       "token": "fusion-glow",
@@ -55,7 +69,7 @@
       "branch": null,
       "worktree": null,
       "status": "done",
-      "sourceCommit": null,
+      "sourceCommit": "1712346",
       "trigger": "Robbie on 2026-07-20 (voice), two play-feel complaints from real games: (1) the shop gives no signal that a purchase is on an upgrade track, so a player buying toward a Silver (or a second Silver toward a Gold) does not know they are building an upgrade; (2) the old telegraph was Bronze-only and mislabelled, always saying Forges Silver and showing own/3 even past the first tier. He asked for a glow-first cue over text (the Hearthstone you-own-this instinct), text only in the tutorial.",
       "scope": "System 1 of the fusion-legibility pass: the shop upgrade glow, re-scoped to be tier-correct and glow-first. wareHTML now lights a card from ownership across board and vault counted at any still-combinable rarity (Bronze, Silver, or Gold, never a maxed Diamond), so a lone Diamond stops the glow while a fresh lower-rarity copy relights a new sequence (Robbie's reset-on-new-copy rule). Two intensities on the existing treatments: BLUE (.ware.match) when you already own one on a track, GOLD (.ware.trip) when this buy forges on landing, the hottest grab-it cue, now carrying a soft pulsing halo on ::after (reduced-motion guarded, placed off ::before so it never clashes with the card entrance animation or the painted rarity frame). The forge test is a pure clone-and-fuse simulation (landResolve/landSim/buyOutcome, siblings vaultOutOutcome for System 2) that mirrors the live pull-and-forge on copies of board and vault, so it catches board-only triples, vault-assisted completions, and chains (a bought Bronze that forges a Silver which then forges a Gold), with no iid stamping, metrics, or side effects. The old text chips (You own 1, Forges Silver) and the own/N badge are moved behind G.tut so normal play is pure glow; in the tutorial they render tier-correct (Forges on buy, You own N). Presentation only in index.html CSS and ui.js render; no engine, data, save, economy, targeting, or route-semantics change. CACHE_V bb-v86.",
       "verification": "npm test 559 green, production build green. On-device eyes still owed for the pulse (the preview throttles animation). Bridge note: committed locally as part of the batch (deploy at the end per Robbie); not pushed. sourceCommit set at commit time.",

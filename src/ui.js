@@ -236,7 +236,10 @@ function wareHTML(w,i){
   const cost=w.free?0:buyCost(d.size,!!w.ench);
   const footprint=slotCost(d.size);
   const outcome=w.bought?{forges:false,fits:false}:buyOutcome(w.id,w.ench);
-  const can=!w.bought&&(w.free||canSpend(cost))&&(usedNow(G.board)+footprint<=slotsNow());
+  /* 0.130.0: a forge-completing buy frees its own space, so the card stays
+     buyable from a full stall when the purchase fuses on landing. */
+  const roomOK=usedNow(G.board)+footprint<=slotsNow()||outcome.fits;
+  const can=!w.bought&&(w.free||canSpend(cost))&&roomOK;
   /* own counts copies that can still combine (Bronze/Silver/Gold, never a maxed
      Diamond) across board and vault, so a lone Diamond stops the glow while a
      fresh lower-rarity copy relights a new sequence. */
@@ -262,13 +265,13 @@ function wareHTML(w,i){
 }
 function renderVaultSheet(sh){
   const it=G.vault[G.vsel];
-  const room=usedNow(G.board)+slotCost(it.size)<=slotsNow();
+  const room=usedNow(G.board)+slotCost(it.size)<=slotsNow()||vaultOutOutcome(G.vsel).fits;
   sh.innerHTML='<div class="sheet">'+wareDetailHTML(it,G.A)
    +'<div class="bs"><button class="btn" id="vOut"'+(room?'':' disabled')+'>To the Stall</button>'
    +'<button class="btn" id="vSwp"'+(G.board.length?'':' disabled')+'>Swap</button>'
    +'<button class="btn sell" id="vSl">Sell +'+sellValue(it.size)+'</button></div></div>';
   const O=$('vOut');if(O)O.onclick=function(){
-    if(usedNow(G.board)+slotCost(it.size)>slotsNow())return;
+    if(usedNow(G.board)+slotCost(it.size)>slotsNow()&&!vaultOutOutcome(G.vsel).fits)return;
     G.vault.splice(G.vsel,1);G.vsel=null;G.board.push(it);
     metricEvent('vault_out',{id:it.id,iid:it.iid});
     const forged=fuseStamp(G.board);
@@ -616,13 +619,14 @@ function fuseWithVault(){
 function selectWare(i){
   const w=G.shop[i];if(!w||w.bought||G.phase!=='draft')return;
   const d=ITEMS[w.id];const cost=w.free?0:buyCost(d.size,!!w.ench);
-  const room=usedNow(G.board)+slotCost(d.size)<=slotsNow();const afford=w.free||canSpend(cost);const can=afford&&room;
+  const out=buyOutcome(w.id,w.ench);
+  const room=usedNow(G.board)+slotCost(d.size)<=slotsNow()||out.fits;const afford=w.free||canSpend(cost);const can=afford&&room;
   const why=!afford?'Not enough gold':(!room?'No room on your stall':'');
   const o=ovOpen('<div class="card inspectcard"><div class="kick gold">Market ware</div>'
    +'<div class="sheet">'+wareDetailHTML({id:w.id,rarity:0,size:d.size,ench:w.ench},G.A)
    +'<div class="bs"><button class="btn buy'+(can?'':' cant')+'" id="shopBuy"'+(can?'':' disabled')+'>'+ic('g-coin','bi')+' '+(w.free?'Take':'Buy &middot; '+cost+'g')+'</button>'
    +'<button class="btn" id="shopClose">Close</button></div>'
-   +(why?'<div class="whyno">'+why+'</div>':'')+'</div></div>');
+   +(why?'<div class="whyno">'+why+'</div>':(can&&out.forges?'<div class="whyyes">'+ic('e-bolt','mi')+' Completes a fusion</div>':''))+'</div></div>');
   const close=function(){ovClose(o);};
   const b=o.querySelector('#shopBuy');if(b)b.onclick=function(){ovClose(o);buyWare(i);};
   const c=o.querySelector('#shopClose');if(c)c.onclick=close;
@@ -633,7 +637,9 @@ function buyWare(i){
   const w=G.shop[i];if(!w||w.bought)return;
   const d=ITEMS[w.id];const cost=w.free?0:buyCost(d.size,!!w.ench);
   if(!canSpend(cost)){toast('Not enough gold');return;}
-  if(usedNow(G.board)+slotCost(d.size)>slotsNow()){toast('No room on your stall');return;}
+  /* 0.130.0: a buy that fuses on landing frees its own space, so it is never
+     blocked for room even from a full stall (kills the vault back-and-forth). */
+  if(usedNow(G.board)+slotCost(d.size)>slotsNow()&&!buyOutcome(w.id,w.ench).fits){toast('No room on your stall');return;}
   const wEl=document.querySelector('.ware[data-w="'+i+'"]');
   const fromRect=wEl?wEl.getBoundingClientRect():null;
   G.gold-=cost;w.bought=true;sCoin();
