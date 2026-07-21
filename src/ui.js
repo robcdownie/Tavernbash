@@ -1245,7 +1245,7 @@ function openRouteModePick(heroId){
      +'<button class="lamp" data-m="'+mode+'" aria-label="Lantern rules">'+ic('g-lantern','li')+'<b id="lampn-'+mode+'">'+pick[mode]+'</b></button>'
      +'<button class="lstep" data-m="'+mode+'" data-d="1" aria-label="Raise the lantern">+</button></div>';
   };
-  const o=ovOpen('<div class="card routepick"><div class="rays"></div>'
+  const o=ovOpen('<div class="card setupcard routepick evroom ev-parlor"><div class="rays"></div>'
    +'<div class="kick gold">Choose Your Road</div>'
    +'<h2 class="big">How Long Will You Roam?</h2>'
    +'<div class="routepickgrid">'
@@ -1374,13 +1374,13 @@ function lanternRevealLines(){
 function openRouteReveal(){
   const isLong=G.run.routeMode==='long';
   const startRes=routeState().resolveMax;
-  const o=ovOpen('<div class="card reveal"><div class="rays"></div>'
+  const o=ovOpen('<div class="card setupcard reveal evroom ev-seance"><div class="rays"></div>'
    +'<div class="kick gold">The Road Ahead</div>'
    +ic(G.anom.g,'bigic')
-   +'<h2 class="big">'+G.anom.n+'</h2><p>'+G.anom.d+'</p>'
+   +'<h2 class="big">'+G.anom.n+'</h2><div class="setupcopy"><p>'+G.anom.d+'</p>'
    +'<p>Featured wares: <b style="color:var(--brass)">'+CATN[G.tags[0]]+'</b> and <b style="color:var(--brass)">'+CATN[G.tags[1]]+'</b></p>'
    +lanternRevealLines()
-   +'<p style="font-size:11px">'+(isLong?'Seven districts. ':'Four districts. ')+startRes+' Resolve. '+(isLong?'Survive After Midnight and reach the Grand Vizier.':'Reach the Grand Vizier.')+'</p>'
+   +'<p style="font-size:11px">'+(isLong?'Seven districts. ':'Four districts. ')+startRes+' Resolve. '+(isLong?'Survive After Midnight and reach the Grand Vizier.':'Reach the Grand Vizier.')+'</p></div>'
    +'<button class="btn gold" id="rvGo">Enter the Bazaar</button></div>');
   o.querySelector('#rvGo').onclick=function(){ovClose(o);enterOpeningMarket();};
 }
@@ -1632,7 +1632,7 @@ function openHeroPick(cont){
      selected rule card on short landscape screens. */
   const pool=HEROES;
   let sel=pool[0].id;
-  const o=ovOpen('<div class="card heropick evroom ev-parlor"><div class="rays"></div>'
+  const o=ovOpen('<div class="card setupcard heropick evroom ev-parlor"><div class="rays"></div>'
    +'<div class="kick gold">Choose Your Dealer</div>'
    +'<div class="herorail" id="herorail"></div>'
    +'<div class="herodetail" id="herodetail"></div>'

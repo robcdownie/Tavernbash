@@ -25,7 +25,10 @@ wasted art. One run of this skill is one release-sized pass.
 
 ## Procedure
 
-1. Render the whole run: `npm run shots` (SHOTS_CHROMIUM env overrides the
+1. Read `coordination/state.json`, `CLAUDE.md`, and the live roadmap. Confirm
+   the branch, worktree, version, and one-system boundary before editing.
+
+2. Render the whole run: `npm run shots` (SHOTS_CHROMIUM env overrides the
    browser binary in sandboxes). It serves the built app, walks intro to
    run end at both viewports with a fixed seed, and writes
    shots/<viewport>/<NN-screen>.png plus shots/index.html and
@@ -33,39 +36,44 @@ wasted art. One run of this skill is one release-sized pass.
    baseline health bar; investigate any regression there first.
    Copy shots/ aside as the BEFORE set right away.
 
-2. Study every frame with fresh eyes, twice: once as a senior mobile game
+3. Study every frame with fresh eyes, twice: once as a senior mobile game
    designer (hierarchy, flow, 44pt targets, safe areas, orientation parity),
    once as a harsh art director (composition, dead space, island-in-void
    layouts, whether the painted art is shown or drowned). Screens: intro,
    hero pick, road pick, omen reveal, first market, route map, scout, fight
    frames, victory, market return, run end.
 
-3. Ground EVERY finding in file:line on the real render surfaces: index.html
+4. Ground EVERY finding in file:line on the real render surfaces: index.html
    CSS (grep the selector, note the line), src/ui.js, src/route-ui.js.
    While grounding, check the cascade: a rule that a later same-specificity
    rule outranks is a finding in itself (the 0.118 landscape figure block
    died exactly this way). Tag each finding P0 to P3 and which of
    {hollow-feel, clarity, robustness} it hurts.
 
-4. Split the list: SAFE items (CSS spacing, sizing, presence, legibility,
+5. Split the list: SAFE items (CSS spacing, sizing, presence, legibility,
    dead-rule repair) get fixed now, in index.html or the render modules
    only. Everything else becomes a recommendation with a proposed approach
    and its file anchors. When in doubt whether a change re-litigates a
-   recorded decision, it goes in recommendations.
+   recorded decision, it goes in recommendations. Preserve a screen that
+   already passes even when the request named it as a prime suspect.
 
-5. Verify: `npm test` (559+, includes the dash scan), `npm run build`,
-   `npm run shots` again. Compare before and after tile by tile; any screen
+6. Verify: `npm test` (559+, includes the dash scan), `npm run build`, and
+   `npm run shots:check`. If an intended structural change exceeds the visual
+   gate tolerance, inspect the exact drift, run `npm run shots:baseline`, and
+   commit `scripts/shots-baseline.json` in the same version. Never weaken the
+   gate to make the change pass.
+
+7. Run `npm run shots` last. Compare before and after tile by tile; any screen
    that got worse reverts. Note honestly which checks could not run in the
-   current environment (the Playwright layout suite needs the font CDN and
-   real browser builds; in sandboxes A/B against pristine files before
-   blaming your own change).
+   current environment.
 
-6. Fresh-context second pass: spawn a subagent art director that has NOT
-   seen the findings list, give it only the AFTER screenshots, and ask for
-   ranked findings. Adopt what is safe, add the rest to recommendations,
-   and say which of its findings confirmed yours.
+8. Fresh-context second pass: after the final screenshots exist, spawn a
+   subagent art director that has NOT seen the findings list. Give it the AFTER
+   screenshots and live render files, and ask for ranked findings. Adopt what
+   is safe, add the rest to recommendations, and say which findings confirmed
+   yours.
 
-7. Deliver: before/after tiles for every changed screen, the graded findings
+9. Deliver: before/after tiles for every changed screen, the graded findings
    table with file:line anchors, recommendations with approaches, the top 5
    changes that most reduce the hollow feeling, and the 5 quick wins
    shippable today. Update coordination/state.json (reservation + build) and

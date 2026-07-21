@@ -1529,6 +1529,25 @@
     .masterygrid{grid-template-columns:minmax(105px,1.05fr) repeat(2,minmax(82px,1fr));}
   }
   @media (orientation:portrait){.routepickgrid{grid-template-columns:1fr}.routechoice{min-height:112px;}}
+  /* 0.135.0 manor ceremony frame: setup choices occupy the phone like rooms in
+     the house instead of small plaques floating inside a black overlay. The
+     existing parlor and seance paintings do the visual work; this only gives
+     the shared setup sequence a full-height portrait composition. */
+  .card.setupcard.reveal .setupcopy{margin:0 0 10px;padding:6px 10px 2px;
+    border:1px solid rgba(216,162,74,.3);border-radius:14px;background:rgba(10,9,15,.68);
+    box-shadow:0 8px 20px rgba(0,0,0,.32);}
+  @media (orientation:portrait){
+    .card.setupcard{min-height:calc(100vh - 32px);min-height:calc(100dvh - 32px);
+      max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);
+      display:flex;flex-direction:column;justify-content:center;padding:clamp(28px,6vh,50px) 20px;}
+    .card.setupcard>.btn.gold{flex:0 0 auto;}
+    .card.setupcard .herorail{margin-block:clamp(12px,2.5vh,22px);}
+    .card.setupcard .herodetail{margin-block:clamp(8px,2vh,18px);}
+    .card.setupcard .routepickgrid{margin-top:clamp(16px,3vh,28px);}
+    .card.setupcard.reveal .bigic{width:112px;height:112px;margin-top:clamp(10px,2vh,20px);}
+    .card.setupcard.reveal .big{font-size:46px;margin-block:clamp(8px,2vh,16px);}
+    .card.setupcard.reveal .setupcopy{margin-bottom:clamp(14px,3vh,24px);padding:10px 12px 4px;}
+  }
   /* portrait uses the tall painting with its baked nameplate; landscape
      uses the wide painting fit whole (dark vignette edges blend the
      letterbox), buttons dropped onto its painted plaques */

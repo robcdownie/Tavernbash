@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-21",
-  "build": "0.134.0",
+  "build": "0.135.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -16,23 +16,35 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v89"
+    "cacheVersion": "bb-v90"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
-    "name": "Manor Transitions",
-    "token": "manor-continuous-night",
+    "name": "Presentation Audit",
+    "token": "manor-ceremony-frames",
     "integrator": "codex",
-    "outcome": "Give the haunted Victorian manor one short, skippable, reduced-motion-safe connective transition language without replacing the existing Dusk Falls, card, route-path, dock, reveal, or combat animation work. Engine, targeting, deterministic combat timing, saves, balance, and route semantics stay untouched.",
+    "outcome": "Audit the complete haunted manor presentation at both phone viewports, then remove the strongest confirmed hollow composition with one shared portrait setup frame. Market, map, fight, recap, engine, targeting, timing, saves, balance, economy, and route semantics stay untouched.",
     "versions": [
-      "0.134.0",
-      "0.135.0",
-      "0.136.0"
+      "0.135.0"
     ],
     "status": "active",
-    "note": "Approved direction from Robbie on 2026-07-21. The manor, not the historical Persian market, is the visual truth. Version split: 0.134.0 stage handoffs, incoming route paths and scout panel, plus fight assembly under Dusk Falls; 0.135.0 symmetric overlay exit; 0.136.0 route-native dawn rollover. One presentation system per version."
+    "note": "Robbie requested the full presentation audit and authorized the next push. Version 0.135.0 is one presentation system: full-height manor ceremony frames for hero, road, and Omen setup in portrait. The previously planned overlay exit and route-native dawn systems move to 0.136.0 and 0.137.0."
   },
   "reservations": [
+    {
+      "version": "0.135.0",
+      "project": "Presentation Audit",
+      "token": "manor-ceremony-frames",
+      "owner": "codex",
+      "branch": "presentation-audit-0.135.0",
+      "worktree": "C:/tmp/bazaar-brawler-presentation-0.135.0",
+      "status": "active",
+      "sourceCommit": null,
+      "trigger": "Robbie on 2026-07-21: audit every screen at both phone viewports, fix safe spacing and hierarchy issues now, preserve larger recompositions as recommendations, save the reusable presentation-audit skill, and push the completed result to main.",
+      "scope": "One presentation system: manor ceremony frames. Hero pick, road pick, and Omen reveal share one setupcard treatment that fills the portrait viewport inside the existing carved frame and reuses the existing parlor and seance room paintings. Landscape setup composition is unchanged. Market, map, scout, fight, recap, and run-end layouts are audit-only in this version because the requested screenshots show no safe severe defect there. No engine, targeting, deterministic timing, save, balance, economy, or route-semantics change.",
+      "verification": "In progress.",
+      "note": "The exact 0.134.0 base was captured immediately before this version at both 844x390 and 390x844. The baseline is preserved outside the repo at C:/tmp/bb-transitions-0.134-after-final/shots."
+    },
     {
       "version": "0.134.0",
       "project": "Manor Transitions",
