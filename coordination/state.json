@@ -1,8 +1,8 @@
 {
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
-  "updated": "2026-07-20",
-  "build": "0.133.0",
+  "updated": "2026-07-21",
+  "build": "0.134.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -16,37 +16,37 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v88"
+    "cacheVersion": "bb-v89"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
-    "name": "Manor Identity",
-    "token": "launch-manor-identity",
-    "integrator": "claude",
-    "outcome": "Production implementation of the approved haunted-manor visual system from STYLE.md and the composite proof: asset filing through the established art pipeline, presentation foundation, then staged screen rebuilds. One presentation system per version; engine, saves, balance, and route semantics untouched.",
+    "name": "Manor Transitions",
+    "token": "manor-continuous-night",
+    "integrator": "codex",
+    "outcome": "Give the haunted Victorian manor one short, skippable, reduced-motion-safe connective transition language without replacing the existing Dusk Falls, card, route-path, dock, reveal, or combat animation work. Engine, targeting, deterministic combat timing, saves, balance, and route semantics stay untouched.",
     "versions": [
-      "0.102.0",
-      "0.103.0",
-      "0.104.0",
-      "0.105.0",
-      "0.106.0",
-      "0.107.0",
-      "0.108.0",
-      "0.109.0",
-      "0.110.0",
-      "0.111.0",
-      "0.112.0",
-      "0.113.0",
-      "0.114.0",
-      "0.115.0",
-      "0.116.0",
-      "0.117.0",
-      "0.118.0"
+      "0.134.0",
+      "0.135.0",
+      "0.136.0"
     ],
-    "status": "deployed",
-    "note": "NINETEEN manor versions 0.102.0 through 0.118.0 DEPLOYED to platosd.com per Robbie push it instruction of 2026-07-19: first push at 0.117.0 (bb-v75, CI green run 29702993160), second push with the final four polish at 0.118.0 (bb-v76). The manor identity program is live. fal key rotation still owed by Robbie."
+    "status": "active",
+    "note": "Approved direction from Robbie on 2026-07-21. The manor, not the historical Persian market, is the visual truth. Version split: 0.134.0 stage handoffs, incoming route paths and scout panel, plus fight assembly under Dusk Falls; 0.135.0 symmetric overlay exit; 0.136.0 route-native dawn rollover. One presentation system per version."
   },
   "reservations": [
+    {
+      "version": "0.134.0",
+      "project": "Manor Transitions",
+      "token": "manor-stage-handoffs",
+      "owner": "codex",
+      "branch": "manor-stage-handoffs-0.134.0",
+      "worktree": "C:/tmp/bazaar-brawler-transitions-0.134.0",
+      "status": "done",
+      "sourceCommit": null,
+      "trigger": "Robbie on 2026-07-21: inventory and extend the existing motion work, then make the night continuous instead of a slideshow, with the haunted Victorian manor as the visual truth.",
+      "scope": "One presentation system: connective stage handoffs. Add one shared short candle-carry cover for true stage changes, reuse pathflow for route-path arrival, settle the in-place scout preview, and assemble the duel stage beneath the existing Dusk Falls sweep. Every moving treatment is tap-skippable, guarded by prefers-reduced-motion, and instant when reduced motion is active. The Dusk Falls cover remains the sole fight-start curtain and continues to own the existing sim hold. No overlay exit work and no route-native dawn rollover in this version. No engine, targeting, combat-step timing, save, balance, economy, or route-semantics change.",
+      "verification": "Complete locally on 2026-07-21. npm test passed 559 of 559. npm run build passed with 815 modules transformed and only the standing chunk-size advisory. npm run shots:check passed 26 screens with zero missing, zero blank, zero console errors, and zero layout drift beyond tolerance. Final npm run shots passed at 844x390 and 390x844 with 60 stills, 48 filmstrips, zero console errors, zero selector misses, and only the expected deep-run boss or gate state unreachable at each viewport. Reduced-motion filmstrips show instant cuts. No push or deploy.",
+      "note": "Baseline 0.133.0 npm run shots completed cleanly before source edits: 60 stills, 48 filmstrips, zero console errors, zero selector misses, and the expected boss or gate state unreachable at both viewports. The baseline is preserved outside the repo at C:/tmp/bb-transitions-0.134-before/shots. The final after contact sheet and films are in this worktree at shots/. Map to scout is not a full-stage cut in the current route UI because 0.121.0 deliberately preselects the first scout; 0.134.0 settles that in-place preview with cardin instead of undoing the approved behavior."
+    },
     {
       "version": "0.133.0",
       "project": "Presentation Gate",

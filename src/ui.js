@@ -80,6 +80,31 @@ function bindMetricVisibility(){
     if(document.hidden)pauseMetrics(G.run.metrics,Date.now());else activateMetrics(G.run.metrics,Date.now());});
   if(typeof window!=='undefined')window.addEventListener('pagehide',function(){if(G&&G.run&&G.run.metrics)pauseMetrics(G.run.metrics,Date.now());});
 }
+/* 0.134.0 manor stage handoff: a short candle-carry veil covers only true
+   screen changes. State and checkpoints settle before this runs; it owns only
+   when the next stage is painted. A second tap finishes the handoff at once. */
+let activeStageCarry=null,routeMapArrival=false;
+function stageHandoff(paint){
+  if(RM||typeof document==='undefined'||!document.body){paint();return;}
+  if(activeStageCarry)activeStageCarry();
+  const veil=document.createElement('div');
+  veil.className='stagecarry';veil.tabIndex=0;veil.setAttribute('role','button');
+  veil.setAttribute('aria-label','Skip transition');document.body.appendChild(veil);
+  let painted=false,done=false,midTimer=null,endTimer=null;
+  const swap=function(){if(painted)return;painted=true;paint();};
+  const finish=function(){if(done)return;done=true;clearTimeout(midTimer);clearTimeout(endTimer);swap();
+    if(veil.parentNode)veil.parentNode.removeChild(veil);if(activeStageCarry===finish)activeStageCarry=null;};
+  const skip=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}finish();};
+  veil.onpointerdown=skip;
+  veil.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){skip(ev);}};
+  activeStageCarry=finish;midTimer=setTimeout(swap,250);endTimer=setTimeout(finish,540);
+}
+function presentRouteMap(withCarry){
+  G.phase='routeMap';metricPhase('map');
+  const main=$('main'),needsCarry=!!withCarry&&!!main&&!main.classList.contains('routemap');
+  const paint=function(){routeMapArrival=needsCarry;renderAll();};
+  if(needsCarry)stageHandoff(paint);else paint();
+}
 /* ============ STAT DISPLAY HELPERS ============ */
 function primDraft(it){const d=ITEMS[it.id];const rs=RSTAT[it.rarity];const f=d.fx||{};
  if(f.dmg)return['',Math.round(f.dmg*rs)];
@@ -512,7 +537,7 @@ function campInspect(){
 function renderAll(){
   document.body.classList.add('run','route');document.body.classList.toggle('fight',G.phase==='fight');
   renderRibbon();renderAno();renderTrow();
-  if(G.phase==='routeMap')renderRouteMap();
+  if(G.phase==='routeMap'){const arrive=routeMapArrival;routeMapArrival=false;renderRouteMap({arrive:arrive});}
   else if(G.phase==='draft'||G.phase==='gateCamp')renderDraft();   /* the Gate Camp is a camp-mode draft */
 }
 /* ============ THE VOICE: your hero watches you play ============ */
@@ -930,11 +955,11 @@ function startFight(me,foe,opts){
   G.phase='fight';G.fpaused=false;G.sel=null;music((opts&&opts.boss)?'boss':'battle');
   metricPhase('combat_'+FSPD+'x');
   document.body.classList.add('fight');
+  let dk=null;
   if(!RM){
-    const dk=document.createElement('div');dk.className='dusk';
+    dk=document.createElement('div');dk.className='dusk skippable';dk.tabIndex=0;dk.setAttribute('role','button');dk.setAttribute('aria-label','Skip Dusk Falls');
     dk.innerHTML='<div class="dt">Dusk Falls</div><div class="d2">'+((opts&&opts.caption)||('Round '+G.round))+' &middot; '+esc(foe.nm)+'</div>';
     document.body.appendChild(dk);
-    setTimeout(function(){dk.remove();},2250);
   }
   const fseed=(opts&&opts.seed!=null)?(opts.seed>>>0):((G.seed+G.round*7919+(++G.fightN)*104729)>>>0);
   const baseStorm=(opts&&opts.stormAt)||stormAt((opts&&opts.threat!=null)?opts.threat:runThreat());
@@ -946,7 +971,7 @@ function startFight(me,foe,opts){
   G.F=F;
   G.recap={a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
   function pad(items){const u=items.reduce(function(s,x){return s+(x.slotSize||x.size);},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
-  $('main').className='fight';
+  $('main').className='fight'+(!RM?' stage-assemble':'');
   /* 0.113.0: stamp the hero id so heroes with painted full-body art step
      into the duel as a fixed spectacle layer, purely decorative */
   try{document.documentElement.dataset.hero=G.hero||'';
@@ -1005,28 +1030,38 @@ function startFight(me,foe,opts){
       const m=cell.id.match(/^fc-(a|b)-(\d+)$/);if(m)openFightInspect(m[1],+m[2]);
     };
   });
-  let acc=0;
-  /* hold the sim while Dusk Falls owns the screen; the first swing
-     lands as the curtain lifts */
-  const duskHold=RM?0:1500;
-  setTimeout(function(){
-  if(G.F!==F)return;
-  G.fiv=setInterval(function(){
-    if(G.fpaused)return;
-    /* the last shot: a genuine photo finish plays out at half speed */
-    const tight=!F.done&&Math.min(F.a.hp,F.b.hp)<=20&&Math.max(F.a.hp,F.b.hp)<=45;
-    acc+=40*SPEED*FSPD*(tight?0.45:1);let evs=[];
-    while(acc>=TICK&&!F.done){acc-=TICK;const e2=F.step(TICK);for(let q=0;q<e2.length;q++){evs.push(e2[q]);}}
-    if(evs.length)handleEvents(F,evs);
-    paintFight(F);
-    paintCds();
-    if(F.done){
-      clearInterval(G.fiv);G.fiv=null;
-      fxStorm(false);sStorm(false);music('market');
-      setTimeout(function(){$('sand').classList.remove('on');opts.onEnd(F);},850);
-    }
-  },40);
-  },duskHold);
+  let acc=0,simStarted=false,duskFinished=false,holdTimer=null,duskTimer=null;
+  function finishDusk(){
+    if(duskFinished)return;duskFinished=true;
+    const main=$('main');if(main)main.classList.remove('stage-assemble');
+    if(dk&&dk.parentNode)dk.parentNode.removeChild(dk);
+  }
+  function beginSim(){
+    if(simStarted||G.F!==F)return;simStarted=true;
+    G.fiv=setInterval(function(){
+      if(G.fpaused)return;
+      /* the last shot: a genuine photo finish plays out at half speed */
+      const tight=!F.done&&Math.min(F.a.hp,F.b.hp)<=20&&Math.max(F.a.hp,F.b.hp)<=45;
+      acc+=40*SPEED*FSPD*(tight?0.45:1);let evs=[];
+      while(acc>=TICK&&!F.done){acc-=TICK;const e2=F.step(TICK);for(let q=0;q<e2.length;q++){evs.push(e2[q]);}}
+      if(evs.length)handleEvents(F,evs);
+      paintFight(F);
+      paintCds();
+      if(F.done){
+        clearInterval(G.fiv);G.fiv=null;
+        fxStorm(false);sStorm(false);music('market');
+        setTimeout(function(){$('sand').classList.remove('on');opts.onEnd(F);},850);
+      }
+    },40);
+  }
+  /* Dusk Falls still owns the existing 1.5 second sim hold. Tapping the curtain
+     ends both the hold and the decorative assembly immediately; reduced motion
+     never creates either and starts the same deterministic fight at once. */
+  if(dk){
+    const skip=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}clearTimeout(holdTimer);clearTimeout(duskTimer);finishDusk();beginSim();};
+    dk.onpointerdown=skip;dk.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){skip(ev);}};
+    holdTimer=setTimeout(beginSim,1500);duskTimer=setTimeout(finishDusk,2250);
+  }else{beginSim();}
 }
 /* monster reward settlement (R4 commit 4b). The fixed payout (gold, bounty
    offers, relic, mote) applies exactly once behind a receipt keyed on run, node,
@@ -1142,7 +1177,7 @@ function presentAfterReward(){
   const np=nextPresentation(G.run);
   if(np.kind==='choice'){openRewardChoice(np.choice);}
   else if(np.kind==='end'){routeEnd(np.cause);}
-  else{G.phase='routeMap';metricPhase('map');renderAll();}
+  else{presentRouteMap(true);}
 }
 /* ============ THE LONG BAZAAR ROUTE ============ */
 /* The route presenters (map, gate camp, event cards, fight recap, reward
@@ -1376,13 +1411,13 @@ function runEffects(effects,i,ctx){
       criticalSave(function(){routeEventCard(e);});return;
     }
     else if(e.type==='eventDone'){G.phase='routeMap';metricPhase('map');checkpointActiveRun();}
-    else if(e.type==='gateCamp'){G.phase='gateCamp';metricPhase('gate_camp');checkpointActiveRun();renderAll();return;}
+    else if(e.type==='gateCamp'){G.phase='gateCamp';metricPhase('gate_camp');checkpointActiveRun();stageHandoff(renderAll);return;}
     else if(e.type==='end'){routeEnd(e.cause);return;}
   }
   /* every pausing effect returns above, so reaching here means the queue
      resolved back to the road (a slip, a settled reward, a left market, or a
      finished event); the prior screen may still be the fight, so force the map */
-  G.phase='routeMap';metricPhase('map');renderAll();
+  presentRouteMap(true);
 }
 
 /* ---- combat adapter: reuse startFight, feed it a route-built foe ---- */
@@ -1470,7 +1505,7 @@ function enterOpeningMarket(){
 }
 function leaveOpeningMarket(){
   G.route.opening=false;G.route.market=null;
-  G.phase='routeMap';metricPhase('map');checkpointActiveRun();renderAll();
+  checkpointActiveRun();presentRouteMap(true);
 }
 /* ---- market node: reuse the draft, deterministic keyed stock ---- */
 function enterRouteMarket(nodeId){
@@ -1478,7 +1513,7 @@ function enterRouteMarket(nodeId){
   G.rng=mulberry(fightSeed(G.seed,nodeId,0));
   G.shopSel=null;G.sel=null;G.vsel=null;G.swapV=null;G.dockV=false;
   rollShop();
-  G.phase='draft';metricPhase('market');checkpointActiveRun();renderAll();
+  G.phase='draft';metricPhase('market');checkpointActiveRun();stageHandoff(renderAll);
 }
 
 /* resume a saved route at whatever phase it stopped */

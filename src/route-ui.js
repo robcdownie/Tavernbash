@@ -400,7 +400,8 @@ function routeNodePreviewHTML(n,state){
     +'<div class="rmpbody">'+info+'</div>'
     +'<div class="rmpfoot">'+acts+'</div>';
 }
-export function renderRouteMap(){
+export function renderRouteMap(opts){
+  opts=opts||{};
   const map=routeMap(),st=routeState();
   const di=currentDistrict(st,map),D=map.districts[di];
   const fr=frontier(st,map),frS=new Set(fr),vis=visitedSet(st);
@@ -443,9 +444,9 @@ export function renderRouteMap(){
     +'<span class="rmdest">'+esc(MONSTERS[D.boss.monId].n)+' waits at the gate</span></div>'
     +'<div class="rmplot" id="rmplot"><svg class="rmedges" id="rmedges" preserveAspectRatio="none" aria-hidden="true"></svg>'+nodes+'</div>'
     +'</div>'
-    +'<div class="rmprev" id="rmprev">'+prev+'</div></div>';
+    +'<div class="rmprev'+((opts.scout&&!RM)?' scout-arrive':'')+'" id="rmprev">'+prev+'</div></div>';
   document.querySelectorAll('.rmnode').forEach(function(bn){
-    bn.onclick=function(){G.route.selectedId=bn.dataset.n;renderRouteMap();};});
+    bn.onclick=function(){G.route.selectedId=bn.dataset.n;renderRouteMap({scout:true});};});
   const p=$('rmprev');
   if(p&&sel&&frS.has(sel)){const n=map.nodes[sel];   /* only a reachable node commits */
     p.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){
@@ -453,6 +454,10 @@ export function renderRouteMap(){
       B.dispatchRoute({type:'commit',nodeId:n.id,choice:act==='slip'?'slip':'challenge'});
     };});}
   drawConnectors();
+  if(opts.arrive&&!RM&&typeof requestAnimationFrame!=='undefined'){
+    requestAnimationFrame(function(){requestAnimationFrame(animateRoutePaths);});
+  }
+  if(opts.scout&&!RM)makeMotionSkippable($('rmprev'),'scout-arrive',280);
   ensureRouteObserver();
 }
 /* draw the braid connectors from the real node centers, so the curves track the
@@ -473,6 +478,29 @@ function drawConnectors(){
     out+='<path d="'+d+'" class="edge under"/><path d="'+d+'" class="edge '+e.state+'"/>';
   });
   svg.innerHTML=out;
+}
+let pathArrivalFinish=null;
+function makeMotionSkippable(el,cls,duration){
+  if(!el)return;
+  let timer=null,done=false;
+  const finish=function(){if(done)return;done=true;clearTimeout(timer);el.classList.remove(cls);document.removeEventListener('pointerdown',finish,true);};
+  document.addEventListener('pointerdown',finish,true);timer=setTimeout(finish,duration);
+}
+/* Reuse the existing pathflow keyframe with per-path lengths. Normal available
+   roads resume their endless dashed flow after this one short arrival draw. */
+function animateRoutePaths(){
+  if(pathArrivalFinish)pathArrivalFinish();
+  const svg=$('rmedges');if(!svg)return;
+  const paths=Array.from(svg.querySelectorAll('.edge'));
+  paths.forEach(function(path){
+    try{const len=Math.max(1,Math.ceil(path.getTotalLength()));path.style.setProperty('--path-len',len+'px');
+      path.style.setProperty('--path-from',len+'px');path.style.setProperty('--path-to','0px');path.classList.add('path-arrive');}catch(e){}
+  });
+  let done=false,timer=null;
+  const finish=function(){if(done)return;done=true;clearTimeout(timer);document.removeEventListener('pointerdown',finish,true);
+    paths.forEach(function(path){path.classList.remove('path-arrive');path.style.removeProperty('--path-len');path.style.removeProperty('--path-from');path.style.removeProperty('--path-to');});
+    if(pathArrivalFinish===finish)pathArrivalFinish=null;};
+  pathArrivalFinish=finish;document.addEventListener('pointerdown',finish,true);timer=setTimeout(finish,520);
 }
 let _rmObs=null;
 function ensureRouteObserver(){

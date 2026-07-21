@@ -1548,12 +1548,35 @@
   .dusk{position:fixed;inset:0;z-index:60;pointer-events:none;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;
     background:radial-gradient(circle at 50% 50%, rgba(11,10,16,.45), rgba(7,6,12,.9) 76%),
       url('/art/bg/bg_intro_wide.png') center/cover no-repeat #0b0c14;animation:duskin 2.2s var(--e-out) forwards;}
+  .dusk.skippable{pointer-events:auto;cursor:pointer;}
   .dusk .dt{font-family:"Rakkas",serif;font-size:36px;color:var(--brass-hi);letter-spacing:1px;text-shadow:0 4px 26px rgba(0,0,0,.9);}
   .dusk .d2{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);font-weight:800;}
   .dusk>*{animation:duskt 2.2s var(--e-out);}
   @keyframes duskin{0%{opacity:0;}15%{opacity:1;}72%{opacity:1;}100%{opacity:0;}}
   @keyframes duskt{0%{opacity:0;transform:translateY(12px) scale(.95);}22%{opacity:1;transform:none;}78%{opacity:1;transform:none;}100%{opacity:0;transform:scale(1.03);}}
   @media (prefers-reduced-motion: reduce){.dusk{display:none;}}
+
+  /* 0.134.0 manor stage handoff: one candlelit veil carries the eye between
+     full stages. The wrapper catches a tap anywhere; its two painted bands move
+     across the same cold night and candle-amber palette as the house. */
+  .stagecarry{position:fixed;inset:0;z-index:61;overflow:hidden;pointer-events:auto;cursor:pointer;
+    background:radial-gradient(ellipse at 50% 52%,rgba(232,165,74,.12),rgba(8,8,15,.68) 72%);animation:duskin .52s var(--e-out) both;}
+  .stagecarry::before{content:"";position:absolute;top:-10%;bottom:-10%;left:-45vw;width:190vw;
+    background:linear-gradient(90deg,transparent 0,rgba(8,8,15,.82) 17%,rgba(11,10,16,.98) 38%,rgba(25,16,10,.98) 62%,rgba(8,8,15,.82) 83%,transparent 100%);
+    box-shadow:inset 0 0 80px rgba(159,180,216,.16),0 0 34px rgba(232,165,74,.18);animation:carrywipe .52s cubic-bezier(.55,.02,.32,1) both;}
+  .stagecarry::after{content:"";position:absolute;top:-16%;bottom:-16%;left:32%;width:36%;opacity:.8;
+    background:radial-gradient(ellipse at center,rgba(246,212,136,.38),rgba(232,165,74,.12) 32%,transparent 70%);
+    filter:blur(8px);animation:carrywipe .52s cubic-bezier(.55,.02,.32,1) both;}
+  @keyframes carrywipe{0%{transform:translateX(-100%);}47%,53%{transform:translateX(0);}100%{transform:translateX(100%);}}
+  #main.fight.stage-assemble .bd-b{--fight-y:-14px;animation:fightsettle .5s var(--e-out) .06s both;}
+  #main.fight.stage-assemble .bd-a{--fight-y:14px;animation:fightsettle .5s var(--e-out) .06s both;}
+  #main.fight.stage-assemble .duelfig{animation:duelrise .54s var(--e-out) .08s both !important;}
+  @keyframes fightsettle{from{opacity:.18;translate:0 var(--fight-y);}to{opacity:1;translate:0 0;}}
+  @keyframes duelrise{from{opacity:0;translate:0 18px;}to{opacity:.97;translate:0 0;}}
+  @media (prefers-reduced-motion: reduce){
+    .stagecarry{display:none;}
+    #main.fight.stage-assemble .bd-a,#main.fight.stage-assemble .bd-b,#main.fight.stage-assemble .duelfig{animation:none !important;translate:none;}
+  }
 
   /* ===== V6 NO-SCROLL PASS: slim run chrome, dense draft, landscape grids ===== */
   body.run .head>div:first-child{display:none;}
@@ -1801,9 +1824,11 @@
   .rmedges .edge.done{stroke:#e7c058;stroke-width:4.5;filter:drop-shadow(0 0 3px rgba(231,192,88,.6));}
   .rmedges .edge.avail{stroke:#ffdf9b;stroke-width:4;stroke-dasharray:7 6;filter:drop-shadow(0 0 5px rgba(255,223,155,.75));
     animation:pathflow 1.6s linear infinite;}
-  @keyframes pathflow{to{stroke-dashoffset:-13;}}
+  .rmedges .edge.path-arrive{stroke-dasharray:var(--path-len) var(--path-len) !important;
+    animation:pathflow .48s var(--e-out) 1 both !important;}
+  @keyframes pathflow{from{stroke-dashoffset:var(--path-from,0);}to{stroke-dashoffset:var(--path-to,-13);}}
   .rmedges .edge.future{stroke:rgba(150,116,72,.5);stroke-width:2.5;}
-  @media (prefers-reduced-motion: reduce){.rmedges .edge.avail{animation:none;}}
+  @media (prefers-reduced-motion: reduce){.rmedges .edge.avail,.rmedges .edge.path-arrive{animation:none !important;}}
   .rmnode{position:absolute;transform:translate(-50%,-50%);width:56px;height:64px;z-index:2;
     display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;
     border:0;background:none;padding:0;cursor:pointer;text-align:center;color:#f0e2c6;}
@@ -1839,6 +1864,8 @@
   /* preview: header, scrollable body, pinned footer */
   .rmprev{background:linear-gradient(180deg,rgba(34,24,14,.92),rgba(22,15,9,.92));border:1px solid rgba(216,162,74,.3);
     border-radius:12px;padding:10px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:0;gap:6px;}
+  .rmprev.scout-arrive{animation:cardin .24s var(--e-out) both;}
+  @media (prefers-reduced-motion: reduce){.rmprev.scout-arrive{animation:none;}}
   .rmphead{display:flex;align-items:center;gap:8px;}
   .rmphead .rmpg{width:38px;height:38px;flex:0 0 auto;}
   .rmpgi{width:100%;height:100%;}
