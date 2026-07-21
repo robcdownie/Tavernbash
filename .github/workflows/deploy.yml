@@ -28,6 +28,11 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      # presentation gate: fail the deploy if a screen goes missing, blank, or
+      # its layout drifts beyond tolerance from scripts/shots-baseline.json. dist
+      # is already built above, so call the script directly (no rebuild).
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/shots-check.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

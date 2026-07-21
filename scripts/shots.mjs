@@ -30,7 +30,7 @@
 
 import {createServer} from 'node:http';
 import {readFile, mkdir, writeFile, rm} from 'node:fs/promises';
-import {existsSync} from 'node:fs';
+import {existsSync, realpathSync} from 'node:fs';
 import {join, dirname, extname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {chromium} from '@playwright/test';
@@ -38,15 +38,20 @@ import {chromium} from '@playwright/test';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(root, 'dist');
 const OUT = join(root, 'shots');
-const SEED = (() => {
+export const SEED = (() => {
   const raw = process.env.SHOTS_SEED;
   const n = raw == null ? NaN : parseInt(raw, 10);
   return Number.isFinite(n) ? (n >>> 0) : 13;
 })();
-const VIEWPORTS = [
+export const VIEWPORTS = [
   {name: '844x390', width: 844, height: 390},
   {name: '390x844', width: 390, height: 844}
 ];
+/* structural anchors captured per screen for the coarse layout diff. Only the
+   ones present on a given screen are recorded; the check compares matching
+   anchors run to baseline. Chosen to be layout-driven containers (flex or grid),
+   not text-width elements, so the boxes are stable run to run under a fixed seed. */
+export const ANCHORS = ['#app', '#main', '#ribbon', '.stage', '.secmarket', '.shop', '#bd', '.controls', '.dock', '.rmplot', '.combat', '.recapcard', '.heropick', '#btnGo'];
 const MIME = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
   '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json',
@@ -55,7 +60,7 @@ const MIME = {
 };
 
 /* ---------- static server over dist/ ---------- */
-function serveDist() {
+export function serveDist() {
   const srv = createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost');
@@ -73,14 +78,29 @@ function serveDist() {
 }
 
 /* ---------- the walk ---------- */
-const log = [];
-function note(vp, screen, kind, detail) {
+export const log = [];
+export function note(vp, screen, kind, detail) {
   const line = {viewport: vp, screen, kind, detail};
   log.push(line);
   console.log('  [' + vp + '] ' + screen + ' ' + kind + (detail ? ': ' + String(detail).slice(0, 220) : ''));
 }
 
-async function walkViewport(browser, base, vp) {
+/* the coarse per-screen layout fingerprint: rendered page size plus the box of
+   each structural anchor present. Layout only, no pixels; the gate compares it
+   to the committed baseline. */
+async function captureMetrics(page) {
+  return await page.evaluate((anchors) => {
+    const doc = document.documentElement;
+    const out = {pageW: doc.scrollWidth, pageH: doc.scrollHeight, innerW: window.innerWidth, innerH: window.innerHeight, anchors: {}};
+    for (const sel of anchors) {
+      const el = document.querySelector(sel);
+      if (el) { const r = el.getBoundingClientRect(); out.anchors[sel] = [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)]; }
+    }
+    return out;
+  }, ANCHORS);
+}
+
+export async function walkViewport(browser, base, vp) {
   const dir = join(OUT, vp.name);
   await mkdir(dir, {recursive: true});
   const context = await browser.newContext({
@@ -102,6 +122,7 @@ async function walkViewport(browser, base, vp) {
   const page = await context.newPage();
   let currentScreen = 'boot';
   const shotsTaken = [];
+  const metrics = {};
   page.on('console', (msg) => { if (msg.type() === 'error') note(vp.name, currentScreen, 'console-error', msg.text()); });
   page.on('pageerror', (err) => note(vp.name, currentScreen, 'page-error', err.message));
 
@@ -110,7 +131,10 @@ async function walkViewport(browser, base, vp) {
     shotN++;
     const name = String(shotN).padStart(2, '0') + '-' + label + '.png';
     await page.screenshot({path: join(dir, name)});
-    shotsTaken.push({file: vp.name + '/' + name, label});
+    const file = vp.name + '/' + name;
+    try { metrics[label] = Object.assign({file}, await captureMetrics(page)); }
+    catch (e) { note(vp.name, currentScreen, 'metrics-failed', String(e && e.message)); metrics[label] = {file}; }
+    shotsTaken.push({file, label});
     return name;
   }
   /* wait that never throws: a miss is logged and the walk continues */
@@ -248,7 +272,7 @@ async function walkViewport(browser, base, vp) {
   }
 
   await context.close();
-  return shotsTaken;
+  return {shots: shotsTaken, metrics};
 }
 
 /* buy affordable wares, offense first (dmg, burn, poison, then the rest) so
@@ -256,7 +280,7 @@ async function walkViewport(browser, base, vp) {
    under a fixed seed. Category order reads the localhost dev globals when
    present and falls back to left to right. Tap the card, then Buy in its
    inspect overlay; a disabled Buy just closes. */
-async function buyAffordable(page) {
+export async function buyAffordable(page) {
   const bought = [];
   for (let pass = 0; pass < 8; pass++) {
     const idx = await page.evaluate(() => {
@@ -293,7 +317,7 @@ async function buyAffordable(page) {
 }
 
 /* ---------- contact sheet ---------- */
-function contactSheetHTML(all) {
+export function contactSheetHTML(all) {
   const groups = VIEWPORTS.map((vp) => {
     const shots = all[vp.name] || [];
     const tiles = shots.map((s) =>
@@ -332,10 +356,13 @@ async function main() {
   console.log('serving dist/ at ' + base + ', seed ' + SEED);
   const browser = await chromium.launch({executablePath: process.env.SHOTS_CHROMIUM || undefined});
   const all = {};
+  const metricsAll = {};
   try {
     for (const vp of VIEWPORTS) {
       console.log('viewport ' + vp.name);
-      all[vp.name] = await walkViewport(browser, base, vp);
+      const res = await walkViewport(browser, base, vp);
+      all[vp.name] = res.shots;
+      metricsAll[vp.name] = res.metrics;
     }
   } finally {
     await browser.close();
@@ -343,6 +370,7 @@ async function main() {
   }
   await writeFile(join(OUT, 'index.html'), contactSheetHTML(all));
   await writeFile(join(OUT, 'console-log.json'), JSON.stringify({seed: SEED, log}, null, 1) + '\n');
+  await writeFile(join(OUT, 'metrics.json'), JSON.stringify({seed: SEED, viewports: metricsAll}, null, 1) + '\n');
   const errs = log.filter((l) => l.kind === 'console-error' || l.kind === 'page-error');
   const misses = log.filter((l) => l.kind === 'selector-missing');
   const total = Object.values(all).reduce((s, a) => s + a.length, 0);
@@ -351,4 +379,9 @@ async function main() {
   if (errs.length) process.exitCode = 2;    /* shots still written; CI can gate on errors */
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+/* run the walk only when invoked directly (npm run shots); when shots-check.mjs
+   imports the walk, the guard keeps main() from firing a second time. */
+const invokedDirectly = process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invokedDirectly) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}
