@@ -32,7 +32,7 @@
       "0.140.0"
     ],
     "status": "active",
-    "note": "Robbie explicitly requested every remaining audited fix and authorized the push after verification. Each version remains one system. Version 0.136.0 is green; version 0.137.0 owns the route-native dawn handoff only."
+    "note": "Robbie explicitly requested every remaining audited fix and authorized the push after verification. Each version remains one system. Versions 0.136.0 and 0.137.0 are green; version 0.138.0 may now begin with screenshot evidence reliability only."
   },
   "reservations": [
     {
@@ -42,12 +42,12 @@
       "owner": "codex",
       "branch": "presentation-followthrough-0.136.0",
       "worktree": "C:/tmp/bazaar-brawler-presentation-0.135.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "5616b95",
       "trigger": "Robbie on 2026-07-21: fix every presentation-audit follow-up that remains and push after the full verified sequence.",
       "scope": "One motion system: route-market dawn. Entering a route market paints the already-determined market immediately beneath one 680 ms Dawn Breaks veil. The veil is tap-skippable, keyboard-skippable, absent under reduced motion, and never owns sim or controller timing. No overlay exit, general stage wipe, layout, screenshot tooling, engine, targeting, deterministic combat timing, save, balance, economy, or route-semantics change.",
-      "verification": "In progress.",
-      "note": "The shots harness already records this exact market-entry boundary as dawn-rollover in normal and reduced-motion filmstrips."
+      "verification": "Complete locally on 2026-07-21. npm test passed 562 of 562, including a source contract that pins the market-only call site, tap skip, 680 ms duration, and reduced-motion guard. npm run build passed with 815 modules transformed and only the standing chunk-size advisory. npm run shots:check passed 28 screens with zero missing, zero blank, zero console errors, and zero layout drift beyond tolerance. No engine, targeting, deterministic combat timing, save, balance, economy, or route-semantics file changed.",
+      "note": "The shots harness records this exact market-entry boundary as dawn-rollover in normal and reduced-motion filmstrips. The market is painted synchronously before the browser can render the veil, so the transition never delays route state."
     },
     {
       "version": "0.136.0",
