@@ -25,3 +25,11 @@ test('opening toast waits for the Omen handoff and portrait crest protects the n
   assert.match(ui,/setTimeout\(function\(\)\{toast\(msg\);\},RM\?0:180\)/);
   assert.match(html,/#ribbon \.crestres \.chip\{padding:6px 7px;/);
 });
+
+test('portrait setup rooms use lintel chamber and threshold zones',()=>{
+  assert.match(html,/\.card\.setupcard\{[^}]+justify-content:flex-start/);
+  assert.match(html,/\.card\.setupcard\.evroom::after\{background:linear-gradient/);
+  assert.match(html,/\.card\.setupcard>\.btn\.gold\{flex:0 0 auto;margin-top:auto !important;/);
+  assert.match(html,/\.card\.setupcard \.herodetail\{[^}]+background:rgba\(10,9,15,\.62\)/);
+  assert.match(html,/\.card\.setupcard \.routepickgrid\{flex:1 1 auto;align-content:end;/);
+});
