@@ -31,8 +31,8 @@
       "0.139.0",
       "0.140.0"
     ],
-    "status": "active",
-    "note": "Robbie explicitly requested every remaining audited fix and authorized the push after verification. Each version remains one system. Versions 0.136.0 through 0.139.0 are green; version 0.140.0 owns only the remaining portrait ceremony composition."
+    "status": "done",
+    "note": "Complete locally. All five one-system versions from 0.136.0 through 0.140.0 are green and ready for the explicitly authorized main integration and push."
   },
   "reservations": [
     {
@@ -42,12 +42,12 @@
       "owner": "codex",
       "branch": "presentation-followthrough-0.136.0",
       "worktree": "C:/tmp/bazaar-brawler-presentation-0.135.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "f3a30c9",
       "trigger": "Robbie on 2026-07-21: fix every presentation-audit follow-up that remains and push after the full verified sequence.",
       "scope": "One portrait composition system: hero pick, road pick, and Omen reveal use their existing room paintings and markup as three clear zones, with the heading at the lintel, the painted chamber visible through the middle, and the choice or confirmation at the threshold. Landscape setup composition is unchanged. No new art, motion system, screenshot tooling, engine, targeting, deterministic combat timing, save, balance, economy, or route-semantics change.",
-      "verification": "Pending local tests, production build, both visual viewports, and before and after review.",
-      "note": "This is the final bounded version in the Presentation Follow-through sequence."
+      "verification": "Complete locally on 2026-07-21. npm test passed 568 of 568, including the portrait ceremony source contract. npm run build passed with 815 modules transformed and only the standing chunk-size advisory. npm run shots:check passed 28 screens with zero missing, zero blank, zero console errors, and zero layout drift beyond tolerance. Final npm run shots produced 60 stills and 48 filmstrips across 844x390 and 390x844 with zero console errors and zero selector misses; only the two expected deep-run boss or gate states were unreachable. Direct before and after review confirmed that the existing parlor and seance paintings now fill the three portrait setup rooms, decision controls occupy a stable threshold, landscape composition is unchanged, numbered fight stills show live combat, and offline captures show readable warm-cache continuation UI.",
+      "note": "Final bounded version in the Presentation Follow-through sequence. No new art, runtime semantics, or gameplay file changed. The offline evidence remains a warm-cache check and does not claim fresh-install airplane-mode completeness."
     },
     {
       "version": "0.139.0",
