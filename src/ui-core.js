@@ -16,7 +16,18 @@ export function store(){try{return window.localStorage;}catch(e){return null;}}
 export function $(id){return document.getElementById(id);}
 export function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 export function ovOpen(html){const d=document.createElement('div');d.className='ov';d.innerHTML=html;document.body.appendChild(d);return d;}
-export function ovClose(d){if(d&&d.parentNode){d.parentNode.removeChild(d);}}
+/* 0.136.0 overlay handoff: closing mirrors cardin for one short beat while the
+   caller continues immediately underneath. Reduced motion keeps the former
+   instant removal, and repeated close requests cannot extend the handoff. */
+export function ovClose(d){
+  if(!d||!d.parentNode||d.dataset.closing)return;
+  if(RM){d.parentNode.removeChild(d);return;}
+  d.dataset.closing='true';d.classList.add('closing');
+  let done=false,timer=null;
+  const finish=function(){if(done)return;done=true;clearTimeout(timer);if(d.parentNode)d.parentNode.removeChild(d);};
+  d.addEventListener('animationend',finish,{once:true});
+  timer=setTimeout(finish,190);
+}
 let toastT=null;
 export function toast(msg){
   let t=$('toast');

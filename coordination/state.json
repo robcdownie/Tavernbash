@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-21",
-  "build": "0.135.0",
+  "build": "0.136.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -16,21 +16,39 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v90"
+    "cacheVersion": "bb-v91"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
-    "name": "Presentation Audit",
-    "token": "manor-ceremony-frames",
+    "name": "Presentation Follow-through",
+    "token": "presentation-followthrough",
     "integrator": "codex",
-    "outcome": "Audit the complete haunted manor presentation at both phone viewports, then remove the strongest confirmed hollow composition with one shared portrait setup frame. Market, map, fight, recap, engine, targeting, timing, saves, balance, economy, and route semantics stay untouched.",
+    "outcome": "Close every confirmed presentation-audit follow-up through bounded one-system versions: overlay exits, route-native dawn, truthful screenshot evidence, safe clarity cleanup, and the remaining portrait ceremony composition. Engine, targeting, deterministic combat timing, saves, balance, economy, and route semantics stay untouched.",
     "versions": [
-      "0.135.0"
+      "0.136.0",
+      "0.137.0",
+      "0.138.0",
+      "0.139.0",
+      "0.140.0"
     ],
-    "status": "done",
-    "note": "Robbie requested the full presentation audit and authorized the next push. Version 0.135.0 is one presentation system: full-height manor ceremony frames for hero, road, and Omen setup in portrait. The previously planned overlay exit and route-native dawn systems move to 0.136.0 and 0.137.0."
+    "status": "active",
+    "note": "Robbie explicitly requested every remaining audited fix and authorized the push after verification. Each version remains one system. Version 0.136.0 owns overlay exit symmetry only; later versions do not begin until it is green."
   },
   "reservations": [
+    {
+      "version": "0.136.0",
+      "project": "Presentation Follow-through",
+      "token": "overlay-exit-symmetry",
+      "owner": "codex",
+      "branch": "presentation-followthrough-0.136.0",
+      "worktree": "C:/tmp/bazaar-brawler-presentation-0.135.0",
+      "status": "active",
+      "sourceCommit": null,
+      "trigger": "Robbie on 2026-07-21: fix every presentation-audit follow-up that remains and push after the full verified sequence.",
+      "scope": "One motion system: symmetric overlay exits. ovClose keeps all callers deterministic and immediate while the existing overlay and card play a 160 ms inverse of fade and cardin. Reduced motion removes instantly, repeated closes are idempotent, and the closing tap is the skip. No stage wipe, dawn, layout, screenshot tooling, engine, targeting, deterministic combat timing, save, balance, economy, or route-semantics change.",
+      "verification": "In progress.",
+      "note": "The exact 0.135.0 before artifacts remain at C:/tmp/bazaar-brawler-presentation-0.135.0/shots and C:/Robbie/bazaar-brawler/shots."
+    },
     {
       "version": "0.135.0",
       "project": "Presentation Audit",

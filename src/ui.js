@@ -1349,7 +1349,7 @@ function replayHistoryRun(spec){
      restoreRoute (reviveRun), never this path, so they stay exempt. */
   if(spec.heroId&&!heroUnlocked(store(),spec.heroId)){toast(heroHint(spec.heroId));return;}
   clearRoute();
-  document.querySelectorAll('.ov').forEach(function(o){o.remove();});
+  document.querySelectorAll('.ov').forEach(function(o){ovClose(o);});
   const intro=$('intro');if(intro)intro.remove();
   newRoute(spec.mode,spec.heroId,spec.lantern,spec);
 }
