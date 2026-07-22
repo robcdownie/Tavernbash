@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-21",
-  "build": "0.136.0",
+  "build": "0.137.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -16,7 +16,7 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v91"
+    "cacheVersion": "bb-v92"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
@@ -32,9 +32,23 @@
       "0.140.0"
     ],
     "status": "active",
-    "note": "Robbie explicitly requested every remaining audited fix and authorized the push after verification. Each version remains one system. Version 0.136.0 is green; version 0.137.0 may now begin with the route-native dawn handoff only."
+    "note": "Robbie explicitly requested every remaining audited fix and authorized the push after verification. Each version remains one system. Version 0.136.0 is green; version 0.137.0 owns the route-native dawn handoff only."
   },
   "reservations": [
+    {
+      "version": "0.137.0",
+      "project": "Presentation Follow-through",
+      "token": "route-market-dawn",
+      "owner": "codex",
+      "branch": "presentation-followthrough-0.136.0",
+      "worktree": "C:/tmp/bazaar-brawler-presentation-0.135.0",
+      "status": "active",
+      "sourceCommit": null,
+      "trigger": "Robbie on 2026-07-21: fix every presentation-audit follow-up that remains and push after the full verified sequence.",
+      "scope": "One motion system: route-market dawn. Entering a route market paints the already-determined market immediately beneath one 680 ms Dawn Breaks veil. The veil is tap-skippable, keyboard-skippable, absent under reduced motion, and never owns sim or controller timing. No overlay exit, general stage wipe, layout, screenshot tooling, engine, targeting, deterministic combat timing, save, balance, economy, or route-semantics change.",
+      "verification": "In progress.",
+      "note": "The shots harness already records this exact market-entry boundary as dawn-rollover in normal and reduced-motion filmstrips."
+    },
     {
       "version": "0.136.0",
       "project": "Presentation Follow-through",

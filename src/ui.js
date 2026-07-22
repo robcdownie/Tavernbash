@@ -99,6 +99,28 @@ function stageHandoff(paint){
   veil.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){skip(ev);}};
   activeStageCarry=finish;midTimer=setTimeout(swap,250);endTimer=setTimeout(finish,540);
 }
+/* 0.137.0 route dawn: a market node is the next daybreak in the estate. The
+   market paints synchronously beneath the veil, so this never holds route state
+   or the deterministic sim. A tap removes only the presentation layer. */
+let activeDawn=null;
+function dawnHandoff(paint){
+  if(RM||typeof document==='undefined'||!document.body){paint();return;}
+  if(activeStageCarry)activeStageCarry();
+  if(activeDawn)activeDawn();
+  const veil=document.createElement('div');
+  veil.className='dusk dawn skippable';veil.tabIndex=0;veil.setAttribute('role','button');
+  veil.setAttribute('aria-label','Skip dawn transition');
+  veil.innerHTML='<div class="dt">Dawn Breaks</div><div class="d2">The next market wakes</div>';
+  document.body.appendChild(veil);paint();
+  let done=false,timer=null;
+  const finish=function(){if(done)return;done=true;clearTimeout(timer);
+    if(veil.parentNode)veil.parentNode.removeChild(veil);if(activeDawn===finish)activeDawn=null;};
+  const skip=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}finish();};
+  veil.onpointerdown=skip;
+  veil.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){skip(ev);}};
+  veil.addEventListener('animationend',finish,{once:true});
+  activeDawn=finish;timer=setTimeout(finish,760);
+}
 function presentRouteMap(withCarry){
   G.phase='routeMap';metricPhase('map');
   const main=$('main'),needsCarry=!!withCarry&&!!main&&!main.classList.contains('routemap');
@@ -1513,7 +1535,7 @@ function enterRouteMarket(nodeId){
   G.rng=mulberry(fightSeed(G.seed,nodeId,0));
   G.shopSel=null;G.sel=null;G.vsel=null;G.swapV=null;G.dockV=false;
   rollShop();
-  G.phase='draft';metricPhase('market');checkpointActiveRun();stageHandoff(renderAll);
+  G.phase='draft';metricPhase('market');checkpointActiveRun();dawnHandoff(renderAll);
 }
 
 /* resume a saved route at whatever phase it stopped */
