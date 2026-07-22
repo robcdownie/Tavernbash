@@ -32,7 +32,7 @@
       "0.140.0"
     ],
     "status": "active",
-    "note": "Robbie explicitly requested every remaining audited fix and authorized the push after verification. Each version remains one system. Versions 0.136.0 through 0.138.0 are green; version 0.139.0 owns safe presentation clarity only."
+    "note": "Robbie explicitly requested every remaining audited fix and authorized the push after verification. Each version remains one system. Versions 0.136.0 through 0.139.0 are green; version 0.140.0 may now close the remaining portrait ceremony composition."
   },
   "reservations": [
     {
@@ -42,12 +42,12 @@
       "owner": "codex",
       "branch": "presentation-followthrough-0.136.0",
       "worktree": "C:/tmp/bazaar-brawler-presentation-0.135.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "f550a59",
       "trigger": "Robbie on 2026-07-21: fix every presentation-audit follow-up that remains and push after the full verified sequence.",
       "scope": "One safe presentation system: clarity cleanup. Thin the route channels and enlarge portrait node labels, put run-end actions before a collapsed optional debrief, preserve the full portrait dealer name under three-digit gold, and defer the hero-opening toast until the market is visible. No new art, setup recomposition, motion system, screenshot tooling, engine, targeting, deterministic combat timing, save, balance, economy, or route-semantics change.",
-      "verification": "In progress.",
-      "note": "The market shelf and fight composition already pass and remain untouched."
+      "verification": "Complete locally on 2026-07-21. npm test passed 567 of 567, including contracts for route channels, portrait labels, run-end hierarchy, deferred setup toast, and portrait crest spacing. npm run build passed with 815 modules transformed and only the standing chunk-size advisory. npm run shots:check passed 28 screens with zero missing, zero blank, zero console errors, and zero layout drift beyond tolerance. No engine, targeting, deterministic combat timing, save, balance, economy, or route-semantics file changed.",
+      "note": "The market shelf and fight composition already pass and remain untouched. Final human screenshots are deferred until the last 0.140.0 composition version so the complete after set is captured once."
     },
     {
       "version": "0.138.0",
