@@ -1237,6 +1237,12 @@
     #ribbon .chip .val{font-size:13px;}
     #ribbon .chip .lab{font-size:7px;letter-spacing:1px;}
     #ribbon .chip .lab2{font-size:9.5px;}
+    /* three-digit gold never purchases space by truncating the dealer name */
+    #ribbon .crestrow{gap:6px;padding:7px 8px 6px;}
+    #ribbon .crestwho .cnm{font-size:14px;}
+    #ribbon .crestres{gap:4px;}
+    #ribbon .crestres .chip{padding:6px 7px;}
+    #ribbon .crestres .chip .val{font-size:14px;}
   }
   @media (orientation:landscape) and (min-width:640px){
     body.run #ribbon .chip{padding:3px 4px;font-size:12px;min-height:36px;border-radius:0;}
@@ -1299,7 +1305,11 @@
   .rendbtns{display:flex;gap:7px;justify-content:center;margin-top:8px;}
   .rendbtns .btn{flex:1;padding:8px 7px;font-size:10px;}
   .rdebrief{margin-top:7px;padding:7px;border:1px solid rgba(216,162,74,.24);border-radius:10px;background:rgba(0,0,0,.18);}
-  .rdebrief .kick{margin-bottom:4px;font-size:8px;}
+  .rdebrief summary{cursor:pointer;list-style:none;color:var(--brass);font-size:8px;font-weight:800;letter-spacing:3px;text-transform:uppercase;}
+  .rdebrief summary::-webkit-details-marker{display:none;}
+  .rdebrief summary::after{content:"Open";float:right;letter-spacing:.08em;color:var(--dim);}
+  .rdebrief[open] summary::after{content:"Close";}
+  .rdebriefbody{padding-top:4px;}
   .dbq{display:grid;grid-template-columns:72px repeat(3,1fr);gap:4px;align-items:center;margin-top:4px;}
   .dbq>span{font-size:9px;color:var(--dim);text-align:left;}
   .dbq button{min-height:28px;border:1px solid var(--line);border-radius:7px;background:rgba(0,0,0,.25);color:var(--dim);font-size:9px;font-weight:800;}
@@ -1857,14 +1867,16 @@
      wire. The dark under-stroke becomes a carved channel and the state stroke
      rides inside it with a warm glow. */
   .rmedges .edge{fill:none;vector-effect:non-scaling-stroke;stroke-linecap:round;}
-  .rmedges .edge.under{stroke:rgba(10,6,4,.75);stroke-width:8;}
-  .rmedges .edge.done{stroke:#e7c058;stroke-width:4.5;filter:drop-shadow(0 0 3px rgba(231,192,88,.6));}
-  .rmedges .edge.avail{stroke:#ffdf9b;stroke-width:4;stroke-dasharray:7 6;filter:drop-shadow(0 0 5px rgba(255,223,155,.75));
+  /* 0.139.0 map clarity: the carved channel supports the route instead of
+     becoming the loudest mark on the board. */
+  .rmedges .edge.under{stroke:rgba(10,6,4,.72);stroke-width:5.5;}
+  .rmedges .edge.done{stroke:#e7c058;stroke-width:3.5;filter:drop-shadow(0 0 3px rgba(231,192,88,.6));}
+  .rmedges .edge.avail{stroke:#ffdf9b;stroke-width:3.25;stroke-dasharray:7 6;filter:drop-shadow(0 0 5px rgba(255,223,155,.75));
     animation:pathflow 1.6s linear infinite;}
   .rmedges .edge.path-arrive{stroke-dasharray:var(--path-len) var(--path-len) !important;
     animation:pathflow .48s var(--e-out) 1 both !important;}
   @keyframes pathflow{from{stroke-dashoffset:var(--path-from,0);}to{stroke-dashoffset:var(--path-to,-13);}}
-  .rmedges .edge.future{stroke:rgba(150,116,72,.5);stroke-width:2.5;}
+  .rmedges .edge.future{stroke:rgba(150,116,72,.5);stroke-width:2;}
   @media (prefers-reduced-motion: reduce){.rmedges .edge.avail,.rmedges .edge.path-arrive{animation:none !important;}}
   .rmnode{position:absolute;transform:translate(-50%,-50%);width:56px;height:64px;z-index:2;
     display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;
@@ -1930,7 +1942,7 @@
     .rmnode{width:44px;height:54px;}
     .rmnode .rmmed{width:34px;height:34px;}
     .rmnode .rmg{width:29px;height:29px;}
-    .rmnode .rmn{font-size:8px;max-width:50px;}
+    .rmnode .rmn{font-size:9px;max-width:54px;max-height:22px;}
     .rmnode.boss{width:58px;height:66px;}
     .rmnode.boss .rmmed{width:46px;height:46px;}
     .rmnode.boss .rmg{width:40px;height:40px;}

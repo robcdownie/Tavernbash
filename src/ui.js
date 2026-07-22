@@ -1354,7 +1354,7 @@ function newRoute(mode,heroId,lantern,replay){
   if(h){
     G.hero=h.id;G.you.p=h.g;
     if(h.start){G.board.push(mkWare(h.start,0));}
-    toast(h.n+' opens the stall'+(lantern?' under Lantern '+lantern:''));
+    G.openingToast=h.n+' opens the stall'+(lantern?' under Lantern '+lantern:'');
   }
   computeT();
   renderAno();renderTrow();
@@ -1524,6 +1524,7 @@ function enterOpeningMarket(){
   G.frozen=false;G.shopSel=null;G.sel=null;G.vsel=null;G.swapV=null;G.dockV=false;
   rollShop();ensureOpeningOffense();
   G.phase='draft';metricPhase('market');checkpointActiveRun();renderAll();
+  if(G.openingToast){const msg=G.openingToast;G.openingToast=null;setTimeout(function(){toast(msg);},RM?0:180);}
 }
 function leaveOpeningMarket(){
   G.route.opening=false;G.route.market=null;

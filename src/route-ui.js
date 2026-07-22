@@ -601,11 +601,11 @@ export function routeEnd(cause){
    +'<button class="btn" id="reFull">Copy Full Data</button>'
    +'<button class="btn" id="reHistory">Run History</button>'
    +'<button class="btn gold" id="reGo">New Run</button></div>';
-  const debrief='<div class="rdebrief"><div class="kick gold">Optional Playtest Debrief</div>'
+  const debrief='<details class="rdebrief"><summary>Optional Playtest Debrief</summary><div class="rdebriefbody">'
    +'<div class="dbq"><span>Pace</span><button data-db="pace" data-v="slow">Slow</button><button data-db="pace" data-v="right">Right</button><button data-db="pace" data-v="fast">Fast</button></div>'
    +'<div class="dbq"><span>Difficulty</span><button data-db="difficulty" data-v="easy">Easy</button><button data-db="difficulty" data-v="right">Right</button><button data-db="difficulty" data-v="hard">Hard</button></div>'
    +'<div class="dbq"><span>Build agency</span><button data-db="agency" data-v="low">Low</button><button data-db="agency" data-v="right">Right</button><button data-db="agency" data-v="high">High</button></div>'
-   +'<textarea id="reNote" maxlength="500" placeholder="Optional note"></textarea></div>';
+   +'<textarea id="reNote" maxlength="500" placeholder="Optional note"></textarea></div></details>';
   const cloud=cloudSnapshot();
   const cloudPrompt=cloud.configured
     ?'<div class="cloudprompt '+(cloud.signedIn?'on':'')+'">'+ic('g-ledger','mi')
@@ -620,7 +620,7 @@ export function routeEnd(cause){
     sting('fanfarewin');if(!RM)fxCoinRain();
     o=ovOpen('<div class="card"><div class="rays"></div><div class="kick gold">'+(longRun?'Long Bazaar Clear':'Quick Night Clear')+(lv>0?' &middot; Lantern '+lv:'')+'</div>'
      +ic('g-crown','bigic')+'<h2 class="big">The Vizier Falls</h2>'
-     +'<p>'+(longRun?'You survived the full road and its After Midnight reprises. The night market is yours.':'You cleared the original road. This Quick Night stands as a complete victory.')+' '+lampLine+nextLine+'</p>'+unlockStrip+debrief+cloudPrompt+endBtns+'</div>');
+     +'<p>'+(longRun?'You survived the full road and its After Midnight reprises. The night market is yours.':'You cleared the original road. This Quick Night stands as a complete victory.')+' '+lampLine+nextLine+'</p>'+unlockStrip+endBtns+debrief+cloudPrompt+'</div>');
   }else{
     sting('lament');
     /* a loss that still unlocked something earns one dawn sting for the moment
@@ -629,7 +629,7 @@ export function routeEnd(cause){
     const st=routeState();const D=routeMap().districts[currentDistrict(st,routeMap())];
     o=ovOpen('<div class="card"><div class="rays red"></div><div class="kick">The Road Ends</div>'
      +ic('g-skull','bigic skullic')+'<h2 class="big bad">Resolve Spent</h2>'
-     +'<p>Your caravan broke in '+esc(D.name)+' after '+st.path.length+' encounter'+(st.path.length===1?'':'s')+'.</p>'+unlockStrip+debrief+cloudPrompt+endBtns+'</div>');
+     +'<p>Your caravan broke in '+esc(D.name)+' after '+st.path.length+' encounter'+(st.path.length===1?'':'s')+'.</p>'+unlockStrip+endBtns+debrief+cloudPrompt+'</div>');
   }
   function syncReport(){
     const now=Date.now();touchMetrics(G.run.metrics,now);

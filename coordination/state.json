@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-21",
-  "build": "0.138.0",
+  "build": "0.139.0",
   "reviewedHead": "eb0c163",
   "deploy": {
     "target": "github-pages",
@@ -16,7 +16,7 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v93"
+    "cacheVersion": "bb-v94"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
@@ -32,9 +32,23 @@
       "0.140.0"
     ],
     "status": "active",
-    "note": "Robbie explicitly requested every remaining audited fix and authorized the push after verification. Each version remains one system. Versions 0.136.0 through 0.138.0 are green; version 0.139.0 may now begin with safe presentation clarity only."
+    "note": "Robbie explicitly requested every remaining audited fix and authorized the push after verification. Each version remains one system. Versions 0.136.0 through 0.138.0 are green; version 0.139.0 owns safe presentation clarity only."
   },
   "reservations": [
+    {
+      "version": "0.139.0",
+      "project": "Presentation Follow-through",
+      "token": "presentation-clarity-cleanup",
+      "owner": "codex",
+      "branch": "presentation-followthrough-0.136.0",
+      "worktree": "C:/tmp/bazaar-brawler-presentation-0.135.0",
+      "status": "active",
+      "sourceCommit": null,
+      "trigger": "Robbie on 2026-07-21: fix every presentation-audit follow-up that remains and push after the full verified sequence.",
+      "scope": "One safe presentation system: clarity cleanup. Thin the route channels and enlarge portrait node labels, put run-end actions before a collapsed optional debrief, preserve the full portrait dealer name under three-digit gold, and defer the hero-opening toast until the market is visible. No new art, setup recomposition, motion system, screenshot tooling, engine, targeting, deterministic combat timing, save, balance, economy, or route-semantics change.",
+      "verification": "In progress.",
+      "note": "The market shelf and fight composition already pass and remain untouched."
+    },
     {
       "version": "0.138.0",
       "project": "Presentation Follow-through",
