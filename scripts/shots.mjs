@@ -298,23 +298,36 @@ export async function walkViewport(browser, base, vp, opts = {}) {
   if (scouted) { await settle('.rmprev .rmpbody', 4000); await page.waitForTimeout(300); }
   await shoot('scout-monster');
 
-  /* 08 to 10 the fight: commit (boundary: scout to fight), a full-fight
-     filmstrip, then three stills roughly 600ms apart. The sim holds 1.5s behind
-     the Dusk Falls curtain (gone at 2250ms), so the first still lands just after
-     the first swings. */
+  /* 08 to 10 the fight: commit (boundary: scout to fight), then photograph
+     three real combat states before the opener can resolve. The harness pauses
+     only while each screenshot is encoded; between stills the seeded sim runs
+     normally. This keeps numbered fight evidence out of the victory recap. */
   currentScreen = '08-fight';
   let committed = false;
   await filmstrip('scout-fight', async () => { committed = await tap('.rmpfoot [data-a="challenge"]', 5000); }, {frames: 4, interval: 90, reducedFrames: 3});
   if (committed && await settle('#main.fight', 6000)) {
-    /* the opener fight resolves in about a second, so capture the full fight
-       generously the moment the board appears: curtain, swings, then the recap */
+    const dusk = await page.$('.dusk.skippable');
+    if (dusk) await dusk.click();
+    const shootLiveFight = async (label) => {
+      await page.waitForTimeout(150);
+      const live = await page.evaluate(() => {
+        try {
+          const g = window.BBDEV && window.BBDEV.g();
+          if (!g || g.phase !== 'fight' || document.querySelector('.recapcard')) return false;
+          g.fpaused = true;
+          return true;
+        } catch (e) { return false; }
+      });
+      if (!live) { note(vp.name, currentScreen, 'fight-still-missed', label + ' reached the recap'); return false; }
+      await shoot(label);
+      await page.evaluate(() => { try { const g = window.BBDEV && window.BBDEV.g(); if (g) g.fpaused = false; } catch (e) {} });
+      return true;
+    };
+    await shootLiveFight('fight-frame-1');
+    await shootLiveFight('fight-frame-2');
+    await shootLiveFight('fight-frame-3');
+    /* full-fight now begins on the active boards and follows them into recap */
     await filmstrip('full-fight', null, {frames: 16, interval: 110, reducedFrames: 6});
-    await page.waitForTimeout(2400);
-    await shoot('fight-frame-1');
-    await page.waitForTimeout(600);
-    await shoot('fight-frame-2');
-    await page.waitForTimeout(600);
-    await shoot('fight-frame-3');
   } else {
     note(vp.name, currentScreen, 'selector-missing', 'fight never started; shooting current screen');
     await shoot('fight-missing');
@@ -432,14 +445,33 @@ export async function walkViewport(browser, base, vp, opts = {}) {
       else note(vp.name, currentScreen, 'state-unreachable', 'boss or gate fight not reachable from the opener (needs a deep run)');
     } catch (e) { note(vp.name, currentScreen, 'state-error', String(e && e.message)); }
 
-    /* offline load: localhost skips service-worker registration, so an offline
-       reload shows the browser error state, captured honestly */
+    /* offline load: production skips automatic service-worker registration on
+       localhost. Register it explicitly, reload once under its control so the
+       current build assets enter the cache, then disconnect and reload again. */
     currentScreen = 'S5-offline';
     try {
-      await context.setOffline(true);
-      await page.goto(base + '/?seed=' + SEED, {timeout: 8000}).catch(() => {});
+      await context.setOffline(false);
+      await page.goto(base + '/?seed=' + SEED, {waitUntil: 'domcontentloaded', timeout: 8000});
+      const registered = await page.evaluate(async () => {
+        try {
+          if (!('serviceWorker' in navigator)) return false;
+          await navigator.serviceWorker.register('/sw.js');
+          await navigator.serviceWorker.ready;
+          return true;
+        } catch (e) { return false; }
+      });
+      if (!registered) note(vp.name, currentScreen, 'state-unreachable', 'offline service worker registration failed');
+      await page.reload({waitUntil: 'domcontentloaded', timeout: 8000});
       await page.waitForTimeout(700);
-      await shoot('state-offline');
+      const controlled = await page.evaluate(() => !!navigator.serviceWorker.controller);
+      if (!controlled) note(vp.name, currentScreen, 'state-unreachable', 'offline page never became service-worker controlled');
+      await context.setOffline(true);
+      await page.reload({waitUntil: 'domcontentloaded', timeout: 8000});
+      await settle('#app', 5000);
+      await page.waitForTimeout(700);
+      const readable = await page.evaluate(() => !!document.body && document.body.innerText.trim().length > 0);
+      if (!readable) note(vp.name, currentScreen, 'blank-offline', 'service-worker reload had no readable UI');
+      await shoot(readable ? 'state-offline-ready' : 'state-offline-blank');
       await context.setOffline(false);
     } catch (e) { note(vp.name, currentScreen, 'state-error', String(e && e.message)); await context.setOffline(false).catch(() => {}); }
   }
