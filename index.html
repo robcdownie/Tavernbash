@@ -2912,6 +2912,28 @@
   @media (orientation:landscape) and (min-width:640px){
     .art-frames #ribbon{background:linear-gradient(180deg,rgba(14,9,6,.86),rgba(8,5,3,.92));}
   }
+  /* ===== 0.153.0 the cameo reaches every portrait ===== */
+  /* The painted oval went to the duel and the scout leaf; the dealer's own
+     portrait, on the screen where you choose him, was still a rounded square. */
+  .pick.hero .ph2,.hdportrait,#ribbon .heroP{position:relative;}
+  .pick.hero .ph2::after,.herodetail .hdp::after,#ribbon .heroP::after{content:;position:absolute;
+    inset:-20% -28%;pointer-events:none;z-index:2;
+    background:url('/art/ui/cameo_oval.png') center/contain no-repeat;}
+  .pick.hero .ph2 svg,.hdportrait .hpbig,#ribbon .heroP .hpv{border-radius:50%;}
+  /* portrait sockets are 31px wide: the frame gives back another two pixels each
+     side so the ware inside it can still be recognised */
+  @media (orientation:portrait){
+    #main.fight .board.combat .cell{border-width:3px;border-image-width:3px;}
+  }
+  /* the detail portrait clips itself, which was eating the cameo hung around it */
+  /* the detail portrait becomes a round cameo in a brass ring. The painted oval
+     plate was tried here and would not sit: the frame's own aspect fights a 128px
+     square port, and a drawn ring reads cleaner at that size than a squeezed one. */
+  .hdportrait{overflow:visible;border:0;border-radius:50%;background:none;
+    box-shadow:0 0 0 2px #8a5c1c,0 0 0 4px rgba(28,16,6,.9),0 4px 12px rgba(0,0,0,.6),
+      inset 0 0 0 1px rgba(250,206,124,.3);}
+  .hdportrait .hpbig{border-radius:50%;}
+  .hdportrait::after{display:none;}
 </style>
 </head>
 <body>
