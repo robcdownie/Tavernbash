@@ -136,3 +136,15 @@ test('no state reads as unfinished UI: no dashed placeholders, no ghosting',()=>
   assert.match(html,/\.ware\.cant \.cost b\{color:#7c1d10;\}/);
   assert.match(html,/\.btn:disabled\{opacity:\.85;cursor:not-allowed;/);
 });
+
+test('one light grade covers the house: candle low left, moon high right, one grain',()=>{
+  /* STYLE.md sets one light direction for the whole game; the grade must carry
+     both sides of it and one film of grain over the composed screen */
+  assert.match(html,/body::after\{content:"";position:fixed;inset:0;z-index:2000;/);
+  assert.match(html,/radial-gradient\(72% 52% at 16% 88%, rgba\(246,196,110,\.085\)/);
+  assert.match(html,/radial-gradient\(64% 46% at 88% 8%, rgba\(159,180,216,\.07\)/);
+  assert.match(html,/body::before\{content:"";position:fixed;inset:0;z-index:2001;pointer-events:none;/);
+  assert.match(html,/feTurbulence[^"]*baseFrequency='0\.85'/);
+  /* the grade can never intercept a tap */
+  assert.match(html,/body::after\{[^}]*pointer-events:none/);
+});

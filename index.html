@@ -242,9 +242,24 @@
   /* 0.102.0 code light grade: one warm candle wash plus a cold vignette drawn
      over the whole composed scene. This is what fuses painted art and UI into
      one lit house. Purely decorative, never intercepts input. */
+  /* 0.150.0 completes it. STYLE.md sets one light direction for the whole house,
+     candle from the lower left and cold moon fill from the upper right through
+     the windows, and the grade was only doing half of that with the candle wash
+     drifted to the middle. It now anchors the candle low left, adds the moon
+     side, and lays one film of grain over the composed screen: separately
+     generated paintings and code-drawn furniture were each individually clean,
+     which is exactly what made them read as two materials sitting together
+     rather than as one photograph of one room. The grain is a single tiled
+     data-URI, rasterised once, so it costs no per-frame work. */
   body::after{content:"";position:fixed;inset:0;z-index:2000;pointer-events:none;
-    background:radial-gradient(85% 60% at 42% 62%, rgba(246,196,110,.07), transparent 60%),
+    background:radial-gradient(72% 52% at 16% 88%, rgba(246,196,110,.085), transparent 62%),
+               radial-gradient(64% 46% at 88% 8%, rgba(159,180,216,.07), transparent 64%),
                radial-gradient(150% 120% at 50% 45%, transparent 55%, rgba(4,6,14,.42));}
+  /* the grain is its own layer so it can be held at a fixed low strength and
+     blended, rather than competing with the washes inside one background */
+  body::before{content:"";position:fixed;inset:0;z-index:2001;pointer-events:none;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g2'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g2)'/%3E%3C/svg%3E") 0 0/160px 160px;
+    opacity:.028;}
   html,body{margin:0;padding:0;height:100%;overscroll-behavior:none;}
   body{
     font-family:"Hanken Grotesk",system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--bg);
