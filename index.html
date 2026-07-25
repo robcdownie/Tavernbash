@@ -2934,6 +2934,17 @@
       inset 0 0 0 1px rgba(250,206,124,.3);}
   .hdportrait .hpbig{border-radius:50%;}
   .hdportrait::after{display:none;}
+  /* ===== 0.154.0 the keyword tag and the storm housing ===== */
+  /* A painted pinned-vellum label was generated and wired to the keyword chips and
+     then reverted: at 60x16px the 9-slice corners (the label's brass pins) render
+     as blobs and the torn edges as mush, and it read worse than the drawn pill it
+     replaced. Small elements do not have the pixels to carry painted detail; the
+     chips keep their CSS stamp on vellum from 0.143.0. */
+  /* the storm clock wore the old bar housing at a slice that crushed its caps;
+     it takes the same painted gauge housing every health reading uses */
+  .stormchip{border-style:solid;border-color:transparent;border-width:7px 26px;
+    border-image:url('/art/ui/gauge_wide.png') 30 128 34 128 fill / 7px 26px stretch;
+    padding:0 2px;}
 </style>
 </head>
 <body>
