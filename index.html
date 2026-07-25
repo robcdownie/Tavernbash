@@ -1185,7 +1185,7 @@
        wider air; the illustration carries the card the way the painted art
        deserves at phone size. 0.143.0 spends that slack on the card's full
        width instead of on a centred square port. */
-    .secmarket .ware .ph{width:auto;height:84px;margin:0;}
+    .secmarket .ware .ph{width:auto;height:76px;margin:0;}
     .secmarket .ware .ph .gi{width:100%;height:100%;}
     .secmarket .ware .wn{font-size:14px;}
     .secmarket .ware .chips .eff{font-size:10.5px;}
@@ -2038,11 +2038,7 @@
       radial-gradient(78% 58% at 50% 42%,color-mix(in srgb,var(--cat,#d8a24a) 26%,transparent),transparent 74%),
       linear-gradient(184deg,rgba(255,240,205,.1),rgba(4,2,1,.16) 40%,rgba(4,2,1,.48)),
       radial-gradient(124% 100% at 30% 90%,#5e4631,#331f12 48%,#150d07);
-    box-shadow:
-      inset 0 1.5px 0 rgba(255,240,205,.17),
-      inset 0 0 18px rgba(0,0,0,.34),
-      0 3px 6px rgba(0,0,0,.55),
-      0 0 18px -7px color-mix(in srgb,var(--cat,#d8a24a) 60%,transparent);}
+    box-shadow:var(--seat),0 0 18px -7px color-mix(in srgb,var(--cat,#d8a24a) 60%,transparent);}
   /* the ware's own art lifts off the socket floor and catches the candle */
   .combat .cell.f .gi{filter:drop-shadow(0 3px 4px rgba(0,0,0,.75)) drop-shadow(-2px -1px 3px rgba(246,196,110,.17));}
   /* engraved numerals on the plinth replace the pills: struck into brass, not
@@ -2298,11 +2294,7 @@
       radial-gradient(78% 58% at 50% 42%,color-mix(in srgb,var(--cat,#d8a24a) 26%,transparent),transparent 74%),
       linear-gradient(184deg,rgba(255,240,205,.1),rgba(4,2,1,.16) 40%,rgba(4,2,1,.48)),
       radial-gradient(124% 100% at 30% 90%,#5e4631,#331f12 48%,#150d07);
-    box-shadow:
-      inset 0 1.5px 0 rgba(255,240,205,.17),
-      inset 0 0 18px rgba(0,0,0,.34),
-      0 3px 6px rgba(0,0,0,.55),
-      0 0 18px -7px color-mix(in srgb,var(--cat,#d8a24a) 60%,transparent);}
+    box-shadow:var(--seat),0 0 18px -7px color-mix(in srgb,var(--cat,#d8a24a) 60%,transparent);}
   #bd .cell.it .gi,.vault .cell.it .gi{
     filter:drop-shadow(0 3px 4px rgba(0,0,0,.75)) drop-shadow(-2px -1px 3px rgba(246,196,110,.17));
     transform:translateY(calc(var(--plinth,15px) / -2));}
@@ -2399,6 +2391,142 @@
   .inspectcard{padding:16px 14px 14px;}
   .inspectcard .kick{margin-bottom:9px;}
   .sheet .bs,.shopdet .bs{margin-top:11px;}
+  /* ===== 0.153.0 THE PAINTED FURNITURE PASS ===== */
+  /* Eleven versions of layered gradients, insets and beads got the composition
+     and the grammar right, and still read as CSS, because that is what they
+     were. Nine painted plates now do the work the stylesheet was imitating:
+     every button, the health gauge housing, every board socket, the card title
+     plate, the card body, every panel and copy plate, the portrait cameo, and
+     the section flourish. The CSS underneath survives as the no-art fallback,
+     so a missing file degrades to the old drawn chrome instead of breaking. */
+
+  /* --- buttons: a carved walnut plaque, or brass when it is the way forward --- */
+  .btn{border-style:solid;border-color:transparent;border-width:7px 14px;
+    border-image:url('/art/ui/btn_wood.png') 62 96 fill / 7px 14px stretch;
+    border-radius:0;background:none;box-shadow:0 6px 14px rgba(0,0,0,.5);padding:5px 4px;min-height:0;
+    color:#f4e2bd;text-shadow:0 1.5px 0 rgba(20,12,4,.9),0 2px 7px rgba(0,0,0,.7);}
+  .btn.gold{border-width:7px 15px;border-image:url('/art/ui/btn_brass.png') 58 104 fill / 7px 15px stretch;
+    background:none;color:#2c1a06;text-shadow:0 1px 0 rgba(255,246,214,.6);
+    box-shadow:0 7px 18px rgba(0,0,0,.5),0 0 26px -6px rgba(246,196,110,.5);}
+  .btn:active,.btn.gold:active{transform:translateY(2px) scale(.995);border-bottom-width:9px;}
+  .btn.gold::after{display:none;}
+  .btn:disabled{filter:saturate(.25) brightness(.6);box-shadow:none;transform:translateY(2px);}
+  .stonebtn{border:0;}
+  /* --- the gauge: the painted housing, its trough the content box --- */
+  /* the cap is 128 of 1024 wide and the whole housing 127 tall, so at a 38px
+     gauge the cap must draw 38px wide; 30px collapsed it to a sliver */
+  /* border-image-width does not move the content box, so the caps were being
+     painted 38px wide over a fill that still started 9px in and covered them.
+     border-width carries the same numbers so the trough IS the content box. */
+  .hpwrap{border-style:solid;border-color:transparent;border-width:9px 38px 10px 38px;
+    border-image:url('/art/ui/gauge_wide.png') 30 128 34 128 fill / 9px 38px 10px 38px stretch;
+    border-radius:0;padding:0;background:none;box-shadow:none;}
+  .hpwrap::before,.hpwrap::after{display:none;}
+  .hpbar{height:20px;border-radius:2px;background:rgba(0,0,0,.55);box-shadow:inset 0 2px 6px rgba(0,0,0,.8);}
+  .hpbar::after{background:repeating-linear-gradient(90deg,
+      transparent 0 calc(10% - 1.5px),rgba(0,0,0,.4) calc(10% - 1.5px) 10%);}
+  .ghost,.fill{border-radius:2px;}
+  /* --- board sockets: one painted bay out of the manor's own wainscot rail --- */
+  /* the painted slot frame is charged per side, and a 31px portrait cell cannot
+     afford 9px of it twice; the frame thins to what each viewport can pay for */
+  .combat .cell,#bd .cell,.vault .cell{
+    border:6px solid transparent;
+    border-image:url('/art/ui/socket_sq.png') 96 fill / 6px stretch;
+    border-radius:0;background:rgba(6,4,3,.5);box-shadow:inset 0 6px 12px -4px rgba(0,0,0,.8);}
+  .combat .cell.empty::before,.combat .cell.lock::before,
+  #bd .cell.empty::before,.vault .cell.empty::before{opacity:.5;}
+  /* a seated ware keeps its lit bed and plinth painted over the bay's wood */
+  .combat .cell.f,#bd .cell.it,.vault .cell.it{background:rgba(10,6,4,.35);box-shadow:var(--seat);}
+  .combat .cell.f::after,#bd .cell.it::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:
+      linear-gradient(to top,
+        rgba(30,18,7,.96) 0,
+        rgba(96,66,32,.9) calc(var(--plinth,16px) - 7px),
+        rgba(140,100,50,.86) calc(var(--plinth,16px) - 2.5px),
+        rgba(250,206,124,.5) calc(var(--plinth,16px) - 1px),
+        rgba(250,206,124,0) var(--plinth,16px)),
+      radial-gradient(76% 56% at 50% 40%,color-mix(in srgb,var(--cat,#d8a24a) 24%,transparent),transparent 74%);}
+  .combat .cell.f>*,#bd .cell.it>*,.vault .cell.it>*{position:relative;z-index:1;}
+  /* --- the card: a painted brass title plate over a real parchment leaf --- */
+  .ware{background:url('/art/ui/parchment.png') center/100% auto;}
+  .ware .wn{border-style:solid;border-color:transparent;border-width:5px 16px;
+    border-image:url('/art/ui/nameplate.png') 40 130 fill / 5px 16px stretch;
+    background:none;box-shadow:none;padding:0 2px 1px;color:#fff2cd;}
+  .st{background:url('/art/ui/parchment.png') center/100% auto;}
+  .st .nm{border:8px solid transparent;
+    border-image:url('/art/ui/nameplate.png') 40 130 fill / 8px 26px stretch;
+    background:none;box-shadow:none;padding:3px 8px 5px;}
+  .rmprev{background:url('/art/ui/parchment.png') center top/100% auto;}
+  /* --- panels and copy plates: painted walnut and painted iron --- */
+  .sec.secmarket{border:13px solid transparent;
+    border-image:url('/art/ui/panel_plain.png') 96 fill / 13px stretch;
+    border-radius:0;background:none;box-shadow:0 14px 30px rgba(0,0,0,.55);}
+  /* the section label sits on the panel's own top rail, so it takes a small
+     dark plate of its own or the carved wood eats it */
+  .sec.secmarket .label,#main.draft .label{margin:4px 2px 7px;padding:3px 9px 4px;flex:0 0 auto;
+    align-self:flex-start;max-width:100%;
+    background:linear-gradient(180deg,#2a1c0e,#120b05 78%);border-radius:3px;
+    box-shadow:inset 0 1px 0 rgba(250,206,124,.26),inset 0 0 0 1px rgba(216,162,74,.22),
+      0 3px 8px rgba(0,0,0,.6);}
+  /* inside a panel that already has a painted frame, the label's own rule is one
+     line too many, and it was stealing the row's width from the caption */
+  .sec.secmarket .label::after,#main.draft .label::after{display:none;}
+  .card.evroom .pick,.card.setupcard .herodetail,.card.setupcard.reveal .setupcopy,.setupcopy,
+  #main.fight .log{border:12px solid transparent;
+    border-image:url('/art/ui/plate_dark.png') 74 96 fill / 12px 15px stretch;
+    border-radius:0;background:none;box-shadow:0 10px 24px rgba(0,0,0,.5);}
+  /* --- the cameo: a painted oval frame around every fight portrait --- */
+  .fh .fpw::after,.rmphead .rmpg::after{background:url('/art/ui/cameo_oval.png') center/contain no-repeat;
+    mix-blend-mode:normal;clip-path:none;inset:-22% -30%;}
+  .fh .fpw .fp,.rmphead .rmpgi{border-radius:50%;}
+  /* --- the section rule becomes a painted iron flourish --- */
+  .label::after{height:7px;background:url('/art/ui/rule_thin.png') left center/100% 7px no-repeat;
+    opacity:.7;}
+
+  /* ===== 0.151.0 THE PLATE PASS: text stops floating on the paintings ===== */
+  /* The last systemic web tell was the translucent rounded rectangle. Wherever
+     copy had to stay legible over a painted room, a soft dark panel with a
+     hairline border was laid over the art: the Omen's rules, the dealer's
+     detail, each event room's choices, the curio stall itself. They read as
+     browser chrome sitting on an oil painting. Every one of them now uses one
+     named recipe for a carved plate screwed to the wall: a lit brass top rim, a
+     shadowed foot, a gilt hairline all round, and a real cast shadow, so copy
+     sits ON something instead of floating in front of something. The market
+     panel also drops its backdrop blur, which was the single most browser-like
+     effect in the game. */
+  :root{
+    --plate:linear-gradient(180deg,rgba(255,238,200,.055),transparent 20%),
+      linear-gradient(180deg,rgba(28,19,13,.93),rgba(11,8,6,.95));
+    /* the seated-ware shadow, named so a state can extend it instead of
+       replacing it (0.152.0) */
+    --seat:inset 0 1.5px 0 rgba(255,240,205,.17),inset 0 0 18px rgba(0,0,0,.34),
+      0 3px 6px rgba(0,0,0,.55);
+    --plate-edge:inset 0 1px 0 rgba(250,206,124,.3),
+      inset 0 -1px 0 rgba(0,0,0,.72),
+      inset 0 0 0 1px rgba(216,162,74,.2),
+      0 10px 26px rgba(0,0,0,.55);}
+  .card.evroom .pick{background:var(--plate);box-shadow:var(--plate-edge);border-color:transparent;}
+  .card.setupcard .herodetail{background:var(--plate);box-shadow:var(--plate-edge);
+    border:0;border-radius:14px;}
+  .card.setupcard.reveal .setupcopy{background:var(--plate);box-shadow:var(--plate-edge);
+    border:0;border-radius:12px;padding:11px 13px 6px;}
+  .setupcopy{background:var(--plate);box-shadow:var(--plate-edge);border:0;border-radius:12px;
+    padding:10px 12px 5px;}
+  /* the curio stall is a carved case on the counter, not a pane of frosted
+     glass: the wood shows, the moulding is beaded, and the blur is gone */
+  .sec.secmarket{backdrop-filter:none;-webkit-backdrop-filter:none;
+    background:
+      radial-gradient(78% 56% at 14% -6%,rgba(246,196,110,.13),transparent 68%),
+      linear-gradient(180deg,rgba(16,11,14,.7),rgba(9,6,8,.82)),
+      var(--board-art,none) center/380px;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,236,196,.26),
+      inset 0 4px 0 rgba(0,0,0,.34),
+      inset 0 -2px 0 rgba(255,214,150,.09),
+      inset 0 -7px 15px rgba(0,0,0,.6),
+      inset 0 0 0 1px rgba(216,162,74,.22),
+      0 12px 28px rgba(0,0,0,.55);}
+
   /* ===== 0.149.0 THE STATES PASS: nothing reads as unfinished UI ===== */
   /* Four tells were still saying prototype on finished screens. A dashed
      rectangle is the universal mark of a placeholder, and there were three of
@@ -2598,6 +2726,141 @@
     .st .nm{font-size:17px;padding:5px 10px 6px;}
     .st .ds{font-size:12px;padding:7px 10px 2px;}
     .st .stc{padding:5px 8px 8px;}
+  }
+  /* ===== 0.152.0 STATE PRECEDENCE: a socket must still be able to shout ===== */
+  /* The socket and counter passes moved the board's dressing onto selectors that
+     reach further than the state rules sharing the same box-shadow property, and
+     silently outranked them: a selected stall ware lost its brass ring and a
+     frozen ware lost its frost, both regressions introduced by 0.141.0 and
+     0.144.0. A state is louder than furniture by definition, so every board
+     state is re-asserted here, in one place, above the furniture and at matching
+     reach, extending the named seat shadow instead of replacing it. */
+  #bd .cell.it.rar2,.vault .cell.it.rar2,.combat .cell.f.rar2{
+    box-shadow:var(--seat),0 0 15px rgba(216,162,74,.45);}
+  #bd .cell.it.rar3,.vault .cell.it.rar3,.combat .cell.f.rar3{
+    box-shadow:var(--seat),0 0 17px rgba(160,210,255,.5);}
+  #bd .cell.it.frz,.vault .cell.it.frz,.combat .cell.f.frz{
+    box-shadow:var(--seat),inset 0 0 17px rgba(154,216,239,.6),0 0 18px rgba(154,216,239,.42);}
+  /* selection had to move outward and onto the frame itself: the painted rarity
+     frame is a ::before at inset -3px with z-index 2, so any ring drawn inside
+     the cell's own border box was hidden behind it. The ware's own frame lights
+     up and a halo spreads past the frame's edge, which reads at a glance. */
+  #bd .cell.it.sel,.vault .cell.it.sel,.combat .cell.f.sel{
+    box-shadow:var(--seat),inset 0 0 22px rgba(246,205,120,.3),
+      0 0 0 5px rgba(248,223,166,.4),0 0 20px 5px rgba(246,205,120,.6);}
+  .art-frames #bd .cell.it.sel::before,.art-frames .vault .cell.it.sel::before,
+  .art-frames .combat .cell.f.sel::before{
+    filter:brightness(1.8) saturate(1.3) drop-shadow(0 0 6px rgba(246,205,120,.9));}
+  #bd .cell.it.dead,.combat .cell.f.dead{
+    box-shadow:inset 0 8px 12px -5px rgba(0,0,0,.92),inset 0 0 20px rgba(0,0,0,.6);}
+  /* the painted plaque needs width: three across a 390 phone squashed a 3.6 to 1
+     plaque into a barrel and wrapped its caption onto four lines, so the control
+     row wraps two up and each plaque gets its own proportions back */
+  @media (orientation:portrait){
+    .secmarket .controls{flex-wrap:wrap;}
+    .secmarket .controls .btn{flex:1 1 45%;min-width:0;font-size:12px;}
+    #main.draft .dock .label{flex:0 1 auto;min-width:0;overflow:hidden;}
+  }
+  /* 0.153.0 card rule, applied at both viewports instead of landscape only: a
+     shop card shows the illustration, the name, its footprint, its keyword and
+     its numbers; the full rules text lives one tap away in the inspect card,
+     which is where a big readable card already exists. Two lines of 9px rules on
+     a 167px card were never read and were costing the illustration its room. */
+  .secmarket .ware .wd{display:none;}
+  @media (orientation:portrait){
+    .secmarket .ware .ph{width:auto;height:88px;}
+    #main.draft .dock .label{white-space:nowrap;}
+  }
+  /* the card stopped needing to clip itself once its frame became painted: the
+     illustration window does its own clipping, so the card can take its natural
+     height and the shelf scrolls, instead of the grid row shearing off whichever
+     row of the card ran out of budget. Chasing that budget by shrinking the
+     illustration was costing the card the thing it exists to show. */
+  .ware{overflow:visible;}
+  .ware .ph{overflow:hidden;}
+  @media (orientation:portrait){
+    #main.fight .board.combat .cell,#bd .cell,.vault .cell{border-width:4px;border-image-width:4px;}
+    #main.fight .cell.f .gi{width:23px;height:23px;}
+    #main.fight .cell.f.s2 .gi{width:40px;height:40px;}
+    #main.fight .cell.f.s3 .gi{width:54px;height:54px;}
+  }
+  @media (orientation:landscape) and (min-width:640px){
+    #main.fight .cell.f .gi{width:30px;height:30px;}
+    #main.fight .cell.f.s2 .gi{width:48px;height:48px;}
+    #main.fight .cell.f.s3 .gi{width:64px;height:64px;}
+  }
+  /* 0.153.0 board rule, settled: the socket frame IS the ware's frame, so a
+     seated ware fills its socket edge to edge like a card dropped into a slot,
+     and everything that used to compete inside those 31 to 44 pixels stands
+     down. The struck plinth, the painted rarity frame nested inside the socket
+     frame, and the lifted glyph were three frames and a shelf fighting for the
+     same tile; rarity now reads from the socket's own coloured halo and the
+     forge letter, and the numbers sit on the socket's painted bottom rail. */
+  .combat .cell.f::after,#bd .cell.it::after,.vault .cell.it::after{display:none;}
+  .art-frames .combat .cell.f::before,.art-frames #bd .cell.it::before,
+  .art-frames .vault .cell.it::before{display:none;}
+  /* the id-scoped per-orientation glyph sizes outrank a plain class, so the
+     fill rule has to reach as far as they do */
+  /* width:100% made the glyph a flex item competing with the ash overlay for the
+     socket's 33px, and both shrank; the ware is placed instead, filling the
+     socket interior exactly (inset 0 of a relative cell is inside its border) */
+  #main.fight .cell.f .gi,#bd .cell.it .gi,.vault .cell.it .gi,
+  #main.fight .cell.f.s2 .gi,#main.fight .cell.f.s3 .gi{
+    position:absolute;left:0;top:0;width:100%;height:100%;transform:none;filter:none;}
+  #main.fight .cell.f .gi image,#bd .cell.it .gi image,.vault .cell.it .gi image{
+    object-fit:cover;object-position:50% 42%;}
+  .combat .cell.f .glow,#bd .cell.it .glow,.vault .cell.it .glow{
+    transform:none;background:radial-gradient(78% 62% at 50% 46%,
+      color-mix(in srgb,var(--cat,#d8a24a) 18%,transparent),transparent 76%);}
+  .combat .cell .stat,#bd .cell .stat,.vault .cell .stat{bottom:0;font-size:10px;
+    text-shadow:0 1px 2px #000,0 0 5px rgba(0,0,0,.95),0 0 9px rgba(0,0,0,.85);}
+  .combat .cell .stat.sl,#bd .cell .stat.sl{left:1px;}
+  .combat .cell .stat.sr,#bd .cell .stat.sr,.vault .cell .stat.sr{right:1px;}
+  .combat .cell .fuse,#bd .cell .fuse,.vault .cell .fuse{top:0;left:1px;}
+  /* the numbers need a footing: the socket's own painted bottom rail is 6px, too
+     thin to carry a 10px numeral, so a seated ware gets a thin dark scrim across
+     the foot of its art and the numbers sit on that instead of over the painting */
+  #main.fight .cell.f::after,#bd .cell.it::after,.vault .cell.it::after{
+    content:;display:block;position:absolute;left:0;right:0;bottom:0;height:13px;z-index:1;
+    pointer-events:none;background:linear-gradient(to top,rgba(8,5,2,.94),rgba(8,5,2,.55) 60%,transparent);}
+  #main.fight .cell.f .stat,#bd .cell.it .stat,.vault .cell.it .stat{z-index:2;bottom:0;line-height:13px;}
+  #main.fight .cell.f .bw,#bd .cell.it .bw{top:1px;right:1px;width:8px;height:8px;}
+  /* Settled at 44px: a socket carries the painting and the one number that moves.
+     Two numerals plus a bulwark mark plus a forge letter plus a rarity glow was
+     four readings on a 33px interior, and they overlapped each other. Integrity
+     is the value that changes while you watch a fight, so it stays, bottom right
+     on its own footing; the ware's damage, cadence and keyword are on its card
+     and in its inspect view, one tap away, where there is room to read them. */
+  #main.fight .cell.f .stat.sl,#bd .cell.it .stat.sl{display:none;}
+  #main.fight .cell.f .stat.sr,#bd .cell.it .stat.sr,.vault .cell.it .stat.sr{
+    display:block;left:auto;right:2px;bottom:1px;top:auto;z-index:3;
+    font-size:11px;line-height:1;color:#ffd3c4;
+    text-shadow:0 1px 0 #000,0 0 3px #000,0 0 7px rgba(0,0,0,.95);}
+  #main.fight .cell.f::after,#bd .cell.it::after,.vault .cell.it::after{
+    height:15px;background:linear-gradient(to top,rgba(6,4,2,.92),rgba(6,4,2,.4) 62%,transparent);}
+  /* the buy and sell buttons carried their own gradient, which showed as a pale
+     slab around the painted plaque; they take the plaque and tint it instead */
+  .btn.buy{background:none;color:#2c1a06;
+    border-image:url('/art/ui/btn_brass.png') 58 104 fill / 7px 15px stretch;
+    text-shadow:0 1px 0 rgba(255,246,214,.6);}
+  .btn.sell,.sheet .bs .sell{background:none;color:#ffd9cf;
+    border-image:url('/art/ui/btn_wood.png') 62 96 fill / 7px 14px stretch;
+    filter:hue-rotate(-22deg) saturate(1.5) brightness(.95);}
+  .btn.stonehint{background:none;filter:saturate(.25) brightness(.8);}
+  .inspectcard .kick,.card .kick{color:#d8a24a;-webkit-text-fill-color:#d8a24a;
+    text-shadow:0 1px 0 rgba(0,0,0,.85),0 0 10px rgba(0,0,0,.7);}
+  /* the rarity word sat in the painted plate's top bevel where its brass ink
+     vanished; it moves onto the paper above the plate instead */
+  .st .nm .stq{position:absolute;top:-15px;left:2px;color:#6d4c14;-webkit-text-fill-color:#6d4c14;
+    font-size:9px;letter-spacing:.18em;text-shadow:none;}
+  .st .nm{position:relative;overflow:visible;margin-top:15px;}
+  /* the painted panel frame costs the landscape shelf 26px of its single row, so
+     the illustration gives that back and the keyword chip stays on the card */
+  @media (orientation:landscape) and (min-width:640px){
+    .ware{--artH:66px;}
+    .secmarket .ware .ph,.secmarket .shop.tight .ware .ph,.secmarket .shop.wide .ware .ph{height:var(--artH,66px);}
+    .secmarket .shop.tight .ware{--artH:70px;}
+    .secmarket .shop.wide .ware{--artH:64px;}
   }
 </style>
 </head>

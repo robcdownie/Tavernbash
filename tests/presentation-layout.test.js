@@ -97,7 +97,11 @@ test('portrait setup rooms use lintel chamber and threshold zones',()=>{
   assert.match(html,/\.card\.setupcard\{[^}]+justify-content:flex-start/);
   assert.match(html,/\.card\.setupcard\.evroom::after\{background:linear-gradient/);
   assert.match(html,/\.card\.setupcard>\.btn\.gold\{flex:0 0 auto;margin-top:auto !important;/);
-  assert.match(html,/\.card\.setupcard \.herodetail\{[^}]+background:rgba\(10,9,15,\.62\)/);
+  /* 0.151.0 replaces the translucent scrim this line originally pinned with the
+     shared carved plate. The intent is unchanged and stronger: the dealer's
+     detail must still carry an opaque backing so its copy stays legible over the
+     painted parlour, and it is now more opaque than the .62 scrim was. */
+  assert.match(html,/\.card\.setupcard \.herodetail\{background:var\(--plate\);box-shadow:var\(--plate-edge\)/);
   assert.match(html,/\.card\.setupcard \.routepickgrid\{flex:1 1 auto;align-content:end;/);
 });
 
@@ -147,4 +151,39 @@ test('one light grade covers the house: candle low left, moon high right, one gr
   assert.match(html,/feTurbulence[^"]*baseFrequency='0\.85'/);
   /* the grade can never intercept a tap */
   assert.match(html,/body::after\{[^}]*pointer-events:none/);
+});
+
+test('copy over a painting sits on a carved plate, never a translucent pane',()=>{
+  /* one named recipe, used everywhere copy had to stay legible over painted art;
+     the market panel also drops the backdrop blur, which was the single most
+     browser-like effect left in the game */
+  assert.match(html,/--plate:linear-gradient\(180deg,rgba\(255,238,200,\.055\)/);
+  assert.match(html,/--plate-edge:inset 0 1px 0 rgba\(250,206,124,\.3\)/);
+  /* plain substring, not a built regex: the parentheses in var(--plate) become a
+     capture group the moment this is compiled, and the assertion silently stops
+     checking what it names */
+  for(const sel of ['.card.evroom .pick','.card.setupcard .herodetail',
+      '.card.setupcard.reveal .setupcopy','.setupcopy']){
+    assert.ok(html.includes(sel+'{background:var(--plate)'),sel+' uses the plate');
+  }
+  assert.match(html,/\.sec\.secmarket\{backdrop-filter:none;-webkit-backdrop-filter:none;/);
+});
+
+test('painted plates do the work the stylesheet was imitating',()=>{
+  /* nine generated pieces replace CSS-drawn chrome. The CSS underneath survives
+     as the no-art fallback, so a missing file degrades to drawn chrome. */
+  for(const [sel,file] of [
+    ['.btn','btn_wood'],['.btn.gold','btn_brass'],['.hpwrap','gauge_wide'],
+    ['.ware .wn','nameplate'],['.st .nm','nameplate'],['.rmphead','nameplate'],
+    ['.sec.secmarket','panel_plain'],['.label::after','rule_thin']]){
+    assert.ok(html.includes("/art/ui/"+file+".png"),sel+' uses the painted '+file);
+  }
+  assert.ok(html.includes("url('/art/ui/socket_sq.png') 96 fill"),'sockets are a painted slot frame');
+  assert.ok(html.includes("url('/art/ui/parchment.png')"),'the card body is a real parchment leaf');
+  assert.ok(html.includes("url('/art/ui/cameo_oval.png')"),'fight portraits wear the painted cameo');
+  /* border-image-width does not move the content box: a housing whose caps are
+     drawn wider than its border-width gets painted over by its own children */
+  assert.match(html,/\.hpwrap\{border-style:solid;border-color:transparent;border-width:9px 38px 10px 38px;/);
+  /* the card takes its natural height now that its frame is painted */
+  assert.match(html,/\.ware\{overflow:visible;\}/);
 });

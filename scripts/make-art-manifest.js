@@ -9,6 +9,8 @@
      public/art/monsters/debt.png    -> m-debt   (glyph suffix, so the Debt
                                                   Collector's file is debt.png)
      public/art/portraits/p0.png     -> p-0
+     public/art/icons/e-shield.png   -> e-shield (literal, so painted art can
+                                                  take over a non g- symbol id)
    Both .png and .webp are accepted (the asset diet ships WebP; ingest still
    drops PNG). When both exist for one id the PNG wins, because a fresh
    ingest drop is newer art than the dieted WebP beside it; running
@@ -31,6 +33,9 @@ export function scanArt(rootDir) {
     ['monsters', function (n) { return 'm-' + n; }],
     ['portraits', function (n) { return n.replace(/^p(\d+)$/, 'p-$1'); }],
     ['ui', function (n) { return 'g-' + n; }],
+    /* icons/ ids are literal, so a painted file can take over an inline symbol
+       whose id is not in the g- namespace (icons/e-shield.png -> e-shield) */
+    ['icons', function (n) { return n; }],
     ['frames', function (n) { return n.replace(/_/g, '-'); }],
     ['board', function (n) { return n.replace(/_/g, '-'); }],
     ['bg', function (n) { return n.replace(/_/g, '-'); }]

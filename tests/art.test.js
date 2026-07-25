@@ -30,6 +30,13 @@ test('every painted art file maps to a glyph id the game actually uses', () => {
                     'g-route_market','g-route_rest','g-route_treasure','g-route_shrine','g-route_negotiation',
                     'g-room_parlor','g-room_rest','g-room_seance','g-room_treasure','g-room_cellar',
                     'g-bar_housing','g-frame_oval','g-hero_full_kiln','g-slot_frame',
+                    /* 0.152.0 painted furniture: 9-slice plates, a gauge housing, a socket
+                       bay, a parchment sheet, a cameo, a flourish, and the painted icon set
+                       that takes over the inline e- symbols */
+                    'g-btn_brass','g-btn_wood','g-plate_dark','g-nameplate','g-gauge_wide',
+                    'g-cameo_oval','g-flourish','g-parchment',
+                    'g-socket_sq','g-panel_plain','g-rule_thin',
+                    'e-shield','e-flame','e-skull','e-frost','e-bolt','e-clock','e-blade','e-heart',
                     'g-hero_full_venom','g-hero_full_architect','g-hero_full_silkblade','g-hero_full_ash','g-hero_full_apoth','g-hero_full_knife','g-hero_full_lender',
                     'g-boss_full_ghul','g-boss_full_matron','g-boss_full_ifrit','g-boss_full_vizier','g-boss_full_azhdaha','g-drape_web',
                     'bg-route-back-alleys','bg-route-souk','bg-route-palace','bg-route-dragon-gate']) known.add(id);
