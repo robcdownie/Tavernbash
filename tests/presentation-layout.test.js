@@ -69,6 +69,19 @@ test('every shipped item has painted art, so the card never letterboxes',async()
     +'that the full-bleed card window cannot place: '+missing.join(', '));
 });
 
+test('the shared ware detail is a card and wears its rarity',async()=>{
+  const cards=readFileSync(root+'/src/cards.js','utf8');
+  /* the four callers and the screenshot harness read .st, .ico, .nm, .ds and
+     .eff, so those hooks must survive; the rarity must ride the root */
+  assert.match(cards,/class="st rar'\+rar\+'"/);
+  assert.match(cards,/<span class="ico">/);
+  assert.doesNotMatch(cards,/class="ico" style="width:64px/);
+  assert.match(cards,/class="stx"/);
+  assert.match(cards,/class="stc"/);
+  assert.match(html,/\.art-frames \.st\.rar2\{border-image-source:var\(--frame-gold\);\}/);
+  assert.match(html,/\.st \.ico\{width:auto;height:var\(--bigart,196px\);/);
+});
+
 test('portrait setup rooms use lintel chamber and threshold zones',()=>{
   assert.match(html,/\.card\.setupcard\{[^}]+justify-content:flex-start/);
   assert.match(html,/\.card\.setupcard\.evroom::after\{background:linear-gradient/);

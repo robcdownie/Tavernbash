@@ -507,8 +507,9 @@
   .btn .bi{width:16px;height:16px;}
 
   .sheet{margin-top:9px;background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--line);border-radius:13px;padding:12px;animation:pop .2s var(--e-out);}
-  .sheet .st{display:flex;align-items:center;gap:10px;}
-  .sheet .st .ico{width:32px;height:32px;flex:0 0 auto;}
+  /* 0.145.0: the detail block is a card and owns its own illustration size at
+     every call site, so the sheet no longer shrinks it to a 32px thumb */
+  .sheet .st{display:flex;gap:0;}
   .sheet .nm{font-weight:800;font-size:14px;}
   .sheet .ds{font-size:10.5px;color:var(--dim);margin-top:2px;}
   .sheet .fstate{font-size:11.5px;color:var(--dim);font-variant-numeric:tabular-nums;margin-top:4px;}
@@ -2220,6 +2221,9 @@
       linear-gradient(180deg,#33230f,#1c1207 70%,#120b04);
     box-shadow:inset 0 10px 18px -8px rgba(0,0,0,.85),inset 0 0 0 1px rgba(216,162,74,.1);}
   .ware.gone::after{color:rgba(216,162,74,.5);}
+  /* the card no longer pads itself, so an emptied crate states its own height
+     and the shelf keeps its rhythm instead of collapsing to a strip */
+  .ware.gone{min-height:126px;}
   @media (orientation:portrait){
     .ware{--artH:100px;}
   }
@@ -2321,6 +2325,70 @@
     #bd .cell{--plinth:14px;}
     #bd .cell .stat{font-size:9.5px;}
     .vault .cell{--plinth:13px;}
+  }
+
+  /* ===== 0.145.0 THE INSPECT CARD: the ware at full size ===== */
+  /* Tapping a ware is the market's main verb, and it opened a 64px thumbnail
+     beside two lines of grey sans inside a picture frame with dead air around
+     it. The detail block is the same information given a card's anatomy: the
+     illustration at the size the painting was made for, the rarity and name on
+     a struck plate, the full rule in ink on parchment, and the real numbers as
+     stamps. The card wears its own rarity's painted frame, so the overlay's
+     generic gold frame steps aside and the ware is the object on screen. */
+  .st{flex-direction:column;align-items:stretch;gap:0;text-align:left;
+    border-radius:10px;overflow:hidden;
+    background:
+      radial-gradient(122% 62% at 50% 112%,rgba(96,70,34,.2),transparent 74%),
+      repeating-linear-gradient(93deg,rgba(112,88,52,.055) 0 2px,transparent 2px 5px),
+      linear-gradient(180deg,#d3c1a0,#c4b18d 62%,#b8a67f);
+    box-shadow:0 10px 26px rgba(0,0,0,.55);}
+  .st .ico{width:auto;height:var(--bigart,196px);flex:0 0 auto;padding:0;border-radius:0;overflow:hidden;
+    background:radial-gradient(120% 120% at 50% 38%,#1d1424,#0b0810 84%);
+    box-shadow:inset 0 -4px 12px rgba(0,0,0,.6);}
+  .st .ico svg{width:100%;height:100%;display:block;transform:scale(1.04);}
+  .st .ico svg image{object-fit:cover;object-position:50% 44%;}
+  .st .stx{display:flex;flex-direction:column;min-width:0;flex:1 1 auto;}
+  .st .nm{margin:0;padding:6px 11px 7px;font-family:"Rakkas",serif;font-weight:400;
+    font-size:19px;line-height:1.12;letter-spacing:.3px;color:#fdeac2;
+    text-shadow:0 1.5px 0 rgba(0,0,0,.85),0 2px 8px rgba(0,0,0,.6);
+    background:linear-gradient(180deg,#4a3216,#2c1c0a 58%,#1d1206);
+    box-shadow:inset 0 1px 0 rgba(250,206,124,.32),inset 0 -1px 0 rgba(0,0,0,.6);}
+  .st .nm .stq{font-family:"Hanken Grotesk",system-ui,sans-serif;font-size:9.5px;font-weight:800;
+    letter-spacing:.16em;text-transform:uppercase;color:#c79a4a;display:block;margin-bottom:1px;}
+  .st.rar1 .nm .stq{color:#b9c8d8;} .st.rar2 .nm .stq{color:#f0c268;} .st.rar3 .nm .stq{color:#cfe6ff;}
+  .st .ds{margin:0;padding:9px 11px 2px;color:#3b2c19;font-size:13px;line-height:1.42;}
+  .st .stc{margin:0;padding:7px 9px 10px;display:flex;flex-wrap:wrap;gap:1px;}
+  .st .stc .eff{border-color:rgba(40,28,10,.3);
+    box-shadow:inset 0 1px 0 rgba(255,250,235,.4),0 1px 2px rgba(60,44,20,.3);}
+  .st .stc .eff.dmg{color:#8b2113;background:rgba(200,64,46,.2);}
+  .st .stc .eff.shield{color:#0c5a4f;background:rgba(53,165,150,.22);}
+  .st .stc .eff.heal{color:#8e3339;background:rgba(224,138,143,.22);}
+  .st .stc .eff.poison{color:#4d6111;background:rgba(157,187,69,.26);}
+  .st .stc .eff.burn{color:#8a4310;background:rgba(224,134,58,.24);}
+  .st .stc .eff.util{color:#6a4a12;background:rgba(216,162,74,.24);}
+  /* the card wears its rarity, painted, and the wrappers that used to draw
+     their own panel get out of its way */
+  .art-frames .st{border:13px solid transparent;border-image-source:var(--frame-bronze);
+    border-image-slice:135;border-image-width:13px;border-image-repeat:stretch;border-radius:12px;}
+  .art-frames .st.rar1{border-image-source:var(--frame-silver);}
+  .art-frames .st.rar2{border-image-source:var(--frame-gold);}
+  .art-frames .st.rar3{border-image-source:var(--frame-diamond);}
+  .shopdet,.inspectcard .sheet,.sheet{background:none;border:0;padding:0;box-shadow:none;}
+  .sheet .st{--bigart:158px;}
+  .art-frames .inspectcard{border-image:none;border:1px solid rgba(216,162,74,.2);border-radius:16px;
+    box-shadow:0 30px 70px rgba(0,0,0,.6);}
+  .inspectcard{padding:16px 14px 14px;}
+  .inspectcard .kick{margin-bottom:9px;}
+  .sheet .bs,.shopdet .bs{margin-top:11px;}
+  @media (orientation:landscape) and (min-width:640px){
+    /* 350px of overlay height cannot hold a tall card, so landscape lays the
+       same card on its side: illustration left, plate and rules right */
+    .st{flex-direction:row;}
+    .st .ico{width:154px;height:auto;align-self:stretch;min-height:150px;
+      box-shadow:inset -4px 0 12px rgba(0,0,0,.6);}
+    .st .nm{font-size:17px;padding:5px 10px 6px;}
+    .st .ds{font-size:12px;padding:7px 10px 2px;}
+    .st .stc{padding:5px 8px 8px;}
   }
 </style>
 </head>
