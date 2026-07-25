@@ -36,6 +36,7 @@ test('every painted art file maps to a glyph id the game actually uses', () => {
                     'g-btn_brass','g-btn_wood','g-plate_dark','g-nameplate','g-gauge_wide',
                     'g-cameo_oval','g-flourish','g-parchment',
                     'g-socket_sq','g-panel_plain','g-rule_thin',
+                    'g-frame_big','g-rail_vert','g-ring_foe','g-medallion_boss','g-costgem','g-crate_back',
                     'e-shield','e-flame','e-skull','e-frost','e-bolt','e-clock','e-blade','e-heart',
                     'g-hero_full_venom','g-hero_full_architect','g-hero_full_silkblade','g-hero_full_ash','g-hero_full_apoth','g-hero_full_knife','g-hero_full_lender',
                     'g-boss_full_ghul','g-boss_full_matron','g-boss_full_ifrit','g-boss_full_vizier','g-boss_full_azhdaha','g-drape_web',
