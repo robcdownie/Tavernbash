@@ -878,6 +878,10 @@ function paintFight(F){
   });
   const st=$('stormT');const sc=$('storm');
   if(st&&sc){
+    /* 0.147.0: the clock also fills as the haunting nears, so the centre of the
+       duel carries a visible fuse instead of only a number to read. Same
+       countdown, same text, one CSS variable added. */
+    try{sc.style.setProperty('--sp',String(F.stormOn?1:Math.max(0,Math.min(1,F.stormAt?F.t/F.stormAt:0))));}catch(e){}
     if(F.stormOn){sc.classList.add('live');st.textContent='Storm';$('sand').classList.add('on');}
     else{st.textContent='Storm approaching '+Math.max(0,Math.ceil((F.stormAt-F.t)/1000))+'s';}
   }

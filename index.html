@@ -2382,6 +2382,57 @@
   .inspectcard{padding:16px 14px 14px;}
   .inspectcard .kick{margin-bottom:9px;}
   .sheet .bs,.shopdet .bs{margin-top:11px;}
+  /* ===== 0.147.0 THE DUEL CHROME: the centre and margins of the hall ===== */
+  /* The middle of the fight screen, which is where the eye rests, held a text
+     pill, a hairline outlined "1x", and a medallion so faint it read as an
+     artefact; the running commentary sat under the dealer's gauge as plain grey
+     sans. The clock now visibly burns down as the haunting nears (paintFight
+     feeds it one variable; the countdown and its wording are unchanged), the
+     speed toggle is a brass switch that lights when thrown, the hall's emblem
+     is seated in a struck bezel, and the log is an engraved ledger whose newest
+     line is the brightest. */
+  .stormchip{position:relative;overflow:hidden;letter-spacing:.04em;}
+  .stormchip::before{content:"";position:absolute;left:0;top:0;bottom:0;z-index:0;
+    width:calc(var(--sp,0) * 100%);
+    background:linear-gradient(90deg,rgba(224,134,58,.1),rgba(224,134,58,.42) 82%,rgba(255,214,150,.62));
+    box-shadow:0 0 14px rgba(224,134,58,.5);transition:width .3s linear;}
+  .stormchip>*{position:relative;z-index:1;}
+  .stormchip .mi{color:#ffd9a6;filter:drop-shadow(0 1px 2px rgba(0,0,0,.9));}
+  .stormchip.live::before{width:100%;
+    background:linear-gradient(90deg,rgba(216,74,52,.5),rgba(255,150,90,.66));}
+  /* the tempo switch: carved brass, lit when thrown to double */
+  .spdbtn{min-width:36px;padding:3px 8px 4px;border-radius:4px;border:0;
+    font-family:"Hanken Grotesk",system-ui,sans-serif;font-size:11px;letter-spacing:.06em;
+    color:#3a2506;background:linear-gradient(180deg,#f4d089,#c99442 48%,#8a5c1c 78%,#e6c079);
+    text-shadow:0 1px 0 rgba(255,250,226,.55);
+    box-shadow:0 2px 4px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,250,226,.7),
+      inset 0 -1.5px 0 rgba(0,0,0,.34),0 0 0 1px rgba(46,28,8,.7);}
+  .spdbtn:active{transform:translateY(1px) scale(.97);}
+  /* the crossed-blades medallion is a pre-manor flat token, and it sat at the
+     visual centre of the duel reading as a faint washer. Seating it in a carved
+     bezel was tried and only made a bigger washer; the clock is the centrepiece
+     the hall actually needs, so the token stands down and the two divider rules
+     close on the clock instead. The glyph stays in the markup for every other
+     screen that uses it. */
+  #main.fight .vsrow .vm{display:none;}
+  #main.fight .vsrow .vl{background:linear-gradient(90deg,transparent,rgba(216,162,74,.34) 60%,rgba(216,162,74,.4));}
+  #main.fight .vsrow .vl:last-child{background:linear-gradient(270deg,transparent,rgba(216,162,74,.34) 60%,rgba(216,162,74,.4));}
+  /* the ledger: ruled at the lintel, the newest entry brightest */
+  #main.fight .log{padding:6px 11px 5px;border-radius:0 0 12px 12px;
+    background:linear-gradient(180deg,rgba(10,6,4,.72),rgba(6,4,3,.86));
+    box-shadow:inset 0 1px 0 rgba(246,196,110,.22),inset 0 3px 8px rgba(0,0,0,.6);}
+  #main.fight .log .li{gap:7px;margin-bottom:1px;color:#9d8c72;font-size:11px;line-height:1.5;
+    letter-spacing:.01em;}
+  #main.fight .log .li:first-child{color:#e8d3ab;}
+  #main.fight .log .lmi{color:#c79a4a;filter:drop-shadow(0 1px 0 rgba(0,0,0,.8));}
+  @media (orientation:landscape) and (min-width:640px){
+    /* the dealer's own header was reading at the far left, where its small
+       portrait oval collided with the foe's medallion; it belongs on his side of
+       the hall, under the figure that is actually standing there */
+    #main.fight #fg-a .fh{flex-direction:row-reverse;}
+    #main.fight #fg-a .fh .stt{margin-left:0;margin-right:auto;}
+  }
+
   /* ===== 0.146.0 THE SCOUT LEAF: the route reads like a bestiary page ===== */
   /* The route map is the game's best painting and the panel that decides every
      fight sat on it as a flat dark box holding eight lines of undifferentiated

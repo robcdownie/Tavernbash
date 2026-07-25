@@ -100,3 +100,16 @@ test('portrait setup rooms use lintel chamber and threshold zones',()=>{
   assert.match(html,/\.card\.setupcard \.herodetail\{[^}]+background:rgba\(10,9,15,\.62\)/);
   assert.match(html,/\.card\.setupcard \.routepickgrid\{flex:1 1 auto;align-content:end;/);
 });
+
+test('the duel chrome: a burning clock, a brass switch, an engraved ledger',()=>{
+  /* the clock's fill is fed one variable by paintFight; the countdown text and
+     its timing are unchanged, and the pre-manor medallion stands down rather
+     than sitting as a faint washer at the centre of the screen */
+  assert.match(ui,/sc\.style\.setProperty\('--sp',String\(F\.stormOn\?1:/);
+  assert.match(ui,/st\.textContent='Storm approaching '\+Math\.max\(0,Math\.ceil\(\(F\.stormAt-F\.t\)\/1000\)\)\+'s'/);
+  assert.match(html,/\.stormchip::before\{content:"";position:absolute;left:0;/);
+  assert.match(html,/width:calc\(var\(--sp,0\) \* 100%\);/);
+  assert.match(html,/#main\.fight \.vsrow \.vm\{display:none;\}/);
+  assert.match(html,/#main\.fight #fg-a \.fh\{flex-direction:row-reverse;\}/);
+  assert.match(html,/#main\.fight \.log \.li:first-child\{color:#e8d3ab;\}/);
+});
