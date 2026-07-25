@@ -1856,7 +1856,9 @@
     letter-spacing:.5px;cursor:pointer;}
   .introroute:active{transform:translateY(1px);}
   #main.routemap{padding:0;min-height:0;}
-  .rmwrap{display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:8px;height:100%;min-height:0;}
+  /* 0.146.0: the leaf carries a plated head and struck labels, so its column
+     widens from 200 to 224 rather than wrapping the foe name onto two lines */
+  .rmwrap{display:grid;grid-template-columns:minmax(0,1fr) 224px;gap:8px;height:100%;min-height:0;}
   .rmboard{display:flex;flex-direction:column;min-height:0;background-size:cover;background-position:center;
     border:1px solid rgba(216,162,74,.28);border-radius:12px;padding:8px 10px;overflow:hidden;position:relative;
     box-shadow:inset 0 0 40px rgba(0,0,0,.55), 0 6px 18px rgba(0,0,0,.4);}
@@ -2380,6 +2382,67 @@
   .inspectcard{padding:16px 14px 14px;}
   .inspectcard .kick{margin-bottom:9px;}
   .sheet .bs,.shopdet .bs{margin-top:11px;}
+  /* ===== 0.146.0 THE SCOUT LEAF: the route reads like a bestiary page ===== */
+  /* The route map is the game's best painting and the panel that decides every
+     fight sat on it as a flat dark box holding eight lines of undifferentiated
+     grey sans, while the node names floated on the painting as bare white text.
+     The scout becomes a leaf out of the dealer's own bestiary: the foe plated
+     and framed at the lintel, its numbers struck as labels in ink on parchment,
+     the gild and affix warnings as marginal notes, and every node name on a
+     small carved plate so it reads against the estate instead of over it. */
+  .rmprev{border:0;padding:0;gap:0;overflow:hidden;
+    background:
+      radial-gradient(122% 60% at 50% 110%,rgba(96,70,34,.2),transparent 74%),
+      repeating-linear-gradient(93deg,rgba(112,88,52,.05) 0 2px,transparent 2px 5px),
+      linear-gradient(180deg,#d3c1a0,#c4b18d 60%,#b8a67f);
+    box-shadow:0 12px 28px rgba(0,0,0,.55);}
+  .art-frames .rmprev{border:10px solid transparent;border-image-source:var(--frame-bronze);
+    border-image-slice:135;border-image-width:10px;border-image-repeat:stretch;border-radius:11px;}
+  .rmphead{padding:6px 8px 7px;gap:7px;
+    background:linear-gradient(180deg,#4a3216,#2c1c0a 58%,#1d1206);
+    box-shadow:inset 0 1px 0 rgba(250,206,124,.3),inset 0 -1px 0 rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.45);}
+  .rmphead .rmpg{position:relative;width:42px;height:42px;}
+  .rmphead .rmpg::after{content:"";position:absolute;inset:-13%;pointer-events:none;
+    background:url('/art/ui/frame_oval.png') center/contain no-repeat;
+    mix-blend-mode:screen;clip-path:circle(47%);}
+  .rmphead .rmpgi{border-radius:50%;}
+  .rmpname{font-size:15px;color:#fdeac2;text-shadow:0 1.5px 0 rgba(0,0,0,.85),0 2px 7px rgba(0,0,0,.6);}
+  .rmptype{color:#c79a4a;opacity:1;letter-spacing:.14em;}
+  .rmpbody{padding:6px 9px 2px;}
+  /* each reading is a struck label with its value in ink, ruled off from the
+     next, so the panel scans as a record instead of as a paragraph */
+  .rmpi{font-size:11.5px;color:#3b2c19;line-height:1.38;margin:0;padding:3px 0 4px;
+    border-bottom:1px solid rgba(70,50,22,.16);}
+  .rmpi:last-child{border-bottom:0;}
+  .rmpi b{display:inline-block;min-width:50px;font-size:9px;font-weight:800;letter-spacing:.1em;
+    text-transform:uppercase;color:#6d4c14;}
+  /* the two warnings are marginal notes: tinted stock, a ruled edge, no border */
+  .rmpi.gild,.rmpi.affix{border-bottom:0;margin:4px 0;padding:5px 7px;border-radius:3px;
+    border-left:3px solid currentColor;font-size:10.5px;line-height:1.35;}
+  .rmpi.gild{color:#7c5209;background:rgba(216,162,74,.2);}
+  .rmpi.affix{color:#5c2f7e;background:rgba(150,110,200,.17);}
+  .rmpi.affix b{color:#4a2268;min-width:0;letter-spacing:0;font-size:10.5px;text-transform:none;}
+  .rmpboard{gap:4px;margin:6px 0 4px;}
+  .rmpw{color:#3f3020;background:rgba(255,250,236,.52);
+    border:1px solid rgba(60,44,20,.22);border-radius:5px;
+    box-shadow:inset 0 1px 0 rgba(255,252,242,.6),0 1px 2px rgba(60,44,20,.18);}
+  .rmpw b{color:#5a3f10;}
+  .rmpw .rmpic{border-radius:4px;box-shadow:inset 0 0 0 1px rgba(60,44,20,.3),0 1px 2px rgba(0,0,0,.3);}
+  .rmpfoot{padding:5px 8px 8px;}
+  .rmpfoot .btn{font-size:12.5px;min-height:40px;padding:8px 8px;}
+  .rmpscout{color:#5a4526;font-size:11.5px;}
+  /* the node names get a carved plate so the estate shows through around them
+     instead of behind them */
+  .rmnode .rmn{padding:1.5px 5px;border-radius:3px;color:#f4e2bd;
+    background:linear-gradient(180deg,rgba(46,30,12,.9),rgba(20,12,5,.94));
+    box-shadow:inset 0 1px 0 rgba(250,206,124,.24),0 2px 5px rgba(0,0,0,.6);
+    text-shadow:0 1px 0 rgba(0,0,0,.85);}
+  .rmnode:not(.reach):not(.done) .rmn{color:#b8a88c;
+    background:linear-gradient(180deg,rgba(30,24,20,.72),rgba(14,10,8,.8));
+    box-shadow:0 2px 4px rgba(0,0,0,.5);}
+  .rmnode.boss .rmn{color:#ffd8c8;
+    background:linear-gradient(180deg,rgba(62,20,14,.92),rgba(28,10,7,.95));
+    box-shadow:inset 0 1px 0 rgba(255,170,140,.26),0 2px 6px rgba(0,0,0,.65);}
   @media (orientation:landscape) and (min-width:640px){
     /* 350px of overlay height cannot hold a tall card, so landscape lays the
        same card on its side: illustration left, plate and rules right */

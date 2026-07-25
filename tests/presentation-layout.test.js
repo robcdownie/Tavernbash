@@ -82,6 +82,17 @@ test('the shared ware detail is a card and wears its rarity',async()=>{
   assert.match(html,/\.st \.ico\{width:auto;height:var\(--bigart,196px\);/);
 });
 
+test('the scout reads as a bestiary leaf and node names sit on plates',()=>{
+  assert.match(html,/\.art-frames \.rmprev\{border:10px solid transparent;/);
+  assert.match(html,/\.rmphead \.rmpg::after\{content:"";position:absolute;/);
+  assert.match(html,/\.rmpi b\{display:inline-block;min-width:50px;/);
+  assert.match(html,/\.rmpi\.affix\{color:#5c2f7e;/);
+  assert.match(html,/\.rmnode \.rmn\{padding:1\.5px 5px;border-radius:3px;/);
+  /* the leaf is wider than the old flat box, and the portrait label rule the
+     0.139.0 clarity pass pinned must survive that */
+  assert.match(html,/\.rmwrap\{display:grid;grid-template-columns:minmax\(0,1fr\) 224px;/);
+});
+
 test('portrait setup rooms use lintel chamber and threshold zones',()=>{
   assert.match(html,/\.card\.setupcard\{[^}]+justify-content:flex-start/);
   assert.match(html,/\.card\.setupcard\.evroom::after\{background:linear-gradient/);
