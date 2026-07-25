@@ -781,9 +781,14 @@ function toggleFreeze(){
 /* ============ FIGHT UI ============ */
 function fighterHTML(s,side){
   /* 0.113.0: the portrait sits inside a painted frame ring (span wrapper so
-     the frame can overlay the replaced element) */
+     the frame can overlay the replaced element)
+     0.142.0: the dealer's plate carries the dealer, not the word You. The side
+     object keeps nm:'You' so every log line and recap string is unchanged; only
+     this nameplate reads the chosen hero, the way the crest does. */
+  const H=side==='a'?heroOf():null;
+  const plate=H&&H.n?H.n.replace(/^The /,''):s.nm;
   return '<div class="fighter" id="fg-'+side+'"><div class="fh"><span class="fpw">'+ic(s.portrait,'fp')+'</span>'
-   +'<span class="who">'+esc(s.nm)+'</span>'
+   +'<span class="who">'+esc(plate)+'</span>'
    +'<span class="stt"><span class="sh" id="sh-'+side+'">'+ic('e-shield','mi')+' 0</span>'
    +'<span class="ps" id="ps-'+side+'">'+ic('e-skull','mi')+' 0</span>'
    +'<span class="bn" id="bn-'+side+'">'+ic('e-flame','mi')+' 0</span></span></div>'
@@ -857,9 +862,14 @@ function paintFight(F){
     fl.style.transform='scaleX('+frac+')';
     const gh=$('gh-'+key);if(gh)gh.style.transform='scaleX('+frac+')';
     const ht=$('ht-'+key);if(ht)ht.textContent=Math.max(0,Math.ceil(S.hp))+' / '+S.maxHp;
-    $('sh-'+key).innerHTML=ic('e-shield','mi')+' '+S.shield;
-    $('ps-'+key).innerHTML=ic('e-skull','mi')+' '+S.pois;
-    $('bn-'+key).innerHTML=ic('e-flame','mi')+' '+S.burn;
+    /* 0.142.0: a stack at zero recedes instead of printing a row of noughts.
+       The spans stay in the DOM at the same ids, so nothing about the reading
+       or its timing changes; only a class marks the idle ones. */
+    const stat=function(id,glyph,n){const e=$(id);if(!e)return;
+      e.innerHTML=ic(glyph,'mi')+' '+n;e.classList.toggle('z',!n);};
+    stat('sh-'+key,'e-shield',S.shield);
+    stat('ps-'+key,'e-skull',S.pois);
+    stat('bn-'+key,'e-flame',S.burn);
     S.items.forEach(function(it,i){
       const c=$('fc-'+key+'-'+i);if(!c)return;
       if(!it.alive&&!c.classList.contains('dead')){c.classList.add('dead');}

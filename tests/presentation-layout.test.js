@@ -37,6 +37,21 @@ test('the duel board dresses every slot as a carved socket',()=>{
   assert.match(html,/#main\.fight \.board\.combat \.cell\{--plinth:17px;height:52px;\}/);
 });
 
+test('health reads as a capped gauge and the dealer owns his nameplate',()=>{
+  /* the fill stays one scaleX element (so every highlight is proportional),
+     the reading is struck into a cartouche, both ends are capped and jewelled,
+     the garland cannot haze the reading it hangs over, and the plate carries
+     the chosen hero while the side object keeps nm:'You' for every log line */
+  assert.match(html,/\.hpwrap::before,\.hpwrap::after\{content:"";position:absolute;/);
+  assert.match(html,/#fg-a \.hpwrap\{--capgem:#1f7d72;/);
+  assert.match(html,/\.ht\{inset:auto;left:50%;top:50%;transform:translate\(-50%,-50%\);/);
+  assert.match(html,/#main\.fight::after\{z-index:0;\}/);
+  assert.match(html,/#main\.fight \.fh \.who\{-webkit-text-fill-color:transparent;/);
+  assert.match(ui,/const plate=H&&H\.n\?H\.n\.replace\(\/\^The \/,''\):s\.nm;/);
+  assert.match(ui,/const me=\{nm:'You'/);
+  assert.match(ui,/e\.classList\.toggle\('z',!n\);/);
+});
+
 test('portrait setup rooms use lintel chamber and threshold zones',()=>{
   assert.match(html,/\.card\.setupcard\{[^}]+justify-content:flex-start/);
   assert.match(html,/\.card\.setupcard\.evroom::after\{background:linear-gradient/);
