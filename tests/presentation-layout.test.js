@@ -125,3 +125,14 @@ test('display type is struck metal from one shared recipe',()=>{
   /* the stone plaques keep painted furniture, so their text stays a real colour */
   assert.match(html,/\.stonebtn\{color:#f8dfa6;/);
 });
+
+test('no state reads as unfinished UI: no dashed placeholders, no ghosting',()=>{
+  /* a dashed rectangle is the universal mark of a placeholder; the three that
+     survived on finished screens are gone, and short-of-coin and disabled now
+     state their condition in the manor's materials instead of fading out */
+  assert.match(html,/\.cell\.empty::before\{border:0;border-radius:2px;/);
+  assert.doesNotMatch(html,/\.art-frames \.ware\.gone::before\{border-image:none;border:1px dashed/);
+  assert.match(html,/\.ware\.cant\{opacity:1;cursor:not-allowed;\}/);
+  assert.match(html,/\.ware\.cant \.cost b\{color:#7c1d10;\}/);
+  assert.match(html,/\.btn:disabled\{opacity:\.85;cursor:not-allowed;/);
+});

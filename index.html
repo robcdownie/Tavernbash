@@ -336,7 +336,8 @@
     background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.16)), var(--surface);
     box-shadow:inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -6px 10px rgba(0,0,0,0.22);
     display:flex;align-items:center;justify-content:center;transition:transform .12s var(--e-out), border-color .2s;}
-  .cell.empty::before{content:"";width:11px;height:11px;border:1.5px dashed rgba(216,162,74,0.25);border-radius:4px;}
+  /* 0.149.0: the waiting-slot mark is a brass inlay, never a dashed box */
+  .cell.empty::before{content:"";width:8px;height:8px;border:0;border-radius:2px;}
   .cell.lock{background:repeating-linear-gradient(135deg,#171009 0 6px,#1f1610 6px 12px);border-color:rgba(255,255,255,.03);box-shadow:none;}
   .cell.it{cursor:pointer;border-color:var(--line);}
   .cell.it:active{transform:scale(.94);}
@@ -428,7 +429,8 @@
   .ware.gone::after{content:"Sold";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-family:"Rakkas",serif;font-size:19px;letter-spacing:2.5px;text-transform:uppercase;
     color:rgba(216,162,74,.42);transform:rotate(-8deg);text-shadow:0 2px 6px rgba(0,0,0,.6);}
-  .art-frames .ware.gone::before{border-image:none;border:1px dashed rgba(216,162,74,.22);inset:3px;border-radius:11px;}
+  /* 0.149.0: a solid carved recess, not a dashed placeholder rectangle */
+  .art-frames .ware.gone::before{border-image:none;border:1px solid rgba(216,162,74,.14);inset:3px;border-radius:11px;}
   @keyframes pop{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
   .ware .ph{position:relative;width:64px;height:64px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:6px;
     background:radial-gradient(closest-side, color-mix(in srgb, var(--cat,#d8a24a) 22%, #120c10), #120c10 80%);
@@ -778,7 +780,7 @@
   .cell{height:62px;border:1px solid rgba(0,0,0,.5);border-radius:10px;
     background:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,.26)),#231710;
     box-shadow:inset 0 2px 6px rgba(0,0,0,.72), inset 0 -1px 0 rgba(255,255,255,.05);}
-  .cell.empty::before{width:14px;height:14px;border:2px dashed rgba(216,162,74,.22);border-radius:50%;}
+  .cell.empty::before{width:8px;height:8px;border:0;border-radius:2px;}
   .cell.lock{background:repeating-linear-gradient(135deg,#150e08 0 7px,#1d130b 7px 14px);border-color:rgba(0,0,0,.5);
     box-shadow:inset 0 2px 6px rgba(0,0,0,.8);}
   /* 0.127.0 board rule (stall side): the wood tray sizes to its wares plus one
@@ -1340,7 +1342,7 @@
   .uwname{color:var(--brass-hi);font-size:11px;font-weight:800;}
   .uwflav{margin-top:1px;color:var(--dim);font-size:8.5px;line-height:1.3;}
   .uwmore{margin-top:1px;color:var(--dim);font-size:9px;text-align:center;font-style:italic;}
-  .uwsealed{margin-top:8px;padding:6px 9px;border:1px dashed rgba(216,162,74,.3);border-radius:9px;background:rgba(0,0,0,.16);color:var(--dim);font-size:9.5px;text-align:center;line-height:1.35;}
+  .uwsealed{margin-top:8px;padding:6px 9px;border:1px solid rgba(216,162,74,.2);border-radius:9px;background:rgba(0,0,0,.16);color:var(--dim);font-size:9.5px;text-align:center;line-height:1.35;}
   .uwopen{margin-top:8px;padding:6px 9px;border:1px solid rgba(244,207,124,.5);border-radius:9px;background:rgba(216,162,74,.16);color:var(--brass-hi);font-size:10px;font-weight:800;text-align:center;letter-spacing:.08em;text-transform:uppercase;}
   @media (prefers-reduced-motion:reduce){.uwglyph .uwg{animation:none;}}
 
@@ -1447,7 +1449,7 @@
     background:rgba(216,162,74,.16);}
   .historybody{min-height:0;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:8px;padding-right:2px;}
   .historyempty{height:100%;min-height:150px;display:flex;align-items:center;justify-content:center;text-align:center;
-    border:1px dashed rgba(216,162,74,.26);border-radius:13px;color:var(--dim);font-size:12px;line-height:1.5;padding:20px;}
+    border:1px solid rgba(216,162,74,.18);border-radius:13px;color:var(--dim);font-size:12px;line-height:1.5;padding:20px;}
   .historyruns{height:100%;min-height:0;display:grid;grid-template-columns:minmax(210px,.8fr) minmax(0,1.45fr);gap:8px;}
   .historylist,.historydetail{min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .historylist{display:flex;flex-direction:column;gap:6px;padding-right:2px;}
@@ -2382,6 +2384,38 @@
   .inspectcard{padding:16px 14px 14px;}
   .inspectcard .kick{margin-bottom:9px;}
   .sheet .bs,.shopdet .bs{margin-top:11px;}
+  /* ===== 0.149.0 THE STATES PASS: nothing reads as unfinished UI ===== */
+  /* Four tells were still saying prototype on finished screens. A dashed
+     rectangle is the universal mark of a placeholder, and there were three of
+     them: the empty-slot marker, the sold crate's inner rule, and the empty
+     history panel. A ware you cannot afford dropped to 40 percent opacity,
+     which reads as broken rather than as short of coin. And every disabled
+     control ghosted the same way. Each now states its condition in the manor's
+     own materials instead of by fading out. */
+  .cell.empty::before{border:0;border-radius:2px;width:8px;height:8px;transform:rotate(45deg);
+    background:linear-gradient(150deg,#f6c46e,#8a5a2b 58%,#2a1a0a);opacity:.28;
+    box-shadow:0 1px 0 rgba(255,236,196,.14),inset 0 0 0 .5px rgba(0,0,0,.5);}
+  .art-frames .ware.gone::before{border-image:none;inset:3px;border-radius:10px;
+    border:1px solid rgba(216,162,74,.14);
+    box-shadow:inset 0 1px 0 rgba(246,196,110,.1),inset 0 6px 14px -6px rgba(0,0,0,.7);}
+  .uwsealed,.historyempty{border:1px solid rgba(216,162,74,.18) !important;
+    box-shadow:inset 0 1px 0 rgba(246,196,110,.09),inset 0 8px 18px -8px rgba(0,0,0,.6);}
+  /* short of coin: the illustration goes cold behind the glass and the price
+     reads red, while the paper keeps its warmth. Filtering the whole card was
+     tried first and turned the parchment a grey-green that read as broken. */
+  .ware.cant{opacity:1;cursor:not-allowed;}
+  .ware.cant .ph{filter:saturate(.4) brightness(.58);
+    box-shadow:inset 0 -3px 8px rgba(0,0,0,.5),inset 0 0 30px rgba(12,16,30,.55);}
+  .ware.cant .wn{filter:brightness(.76) saturate(.72);}
+  .ware.cant .sz,.ware.cant .chips,.ware.cant .wd,.ware.cant .wr{opacity:.6;}
+  .ware.cant .cost b{color:#7c1d10;}
+  .ware.cant .cost{filter:drop-shadow(0 2px 5px rgba(0,0,0,.8)) saturate(1.4) hue-rotate(-20deg);}
+  /* a control that cannot act is pressed shut, not faded away */
+  .btn:disabled{opacity:.85;cursor:not-allowed;filter:saturate(.3) brightness(.62);
+    box-shadow:inset 0 2px 7px rgba(0,0,0,.7),inset 0 0 0 1px rgba(216,162,74,.12);
+    border-bottom-width:1px;transform:translateY(2px);}
+  .btn.gold:disabled{border-bottom-width:1px;}
+
   /* ===== 0.148.0 THE STRUCK LETTERS: display type becomes metal ===== */
   /* Every display heading in the game was flat brass-hi with one soft shadow,
      so the title of the game, the dealer's name, the recap's verdict and each
