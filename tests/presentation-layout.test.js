@@ -52,6 +52,23 @@ test('health reads as a capped gauge and the dealer owns his nameplate',()=>{
   assert.match(ui,/e\.classList\.toggle\('z',!n\);/);
 });
 
+test('a ware is a card: painted illustration, struck plate, parchment rules',()=>{
+  assert.match(html,/\.ware \.ph \.gi image\{object-fit:cover;object-position:50% 44%;\}/);
+  assert.match(html,/\.ware \.ph\{width:auto;height:var\(--artH,102px\);/);
+  assert.match(html,/\.ware \.wn\{position:relative;z-index:3;margin:0;/);
+  assert.match(html,/\.ware \.ph \.gi\{width:100%;height:100%;display:block;border-radius:0;/);
+  /* nothing may go back to clipping the illustration into a circle */
+  assert.doesNotMatch(html,/\.ware \.ph \.gi\{border-radius:50%;\}/);
+});
+
+test('every shipped item has painted art, so the card never letterboxes',async()=>{
+  const {ITEMS}=await import('../src/data.js');
+  const {ART}=await import('../src/art-manifest.js');
+  const missing=Object.keys(ITEMS).filter(id=>!ART['g-'+id]);
+  assert.deepEqual(missing,[],'items without painted art fall back to an inline symbol '
+    +'that the full-bleed card window cannot place: '+missing.join(', '));
+});
+
 test('portrait setup rooms use lintel chamber and threshold zones',()=>{
   assert.match(html,/\.card\.setupcard\{[^}]+justify-content:flex-start/);
   assert.match(html,/\.card\.setupcard\.evroom::after\{background:linear-gradient/);
