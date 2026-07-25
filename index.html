@@ -2382,6 +2382,52 @@
   .inspectcard{padding:16px 14px 14px;}
   .inspectcard .kick{margin-bottom:9px;}
   .sheet .bs,.shopdet .bs{margin-top:11px;}
+  /* ===== 0.148.0 THE STRUCK LETTERS: display type becomes metal ===== */
+  /* Every display heading in the game was flat brass-hi with one soft shadow,
+     so the title of the game, the dealer's name, the recap's verdict and each
+     section label all read as web headlines laid over paintings rather than as
+     lettering that belongs in the house. One shared foil recipe fixes all of
+     them at once: a metallic gradient clipped to the glyphs (bright at the top
+     bevel, saturated through the middle, dark at the foot, with a returning
+     highlight at the very bottom edge), a carved dark edge under it, and a warm
+     bloom behind. Two variants only, gold and copper, so nothing drifts. */
+  .foil,h1,#intro .ititle,.card .big,.label,.hdname,.rmpname,.rmdn,.campbn,
+  #ribbon .crestwho .cnm,.dusk .dt,.routechoice .rct,.historydetail h3,.cloudpanel h3{
+    -webkit-text-fill-color:transparent;color:transparent;
+    background:linear-gradient(178deg,#fff6da 8%,#f2c877 34%,#d09a3c 58%,#96651c 82%,#f0cf8c 98%);
+    -webkit-background-clip:text;background-clip:text;
+    filter:drop-shadow(0 1.5px 0 rgba(28,16,4,.9)) drop-shadow(0 3px 8px rgba(0,0,0,.6));}
+  .foil.copper,.card .big.bad,.campbn{
+    background:linear-gradient(178deg,#ffe6da 8%,#f2a891 34%,#cf6a50 58%,#8f3320 82%,#f6c4b2 98%);
+    -webkit-background-clip:text;background-clip:text;}
+  /* the game's own name is the deepest cut in the house: a taller bevel, a
+     candle bloom behind the letters, and a stone-cut shadow under them */
+  #intro .ititle{
+    background:linear-gradient(176deg,#fffaea 6%,#fbdc9c 26%,#e8b45c 46%,#b07c25 70%,#7d5313 88%,#f6d89c 99%);
+    -webkit-background-clip:text;background-clip:text;
+    filter:drop-shadow(0 2px 0 rgba(40,22,4,.95)) drop-shadow(0 4px 2px rgba(0,0,0,.7))
+      drop-shadow(0 10px 26px rgba(0,0,0,.85)) drop-shadow(0 0 30px rgba(246,196,110,.5));}
+  /* the stone plaques keep painted-art furniture, so their lettering stays a
+     real colour and takes a carved shadow rather than a clipped foil (a
+     background-clip fill would fight the plaque texture behind it) */
+  .stonebtn{color:#f8dfa6;font-size:22px;
+    text-shadow:0 1.5px 0 rgba(24,14,4,.95),0 2px 9px rgba(0,0,0,.9),0 0 18px rgba(246,196,110,.3);
+    filter:drop-shadow(0 7px 16px rgba(0,0,0,.7));}
+  /* small struck type needs a shallower cut: the full recipe's dark foot costs
+     too much legibility at 15 to 17px, so section labels and the crest name
+     keep the bevel and raise the floor */
+  .label,#ribbon .crestwho .cnm,.rmpname,.rmdn{
+    background:linear-gradient(178deg,#fff8e4 10%,#f6d693 42%,#d8a54c 78%,#f4d79a 98%);
+    -webkit-background-clip:text;background-clip:text;
+    filter:drop-shadow(0 1px 0 rgba(28,16,4,.92)) drop-shadow(0 2px 6px rgba(0,0,0,.55));}
+  /* a label's brass diamond and its rule read as inlay beside struck letters */
+  .label::before{box-shadow:0 1px 0 rgba(0,0,0,.6),0 0 9px rgba(216,162,74,.7);}
+  .label::after{background:linear-gradient(90deg,rgba(216,162,74,.3),rgba(216,162,74,.04));}
+  /* any child of a struck heading that carries its own colour must opt back out
+     of the clipped fill, or it inherits transparent and vanishes */
+  .label .side{-webkit-text-fill-color:var(--dim);color:var(--dim);}
+  .rmpi b,.st .nm .stq,.ware .wn span{-webkit-text-fill-color:currentColor;}
+
   /* ===== 0.147.0 THE DUEL CHROME: the centre and margins of the hall ===== */
   /* The middle of the fight screen, which is where the eye rests, held a text
      pill, a hairline outlined "1x", and a medallion so faint it read as an

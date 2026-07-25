@@ -113,3 +113,15 @@ test('the duel chrome: a burning clock, a brass switch, an engraved ledger',()=>
   assert.match(html,/#main\.fight #fg-a \.fh\{flex-direction:row-reverse;\}/);
   assert.match(html,/#main\.fight \.log \.li:first-child\{color:#e8d3ab;\}/);
 });
+
+test('display type is struck metal from one shared recipe',()=>{
+  /* one foil recipe, two variants, applied to every display heading; small type
+     takes the shallower cut, and a child carrying its own colour opts back out
+     of the clipped fill instead of inheriting transparent and vanishing */
+  assert.match(html,/\.foil,h1,#intro \.ititle,\.card \.big,\.label,\.hdname,\.rmpname,\.rmdn,\.campbn,/);
+  assert.match(html,/\.foil\.copper,\.card \.big\.bad,\.campbn\{/);
+  assert.match(html,/\.label,#ribbon \.crestwho \.cnm,\.rmpname,\.rmdn\{\s*background:linear-gradient\(178deg,#fff8e4/);
+  assert.match(html,/\.label \.side\{-webkit-text-fill-color:var\(--dim\);color:var\(--dim\);\}/);
+  /* the stone plaques keep painted furniture, so their text stays a real colour */
+  assert.match(html,/\.stonebtn\{color:#f8dfa6;/);
+});
