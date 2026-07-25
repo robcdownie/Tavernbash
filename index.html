@@ -1956,6 +1956,109 @@
     .rmprev{grid-template-rows:auto minmax(0,1fr) auto;max-height:42vh;}
     .rmdest{display:none;}
   }
+
+  /* ===== 0.141.0 THE SOCKET PASS: the duel board is ten carved sockets ===== */
+  /* Before this pass seven of a board's ten slots faded to 16 percent opacity,
+     so a real board of three wares read as a plank with a hole in it, and the
+     three wares that WERE there wore candy stat pills covering half their art.
+     A board is furniture. Every socket is turned into the wood whether a ware
+     sits in it or not, candle from the lower left catching the near lip and
+     moonlight cooling the far one; a seated ware reads as seated because there
+     is visibly a socket beneath it; and its numbers move off the painting onto
+     a struck brass plinth across the socket floor. Presentation only: the same
+     ten cells pad() has always emitted, the same markup, the same timings. */
+  html.art-board #main.fight .board.combat{
+    background:
+      linear-gradient(180deg,rgba(255,214,150,.11),rgba(6,4,2,.16) 44%,rgba(6,4,2,.36)),
+      radial-gradient(72% 130% at 16% 114%,rgba(246,196,110,.17),transparent 68%),
+      var(--board-art) center/320px;}
+  /* the rail is beaded rather than studded: a gilt hairline moulding along the
+     top edge and a shadowed one under it. Studs were tried at the two ends and
+     landed inside the first and last socket, since the rail's own padding is
+     only 4px wide; a moulding cannot collide with a slot. */
+  #main.fight .board.combat{box-shadow:
+    0 12px 26px rgba(0,0,0,.5),
+    inset 0 1.5px 0 rgba(255,236,196,.3),
+    inset 0 3px 0 rgba(0,0,0,.34),
+    inset 0 -2px 0 rgba(255,214,150,.1),
+    inset 0 -5px 11px rgba(0,0,0,.6),
+    inset 0 0 0 1px rgba(216,162,74,.2),
+    0 0 46px rgba(246,196,110,.13);}
+  /* the waiting socket: a turned well in the wood, not an absence */
+  .combat .cell{border:1px solid rgba(0,0,0,.66);border-radius:9px;
+    background:
+      linear-gradient(198deg,rgba(4,2,1,.72),rgba(4,2,1,.14) 44%,rgba(4,2,1,.4)),
+      radial-gradient(124% 100% at 30% 94%,#553d28,#31210f 46%,#150d07);
+    box-shadow:
+      inset 0 8px 12px -5px rgba(0,0,0,.92),
+      inset 0 -1.5px 0 rgba(246,196,110,.2),
+      inset 1.5px 0 0 rgba(246,196,110,.1),
+      inset -1.5px 0 0 rgba(159,180,216,.09),
+      inset 0 0 16px rgba(0,0,0,.46),
+      0 1.5px 0 rgba(255,236,196,.07);}
+  .combat .cell.empty,.combat .cell.lock{opacity:1;}
+  /* a brass inlay lozenge centres each waiting socket: a stud in the rail,
+     never a dashed to-do box (which is what the old empty marker read as) */
+  .combat .cell.empty::before,.combat .cell.lock::before{content:"";display:block;
+    width:8px;height:8px;border:0;border-radius:2px;transform:rotate(45deg);opacity:.3;
+    background:linear-gradient(150deg,#f6c46e,#8a5a2b 58%,#2a1a0a);
+    box-shadow:0 1px 0 rgba(255,236,196,.14),inset 0 0 0 .5px rgba(0,0,0,.5);}
+  /* the seated ware: a lit bed under it, and the struck plinth that carries its
+     numbers built into the socket floor so no pill sits on the painting */
+  .combat .cell.f{
+    background:
+      linear-gradient(to top,
+        rgba(44,28,12,.98) 0,
+        rgba(88,60,28,.96) calc(var(--plinth,17px) - 7px),
+        rgba(126,90,46,.94) calc(var(--plinth,17px) - 2.5px),
+        rgba(250,206,124,.5) calc(var(--plinth,17px) - 1px),
+        rgba(250,206,124,0) var(--plinth,17px)),
+      radial-gradient(78% 58% at 50% 42%,color-mix(in srgb,var(--cat,#d8a24a) 26%,transparent),transparent 74%),
+      linear-gradient(184deg,rgba(255,240,205,.1),rgba(4,2,1,.16) 40%,rgba(4,2,1,.48)),
+      radial-gradient(124% 100% at 30% 90%,#5e4631,#331f12 48%,#150d07);
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,240,205,.17),
+      inset 0 0 18px rgba(0,0,0,.34),
+      0 3px 6px rgba(0,0,0,.55),
+      0 0 18px -7px color-mix(in srgb,var(--cat,#d8a24a) 60%,transparent);}
+  /* the ware's own art lifts off the socket floor and catches the candle */
+  .combat .cell.f .gi{filter:drop-shadow(0 3px 4px rgba(0,0,0,.75)) drop-shadow(-2px -1px 3px rgba(246,196,110,.17));}
+  /* engraved numerals on the plinth replace the pills: struck into brass, not
+     stuck on top of it, and no longer covering the painting they describe */
+  .combat .cell .stat{min-width:0;height:auto;padding:0;border:0;border-radius:0;background:none;
+    box-shadow:none;bottom:2px;display:block;font-size:10.5px;letter-spacing:.2px;
+    text-shadow:0 1px 0 rgba(0,0,0,.9),0 0 4px rgba(0,0,0,.8),0 -.5px 0 rgba(255,236,196,.22);}
+  .combat .cell .stat.sl{left:4px;color:var(--gold-num);}
+  .combat .cell .stat.sr{right:4px;color:var(--integ-num);}
+  .combat .cell .stat.sl.c-shield{color:#8ae8d6;background:none;} .combat .cell .stat.sl.c-heal{color:#ffc3c7;background:none;}
+  .combat .cell .stat.sl.c-poison{color:#cfe882;background:none;} .combat .cell .stat.sl.c-burn{color:#ffbd7a;background:none;}
+  .combat .cell .stat.sl.c-util{color:#f0d494;background:none;}
+  .combat .cell.rar1 .stat,.combat .cell.rar2 .stat,.combat .cell.rar3 .stat{border:0;box-shadow:none;}
+  /* the glyph sits above the plinth rather than centred in the whole socket */
+  .combat .cell.f .gi,.combat .cell.f .glow{transform:translateY(calc(var(--plinth,17px) / -2));}
+  /* a spent socket keeps its well and loses only its ware */
+  .combat .cell.dead{box-shadow:inset 0 8px 12px -5px rgba(0,0,0,.92),inset 0 0 20px rgba(0,0,0,.6);}
+  @media (orientation:portrait){
+    /* ten slots across 390 leaves 31px of socket width, so the glyph must be
+       sized to the socket instead of to the row height: a 46px glyph in a 31px
+       socket was being clipped on both sides by the socket's own overflow.
+       The plinth is then the only place two numbers can live without landing on
+       the art or on each other. */
+    #main.fight .board.combat .cell{--plinth:17px;height:52px;}
+    #main.fight .cell.f{height:52px;}
+    #main.fight .cell.f .gi{width:29px;height:29px;}
+    #main.fight .cell.f.s2 .gi{width:46px;height:46px;}
+    #main.fight .cell.f.s3 .gi{width:60px;height:60px;}
+    .combat .cell .stat{font-size:10px;}
+    .combat .cell .stat.sl{left:3px;} .combat .cell .stat.sr{right:3px;}
+  }
+  @media (orientation:landscape) and (min-width:640px){
+    #main.fight .board.combat .cell{--plinth:16px;}
+    #main.fight .cell.f .gi{width:34px;height:34px;}
+    #main.fight .cell.f.s2 .gi{width:54px;height:54px;}
+    #main.fight .cell.f.s3 .gi{width:70px;height:70px;}
+    .combat .cell .stat{font-size:10px;bottom:1.5px;}
+  }
 </style>
 </head>
 <body>

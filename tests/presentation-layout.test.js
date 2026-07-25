@@ -26,6 +26,17 @@ test('opening toast waits for the Omen handoff and portrait crest protects the n
   assert.match(html,/#ribbon \.crestres \.chip\{padding:6px 7px;/);
 });
 
+test('the duel board dresses every slot as a carved socket',()=>{
+  /* the ten cells pad() emits are furniture, not absence: no slot may go back
+     to fading out, each waiting socket carries its brass inlay, and a seated
+     ware keeps its numbers on the plinth instead of on pills over its art */
+  assert.match(html,/\.combat \.cell\.empty,\.combat \.cell\.lock\{opacity:1;\}/);
+  assert.match(html,/\.combat \.cell\.empty::before,\.combat \.cell\.lock::before\{content:""/);
+  assert.match(html,/\.combat \.cell \.stat\{min-width:0;height:auto;padding:0;border:0;border-radius:0;background:none;/);
+  assert.match(html,/\.combat \.cell\.f\{\s*background:\s*linear-gradient\(to top,/);
+  assert.match(html,/#main\.fight \.board\.combat \.cell\{--plinth:17px;height:52px;\}/);
+});
+
 test('portrait setup rooms use lintel chamber and threshold zones',()=>{
   assert.match(html,/\.card\.setupcard\{[^}]+justify-content:flex-start/);
   assert.match(html,/\.card\.setupcard\.evroom::after\{background:linear-gradient/);
