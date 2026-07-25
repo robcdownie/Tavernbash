@@ -2241,6 +2241,87 @@
        card and its detail view use everywhere else. */
     .secmarket .ware .wd{display:none;}
   }
+
+  /* ===== 0.144.0 THE COUNTER PASS: the stall is the same furniture ===== */
+  /* The duel board became ten carved sockets in 0.141.0 while the stall that
+     feeds it kept the old flat recess and the candy stat pills, so one ware
+     looked like two different objects depending on which screen it stood on.
+     The stall and the vault take the identical grammar: a turned socket, a ware
+     seated in it, and engraved numerals on a struck plinth. Ids carry the rules
+     because the per-orientation stall overrides outrank a plain class. */
+  #bd .cell,.vault .cell{border:1px solid rgba(0,0,0,.66);border-radius:9px;
+    background:
+      linear-gradient(198deg,rgba(4,2,1,.72),rgba(4,2,1,.14) 44%,rgba(4,2,1,.4)),
+      radial-gradient(124% 100% at 30% 94%,#553d28,#31210f 46%,#150d07);
+    box-shadow:
+      inset 0 8px 12px -5px rgba(0,0,0,.92),
+      inset 0 -1.5px 0 rgba(246,196,110,.2),
+      inset 1.5px 0 0 rgba(246,196,110,.1),
+      inset -1.5px 0 0 rgba(159,180,216,.09),
+      inset 0 0 16px rgba(0,0,0,.46),
+      0 1.5px 0 rgba(255,236,196,.07);}
+  #bd .cell.empty::before,.vault .cell.empty::before{content:"";display:block;
+    width:8px;height:8px;border:0;border-radius:2px;transform:rotate(45deg);opacity:.3;
+    background:linear-gradient(150deg,#f6c46e,#8a5a2b 58%,#2a1a0a);
+    box-shadow:0 1px 0 rgba(255,236,196,.14),inset 0 0 0 .5px rgba(0,0,0,.5);}
+  #bd .cell.it,.vault .cell.it{
+    background:
+      linear-gradient(to top,
+        rgba(44,28,12,.98) 0,
+        rgba(88,60,28,.96) calc(var(--plinth,15px) - 6px),
+        rgba(126,90,46,.94) calc(var(--plinth,15px) - 2.5px),
+        rgba(250,206,124,.5) calc(var(--plinth,15px) - 1px),
+        rgba(250,206,124,0) var(--plinth,15px)),
+      radial-gradient(78% 58% at 50% 42%,color-mix(in srgb,var(--cat,#d8a24a) 26%,transparent),transparent 74%),
+      linear-gradient(184deg,rgba(255,240,205,.1),rgba(4,2,1,.16) 40%,rgba(4,2,1,.48)),
+      radial-gradient(124% 100% at 30% 90%,#5e4631,#331f12 48%,#150d07);
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,240,205,.17),
+      inset 0 0 18px rgba(0,0,0,.34),
+      0 3px 6px rgba(0,0,0,.55),
+      0 0 18px -7px color-mix(in srgb,var(--cat,#d8a24a) 60%,transparent);}
+  #bd .cell.it .gi,.vault .cell.it .gi{
+    filter:drop-shadow(0 3px 4px rgba(0,0,0,.75)) drop-shadow(-2px -1px 3px rgba(246,196,110,.17));
+    transform:translateY(calc(var(--plinth,15px) / -2));}
+  #bd .cell.it .glow,.vault .cell.it .glow{transform:translateY(calc(var(--plinth,15px) / -2));}
+  #bd .cell .stat,.vault .cell .stat{min-width:0;height:auto;padding:0;border:0;border-radius:0;
+    background:none;box-shadow:none;bottom:1.5px;display:block;font-size:10px;letter-spacing:.2px;
+    text-shadow:0 1px 0 rgba(0,0,0,.9),0 0 4px rgba(0,0,0,.8),0 -.5px 0 rgba(255,236,196,.22);}
+  #bd .cell .stat.sl{left:3.5px;color:var(--gold-num);}
+  #bd .cell .stat.sr,.vault .cell .stat.sr{right:3.5px;color:var(--integ-num);}
+  #bd .cell .stat.sl.c-shield{color:#8ae8d6;} #bd .cell .stat.sl.c-heal{color:#ffc3c7;}
+  #bd .cell .stat.sl.c-poison{color:#cfe882;} #bd .cell .stat.sl.c-burn{color:#ffbd7a;}
+  #bd .cell .stat.sl.c-util{color:#f0d494;}
+  /* the rarity letter is struck into the socket lip, not stuck on as a chip */
+  #bd .cell .fuse,.vault .cell .fuse{background:none;border:0;box-shadow:none;padding:0;
+    top:2.5px;left:4px;font-size:9px;color:#f6d89c;
+    text-shadow:0 1px 0 rgba(0,0,0,.92),0 0 5px rgba(0,0,0,.7);}
+  #bd .cell.rar1 .fuse,.vault .cell.rar1 .fuse{color:#dceaf8;}
+  #bd .cell.rar3 .fuse,.vault .cell.rar3 .fuse{color:#dcf0ff;}
+  /* the next slot still invites, as a lit socket rather than a lit hole */
+  #bd .cell.empty.nxt{box-shadow:
+      inset 0 8px 12px -5px rgba(0,0,0,.85),
+      inset 0 0 0 1.5px rgba(246,196,110,.45),
+      inset 0 0 20px rgba(246,196,110,.2),
+      0 0 16px rgba(246,196,110,.28);}
+  /* a shelf the night has locked away is boarded over, not merely darker */
+  .vault .cell.empty.locked{background:
+      repeating-linear-gradient(112deg,rgba(0,0,0,.34) 0 6px,transparent 6px 13px),
+      linear-gradient(180deg,#2b1d0f,#180f07);}
+  .vault .cell.empty.locked::before{display:none;}
+  /* the bulwark mark was an 11px flat verdigris blob reading as a sticker on the
+     ware's painting; it shrinks and grounds itself with the same light as the
+     socket, on the duel board and the stall alike */
+  .cell .bw{width:9px;height:9px;top:3px;right:3.5px;opacity:.94;
+    filter:drop-shadow(0 1px 0 rgba(0,0,0,.9)) drop-shadow(0 0 4px rgba(53,165,150,.55));}
+  @media (orientation:portrait){
+    #bd .cell,.vault .cell{--plinth:16px;}
+  }
+  @media (orientation:landscape) and (min-width:640px){
+    #bd .cell{--plinth:14px;}
+    #bd .cell .stat{font-size:9.5px;}
+    .vault .cell{--plinth:13px;}
+  }
 </style>
 </head>
 <body>
