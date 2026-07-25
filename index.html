@@ -2945,6 +2945,10 @@
   .stormchip{border-style:solid;border-color:transparent;border-width:7px 26px;
     border-image:url('/art/ui/gauge_wide.png') 30 128 34 128 fill / 7px 26px stretch;
     padding:0 2px;}
+  /* the label plate was applied to every draft label including the stall's, which
+     took the dock row's growth away and let To Battle drift 330px off the right
+     edge into the middle. The dock's label keeps the row's slack. */
+  #main.draft .dock .label{flex:1 1 auto;align-self:center;margin-right:auto;}
 </style>
 </head>
 <body>
