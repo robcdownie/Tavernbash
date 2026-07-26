@@ -3,7 +3,7 @@
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-26",
   "build": "0.155.0",
-  "reviewedHead": "c6c7afe",
+  "reviewedHead": "12b3273",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -39,7 +39,7 @@
       "branch": "presentation-result-rooms-0.155.0",
       "worktree": "C:/tmp/bazaar-brawler-result-rooms-0.155.0",
       "status": "done",
-      "sourceCommit": null,
+      "sourceCommit": "12b3273",
       "trigger": "Robbie on 2026-07-26: commit and push the approved victory and defeat images, then keep improving the game toward premium collectible-card-game quality.",
       "scope": "One presentation system: combat result rooms. Victory becomes a candlelit trophy gallery and defeat becomes a moonlit retreat corridor, using two approved painted manor backgrounds and the current painted plate and brass button language. The existing recap data, slain-foe trophy logic, Fight Details disclosure, Continue action, overlay exit, motion skip, and reduced-motion path remain. Run end, setup, map, market, combat, engine, targeting, deterministic timing, saves, balance, economy, and route semantics remain unchanged.",
       "verification": "Complete locally on 2026-07-26. npm test passed 581 of 581. npm run build passed with 815 modules transformed and only the standing chunk-size advisory. npm run shots:check passed 28 screens with zero missing, zero blank, zero console errors, and zero layout drift beyond the intentionally accepted recap-room geometry at both viewports. Final npm run shots produced 60 stills and 48 filmstrips across 844x390 and 390x844 with zero console errors and zero selector misses; only the two expected deep-run boss or gate states were unreachable. Direct inspection confirmed clean victory, defeat, and reduced-motion rooms at both viewports. The independent fresh-context review corrected a viewer-rendering false alarm and returned SHIP with no P0 or P1 issues. Both 1600 by 900 opaque PNG paintings have optimized WebP companions, manifest entries, and art-pipeline tests.",
