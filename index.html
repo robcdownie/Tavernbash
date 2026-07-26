@@ -3035,6 +3035,20 @@
     .ov.resultov:not(.closing),.ov.resultov .resultcrest,.ov.resultov .resultcrest .rays,
     .ov.resultov .resultcopy{animation:none !important;}
   }
+
+  /* ===== 0.156.0 RUN END ACTION HIERARCHY ===== */
+  /* Keep the established landscape utility row. Portrait gives the run's
+     primary continuation its own reachable line, then groups reporting tools
+     as equal secondary actions. The explicit text layer keeps the painted
+     border-image fill behind every label even when reduced motion removes the
+     mount compositing layer. */
+  .rendbtns #reGo{order:4;}
+  .rendbtns .btn>span{position:relative;z-index:1;}
+  @media (orientation:portrait){
+    .rendbtns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
+    .rendbtns .btn{min-width:0;min-height:44px;padding:8px 5px;font-size:9px;line-height:1.15;}
+    .rendbtns #reGo{order:0;grid-column:1/-1;grid-row:1;font-size:11px;}
+  }
 </style>
 </head>
 <body>

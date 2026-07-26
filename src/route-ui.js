@@ -597,10 +597,10 @@ export function routeEnd(cause){
   const unlocksDev=devAllOpen(store());
   const unlockStrip=unlockStripHTML(newlyUnlocked,unlocksDev,report);
   const endBtns='<div class="rendbtns">'
-   +'<button class="btn" id="reSummary">Copy Summary</button>'
-   +'<button class="btn" id="reFull">Copy Full Data</button>'
-   +'<button class="btn" id="reHistory">Run History</button>'
-   +'<button class="btn gold" id="reGo">New Run</button></div>';
+   +'<button class="btn gold" id="reGo"><span>New Run</span></button>'
+   +'<button class="btn" id="reSummary"><span>Copy Summary</span></button>'
+   +'<button class="btn" id="reFull"><span>Copy Full Data</span></button>'
+   +'<button class="btn" id="reHistory"><span>Run History</span></button></div>';
   const debrief='<details class="rdebrief"><summary>Optional Playtest Debrief</summary><div class="rdebriefbody">'
    +'<div class="dbq"><span>Pace</span><button data-db="pace" data-v="slow">Slow</button><button data-db="pace" data-v="right">Right</button><button data-db="pace" data-v="fast">Fast</button></div>'
    +'<div class="dbq"><span>Difficulty</span><button data-db="difficulty" data-v="easy">Easy</button><button data-db="difficulty" data-v="right">Right</button><button data-db="difficulty" data-v="hard">Hard</button></div>'

@@ -201,3 +201,12 @@ test('fight recaps resolve inside skippable reduced-motion-safe result rooms',()
   assert.match(html,/\.ov\.resultov:not\(\.closing\)\{animation:resultroomin/);
   assert.match(html,/@media \(prefers-reduced-motion: reduce\)\{\s*\.ov\.resultov:not\(\.closing\),[^}]+animation:none !important;/);
 });
+
+test('portrait run end gives New Run a full-width 44-point primary action',()=>{
+  assert.match(route,/const endBtns='<div class="rendbtns">'\s*\+'<button class="btn gold" id="reGo"><span>New Run<\/span><\/button>'/);
+  assert.match(html,/\.rendbtns #reGo\{order:4;\}/);
+  assert.match(html,/\.rendbtns \.btn>span\{position:relative;z-index:1;\}/);
+  assert.match(html,/@media \(orientation:portrait\)\{\s*\.rendbtns\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\);gap:7px;\}/);
+  assert.match(html,/\.rendbtns \.btn\{min-width:0;min-height:44px;/);
+  assert.match(html,/\.rendbtns #reGo\{order:0;grid-column:1\/-1;grid-row:1;font-size:11px;\}/);
+});

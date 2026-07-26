@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-26",
-  "build": "0.155.0",
+  "build": "0.156.0",
   "reviewedHead": "12b3273",
   "deploy": {
     "target": "github-pages",
@@ -16,7 +16,7 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v96"
+    "cacheVersion": "bb-v97"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
@@ -25,12 +25,27 @@
     "integrator": "codex",
     "outcome": "Raise Tavern Bash toward premium collectible-card-game presentation quality through one authored manor system per version while preserving the established typography, controls, painted furniture, deterministic gameplay, and fast mobile cadence.",
     "versions": [
-      "0.155.0"
+      "0.155.0",
+      "0.156.0"
     ],
-    "status": "done",
-    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. The locally committed 0.141.0 through 0.154.1 presentation ladder remains inherited build context and is included in Robbie's explicit push authorization. Robbie asked Codex to pause after this push."
+    "status": "active",
+    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy as one bounded mobile completion system. The premium presentation ladder remains active for the next one-system version."
   },
   "reservations": [
+    {
+      "version": "0.156.0",
+      "project": "Premium Presentation Ladder",
+      "token": "run-end-action-hierarchy",
+      "owner": "codex",
+      "branch": "presentation-run-end-actions-0.156.0",
+      "worktree": "C:/tmp/bazaar-brawler-run-end-actions-0.156.0",
+      "status": "done",
+      "sourceCommit": null,
+      "trigger": "Robbie on 2026-07-26: continue improving the pushed 0.155.0 build toward premium collectible-card-game quality.",
+      "scope": "One presentation system: run-end action hierarchy. In portrait, New Run becomes a full-width 44-point primary action and the three report utilities occupy an equal secondary row. Landscape keeps its existing four-action row. The existing run report, clipboard, history, debrief, unlock settlement, navigation, and event wiring remain unchanged. Market labels, intro composition, result rooms, engine, targeting, deterministic timing, saves, balance, economy, and route semantics remain unchanged.",
+      "verification": "Complete locally on 2026-07-26. npm test passed 582 of 582, including the run-end action hierarchy source contract and the repository dash scan. npm run build passed with 815 modules transformed and only the standing chunk-size advisory and public-asset placeholder warnings. npm run shots:check passed 28 screens with zero missing, zero blank, zero console errors, and zero layout drift beyond tolerance. The authoritative npm run shots pass produced 60 stills and 48 filmstrips across 844x390 and 390x844 with zero console errors and zero selector misses; only the two expected deep-run boss or gate states were unreachable. Direct inspection confirmed the full-width portrait New Run action, three equal secondary utilities, preserved landscape row, and readable normal and reduced-motion labels at both viewports. One full-pass landscape PNG showed an intermittent Chromium partial-paint artifact. Two isolated reduced-motion reruns were clean and byte-identical, and one isolated normal-motion rerun was clean, all on the same frozen source with zero console or selector errors. The fresh-context reviewer then returned SHIP with no P0 or P1 issues.",
+      "note": "The exact 0.155.0 before artifacts are preserved at C:/tmp/bb-run-end-actions-0.156-before/shots and the final 0.156.0 artifacts are at C:/tmp/bazaar-brawler-run-end-actions-0.156.0/shots. Existing report, clipboard, history, debrief, unlock settlement, navigation, and event handlers are unchanged. No engine, targeting, deterministic timing, save, balance, economy, route-semantics, or art file changed."
+    },
     {
       "version": "0.155.0",
       "project": "Premium Presentation Ladder",
