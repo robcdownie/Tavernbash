@@ -3,7 +3,7 @@
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-26",
   "build": "0.156.0",
-  "reviewedHead": "12b3273",
+  "reviewedHead": "9568ac9",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -40,7 +40,7 @@
       "branch": "presentation-run-end-actions-0.156.0",
       "worktree": "C:/tmp/bazaar-brawler-run-end-actions-0.156.0",
       "status": "done",
-      "sourceCommit": null,
+      "sourceCommit": "9568ac9",
       "trigger": "Robbie on 2026-07-26: continue improving the pushed 0.155.0 build toward premium collectible-card-game quality.",
       "scope": "One presentation system: run-end action hierarchy. In portrait, New Run becomes a full-width 44-point primary action and the three report utilities occupy an equal secondary row. Landscape keeps its existing four-action row. The existing run report, clipboard, history, debrief, unlock settlement, navigation, and event wiring remain unchanged. Market labels, intro composition, result rooms, engine, targeting, deterministic timing, saves, balance, economy, and route semantics remain unchanged.",
       "verification": "Complete locally on 2026-07-26. npm test passed 582 of 582, including the run-end action hierarchy source contract and the repository dash scan. npm run build passed with 815 modules transformed and only the standing chunk-size advisory and public-asset placeholder warnings. npm run shots:check passed 28 screens with zero missing, zero blank, zero console errors, and zero layout drift beyond tolerance. The authoritative npm run shots pass produced 60 stills and 48 filmstrips across 844x390 and 390x844 with zero console errors and zero selector misses; only the two expected deep-run boss or gate states were unreachable. Direct inspection confirmed the full-width portrait New Run action, three equal secondary utilities, preserved landscape row, and readable normal and reduced-motion labels at both viewports. One full-pass landscape PNG showed an intermittent Chromium partial-paint artifact. Two isolated reduced-motion reruns were clean and byte-identical, and one isolated normal-motion rerun was clean, all on the same frozen source with zero console or selector errors. The fresh-context reviewer then returned SHIP with no P0 or P1 issues.",
