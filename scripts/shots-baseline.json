@@ -1,6 +1,6 @@
 {
  "seed": 13,
- "generatedBy": "manual",
+ "generatedBy": "0.155.0 combat result rooms",
  "tolerances": {
   "box": 56,
   "page": 56,
@@ -377,10 +377,10 @@
       66
      ],
      ".recapcard": [
-      162,
-      26,
-      520,
-      339
+      102,
+      8,
+      640,
+      374
      ]
     }
    },
@@ -923,10 +923,10 @@
       70
      ],
      ".recapcard": [
-      20,
-      212,
-      350,
-      421
+      14,
+      12,
+      362,
+      820
      ]
     }
    },

@@ -187,3 +187,17 @@ test('painted plates do the work the stylesheet was imitating',()=>{
   /* the card takes its natural height now that its frame is painted */
   assert.match(html,/\.ware\{overflow:visible;\}/);
 });
+
+test('fight recaps resolve inside skippable reduced-motion-safe result rooms',()=>{
+  assert.match(route,/class="card recapcard resultroom /);
+  assert.match(route,/class="resultcrest"/);
+  assert.match(route,/class="resultcopy"/);
+  assert.match(route,/o\.classList\.add\('resultov',won\?'result-win':'result-loss'\)/);
+  assert.match(route,/if\(!e\.target\.closest\('button,summary,details'\)\)o\.classList\.add\('settled'\)/);
+  assert.match(html,/\.ov\.result-win\{--result-room:image-set\(url\('\/art\/bg\/bg_result_victory\.webp'\)[^}]+bg_result_victory\.png/);
+  assert.match(html,/\.ov\.result-loss\{--result-room:image-set\(url\('\/art\/bg\/bg_result_defeat\.webp'\)[^}]+bg_result_defeat\.png/);
+  assert.match(html,/\.resultroom \.resultcopy\{[^}]+background:var\(--plate\)/);
+  assert.match(html,/\.resultroom \.resultcopy #recapGo\{width:100%;min-height:44px/);
+  assert.match(html,/\.ov\.resultov:not\(\.closing\)\{animation:resultroomin/);
+  assert.match(html,/@media \(prefers-reduced-motion: reduce\)\{\s*\.ov\.resultov:not\(\.closing\),[^}]+animation:none !important;/);
+});

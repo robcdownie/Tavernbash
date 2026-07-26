@@ -4,6 +4,8 @@ export const ART={
  "bg-intro":"art/bg/bg_intro.png",
  "bg-intro-wide":"art/bg/bg_intro_wide.png",
  "bg-market":"art/bg/bg_market.png",
+ "bg-result-defeat":"art/bg/bg_result_defeat.png",
+ "bg-result-victory":"art/bg/bg_result_victory.png",
  "bg-route-back-alleys":"art/bg/bg_route_back_alleys.png",
  "bg-route-dragon-gate":"art/bg/bg_route_dragon_gate.png",
  "bg-route-palace":"art/bg/bg_route_palace.png",
