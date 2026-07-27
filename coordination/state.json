@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-26",
-  "build": "0.158.0",
+  "build": "0.159.0",
   "reviewedHead": "5e898c5",
   "deploy": {
     "target": "github-pages",
@@ -16,7 +16,7 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v99"
+    "cacheVersion": "bb-v100"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
@@ -28,12 +28,27 @@
       "0.155.0",
       "0.156.0",
       "0.157.0",
-      "0.158.0"
+      "0.158.0",
+      "0.159.0"
     ],
     "status": "active",
-    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting as one bounded framing system. The premium presentation ladder remains active for the next one-system version."
+    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting. Version 0.159.0 moves portrait dealer barks out of the action band as one bounded responsive voice-card system. The premium presentation ladder remains active for the next one-system version."
   },
   "reservations": [
+    {
+      "version": "0.159.0",
+      "project": "Premium Presentation Ladder",
+      "token": "responsive-dealer-bark",
+      "owner": "codex",
+      "branch": "presentation-responsive-bark-0.159.0",
+      "worktree": "C:/tmp/bazaar-brawler-responsive-bark-0.159.0",
+      "status": "done",
+      "sourceCommit": null,
+      "trigger": "The fresh-context 0.158.0 presentation review identified the portrait dealer bark crossing the Freeze and stall dock action region as the highest-value next one-system priority.",
+      "scope": "One presentation system: responsive dealer-bark placement. Portrait bark cards move into the stage's passive heading zone at a bounded responsive top offset, while landscape keeps its existing dock-adjacent staging. The existing bark copy, portrait, duration, call sites, randomness, event wiring, and removal timers remain unchanged. The same component now disables its entrance and exit motion under prefers-reduced-motion. Ribbon geometry, market controls, dock, cards, route map, combat, intro, setup rooms, result rooms, run end, art, engine, targeting, deterministic timing, saves, balance, economy, and route semantics remain unchanged.",
+      "verification": "Complete locally on 2026-07-26. npm test passed 585 of 585, including the responsive bark source contract and repository dash scan. npm run build passed with 815 modules transformed and only the standing chunk-size advisory and public-asset placeholder warnings. npm run shots:check passed 28 screens with zero missing, zero blank, zero console errors, and zero layout drift beyond tolerance. The final authoritative npm run shots pass produced 60 stills and 48 filmstrips across 844x390 and 390x844 with zero console errors and zero selector misses; only the two expected deep-run boss or gate states were unreachable. Direct inspection confirmed the portrait bark clears Freeze and both dock actions, landscape staging remains unchanged, and reduced motion cuts cleanly to the unobstructed market without entrance or exit interpolation. The fresh-context reviewer returned SHIP with no P0 or P1 issues, confirmed one-system containment and unchanged 2400 and 2900 ms runtime timers, and identified the unchanged landscape bark overlap with the Tier upgrade row as the next one-system priority.",
+      "note": "The exact pushed 0.158.0 before artifacts are preserved at C:/tmp/bb-responsive-bark-0.159-before/shots and the final 0.159.0 artifacts are at C:/tmp/bazaar-brawler-responsive-bark-0.159.0/shots. Only the responsive bark CSS, its source contract, version and cache stamps, and coordination record changed. No markup, runtime UI, art, engine, targeting, deterministic timing, save, balance, economy, or route-semantics file changed."
+    },
     {
       "version": "0.158.0",
       "project": "Premium Presentation Ladder",

@@ -993,6 +993,18 @@
     box-shadow:0 0 0 2px #7a4d16, 0 4px 10px rgba(0,0,0,.5);}
   .bark.out{opacity:0;transform:translateY(8px);}
   @keyframes barkin{from{opacity:0;transform:translateY(10px) scale(.96);}to{opacity:1;transform:none;}}
+  /* 0.159.0: a tall screen has no action-free strip above the dock. The voice
+     card moves into the stage's passive heading zone instead, while wide
+     play keeps the existing dock-adjacent staging. */
+  @media (orientation:portrait){
+    .bark{left:calc(env(safe-area-inset-left) + 10px);right:auto;
+      top:calc(env(safe-area-inset-top) + clamp(104px,20vh,180px));bottom:auto;
+      max-width:min(280px,calc(100vw - 20px));}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .bark{animation:none;transition:none;}
+    .bark.out{opacity:0;transform:none;}
+  }
 
   /* ===== 0.108.0 COMBAT RECOMPOSITION: a duel between large lit faces
      across a real action lane, with the log demoted behind a tap ===== */

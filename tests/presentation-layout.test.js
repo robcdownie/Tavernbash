@@ -222,3 +222,9 @@ test('landscape intro fills the viewport without letterbox pillars',()=>{
   assert.match(html,/@media \(orientation:landscape\)\{\s*#intro\{justify-content:flex-end;background-image:url\('\/art\/bg\/bg_intro_wide\.png'\);background-position:center 56%;background-size:cover;\}/);
   assert.doesNotMatch(html,/#intro\{justify-content:flex-end;background-image:url\('\/art\/bg\/bg_intro_wide\.png'\);[^}]*background-size:contain;/);
 });
+
+test('portrait dealer bark occupies stage heading space instead of market actions',()=>{
+  assert.match(html,/@media \(orientation:portrait\)\{\s*\.bark\{left:calc\(env\(safe-area-inset-left\) \+ 10px\);right:auto;\s*top:calc\(env\(safe-area-inset-top\) \+ clamp\(104px,20vh,180px\)\);bottom:auto;/);
+  assert.match(html,/\.bark\{animation:none;transition:none;\}\s*\.bark\.out\{opacity:0;transform:none;\}/);
+  assert.match(ui,/setTimeout\(function\(\)\{d\.classList\.add\('out'\);\},2400\);\s*setTimeout\(function\(\)\{d\.remove\(\);\},2900\);/);
+});
