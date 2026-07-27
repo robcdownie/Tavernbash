@@ -2,7 +2,7 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-26",
-  "build": "0.157.0",
+  "build": "0.158.0",
   "reviewedHead": "8890c90",
   "deploy": {
     "target": "github-pages",
@@ -16,7 +16,7 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v98"
+    "cacheVersion": "bb-v99"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
@@ -27,12 +27,27 @@
     "versions": [
       "0.155.0",
       "0.156.0",
-      "0.157.0"
+      "0.157.0",
+      "0.158.0"
     ],
     "status": "active",
-    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink as one bounded legibility system. The premium presentation ladder remains active for the next one-system version."
+    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting as one bounded framing system. The premium presentation ladder remains active for the next one-system version."
   },
   "reservations": [
+    {
+      "version": "0.158.0",
+      "project": "Premium Presentation Ladder",
+      "token": "landscape-intro-framing",
+      "owner": "codex",
+      "branch": "presentation-landscape-intro-0.158.0",
+      "worktree": "C:/tmp/bazaar-brawler-landscape-intro-0.158.0",
+      "status": "done",
+      "sourceCommit": null,
+      "trigger": "The fresh-context 0.157.0 presentation review identified the landscape title screen's black side pillars as the highest-value next one-system priority.",
+      "scope": "One presentation system: landscape intro framing. The existing 1600 by 893 wide manor painting fills the landscape viewport with a centered cover crop biased slightly toward its dark lower threshold. Portrait intro framing, title and button geometry, Run History, caption, artwork, motion, event wiring, setup rooms, result rooms, run end, market, route map, combat, engine, targeting, deterministic timing, saves, balance, economy, and route semantics remain unchanged.",
+      "verification": "Complete locally on 2026-07-26. npm test passed 584 of 584, including the landscape intro cover-crop source contract and repository dash scan. npm run build passed with 815 modules transformed and only the standing chunk-size advisory and public-asset placeholder warnings. npm run shots:check passed 28 screens with zero missing, zero blank, zero console errors, and zero layout drift beyond tolerance. The final authoritative npm run shots pass produced 60 stills and 48 filmstrips across 844x390 and 390x844 with zero console errors and zero selector misses; only the two expected deep-run boss or gate states were unreachable. Direct inspection confirmed the landscape manor fills the viewport without black pillars while preserving both lanterns, the manor, title, actions, caption, and normal and reduced-motion parity. The portrait intro PNG remained byte-identical to the pushed before artifact. The fresh-context reviewer returned SHIP with no P0 or P1 issues and confirmed one-system containment.",
+      "note": "The exact pushed 0.157.0 before artifacts are preserved at C:/tmp/bb-landscape-intro-0.158-before/shots and the final 0.158.0 artifacts are at C:/tmp/bazaar-brawler-landscape-intro-0.158.0/shots. Only the landscape intro framing rule, its source contract, version and cache stamps, and coordination record changed. No markup, runtime UI, art, engine, targeting, deterministic timing, save, balance, economy, or route-semantics file changed."
+    },
     {
       "version": "0.157.0",
       "project": "Premium Presentation Ladder",

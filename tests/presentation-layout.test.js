@@ -217,3 +217,8 @@ test('market section headings use solid struck ink instead of flex clipped foil'
   assert.match(html,/-webkit-text-fill-color:#f6d693;color:#f6d693;filter:none;/);
   assert.match(html,/\.label \.side\{-webkit-text-fill-color:var\(--dim\);color:var\(--dim\);\}/);
 });
+
+test('landscape intro fills the viewport without letterbox pillars',()=>{
+  assert.match(html,/@media \(orientation:landscape\)\{\s*#intro\{justify-content:flex-end;background-image:url\('\/art\/bg\/bg_intro_wide\.png'\);background-position:center 56%;background-size:cover;\}/);
+  assert.doesNotMatch(html,/#intro\{justify-content:flex-end;background-image:url\('\/art\/bg\/bg_intro_wide\.png'\);[^}]*background-size:contain;/);
+});

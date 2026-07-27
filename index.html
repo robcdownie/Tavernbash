@@ -1593,11 +1593,11 @@
       background:rgba(10,9,15,.62);}
   }
   /* portrait uses the tall painting with its baked nameplate; landscape
-     uses the wide painting fit whole (dark vignette edges blend the
-     letterbox), buttons dropped onto its painted plaques */
+     fills the threshold with the wide painting and holds its dark lower ground
+     behind the title lockup, with no unpainted letterbox pillars */
   @media (orientation:portrait){#intro{justify-content:flex-end;}}
   @media (orientation:landscape){
-    #intro{justify-content:flex-end;background-image:url('/art/bg/bg_intro_wide.png');background-position:center;background-size:contain;}
+    #intro{justify-content:flex-end;background-image:url('/art/bg/bg_intro_wide.png');background-position:center 56%;background-size:cover;}
     #intro .ibtns{width:min(58vw,560px);gap:min(6vw,64px);margin-bottom:min(4vh,26px);}
     #intro .stonebtn{height:min(15vh,82px);font-size:min(4.4vh,30px);}
     #intro .introhint{position:absolute;left:50%;bottom:3px;transform:translateX(-50%);margin:0;
