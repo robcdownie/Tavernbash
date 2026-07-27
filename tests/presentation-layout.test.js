@@ -228,3 +228,10 @@ test('portrait dealer bark occupies stage heading space instead of market action
   assert.match(html,/\.bark\{animation:none;transition:none;\}\s*\.bark\.out\{opacity:0;transform:none;\}/);
   assert.match(ui,/setTimeout\(function\(\)\{d\.classList\.add\('out'\);\},2400\);\s*setTimeout\(function\(\)\{d\.remove\(\);\},2900\);/);
 });
+
+test('landscape dealer bark occupies the quiet hero rail instead of market actions',()=>{
+  assert.match(html,/@media \(orientation:landscape\) and \(min-width:640px\)\{\s*\.bark\{left:calc\(env\(safe-area-inset-left\) \+ 7px\);right:auto;top:auto;\s*bottom:calc\(env\(safe-area-inset-bottom\) \+ 8px\);width:112px;max-width:112px;/);
+  assert.match(html,/\.bark \.bkp\{display:none;\}\s*\.bark b\{display:block;margin-bottom:3px;font-size:8px;/);
+  assert.match(html,/\.bark::before\{content:"";position:absolute;top:-6px;left:27px;width:11px;height:11px;/);
+  assert.match(ui,/setTimeout\(function\(\)\{d\.classList\.add\('out'\);\},2400\);\s*setTimeout\(function\(\)\{d\.remove\(\);\},2900\);/);
+});
