@@ -210,3 +210,10 @@ test('portrait run end gives New Run a full-width 44-point primary action',()=>{
   assert.match(html,/\.rendbtns \.btn\{min-width:0;min-height:44px;/);
   assert.match(html,/\.rendbtns #reGo\{order:0;grid-column:1\/-1;grid-row:1;font-size:11px;\}/);
 });
+
+test('market section headings use solid struck ink instead of flex clipped foil',()=>{
+  assert.match(html,/\.sec\.secmarket \.label,#main\.draft \.dock \.label\{\s*background:linear-gradient\(180deg,#2a1c0e,#120b05 78%\);/);
+  assert.match(html,/-webkit-background-clip:border-box;background-clip:border-box;/);
+  assert.match(html,/-webkit-text-fill-color:#f6d693;color:#f6d693;filter:none;/);
+  assert.match(html,/\.label \.side\{-webkit-text-fill-color:var\(--dim\);color:var\(--dim\);\}/);
+});

@@ -3049,6 +3049,19 @@
     .rendbtns .btn{min-width:0;min-height:44px;padding:8px 5px;font-size:9px;line-height:1.15;}
     .rendbtns #reGo{order:0;grid-column:1/-1;grid-row:1;font-size:11px;}
   }
+
+  /* ===== 0.157.0 MARKET SECTION LABEL INK ===== */
+  /* The shared foil recipe clips a gradient to text. A market label is a flex
+     container whose bare heading becomes an anonymous flex item, so Chromium
+     can leave that clipped fill transparent. These small market headings take a
+     solid struck brass ink instead, while their side captions keep the existing
+     dim ink and their plates keep the established manor furniture. */
+  .sec.secmarket .label,#main.draft .dock .label{
+    background:linear-gradient(180deg,#2a1c0e,#120b05 78%);
+    -webkit-background-clip:border-box;background-clip:border-box;
+    -webkit-text-fill-color:#f6d693;color:#f6d693;filter:none;
+    text-shadow:0 1px 0 rgba(28,16,4,.95),0 0 10px rgba(246,196,110,.22);
+  }
 </style>
 </head>
 <body>
