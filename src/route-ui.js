@@ -359,9 +359,12 @@ export function combatPreview(n){
   const affOn=(G.run&&G.run.route&&G.run.route.affix)?1:0;
   const aff=(affOn&&(n.type==='monster'||n.type==='elite'))?districtAffix(districtForNode(n),routeMap().seed):null;
   const affLine=aff?'<div class="rmpi affix"><b>'+esc(aff.w)+'.</b> '+esc(aff.d)+'</div>':'';
-  return '<div class="rmpi"><b>Health</b> '+hp+(M.special==='mirror'?' (mirrors your stall)':'')+(regen?' &middot; regen '+regen+'/s':'')+'</div>'
-    +vn+storm
-    +'<div class="rmpi"><b>Bounty</b> '+esc(routeBountyText(n))+'</div>'
+  /* 0.161.0: the two fixed facts share one ledger strip. This recovers enough
+     first-view height for a complete ware row without hiding any scout data. */
+  const facts='<div class="rmpfacts"><div class="rmpi"><b>Health</b> '+hp
+    +(M.special==='mirror'?' (mirrors your stall)':'')+(regen?' &middot; regen '+regen+'/s':'')+'</div>'
+    +'<div class="rmpi"><b>Bounty</b> '+esc(routeBountyText(n))+'</div></div>';
+  return facts+vn+storm
     +(n.gilded?'<div class="rmpi gild">Gilded: tougher board; bonus gold bounties are doubled.</div>':'')
     +affLine
     +(board?'<div class="rmpboard">'+board+'</div>':'')

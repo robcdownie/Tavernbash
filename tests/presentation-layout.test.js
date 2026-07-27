@@ -93,6 +93,14 @@ test('the scout reads as a bestiary leaf and node names sit on plates',()=>{
   assert.match(html,/\.rmwrap\{display:grid;grid-template-columns:minmax\(0,1fr\) 224px;/);
 });
 
+test('the scout budgets fixed facts as one strip before its exact ware list',()=>{
+  assert.match(route,/const facts='<div class="rmpfacts"><div class="rmpi"><b>Health<\/b> '\+hp/);
+  assert.match(route,/\+'<div class="rmpi"><b>Bounty<\/b> '\+esc\(routeBountyText\(n\)\)\+'<\/div><\/div>';/);
+  assert.match(route,/return facts\+vn\+storm\s*\+\(n\.gilded\?/);
+  assert.match(html,/\.rmpfacts\{display:grid;grid-template-columns:1fr 1fr;border-bottom:/);
+  assert.match(html,/\.rmpfacts \.rmpi b\{display:block;min-width:0;margin-bottom:1px;\}/);
+});
+
 test('portrait setup rooms use lintel chamber and threshold zones',()=>{
   assert.match(html,/\.card\.setupcard\{[^}]+justify-content:flex-start/);
   assert.match(html,/\.card\.setupcard\.evroom::after\{background:linear-gradient/);
