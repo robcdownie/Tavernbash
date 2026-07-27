@@ -3,7 +3,7 @@
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-26",
   "build": "0.159.0",
-  "reviewedHead": "5e898c5",
+  "reviewedHead": "7a5f291",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -43,7 +43,7 @@
       "branch": "presentation-responsive-bark-0.159.0",
       "worktree": "C:/tmp/bazaar-brawler-responsive-bark-0.159.0",
       "status": "done",
-      "sourceCommit": null,
+      "sourceCommit": "7a5f291",
       "trigger": "The fresh-context 0.158.0 presentation review identified the portrait dealer bark crossing the Freeze and stall dock action region as the highest-value next one-system priority.",
       "scope": "One presentation system: responsive dealer-bark placement. Portrait bark cards move into the stage's passive heading zone at a bounded responsive top offset, while landscape keeps its existing dock-adjacent staging. The existing bark copy, portrait, duration, call sites, randomness, event wiring, and removal timers remain unchanged. The same component now disables its entrance and exit motion under prefers-reduced-motion. Ribbon geometry, market controls, dock, cards, route map, combat, intro, setup rooms, result rooms, run end, art, engine, targeting, deterministic timing, saves, balance, economy, and route semantics remain unchanged.",
       "verification": "Complete locally on 2026-07-26. npm test passed 585 of 585, including the responsive bark source contract and repository dash scan. npm run build passed with 815 modules transformed and only the standing chunk-size advisory and public-asset placeholder warnings. npm run shots:check passed 28 screens with zero missing, zero blank, zero console errors, and zero layout drift beyond tolerance. The final authoritative npm run shots pass produced 60 stills and 48 filmstrips across 844x390 and 390x844 with zero console errors and zero selector misses; only the two expected deep-run boss or gate states were unreachable. Direct inspection confirmed the portrait bark clears Freeze and both dock actions, landscape staging remains unchanged, and reduced motion cuts cleanly to the unobstructed market without entrance or exit interpolation. The fresh-context reviewer returned SHIP with no P0 or P1 issues, confirmed one-system containment and unchanged 2400 and 2900 ms runtime timers, and identified the unchanged landscape bark overlap with the Tier upgrade row as the next one-system priority.",
