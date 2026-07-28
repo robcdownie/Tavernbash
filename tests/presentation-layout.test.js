@@ -101,6 +101,16 @@ test('the scout budgets fixed facts as one strip before its exact ware list',()=
   assert.match(html,/\.rmpfacts \.rmpi b\{display:block;min-width:0;margin-bottom:1px;\}/);
 });
 
+test('the scout marks only the unread portion of an overflowing ware ledger',()=>{
+  assert.match(route,/\+\(combat\?'<div class="rmpmore" aria-hidden="true"><\/div>':''\)/);
+  assert.match(route,/const scoutBody=p&&p\.querySelector\('\.rmpmore'\)&&p\.querySelector\('\.rmpbody'\);/);
+  assert.match(route,/const more=body\.scrollHeight-body\.scrollTop-body\.clientHeight>2;/);
+  assert.match(route,/body\.classList\.toggle\('has-more',more\);/);
+  assert.match(route,/body\.addEventListener\('scroll',sync,\{passive:true\}\);/);
+  assert.match(html,/\.rmpbody\.has-more\{box-shadow:inset 0 -18px 16px -18px/);
+  assert.match(html,/\.rmpbody\.has-more \+ \.rmpmore\{display:block;\}/);
+});
+
 test('portrait setup rooms use lintel chamber and threshold zones',()=>{
   assert.match(html,/\.card\.setupcard\{[^}]+justify-content:flex-start/);
   assert.match(html,/\.card\.setupcard\.evroom::after\{background:linear-gradient/);

@@ -2748,7 +2748,18 @@
   .rmphead .rmpgi{border-radius:50%;}
   .rmpname{font-size:15px;color:#fdeac2;text-shadow:0 1.5px 0 rgba(0,0,0,.85),0 2px 7px rgba(0,0,0,.6);}
   .rmptype{color:#c79a4a;opacity:1;letter-spacing:.14em;}
-  .rmpbody{padding:6px 9px 2px;}
+  .rmphead{grid-row:1;grid-column:1;}
+  .rmpbody{grid-row:2;grid-column:1;padding:6px 9px 2px;}
+  .rmpfoot{grid-row:3;grid-column:1;}
+  /* 0.162.0: overflow earns one static brass tab at the parchment edge. The
+     measured class clears at the true end, so short ledgers stay unmarked. */
+  .rmpbody.has-more{box-shadow:inset 0 -18px 16px -18px rgba(65,43,13,.9);}
+  .rmpmore{display:none;position:relative;grid-row:3;grid-column:1;align-self:start;justify-self:center;
+    z-index:2;width:18px;height:8px;margin:1px 0 0;pointer-events:none;
+    filter:drop-shadow(0 1px 0 rgba(255,244,205,.65));}
+  .rmpmore::after{content:"";position:absolute;width:7px;height:7px;left:4px;top:-3px;
+    border-right:2px solid #765018;border-bottom:2px solid #765018;transform:rotate(45deg);}
+  .rmpbody.has-more + .rmpmore{display:block;}
   /* each reading is a struck label with its value in ink, ruled off from the
      next, so the panel scans as a record instead of as a paragraph */
   .rmpi{font-size:11.5px;color:#3b2c19;line-height:1.38;margin:0;padding:3px 0 4px;

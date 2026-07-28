@@ -393,7 +393,8 @@ function routeNodePreviewHTML(n,state){
     acts='<div class="rmpscout">'+(state==='done'?'Cleared.':'Scouting ahead. Reach it from a lit node to act.')+'</div>';
   }
   let info;
-  if(isCombat(n))info=combatPreview(n);
+  const combat=isCombat(n);
+  if(combat)info=combatPreview(n);
   else if(n.type==='market')info='<div class="rmpi">Buy, sell, reroll, freeze, tier, fuse, and vault.</div>';
   else if(n.type==='treasure')info=treasurePreview(n);
   else info='<div class="rmpi">'+esc(routeEventDesc(n.type))+'</div>';
@@ -401,6 +402,7 @@ function routeNodePreviewHTML(n,state){
   return '<div class="rmphead"><span class="rmpg">'+ic(nodeGlyph(n),'rmpgi')+'</span>'
     +'<div><div class="rmpname">'+esc(nodeLabel(n))+'</div><div class="rmptype">'+kind+' &middot; Threat '+n.threat+'</div></div></div>'
     +'<div class="rmpbody">'+info+'</div>'
+    +(combat?'<div class="rmpmore" aria-hidden="true"></div>':'')
     +'<div class="rmpfoot">'+acts+'</div>';
 }
 export function renderRouteMap(opts){
@@ -451,6 +453,8 @@ export function renderRouteMap(opts){
   document.querySelectorAll('.rmnode').forEach(function(bn){
     bn.onclick=function(){G.route.selectedId=bn.dataset.n;renderRouteMap({scout:true});};});
   const p=$('rmprev');
+  const scoutBody=p&&p.querySelector('.rmpmore')&&p.querySelector('.rmpbody');
+  bindScoutOverflow(scoutBody);
   if(p&&sel&&frS.has(sel)){const n=map.nodes[sel];   /* only a reachable node commits */
     p.querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){
       const act=b.dataset.a;G.route.selectedId=null;
@@ -511,6 +515,23 @@ function ensureRouteObserver(){
   const plot=$('rmplot');if(!plot)return;
   _rmObs=new ResizeObserver(function(){drawConnectors();});
   _rmObs.observe(plot);
+}
+let _scoutOverflowObs=null;
+function bindScoutOverflow(body){
+  if(_scoutOverflowObs){_scoutOverflowObs.disconnect();_scoutOverflowObs=null;}
+  if(!body)return;
+  /* 0.162.0: the static brass tab exists only while ledger content remains
+     below the current scroll position. It never owns input or route timing. */
+  const sync=function(){
+    const more=body.scrollHeight-body.scrollTop-body.clientHeight>2;
+    body.classList.toggle('has-more',more);
+  };
+  body.addEventListener('scroll',sync,{passive:true});
+  sync();
+  if(typeof ResizeObserver!=='undefined'){
+    _scoutOverflowObs=new ResizeObserver(sync);
+    _scoutOverflowObs.observe(body);
+  }
 }
 /* ============ THE END-SCREEN ALMANAC UNLOCK STRIP ============ */
 /* one flavor clause per kind: the strip names what was earned in brass and one

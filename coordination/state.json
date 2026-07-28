@@ -1,8 +1,8 @@
 {
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
-  "updated": "2026-07-26",
-  "build": "0.161.0",
+  "updated": "2026-07-28",
+  "build": "0.162.0",
   "reviewedHead": "a3cb960",
   "deploy": {
     "target": "github-pages",
@@ -16,7 +16,7 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v102"
+    "cacheVersion": "bb-v103"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
@@ -31,12 +31,27 @@
       "0.158.0",
       "0.159.0",
       "0.160.0",
-      "0.161.0"
+      "0.161.0",
+      "0.162.0"
     ],
     "status": "active",
-    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting. Versions 0.159.0 and 0.160.0 complete responsive dealer-bark staging. Version 0.161.0 gives the scout preview a complete first-view ware row through one compact fact strip. The premium presentation ladder remains active for the next one-system version."
+    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting. Versions 0.159.0 and 0.160.0 complete responsive dealer-bark staging. Version 0.161.0 gives the scout preview a complete first-view ware row through one compact fact strip. Version 0.162.0 adds an overflow-only continuation cue to the scout ledger. The premium presentation ladder remains active for the next one-system version."
   },
   "reservations": [
+    {
+      "version": "0.162.0",
+      "project": "Premium Presentation Ladder",
+      "token": "scout-overflow-cue",
+      "owner": "codex",
+      "branch": "presentation-scout-overflow-0.162.0",
+      "worktree": "C:/tmp/bazaar-brawler-scout-overflow-0.162.0",
+      "status": "active",
+      "sourceCommit": null,
+      "trigger": "The fresh-context 0.161.0 presentation review identified the scout body's hidden continuation as the highest-value next one-system priority: the complete first ware is visible, but nothing signals that more wares continue below the pinned actions.",
+      "scope": "One presentation system: scout ledger overflow affordance. A read-only DOM measurement toggles a small static brass down tab and parchment-edge shadow only while unread combat-ware content remains below the current scroll position, then clears both at the true end. Short and noncombat ledgers stay unmarked. The existing bestiary header, Health and Bounty strip, Aspect and storm lines, gild and Affix warnings, exact ware list, scroll behavior, pinned Challenge and Slip Past actions, node selection, route dispatch, action costs, and deterministic encounter construction remain unchanged. Market, dock, route map geometry, combat, intro, setup rooms, result rooms, run end, art, engine, targeting, deterministic timing, saves, balance, economy, and route semantics remain unchanged.",
+      "verification": "In progress.",
+      "note": "The exact pushed 0.161.0 before artifacts are preserved at C:/tmp/bb-scout-overflow-0.162-before/shots with exactly 113 files. Only the scout continuation marker markup, overflow measurement and CSS, its source contract, version and cache stamps, and coordination record are reserved."
+    },
     {
       "version": "0.161.0",
       "project": "Premium Presentation Ladder",
