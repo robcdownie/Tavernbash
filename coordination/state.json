@@ -3,7 +3,7 @@
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-28",
   "build": "0.165.0",
-  "reviewedHead": "f3fdee2",
+  "reviewedHead": "cf3c91c",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -48,12 +48,12 @@
       "owner": "codex",
       "branch": "presentation-landscape-labels-0.165.0",
       "worktree": "C:/tmp/bazaar-brawler-landscape-labels-0.165.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "cf3c91c",
       "trigger": "The fresh-context 0.164.0 art-direction review returned SHIP with no P0 through P2 findings and identified one inherited P3: landscape future labels remain at 9px beneath whole-node 52 percent opacity and are now the weakest route-label treatment.",
       "scope": "One presentation system: landscape route-node legibility. At the 844x390 primary viewport, ordinary node labels rise from 9px toward the established 10px phone reading with a slightly wider two-line carved plate. Future nodes separate their presentation layers: medallions retain the established 52 percent quietness while label plates rise toward 78 percent, preserving the distinction from reachable, selected, done, and boss states. The final values must fit the fixed 390px height budget without label collision, clipping, connector interference, route-map reflow, or preview compression. Portrait remains unchanged. Node positions, hit targets, glyph size, connectors, route painting, district header, scout preview, actions, selection, dispatch, action costs, encounter construction, and deterministic timing remain unchanged. Market, dock, combat, intro, setup rooms, result rooms, run end, art, engine, targeting, saves, balance, economy, and route semantics remain unchanged.",
-      "verification": "In progress.",
-      "note": "The exact verified 0.164.0 before artifacts are preserved at C:/tmp/bazaar-brawler-route-labels-0.164.0/shots with exactly 113 files, 0 console errors, 0 selector misses, and only the 2 expected deep-run boss states unreachable. Only landscape node-label type metrics and separated future-state opacity, their source contract, version and cache stamps, intended landscape route-anchor baseline updates if the fixed visual gate requires them, and this coordination record are reserved."
+      "verification": "SHIP. Focused presentation and coordination contracts passed 40/40. Full npm test passed 591/591 with the repository dash scan. The production build passed with 815 transformed modules and only the standing public-asset placeholder and chunk-size advisories. npm run shots:check passed all 28 screens with 0 missing, 0 blank, 0 console errors, and 0 layout drift. The authoritative final capture contains exactly 113 files: 60 stills and 48 filmstrips across 844x390 and 390x844 in motion and reduced motion, with 0 console errors, 0 selector misses, and only the 2 expected deep-run boss states unreachable. Direct inspection found no label collision, clipping, connector interference, route-map reflow, or scout compression. The 390x844 reduced-motion route and scout frames are byte-identical to the verified 0.164.0 artifacts. A fresh-context art director returned SHIP with no P0, P1, or P2 finding, confirmed the future gilded-star P3 closed at 52 percent opacity, and confirmed the fixed 390px height budget. Real-phone approval remains required before release.",
+      "note": "The exact verified 0.164.0 before artifacts remain at C:/tmp/bazaar-brawler-route-labels-0.164.0/shots with exactly 113 files. The stable 0.165.0 after artifacts are at C:/tmp/bazaar-brawler-landscape-labels-0.165.0/shots with exactly 113 files. Landscape route labels now read at 10px on 64 by 22px plates. Future label plates read at 78 percent while future medallions and gilded stars retain 52 percent opacity. Portrait, node positions, hit targets, connectors, route semantics, actions, dispatch, costs, art, and deterministic timing are unchanged. The next highest-value one-system version is route connector material and state hierarchy: reduce the inherited heavy dark channels and separate future, available, and completed paths as painted estate inlay without changing route geometry."
     },
     {
       "version": "0.164.0",
