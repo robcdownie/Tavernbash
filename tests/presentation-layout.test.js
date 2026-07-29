@@ -56,6 +56,21 @@ test('landscape Market hero rail protects its voice dock and contains debt',()=>
   assert.match(html,/body\.run\.fight #ribbon\.market-rail\{display:none;\}/);
 });
 
+test('Gate Camp contains three Quartermaster offers without Market scroll inheritance',()=>{
+  assert.ok(ui.includes('<div class="sec secmarket campmarket">'));
+  assert.ok(ui.includes('<div class="shop tight camp-shop">'));
+  assert.ok(ui.includes('<div class="label campoffers">Quartermaster'));
+  assert.match(ui,/\$\('main'\)\.className='draft'\+\(camp\?' gatecamp':''\);/);
+  assert.match(ui,/function openGateCampShot\(\)\{/);
+  assert.match(ui,/openGateCamp:openGateCampShot,/);
+  assert.match(html,/#main\.gatecamp \.stage\{overflow:hidden;\}/);
+  assert.match(html,/#main\.draft\.gatecamp \.campmarket \.camp-shop\{\s*grid-template-columns:repeat\(3,minmax\(0,1fr\)\);\s*overflow:hidden;flex:0 0 auto;align-content:start;/);
+  assert.match(html,/#main\.gatecamp \.camp-shop \.ware\{min-width:0;overflow:hidden;\}/);
+  assert.match(html,/#main\.gatecamp \.campmarket \.campboss\{\s*min-height:44px;height:44px;margin-top:4px;padding:4px 8px;/);
+  assert.match(html,/#main\.draft\.gatecamp \.campmarket \.camp-shop\{\s*grid-template-columns:repeat\(3,minmax\(0,1fr\)\);\s*grid-auto-flow:row;grid-auto-columns:auto;\s*flex:0 0 64px;/);
+  assert.match(html,/#main\.gatecamp \.camp-shop \.ware\{\s*height:64px;padding:4px;display:grid;\s*grid-template-columns:56px minmax\(0,1fr\);/);
+});
+
 test('run-end actions precede a collapsed optional debrief',()=>{
   assert.match(route,/const debrief='<details class="rdebrief"><summary>Optional Playtest Debrief<\/summary>/);
   assert.match(route,/unlockStrip\+endBtns\+debrief\+cloudPrompt/);

@@ -425,7 +425,7 @@ function renderDraft(){
     h+=boardHTML(G.board,slots,G.sel);
   }
   h+='<div id="sheet"></div></div>';
-  $('main').className='draft';
+  $('main').className='draft'+(camp?' gatecamp':'');
   $('main').innerHTML=h;
   const df=$('dockFlip');if(df)df.onclick=function(){G.dockV=!G.dockV;G.sel=null;G.vsel=null;G.swapV=null;renderDraft();};
   document.querySelectorAll('#bd .cell.it').forEach(function(c){c.onclick=function(){
@@ -470,11 +470,11 @@ function campTopHTML(){
   const M=MONSTERS[node.monId];
   const camp=campEnsure(G.run,node,G.tier,G.hero);
   const credit=camp.credit||0;
-  return '<div class="sec secmarket"><div class="label">Gate Camp<span class="side">'+esc(M.n)+' bars the gate</span></div>'
+  return '<div class="sec secmarket campmarket"><div class="label">Gate Camp<span class="side">'+esc(M.n)+' bars the gate</span></div>'
     +'<button class="campboss" id="campInspect">'+ic(M.glyph,'campbi')
       +'<span class="campbt"><span class="campbn">'+esc(M.n)+'</span><span class="campbs">Threat '+node.threat+' &middot; tap to scout the board</span></span></button>'
-    +'<div class="label" style="margin-top:9px">Quartermaster'+(credit?'<span class="side">'+credit+' credit</span>':'<span class="side">shore up your board</span>')+'</div>'
-    +'<div class="shop">'+camp.offers.map(function(o,i){return campWareHTML(o,i,credit);}).join('')+'</div>'
+    +'<div class="label campoffers">Quartermaster'+(credit?'<span class="side">'+credit+' credit</span>':'<span class="side">shore up your board</span>')+'</div>'
+    +'<div class="shop tight camp-shop">'+camp.offers.map(function(o,i){return campWareHTML(o,i,credit);}).join('')+'</div>'
     +'<div class="controls">'
       +'<button class="btn" id="btnMend"'+((camp.mendUsed||!canSpend(CAMP_MEND.cost))?' disabled':'')+'>'+ic('g-heart','bi')+' Mend &middot; '+CAMP_MEND.cost+'g, +'+CAMP_MEND.gain+'</button>'
       +'<button class="btn" id="btnReserve"'+((G.run.lastReserveUsed||st.resolve<=CAMP_LAST_RESERVE.resolve)?' disabled':'')+'>'+ic('g-skull','bi')+' Last Reserve</button>'
@@ -564,6 +564,24 @@ function renderAll(){
   renderRibbon();renderAno();renderTrow();
   if(G.phase==='routeMap'){const arrive=routeMapArrival;routeMapArrival=false;renderRouteMap({arrive:arrive});}
   else if(G.phase==='draft'||G.phase==='gateCamp')renderDraft();   /* the Gate Camp is a camp-mode draft */
+}
+/* Local screenshot fixture: put the current deterministic route at its first
+   boss camp without walking four districts. The hook is exposed only on a
+   localhost build below, never on the deployed site. */
+function openGateCampShot(){
+  if(!G||!G.run||!G.route||!G.route.map)return false;
+  const map=routeMap();
+  const node=Object.values(map.nodes||{}).filter(function(n){return n.type==='boss';})[0];
+  if(!node)return false;
+  const st=routeState();
+  st.phase='gateCamp';st.pendingId=node.id;st.resolution='challenge';
+  st.attempts=st.attempts||{};st.attempts[node.id]=Math.max(1,st.attempts[node.id]||0);
+  st.resolve=Math.min(st.resolveMax||40,22);
+  G.run.camp=null;G.phase='gateCamp';G.gold=12;G.tier=2;
+  G.route.selectedId=node.id;G.route.combat=null;G.F=null;G.recap=null;
+  document.querySelectorAll('.ov').forEach(function(o){ovClose(o);});
+  renderAll();
+  return true;
 }
 /* ============ THE VOICE: your hero watches you play ============ */
 function bark(ev,always){
@@ -1834,6 +1852,7 @@ export function boot(){
       openUniquePick:openUniquePick,bark:bark,music:music,musicNow:musicNow,
       newRoute:newRoute,dispatchRoute:dispatchRoute,frontier:function(){return frontier(G.run.route,G.route.map);},
       routeState:function(){return G.run.route;},
+      openGateCamp:openGateCampShot,
       prepareRouteDecision:prepareRouteDecision,routeEventCard:routeEventCard,
       /* reward-flow hooks so the resume e2e can exercise the gild/unique choice
          branch without walking deep into the route to a choice-bounty monster */

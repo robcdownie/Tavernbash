@@ -3271,6 +3271,53 @@
     }
     body.run.fight #ribbon.market-rail{display:none;}
   }
+
+  /* ===== 0.170.0 GATE CAMP QUARTERMASTER SHELF ===== */
+  /* Gate Camp always has exactly three offers. It gets its own contained shelf
+     instead of inheriting the normal Market's variable-count scroll behavior. */
+  #main.gatecamp .stage{overflow:hidden;}
+  #main.draft.gatecamp .campmarket .camp-shop{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    overflow:hidden;flex:0 0 auto;align-content:start;
+  }
+  #main.gatecamp .camp-shop .ware{min-width:0;overflow:hidden;}
+  @media (orientation:portrait){
+    #main.gatecamp .camp-shop .ware .ph{height:84px;}
+    #main.gatecamp .camp-shop .ware .wn{font-size:11.5px;}
+    #main.gatecamp .camp-shop .ware .wr{display:none;}
+  }
+  @media (orientation:landscape) and (min-width:640px){
+    #main.gatecamp .campmarket .campboss{
+      min-height:44px;height:44px;margin-top:4px;padding:4px 8px;
+    }
+    #main.gatecamp .campmarket .campbi{width:34px;height:34px;}
+    #main.gatecamp .campmarket .campbn{font-size:14px;}
+    #main.gatecamp .campmarket .campbs{font-size:8.5px;}
+    #main.gatecamp .campmarket .campoffers{margin-top:3px;}
+    #main.draft.gatecamp .campmarket .camp-shop{
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      grid-auto-flow:row;grid-auto-columns:auto;
+      flex:0 0 64px;padding:0;align-items:stretch;
+    }
+    #main.gatecamp .camp-shop .ware{
+      height:64px;padding:4px;display:grid;
+      grid-template-columns:56px minmax(0,1fr);
+      grid-template-rows:auto auto 1fr;
+      column-gap:6px;align-content:center;
+    }
+    #main.gatecamp .camp-shop .ware .ph{
+      grid-column:1;grid-row:1/4;width:56px;height:56px;margin:0;
+    }
+    #main.gatecamp .camp-shop .ware .tg{display:none;}
+    #main.gatecamp .camp-shop .ware .wn{
+      grid-column:2;grid-row:1;font-size:11px;align-self:end;
+    }
+    #main.gatecamp .camp-shop .ware .sz{grid-column:2;grid-row:2;}
+    #main.gatecamp .camp-shop .ware .chips{
+      grid-column:2;grid-row:3;align-self:start;
+    }
+    #main.gatecamp .camp-shop .ware .wd{display:none;}
+  }
 </style>
 </head>
 <body>
