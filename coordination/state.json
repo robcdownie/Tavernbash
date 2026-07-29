@@ -3,7 +3,7 @@
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-28",
   "build": "0.163.0",
-  "reviewedHead": "64e85c6",
+  "reviewedHead": "4e62460",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -46,12 +46,12 @@
       "owner": "codex",
       "branch": "presentation-scout-focus-0.163.0",
       "worktree": "C:/tmp/bazaar-brawler-scout-focus-0.163.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "4e62460",
       "trigger": "The fresh-context 0.162.0 presentation review found the next highest-impact gap in portrait: selected monster information is visible but reads after the full route painting instead of as the active decision surface.",
       "scope": "One presentation system: portrait combat scout focus. In portrait only, selecting a Monster, Elite, or Boss promotes its existing bestiary leaf to the first route row directly under the compact dealer crest, while the complete route painting remains beneath it. Unselected routing and selected noncombat nodes retain the established map-first order. Landscape remains byte-identical in composition. The preview header, facts, warnings, exact ware list, overflow cue, scroll behavior, pinned Challenge and Slip Past actions, node geometry, connectors, selection, dispatch, action costs, encounter construction, and deterministic timing remain unchanged. Market, dock, combat, intro, setup rooms, result rooms, run end, art, engine, targeting, saves, balance, economy, and route semantics remain unchanged.",
-      "verification": "In progress.",
-      "note": "The exact verified 0.162.0 before artifacts are preserved at C:/tmp/bazaar-brawler-scout-overflow-0.162.0/shots with exactly 113 files. Only the portrait combat selected-state composition class and grid order, its source contract, the two intended portrait route-anchor baseline updates, version and cache stamps, and coordination record are reserved."
+      "verification": "SHIP. Focused presentation contracts passed 25/25. Full npm test passed 589/589 with the repository dash scan. npm run build passed with 815 modules; only the standing public asset placeholder and chunk-size advisories remained. The intended portrait route geometry was regenerated into scripts/shots-baseline.json with all 14 screens per viewport, 28 total, and a lowest screen standard deviation of 30.7 against the blank floor of 4. The enforcement run then passed 28/28 with 0 missing, 0 blank, 0 console errors, and 0 drift. After all baseline work, the authoritative full matrix was regenerated and contains exactly 113 files: 60 stills and 48 filmstrips across 844x390 and 390x844 in motion and reduced motion, with 0 console errors, 0 selector misses, and only the two expected deep-run boss states unreachable. Direct inspection confirmed the normal and reduced-motion portrait scout frames are fully painted. A fresh-context art director returned SHIP with no P0, P1, or P2 finding and no scope breach. It found the decision hierarchy decisively improved: monster identity, threat, facts, warnings, first ware, and both actions lead the portrait composition without crowding or crop, while the complete painted route remains visible below and landscape retains its triptych. Its only inherited, nonblocking P3 is small subdued portrait future-node labels; the next one-system recommendation is portrait route-node legibility through a larger label scale and stronger future-state contrast while preserving carved plaques, node positions, and route-state hierarchy.",
+      "note": "The exact verified 0.162.0 before artifacts are preserved at C:/tmp/bazaar-brawler-scout-overflow-0.162.0/shots with exactly 113 files. The final authoritative 0.163.0 artifacts are at C:/tmp/bazaar-brawler-scout-focus-0.163.0/shots with exactly 113 files. The committed scope is limited to the portrait combat selected-state composition class and grid order, its source contract, the two intended portrait route-anchor baseline updates, version and cache stamps, and this coordination record."
     },
     {
       "version": "0.162.0",
