@@ -3,7 +3,7 @@
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-28",
   "build": "0.162.0",
-  "reviewedHead": "a3cb960",
+  "reviewedHead": "64e85c6",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -45,12 +45,12 @@
       "owner": "codex",
       "branch": "presentation-scout-overflow-0.162.0",
       "worktree": "C:/tmp/bazaar-brawler-scout-overflow-0.162.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "64e85c6",
       "trigger": "The fresh-context 0.161.0 presentation review identified the scout body's hidden continuation as the highest-value next one-system priority: the complete first ware is visible, but nothing signals that more wares continue below the pinned actions.",
       "scope": "One presentation system: scout ledger overflow affordance. A read-only DOM measurement toggles a small static brass down tab and parchment-edge shadow only while unread combat-ware content remains below the current scroll position, then clears both at the true end. Short and noncombat ledgers stay unmarked. The existing bestiary header, Health and Bounty strip, Aspect and storm lines, gild and Affix warnings, exact ware list, scroll behavior, pinned Challenge and Slip Past actions, node selection, route dispatch, action costs, and deterministic encounter construction remain unchanged. Market, dock, route map geometry, combat, intro, setup rooms, result rooms, run end, art, engine, targeting, deterministic timing, saves, balance, economy, and route semantics remain unchanged.",
-      "verification": "In progress.",
-      "note": "The exact pushed 0.161.0 before artifacts are preserved at C:/tmp/bb-scout-overflow-0.162-before/shots with exactly 113 files. Only the scout continuation marker markup, overflow measurement and CSS, its source contract, version and cache stamps, and coordination record are reserved."
+      "verification": "SHIP. Focused presentation contract passed 24/24. Full npm test passed 588/588 with the repository dash scan. npm run build passed with 815 modules; only the standing public asset placeholder and chunk-size advisories remained. npm run shots:check passed 28 screens with 0 missing, 0 blank, 0 console errors, and 0 drift. The final deterministic matrix contains exactly 113 files: 60 stills and 48 filmstrips across 844x390 and 390x844 in motion and reduced motion, with 0 console errors, 0 selector misses, and only the two expected deep-run boss states unreachable. Live seeded Pilfer Monkey checks measured 14px unread overflow in landscape and 13px in portrait; the cue was visible in both, then hidden with has-more false at remaining 0 after scrolling to the true end. Sandling short combat and Market noncombat previews remained unmarked, and the browser console was clean. The first reduced-motion capture exposed a deferred-paint regression; binding overflow measurement synchronously fixed it, and the regenerated 390x844 and 844x390 reduced-motion frames are fully painted. A fresh-context art director returned SHIP after the live end-state evidence closed its sole screenshot-only gap, with no visual regression or scope breach. Its next one-system recommendation is a compact portrait scout-focus layout that brings monster information into the initial viewport sooner.",
+      "note": "The exact pushed 0.161.0 before artifacts are preserved at C:/tmp/bb-scout-overflow-0.162-before/shots with exactly 113 files. The final 0.162.0 artifacts are at C:/tmp/bazaar-brawler-scout-overflow-0.162.0/shots with exactly 113 files. The committed scope is limited to the scout continuation marker markup, synchronous read-only overflow measurement and CSS, its source contract, version and cache stamps, and this coordination record."
     },
     {
       "version": "0.161.0",
