@@ -484,7 +484,7 @@ function drawConnectors(){
     const a=center(e.from),b=center(e.to);if(!a||!b)return;
     const mx=(a.x+b.x)/2;
     const d='M'+a.x+' '+a.y+' C'+mx+' '+a.y+' '+mx+' '+b.y+' '+b.x+' '+b.y;
-    out+='<path d="'+d+'" class="edge under"/><path d="'+d+'" class="edge '+e.state+'"/>';
+    out+='<path d="'+d+'" class="edge under under-'+e.state+'"/><path d="'+d+'" class="edge '+e.state+'"/>';
   });
   svg.innerHTML=out;
 }

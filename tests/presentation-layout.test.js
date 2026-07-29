@@ -9,8 +9,15 @@ const html=readFileSync(root+'/index.html','utf8');
 const route=readFileSync(root+'/src/route-ui.js','utf8');
 const ui=readFileSync(root+'/src/ui.js','utf8');
 
-test('route map channels stay subordinate and portrait labels remain legible',()=>{
-  assert.match(html,/edge\.under\{stroke:[^}]+stroke-width:5\.5/);
+test('route map channels use state-marked estate inlay and portrait labels remain legible',()=>{
+  assert.ok(route.includes(`class="edge under under-'+e.state+'"`));
+  assert.match(html,/edge\.under-future\{stroke:rgba\(26,18,11,\.34\);stroke-width:3\.5/);
+  assert.match(html,/edge\.under-done\{stroke:rgba\(43,27,10,\.64\);stroke-width:4\.5/);
+  assert.match(html,/edge\.under-avail\{stroke:rgba\(52,32,9,\.78\);stroke-width:4\.75/);
+  assert.match(html,/edge\.done\{stroke:#b9934b;stroke-width:2\.25/);
+  assert.match(html,/edge\.avail\{stroke:#ffe2a6;stroke-width:2\.75;stroke-dasharray:6 5/);
+  assert.match(html,/edge\.future\{stroke:rgba\(169,129,77,\.32\);stroke-width:1\.25/);
+  assert.match(html,/@media \(prefers-reduced-motion: reduce\)\{\.rmedges \.edge\.avail,\.rmedges \.edge\.path-arrive\{animation:none !important;\}\}/);
   assert.match(html,/\.rmnode \.rmn\{font-size:10px;max-width:58px;max-height:24px;/);
 });
 
