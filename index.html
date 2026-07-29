@@ -1996,7 +1996,14 @@
     .rmnode{width:44px;height:54px;}
     .rmnode .rmmed{width:34px;height:34px;}
     .rmnode .rmg{width:29px;height:29px;}
-    .rmnode .rmn{font-size:9px;max-width:54px;max-height:22px;}
+    /* 0.164.0 portrait route labels: the plate carries a true phone-size
+       reading while future medallions keep their established hush. Separating
+       plate and medallion opacity preserves route-state hierarchy without
+       asking the player to decipher 9px type through two dimming layers. */
+    .rmnode .rmn{font-size:10px;max-width:58px;max-height:24px;}
+    .rmnode.future{opacity:1;}
+    .rmnode.future .rmmed{opacity:.52;}
+    .rmnode.future .rmn{opacity:.78;}
     .rmnode.boss{width:58px;height:66px;}
     .rmnode.boss .rmmed{width:46px;height:46px;}
     .rmnode.boss .rmg{width:40px;height:40px;}

@@ -11,7 +11,7 @@ const ui=readFileSync(root+'/src/ui.js','utf8');
 
 test('route map channels stay subordinate and portrait labels remain legible',()=>{
   assert.match(html,/edge\.under\{stroke:[^}]+stroke-width:5\.5/);
-  assert.match(html,/\.rmnode \.rmn\{font-size:9px;max-width:54px;max-height:22px;/);
+  assert.match(html,/\.rmnode \.rmn\{font-size:10px;max-width:58px;max-height:24px;/);
 });
 
 test('run-end actions precede a collapsed optional debrief',()=>{
@@ -118,6 +118,13 @@ test('portrait combat scouts rise above the map as the active decision surface',
   assert.match(html,/\.rmwrap\.scout-focus\{grid-template-rows:auto minmax\(0,1fr\);\}/);
   assert.match(html,/\.rmwrap\.scout-focus \.rmprev\{grid-row:1;max-height:42vh;\}/);
   assert.match(html,/\.rmwrap\.scout-focus \.rmboard\{grid-row:2;\}/);
+});
+
+test('portrait route labels stay legible without flattening future-node hierarchy',()=>{
+  assert.match(html,/\.rmnode \.rmn\{font-size:10px;max-width:58px;max-height:24px;\}/);
+  assert.match(html,/\.rmnode\.future\{opacity:1;\}/);
+  assert.match(html,/\.rmnode\.future \.rmmed\{opacity:\.52;\}/);
+  assert.match(html,/\.rmnode\.future \.rmn\{opacity:\.78;\}/);
 });
 
 test('portrait setup rooms use lintel chamber and threshold zones',()=>{
