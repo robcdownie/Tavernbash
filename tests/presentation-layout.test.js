@@ -29,6 +29,19 @@ test('landscape noncombat route previews form a balanced estate notice',()=>{
   assert.match(html,/\.rmprev\.estate-notice \.rmpfoot\{grid-row:4;padding:7px 9px 0;\}/);
 });
 
+test('landscape route hero rail balances its existing furniture and debt variant',()=>{
+  assert.match(ui,/const ribbon=\$\('ribbon'\);\s*ribbon\.classList\.toggle\('route-rail',G\.phase==='routeMap'\);/);
+  assert.ok(ui.includes('<div class="chip debt"><span class="lab">Debt due next reward</span>'));
+  assert.match(html,/body\.run #ribbon\.route-rail\{\s*display:grid;grid-template-rows:14px minmax\(0,1fr\) 12px auto 16px;/);
+  assert.match(html,/body\.run #ribbon\.route-rail \.crestwho\{margin-bottom:auto;\}/);
+  assert.match(html,/body\.run #ribbon\.route-rail \.creststrip\{grid-row:4;min-height:44px;\}/);
+  assert.match(html,/body\.run #ribbon\.route-rail::after\{display:none;\}/);
+  assert.match(html,/\.creststrip:has\(\.debt\) \.debt\{\s*grid-column:1\/-1;display:grid;grid-template-columns:22px minmax\(0,1fr\);/);
+  assert.match(html,/\.debt \.lab\{\s*grid-column:1\/-1;white-space:normal;font-size:6\.5px;line-height:1\.15;/);
+  assert.match(html,/\.creststrip:has\(\.debt\) #chipTrk\{\s*grid-column:1\/-1;min-height:32px;flex-direction:row;/);
+  assert.match(html,/body\.run\.fight #ribbon\.route-rail\{display:none;\}/);
+});
+
 test('run-end actions precede a collapsed optional debrief',()=>{
   assert.match(route,/const debrief='<details class="rdebrief"><summary>Optional Playtest Debrief<\/summary>/);
   assert.match(route,/unlockStrip\+endBtns\+debrief\+cloudPrompt/);

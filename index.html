@@ -3156,6 +3156,46 @@
     .rmprev.estate-notice .rmpboard{margin:5px 0 0;}
     .rmprev.estate-notice .rmpfoot{grid-row:4;padding:7px 9px 0;}
   }
+
+  /* ===== 0.168.0 LANDSCAPE ROUTE HERO RAIL ===== */
+  /* The route rail keeps the dealer identity at its crown, gives the resources
+     a lower anchor, and seats Tier and Omen above a final quiet margin. Existing
+     furniture now spans the whole carved rail instead of leaving one unfinished
+     lower chamber. Market keeps that chamber for the dealer's voice plaque. */
+  @media (orientation:landscape) and (min-width:640px){
+    body.run #ribbon.route-rail{
+      display:grid;grid-template-rows:14px minmax(0,1fr) 12px auto 16px;
+      overflow-y:hidden;
+      background:var(--pool-lantern),linear-gradient(180deg,#241c26,#171219 85%);
+    }
+    body.run #ribbon.route-rail .crestrow{
+      grid-row:2;display:flex;flex-direction:column;align-items:stretch;min-height:0;
+    }
+    body.run #ribbon.route-rail .crestwho{margin-bottom:auto;}
+    body.run #ribbon.route-rail .creststrip{grid-row:4;min-height:44px;}
+    body.run #ribbon.route-rail::after{display:none;}
+    body.run #ribbon.route-rail .creststrip:has(.debt){
+      display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.7fr);
+    }
+    body.run #ribbon.route-rail .creststrip:has(.debt) .debt{
+      grid-column:1/-1;display:grid;grid-template-columns:22px minmax(0,1fr);
+      grid-template-rows:auto auto;min-height:0;padding:4px 5px;
+    }
+    body.run #ribbon.route-rail .debt .lab{
+      grid-column:1/-1;white-space:normal;font-size:6.5px;line-height:1.15;
+      letter-spacing:.7px;overflow-wrap:anywhere;
+    }
+    body.run #ribbon.route-rail .debt .val{
+      grid-column:1;grid-row:2;align-self:start;font-size:12px;
+    }
+    body.run #ribbon.route-rail .debt .lab2{
+      grid-column:2;grid-row:2;font-size:7px;line-height:1.18;
+    }
+    body.run #ribbon.route-rail .creststrip:has(.debt) #chipTrk{
+      grid-column:1/-1;min-height:32px;flex-direction:row;gap:6px;padding:3px 6px;
+    }
+    body.run.fight #ribbon.route-rail{display:none;}
+  }
 </style>
 </head>
 <body>
