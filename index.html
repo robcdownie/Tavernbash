@@ -3135,6 +3135,27 @@
     -webkit-text-fill-color:#f6d693;color:#f6d693;filter:none;
     text-shadow:0 1px 0 rgba(28,16,4,.95),0 0 10px rgba(246,196,110,.22);
   }
+
+  /* ===== 0.167.0 LANDSCAPE ROUTE ESTATE NOTICE ===== */
+  /* Noncombat route copy no longer floats at the top of a full-height blank
+     parchment. The existing body and action become one centered estate notice
+     inside the same preview frame. Treasure can grow naturally, while short
+     descriptions keep equal breathing room above and below the notice. */
+  @media (orientation:landscape) and (min-width:640px){
+    .rmprev.estate-notice{grid-template-rows:auto minmax(0,1fr) auto auto minmax(0,1fr);}
+    .rmprev.estate-notice .rmphead{grid-row:1;}
+    .rmprev.estate-notice .rmpbody{
+      grid-row:3;align-self:end;overflow-y:auto;margin:0 9px;padding:8px 9px;
+      border:1px solid rgba(92,62,22,.24);border-radius:3px;
+      background:
+        linear-gradient(90deg,rgba(110,76,30,.04),rgba(255,248,224,.22) 50%,rgba(110,76,30,.04)),
+        rgba(243,229,194,.18);
+      box-shadow:inset 0 1px 0 rgba(255,250,232,.48),0 2px 6px rgba(62,39,10,.14);
+    }
+    .rmprev.estate-notice .rmpi{text-align:center;padding:0;border-bottom:0;}
+    .rmprev.estate-notice .rmpboard{margin:5px 0 0;}
+    .rmprev.estate-notice .rmpfoot{grid-row:4;padding:7px 9px 0;}
+  }
 </style>
 </head>
 <body>

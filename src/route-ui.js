@@ -436,6 +436,7 @@ export function renderRouteMap(opts){
   let pips='';for(let i=0;i<map.districts.length;i++){pips+='<span class="rmpip'+(i<beaten?' on':'')+(i===di?' cur':'')+'"></span>';}
   const focusNode=sel?map.nodes[sel]:null;
   const scoutFocus=focusNode&&['monster','elite','boss'].includes(focusNode.type);
+  const estateNotice=focusNode&&!isCombat(focusNode);
   const prev=focusNode?routeNodePreviewHTML(focusNode,stateOf(sel)):'<div class="rmhint">Tap any node to scout it.</div>';
   const source=districtSource(D);
   const displayName=D.reprise?DISTRICT_SOURCE_NAME[source]:D.name;
@@ -451,7 +452,7 @@ export function renderRouteMap(opts){
     +'<span class="rmdest">'+esc(MONSTERS[D.boss.monId].n)+' waits at the gate</span></div>'
     +'<div class="rmplot" id="rmplot"><svg class="rmedges" id="rmedges" preserveAspectRatio="none" aria-hidden="true"></svg>'+nodes+'</div>'
     +'</div>'
-    +'<div class="rmprev'+((opts.scout&&!RM)?' scout-arrive':'')+'" id="rmprev">'+prev+'</div></div>';
+    +'<div class="rmprev'+(estateNotice?' estate-notice':'')+((opts.scout&&!RM)?' scout-arrive':'')+'" id="rmprev">'+prev+'</div></div>';
   document.querySelectorAll('.rmnode').forEach(function(bn){
     bn.onclick=function(){G.route.selectedId=bn.dataset.n;renderRouteMap({scout:true});};});
   const p=$('rmprev');

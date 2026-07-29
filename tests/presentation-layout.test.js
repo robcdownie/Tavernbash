@@ -21,6 +21,14 @@ test('route map channels use state-marked estate inlay and portrait labels remai
   assert.match(html,/\.rmnode \.rmn\{font-size:10px;max-width:58px;max-height:24px;/);
 });
 
+test('landscape noncombat route previews form a balanced estate notice',()=>{
+  assert.match(route,/const estateNotice=focusNode&&!isCombat\(focusNode\);/);
+  assert.ok(route.includes(`class="rmprev'+(estateNotice?' estate-notice':'')+((opts.scout&&!RM)?' scout-arrive':'')+'"`));
+  assert.match(html,/\.rmprev\.estate-notice\{grid-template-rows:auto minmax\(0,1fr\) auto auto minmax\(0,1fr\);\}/);
+  assert.match(html,/\.rmprev\.estate-notice \.rmpbody\{\s*grid-row:3;align-self:end;overflow-y:auto;margin:0 9px;padding:8px 9px;/);
+  assert.match(html,/\.rmprev\.estate-notice \.rmpfoot\{grid-row:4;padding:7px 9px 0;\}/);
+});
+
 test('run-end actions precede a collapsed optional debrief',()=>{
   assert.match(route,/const debrief='<details class="rdebrief"><summary>Optional Playtest Debrief<\/summary>/);
   assert.match(route,/unlockStrip\+endBtns\+debrief\+cloudPrompt/);
