@@ -35,12 +35,27 @@
       "0.162.0",
       "0.163.0",
       "0.164.0",
-      "0.165.0"
+      "0.165.0",
+      "0.166.0"
     ],
     "status": "active",
-    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting. Versions 0.159.0 and 0.160.0 complete responsive dealer-bark staging. Version 0.161.0 gives the scout preview a complete first-view ware row through one compact fact strip. Version 0.162.0 adds an overflow-only continuation cue to the scout ledger. Version 0.163.0 promotes a selected portrait combat scout above the route painting as the active decision surface. Version 0.164.0 raises portrait route-label scale and future-state text contrast while preserving quiet medallions and route-state hierarchy. Version 0.165.0 carries that legibility system into the landscape route while protecting its 390px composition. The premium presentation ladder remains active for the next one-system version."
+    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting. Versions 0.159.0 and 0.160.0 complete responsive dealer-bark staging. Version 0.161.0 gives the scout preview a complete first-view ware row through one compact fact strip. Version 0.162.0 adds an overflow-only continuation cue to the scout ledger. Version 0.163.0 promotes a selected portrait combat scout above the route painting as the active decision surface. Version 0.164.0 raises portrait route-label scale and future-state text contrast while preserving quiet medallions and route-state hierarchy. Version 0.165.0 carries that legibility system into the landscape route while protecting its 390px composition. Version 0.166.0 rebalances route connectors as state-marked painted estate inlay while preserving the established braid geometry. The premium presentation ladder remains active for the next one-system version."
   },
   "reservations": [
+    {
+      "version": "0.166.0",
+      "project": "Premium Presentation Ladder",
+      "token": "route-connector-inlay",
+      "owner": "codex",
+      "branch": "presentation-route-inlay-0.166.0",
+      "worktree": "C:/tmp/bazaar-brawler-route-inlay-0.166.0",
+      "status": "active",
+      "sourceCommit": null,
+      "trigger": "The fresh-context 0.165.0 art-direction review returned SHIP with no P0 through P2 findings, confirmed the landscape-label hierarchy complete, and identified the inherited heavy dark connector channels as the route painting's strongest remaining schematic element.",
+      "scope": "One presentation system: route connector material and state hierarchy. At both 844x390 and 390x844, each connector's existing carved under-stroke gains its classified route state so the channel can recede or strengthen with the inlay it carries. Future roads become the quietest shallow estate marks, completed roads read as solid aged brass, and available roads remain the brightest dashed gilt invitation. Normal-motion path flow and arrival stay intact, and reduced motion remains static. Exact Bezier geometry, endpoints, path classification, draw order, node positions, medallions, labels, gilded stars, hit targets, route painting, district header, scout preview, selection, dispatch, action costs, encounter construction, and deterministic timing remain unchanged. No connector may obscure node art or labels, flatten future versus available versus completed hierarchy, or disturb the fixed landscape and portrait route budgets. Market, dock, combat, intro, setup rooms, result rooms, run end, art assets, engine, targeting, saves, balance, economy, and route semantics remain unchanged.",
+      "verification": "In progress.",
+      "note": "The exact verified 0.165.0 before artifacts are preserved at C:/tmp/bazaar-brawler-landscape-labels-0.165.0/shots with exactly 113 files, 0 console errors, 0 selector misses, and only the 2 expected deep-run boss states unreachable. Only connector state classes, connector material and state styling, their source contract, version and cache stamps, intended route-anchor baseline updates if the fixed visual gate requires them, and this coordination record are reserved."
+    },
     {
       "version": "0.165.0",
       "project": "Premium Presentation Ladder",
