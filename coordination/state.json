@@ -3,7 +3,7 @@
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-28",
   "build": "0.167.0",
-  "reviewedHead": "a90b734",
+  "reviewedHead": "507c1d4",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -50,12 +50,12 @@
       "owner": "codex",
       "branch": "presentation-route-notice-0.167.0",
       "worktree": "C:/tmp/bazaar-brawler-route-notice-0.167.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "507c1d4",
       "trigger": "The fresh-context 0.166.0 art-direction review returned SHIP with no P0 through P2 findings, confirmed the connector hierarchy complete, and identified the landscape Market preview's single description line floating in an inherited full-height parchment body as the next strongest composition gap.",
       "scope": "One presentation system: landscape noncombat route-preview composition. At 844x390, a selected Market, Treasure, Rest, Shrine, Merchant, or Negotiation preview gains a noncombat presentation class. Its existing body and footer form one compact vertically balanced estate notice within the fixed 224px preview column, with enough adaptable room for both a one-line Market description and the complete face-up Treasure list. The preview header, node art, name, type, threat, copy, action labels, action order, button hit targets, panel dimensions, route painting, node map, selection, dispatch, action costs, and semantics remain unchanged. Combat scouts and every portrait route preview remain unchanged. Normal-motion scout arrival and reduced-motion behavior remain unchanged. No notice may clip copy, crowd an action, obscure the panel frame, or alter route and scout anchors. Market, dock, combat, intro, setup rooms, result rooms, run end, art assets, engine, targeting, saves, balance, economy, and route semantics remain unchanged.",
-      "verification": "In progress.",
-      "note": "The exact verified 0.166.0 before artifacts are preserved at C:/tmp/bazaar-brawler-route-inlay-0.166.0/shots with exactly 113 files, 0 console errors, 0 selector misses, and only the 2 expected deep-run boss states unreachable. The targeted landscape Market fixture at C:/tmp/0.166-route-done-avail-844x390.png exposes the inherited empty-body composition. Only a noncombat preview class, its landscape composition and estate-notice styling, their source contract, version and cache stamps, intended route-anchor baseline updates if the fixed visual gate requires them, and this coordination record are reserved."
+      "verification": "SHIP. Focused presentation, route, and coordination contracts passed 60/60. Full npm test passed 592/592 with the repository dash scan. The production build passed with 815 transformed modules and only the standing public-asset placeholder and chunk-size advisories. npm run shots:check passed all 28 screens with 0 missing, 0 blank, 0 console errors, and 0 layout drift. The final authoritative capture contains exactly 113 files: 60 stills and 48 filmstrips across 844x390 and 390x844 in motion and reduced motion, with 0 console errors, 0 selector misses, and only the 2 expected deep-run boss states unreachable. Targeted landscape fixtures confirmed the Market notice uses a 186 by 50 body and 204 by 47 footer as one centered decision unit, while Treasure uses a 186 by 172 body and 204 by 49 footer to show all three choices and its action without clipping. Route and scout anchors match 0.166.0 in both viewports. All four reduced-motion route and scout frames are byte-identical to 0.166.0. A fresh-context art director returned SHIP with no P0, P1, P2, or P3 findings, confirmed Market and Treasure share one compositional grammar, and confirmed portrait and combat preservation. Real-phone approval remains required before release.",
+      "note": "The exact verified 0.166.0 before artifacts remain at C:/tmp/bazaar-brawler-route-inlay-0.166.0/shots with exactly 113 files. The stable 0.167.0 after artifacts are at C:/tmp/bazaar-brawler-route-notice-0.167.0/shots with exactly 113 files. Targeted Market evidence is at C:/tmp/0.167-market-notice-844x390.png and C:/tmp/0.167-market-notice-844x390-rm.png. Targeted Treasure evidence is at C:/tmp/0.167-treasure-notice-844x390-rm.png. The class applies only to selected noncombat nodes and the styling is landscape-gated. Copy, actions, panel dimensions, route painting, node map, selection, dispatch, costs, semantics, combat scouts, and portrait previews remain unchanged. The next highest-value one-system version is landscape route hero-rail composition: vertically balance the existing portrait, identity, health and gold, tier, and Omen furniture within the fixed rail without adding copy, changing dimensions, moving the route painting, or affecting combat and portrait layouts."
     },
     {
       "version": "0.166.0",
