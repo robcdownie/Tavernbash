@@ -192,6 +192,7 @@ function renderRibbon(){
   const debt=G.gold<0&&H&&H.mod&&H.mod.rerollBlockedInDebt?-G.gold:0;
   const ribbon=$('ribbon');
   ribbon.classList.toggle('route-rail',G.phase==='routeMap');
+  ribbon.classList.toggle('market-rail',G.phase==='draft');
   /* 0.107.0 dealer crest: the hero is the HUD. Portrait, name, and favored
      trade anchor the left; Resolve and Gold ride attached; Tier, Omen, and
      Charms demote to a quieter strip below. Same data, new anatomy. */

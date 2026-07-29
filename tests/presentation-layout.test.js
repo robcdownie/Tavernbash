@@ -42,6 +42,20 @@ test('landscape route hero rail balances its existing furniture and debt variant
   assert.match(html,/body\.run\.fight #ribbon\.route-rail\{display:none;\}/);
 });
 
+test('landscape Market hero rail protects its voice dock and contains debt',()=>{
+  assert.match(ui,/ribbon\.classList\.toggle\('market-rail',G\.phase==='draft'\);/);
+  assert.match(html,/body\.run #ribbon\.market-rail\{\s*display:grid;grid-template-rows:minmax\(0,1fr\) auto 84px;/);
+  assert.match(html,/body\.run #ribbon\.market-rail \.crestwho\{margin-bottom:auto;\}/);
+  assert.match(html,/body\.run #ribbon\.market-rail \.creststrip\{grid-row:2;min-height:44px;\}/);
+  assert.match(html,/body\.run #ribbon\.market-rail::after\{\s*grid-row:3;min-height:0;/);
+  assert.match(html,/body\.run #ribbon\.market-rail:has\(\.debt\)\{\s*grid-template-rows:minmax\(0,1fr\) auto 67px;/);
+  assert.match(html,/\.market-rail \.creststrip:has\(\.debt\)\{\s*display:grid;grid-template-columns:36px 44px;\s*grid-template-rows:44px 44px auto;/);
+  assert.match(html,/\.market-rail \.creststrip:has\(\.debt\) \.debt\{\s*grid-column:1\/-1;grid-row:2\/4;display:grid;\s*grid-template-columns:36px 44px;grid-template-rows:44px auto;\s*gap:0;/);
+  assert.match(html,/\.market-rail \.debt \.lab2\{\s*grid-column:1\/-1;grid-row:2;padding:3px 4px 2px;/);
+  assert.match(html,/\.market-rail \.creststrip:has\(\.debt\) #chipTrk\{\s*grid-column:2;grid-row:2;min-width:44px;min-height:44px;/);
+  assert.match(html,/body\.run\.fight #ribbon\.market-rail\{display:none;\}/);
+});
+
 test('run-end actions precede a collapsed optional debrief',()=>{
   assert.match(route,/const debrief='<details class="rdebrief"><summary>Optional Playtest Debrief<\/summary>/);
   assert.match(route,/unlockStrip\+endBtns\+debrief\+cloudPrompt/);
