@@ -1964,6 +1964,17 @@
   .rmnode.boss .rmg{width:58px;height:58px;}
   .rmnode.boss .rmn{font-size:10px;color:#ffd7cd;max-width:74px;}
   .rmnode:disabled{cursor:default;}
+  /* 0.165.0 landscape route labels: the primary phone view gets the same
+     readable type floor as portrait without moving a node or consuming more
+     route rows. Future medallions keep their hush while their carved labels
+     remain readable against the manor painting. */
+  @media (orientation:landscape) and (min-width:640px){
+    .rmnode .rmn{font-size:10px;max-width:64px;max-height:22px;}
+    .rmnode.future{opacity:1;}
+    .rmnode.future .rmmed{opacity:.52;}
+    .rmnode.future .rmstar{opacity:.52;}
+    .rmnode.future .rmn{opacity:.78;}
+  }
   /* preview: header, scrollable body, pinned footer */
   .rmprev{background:linear-gradient(180deg,rgba(34,24,14,.92),rgba(22,15,9,.92));border:1px solid rgba(216,162,74,.3);
     border-radius:12px;padding:10px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:0;gap:6px;}

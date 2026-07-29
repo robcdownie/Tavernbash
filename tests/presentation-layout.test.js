@@ -127,6 +127,19 @@ test('portrait route labels stay legible without flattening future-node hierarch
   assert.match(html,/\.rmnode\.future \.rmn\{opacity:\.78;\}/);
 });
 
+test('landscape route labels stay legible inside the fixed phone-height budget',()=>{
+  const start=html.indexOf('/* 0.165.0 landscape route labels');
+  const end=html.indexOf('/* preview: header',start);
+  assert.ok(start>=0&&end>start);
+  const landscape=html.slice(start,end);
+  assert.match(landscape,/@media \(orientation:landscape\) and \(min-width:640px\)\{/);
+  assert.match(landscape,/\.rmnode \.rmn\{font-size:10px;max-width:64px;max-height:22px;\}/);
+  assert.match(landscape,/\.rmnode\.future\{opacity:1;\}/);
+  assert.match(landscape,/\.rmnode\.future \.rmmed\{opacity:\.52;\}/);
+  assert.match(landscape,/\.rmnode\.future \.rmstar\{opacity:\.52;\}/);
+  assert.match(landscape,/\.rmnode\.future \.rmn\{opacity:\.78;\}/);
+});
+
 test('portrait setup rooms use lintel chamber and threshold zones',()=>{
   assert.match(html,/\.card\.setupcard\{[^}]+justify-content:flex-start/);
   assert.match(html,/\.card\.setupcard\.evroom::after\{background:linear-gradient/);
