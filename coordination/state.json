@@ -3,7 +3,7 @@
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-28",
   "build": "0.164.0",
-  "reviewedHead": "4e62460",
+  "reviewedHead": "f3fdee2",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -47,12 +47,12 @@
       "owner": "codex",
       "branch": "presentation-route-labels-0.164.0",
       "worktree": "C:/tmp/bazaar-brawler-route-labels-0.164.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "f3fdee2",
       "trigger": "The fresh-context 0.163.0 art-direction review returned SHIP but identified one inherited P3: portrait future-node labels remain small and subdued at 9px beneath whole-node 52 percent opacity.",
       "scope": "One presentation system: portrait route-node legibility. Portrait node labels rise from 9px to 10px with a slightly wider two-line carved plate. Future nodes separate their presentation layers: medallions retain the established 52 percent quietness while label plates rise to 78 percent, preserving the distinction from reachable, selected, done, and boss states. Node positions, hit targets, glyph size, connectors, route painting, district header, selected scout focus, bestiary leaf, actions, selection, dispatch, action costs, encounter construction, and deterministic timing remain unchanged. Landscape remains unchanged. Market, dock, combat, intro, setup rooms, result rooms, run end, art, engine, targeting, saves, balance, economy, and route semantics remain unchanged.",
-      "verification": "In progress.",
-      "note": "The exact verified 0.163.0 before artifacts are preserved at C:/tmp/bazaar-brawler-scout-focus-0.163.0/shots with exactly 113 files. Only the portrait node-label type metrics and separated future-state opacity, their source contract, version and cache stamps, and coordination record are reserved."
+      "verification": "SHIP. Focused presentation contracts passed 26/26. Full npm test passed 590/590 after implementation. Production build passed with 815 transformed modules and only the standing public-asset placeholder and chunk-size advisories. The screenshot baseline gate passed all 28 screens with 0 missing, 0 blank, 0 console errors, and 0 layout drift. The first authoritative four-mode capture was rejected after one transient browser resource failure. Its clean rerun produced the stable final matrix: 113 files, 60 stills, 48 filmstrips, 0 console errors, 0 selector misses, and 2 expected deep-run boss states unreachable. Manual review of route and scout normal and reduced-motion frames at both 390x844 and 844x390 found no clipping, collision, hierarchy regression, or landscape change. A fresh-context art director returned SHIP with no P0, P1, or P2 findings. The one inherited P3 is landscape route-label legibility. Real-phone approval remains required before release.",
+      "note": "The exact verified 0.163.0 before artifacts remain at C:/tmp/bazaar-brawler-scout-focus-0.163.0/shots with exactly 113 files. The stable 0.164.0 after artifacts are at C:/tmp/bazaar-brawler-route-labels-0.164.0/shots with exactly 113 files. Portrait route labels now read at 10px on 58 by 24px plates. Future label plates read at 78 percent while future medallions retain 52 percent opacity. Landscape, node positions, hit targets, connectors, route semantics, actions, dispatch, costs, art, and deterministic timing are unchanged. The next highest-value one-system version is landscape route-node legibility using the same separated label and medallion layers within the 390px height budget."
     },
     {
       "version": "0.163.0",
