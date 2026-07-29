@@ -1,7 +1,7 @@
 {
   "name": "bazaar-brawler",
   "private": true,
-  "version": "0.162.0",
+  "version": "0.163.0",
   "type": "module",
   "scripts": {
     "art": "node scripts/make-art-manifest.js",

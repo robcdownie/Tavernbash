@@ -111,6 +111,15 @@ test('the scout marks only the unread portion of an overflowing ware ledger',()=
   assert.match(html,/\.rmpbody\.has-more \+ \.rmpmore\{display:block;\}/);
 });
 
+test('portrait combat scouts rise above the map as the active decision surface',()=>{
+  assert.match(route,/const focusNode=sel\?map\.nodes\[sel\]:null;/);
+  assert.match(route,/const scoutFocus=focusNode&&\['monster','elite','boss'\]\.includes\(focusNode\.type\);/);
+  assert.match(route,/<div class="rmwrap'\+\(scoutFocus\?' scout-focus':''\)\+'">/);
+  assert.match(html,/\.rmwrap\.scout-focus\{grid-template-rows:auto minmax\(0,1fr\);\}/);
+  assert.match(html,/\.rmwrap\.scout-focus \.rmprev\{grid-row:1;max-height:42vh;\}/);
+  assert.match(html,/\.rmwrap\.scout-focus \.rmboard\{grid-row:2;\}/);
+});
+
 test('portrait setup rooms use lintel chamber and threshold zones',()=>{
   assert.match(html,/\.card\.setupcard\{[^}]+justify-content:flex-start/);
   assert.match(html,/\.card\.setupcard\.evroom::after\{background:linear-gradient/);

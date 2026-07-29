@@ -2002,6 +2002,13 @@
     .rmnode.boss .rmg{width:40px;height:40px;}
     .rmprev{grid-template-rows:auto minmax(0,1fr) auto;max-height:42vh;}
     .rmdest{display:none;}
+    /* 0.163.0 portrait scout focus: once a combat door is selected, its
+       bestiary leaf becomes the decision surface directly under the crest.
+       The route painting stays whole beneath it. Unselected and noncombat
+       routes keep the established map-first composition. */
+    .rmwrap.scout-focus{grid-template-rows:auto minmax(0,1fr);}
+    .rmwrap.scout-focus .rmprev{grid-row:1;max-height:42vh;}
+    .rmwrap.scout-focus .rmboard{grid-row:2;}
   }
 
   /* ===== 0.141.0 THE SOCKET PASS: the duel board is ten carved sockets ===== */

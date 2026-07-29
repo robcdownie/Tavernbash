@@ -1,6 +1,6 @@
 {
  "seed": 13,
- "generatedBy": "0.155.0 combat result rooms",
+ "generatedBy": "0.163.0 portrait scout focus",
  "tolerances": {
   "box": 56,
   "page": 56,
@@ -758,7 +758,7 @@
      ],
      ".rmplot": [
       23,
-      177,
+      537,
       344,
       280
      ]
@@ -790,7 +790,7 @@
      ],
      ".rmplot": [
       23,
-      177,
+      537,
       344,
       280
      ]

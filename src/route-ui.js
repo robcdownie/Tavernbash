@@ -434,7 +434,9 @@ export function renderRouteMap(opts){
   D.columns.forEach(function(col){col.forEach(function(n){nodes+=nodeBtn(n);});});
   nodes+=nodeBtn(D.boss);
   let pips='';for(let i=0;i<map.districts.length;i++){pips+='<span class="rmpip'+(i<beaten?' on':'')+(i===di?' cur':'')+'"></span>';}
-  const prev=sel?routeNodePreviewHTML(map.nodes[sel],stateOf(sel)):'<div class="rmhint">Tap any node to scout it.</div>';
+  const focusNode=sel?map.nodes[sel]:null;
+  const scoutFocus=focusNode&&['monster','elite','boss'].includes(focusNode.type);
+  const prev=focusNode?routeNodePreviewHTML(focusNode,stateOf(sel)):'<div class="rmhint">Tap any node to scout it.</div>';
   const source=districtSource(D);
   const displayName=D.reprise?DISTRICT_SOURCE_NAME[source]:D.name;
   /* the current district's Affix word rides the header, one carved chip beside the
@@ -443,7 +445,7 @@ export function renderRouteMap(opts){
   const headerAffix=affOn?districtAffix(D,map.seed):null;
   const affChip=headerAffix?'<span class="rmaffix">'+esc(headerAffix.w)+'</span>':'';
   $('main').className='routemap';
-  $('main').innerHTML='<div class="rmwrap">'
+  $('main').innerHTML='<div class="rmwrap'+(scoutFocus?' scout-focus':'')+'">'
     +'<div class="rmboard source-'+source+'" style="background-image:linear-gradient(180deg,rgba(20,14,8,.28),rgba(14,9,5,.62)),url(art/bg/bg_route_'+DBG[source]+'.png)">'
     +'<div class="rmhdr"><span class="rmdn">'+esc(displayName)+'</span>'+(D.reprise?'<span class="rmafter">After Midnight</span>':'')+affChip+'<span class="rmpips">'+pips+'</span>'
     +'<span class="rmdest">'+esc(MONSTERS[D.boss.monId].n)+' waits at the gate</span></div>'
