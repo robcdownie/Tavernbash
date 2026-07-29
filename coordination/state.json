@@ -3,7 +3,7 @@
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-28",
   "build": "0.166.0",
-  "reviewedHead": "cf3c91c",
+  "reviewedHead": "a90b734",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -49,12 +49,12 @@
       "owner": "codex",
       "branch": "presentation-route-inlay-0.166.0",
       "worktree": "C:/tmp/bazaar-brawler-route-inlay-0.166.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "a90b734",
       "trigger": "The fresh-context 0.165.0 art-direction review returned SHIP with no P0 through P2 findings, confirmed the landscape-label hierarchy complete, and identified the inherited heavy dark connector channels as the route painting's strongest remaining schematic element.",
       "scope": "One presentation system: route connector material and state hierarchy. At both 844x390 and 390x844, each connector's existing carved under-stroke gains its classified route state so the channel can recede or strengthen with the inlay it carries. Future roads become the quietest shallow estate marks, completed roads read as solid aged brass, and available roads remain the brightest dashed gilt invitation. Normal-motion path flow and arrival stay intact, and reduced motion remains static. Exact Bezier geometry, endpoints, path classification, draw order, node positions, medallions, labels, gilded stars, hit targets, route painting, district header, scout preview, selection, dispatch, action costs, encounter construction, and deterministic timing remain unchanged. No connector may obscure node art or labels, flatten future versus available versus completed hierarchy, or disturb the fixed landscape and portrait route budgets. Market, dock, combat, intro, setup rooms, result rooms, run end, art assets, engine, targeting, saves, balance, economy, and route semantics remain unchanged.",
-      "verification": "In progress.",
-      "note": "The exact verified 0.165.0 before artifacts are preserved at C:/tmp/bazaar-brawler-landscape-labels-0.165.0/shots with exactly 113 files, 0 console errors, 0 selector misses, and only the 2 expected deep-run boss states unreachable. Only connector state classes, connector material and state styling, their source contract, version and cache stamps, intended route-anchor baseline updates if the fixed visual gate requires them, and this coordination record are reserved."
+      "verification": "SHIP. Focused presentation, route, and coordination contracts passed 59/59, including the exact future, completed, available, and reduced-motion connector rules. Full npm test passed 591/591 with the repository dash scan. The production build passed with 815 transformed modules and only the standing public-asset placeholder and chunk-size advisories. npm run shots:check passed all 28 screens with 0 missing, 0 blank, 0 console errors, and 0 layout drift. The final authoritative capture contains exactly 113 files: 60 stills and 48 filmstrips across 844x390 and 390x844 in motion and reduced motion, with 0 console errors, 0 selector misses, and only the 2 expected deep-run boss states unreachable. Direct state fixtures confirmed that future paths recede, completed paths read as solid aged brass, and available paths remain the brightest dashed gilt when all states coexist. Route and scout anchors are byte-equivalent to 0.165.0 in both viewports. A fresh-context art director returned SHIP with no P0, P1, or P2 finding and found one nonblocking P3: pin the already-correct reduced-motion rule in the focused contract. That assertion was added before the final full test, build, screenshot gate, and authoritative matrix reruns. Real-phone approval remains required before release.",
+      "note": "The exact verified 0.165.0 before artifacts remain at C:/tmp/bazaar-brawler-landscape-labels-0.165.0/shots with exactly 113 files. The stable 0.166.0 after artifacts are at C:/tmp/bazaar-brawler-route-inlay-0.166.0/shots with exactly 113 files. Connector geometry, endpoints, state classification, draw order, node positions, labels, hit targets, art, route semantics, actions, dispatch, costs, and deterministic timing are unchanged. The next highest-value one-system version is landscape noncombat route-preview composition: turn the inherited tall empty parchment body into a compact vertically balanced estate notice while preserving copy, actions, panel dimensions, and semantics."
     },
     {
       "version": "0.165.0",
