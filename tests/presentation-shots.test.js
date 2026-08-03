@@ -7,11 +7,11 @@ import {fileURLToPath} from 'node:url';
 const script=readFileSync(fileURLToPath(new URL('../scripts/shots.mjs',import.meta.url)),'utf8');
 
 test('numbered fight stills are captured only while the live fight is paused',()=>{
-  assert.match(script,/const shootLiveFight = async \(label\)/);
-  assert.match(script,/g\.phase !== 'fight' \|\| document\.querySelector\('\.recapcard'\)/);
-  assert.match(script,/g\.fpaused = true/);
-  assert.match(script,/g\.fpaused = false/);
-  assert.ok(script.indexOf("shootLiveFight('fight-frame-3')")<script.indexOf("filmstrip('full-fight'"));
+  assert.match(script,/const shootPausedFight = async \(label\)/);
+  assert.match(script,/game\.phase !== 'fight' \|\| document\.querySelector\('\.recapcard'\)/);
+  assert.match(script,/game\.fpaused = true/);
+  assert.match(script,/game\.fpaused = false/);
+  assert.ok(script.indexOf("shootPausedFight('fight-frame-3')")<script.indexOf("filmstrip('full-fight'"));
 });
 
 test('offline capture installs a controlling worker before disconnecting',()=>{

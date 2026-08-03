@@ -28,6 +28,7 @@ import {join, dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {chromium} from '@playwright/test';
+import {assertBuildCurrent} from './build-stamp.mjs';
 import {SEED, VIEWPORTS, serveDist, walkViewport, log} from './shots.mjs';
 
 const require = createRequire(import.meta.url);
@@ -54,10 +55,8 @@ async function blankness(file) {
 }
 
 async function runWalk() {
-  if (!existsSync(join(DIST, 'index.html'))) {
-    console.error('dist/index.html not found. Run npm run build first (npm run shots:check does this for you locally).');
-    process.exit(1);
-  }
+  await assertBuildCurrent();
+  log.length = 0;
   await rm(OUT, {recursive: true, force: true});
   await mkdir(OUT, {recursive: true});
   const srv = await serveDist();
@@ -66,11 +65,13 @@ async function runWalk() {
   const browser = await chromium.launch({executablePath: process.env.SHOTS_CHROMIUM || undefined});
   const metricsAll = {};
   try {
-    for (const vp of VIEWPORTS) {
+    const results = await Promise.all(VIEWPORTS.map(async (vp) => {
       console.log('viewport ' + vp.name);
       const res = await walkViewport(browser, base, vp);
-      metricsAll[vp.name] = res.metrics;
-    }
+      return {vp, metrics: res.metrics};
+    }));
+    results.sort((a, b) => VIEWPORTS.indexOf(a.vp) - VIEWPORTS.indexOf(b.vp));
+    for (const result of results) metricsAll[result.vp.name] = result.metrics;
   } finally {
     await browser.close();
     srv.close();
@@ -82,6 +83,12 @@ async function runWalk() {
       m.stdev = m.file ? await blankness(join(OUT, m.file)) : -1;
     }
   }
+  log.sort((a, b) => {
+    const viewportOrder = VIEWPORTS.findIndex((viewport) => viewport.name === a.viewport) -
+      VIEWPORTS.findIndex((viewport) => viewport.name === b.viewport);
+    return viewportOrder || String(a.screen).localeCompare(String(b.screen)) ||
+      String(a.kind).localeCompare(String(b.kind)) || String(a.detail).localeCompare(String(b.detail));
+  });
   return metricsAll;
 }
 

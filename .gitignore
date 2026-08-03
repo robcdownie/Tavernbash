@@ -19,6 +19,7 @@ debug.log
 
 # Screenshot harness output (scripts/shots.mjs); regenerate with npm run shots
 shots/
+shots-target/
 
 # Codex working files, never committed (per the R7 handoff)
 .agents/

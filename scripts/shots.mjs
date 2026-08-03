@@ -35,6 +35,11 @@ import {join, dirname, extname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {chromium} from '@playwright/test';
+import {assertBuildCurrent} from './build-stamp.mjs';
+import {buyAffordable, driveFirstMarket, phoneContextOptions} from './shots-fixtures.mjs';
+import {measurePresentation, writePresentationReport} from './presentation-report.mjs';
+
+export {buyAffordable};
 
 const require = createRequire(import.meta.url);
 const sharp = require('sharp');
@@ -93,7 +98,7 @@ export function note(vp, screen, kind, detail) {
    each structural anchor present. Layout only, no pixels; the gate compares it
    to the committed baseline. */
 async function captureMetrics(page) {
-  return await page.evaluate((anchors) => {
+  const structural = await page.evaluate((anchors) => {
     const doc = document.documentElement;
     const out = {pageW: doc.scrollWidth, pageH: doc.scrollHeight, innerW: window.innerWidth, innerH: window.innerHeight, anchors: {}};
     for (const sel of anchors) {
@@ -102,6 +107,10 @@ async function captureMetrics(page) {
     }
     return out;
   }, ANCHORS);
+  const presentation = await measurePresentation(page, ANCHORS);
+  structural.overflow = presentation.overflow;
+  structural.undersizedTargets = presentation.undersizedTargets;
+  return structural;
 }
 
 /* stitch a rapid frame sequence into one wide labeled PNG an agent can read in a
@@ -149,12 +158,7 @@ export async function walkViewport(browser, base, vp, opts = {}) {
   const filmsDir = join(dir, 'films');
   await mkdir(dir, {recursive: true});
   if (MOTION) await mkdir(filmsDir, {recursive: true});
-  const ctxOpts = {
-    viewport: {width: vp.width, height: vp.height},
-    deviceScaleFactor: 3, isMobile: true, hasTouch: true,
-    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
-  };
-  if (REDUCED) ctxOpts.reducedMotion = 'reduce';
+  const ctxOpts = phoneContextOptions(vp, REDUCED);
   if (opts.videoDir) ctxOpts.recordVideo = {dir: opts.videoDir, size: {width: vp.width, height: vp.height}};
   const context = await browser.newContext(ctxOpts);
   /* the webfonts (Rakkas, Hanken Grotesk) load from Google Fonts; sandboxed
@@ -184,7 +188,7 @@ export async function walkViewport(browser, base, vp, opts = {}) {
     const file = vp.name + '/' + name;
     try { metrics[label] = Object.assign({file}, await captureMetrics(page)); }
     catch (e) { note(vp.name, currentScreen, 'metrics-failed', String(e && e.message)); metrics[label] = {file}; }
-    shotsTaken.push({file, label, screen: currentScreen});
+    shotsTaken.push({file, label, screen: currentScreen, measurements: metrics[label]});
     return name;
   }
   /* wait that never throws: a miss is logged and the walk continues */
@@ -304,28 +308,80 @@ export async function walkViewport(browser, base, vp, opts = {}) {
      normally. This keeps numbered fight evidence out of the victory recap. */
   currentScreen = '08-fight';
   let committed = false;
-  await filmstrip('scout-fight', async () => { committed = await tap('.rmpfoot [data-a="challenge"]', 5000); }, {frames: 4, interval: 90, reducedFrames: 3});
+  await filmstrip('scout-fight', async () => {
+    await page.evaluate(() => {
+      try {
+        clearInterval(window.__shotsFightPause);
+        window.__shotsFightPause = setInterval(() => {
+          try {
+            const game = window.BBDEV && window.BBDEV.g();
+            if (game && game.phase === 'fight') {
+              game.fpaused = true;
+              clearInterval(window.__shotsFightPause);
+            }
+          } catch (error) {}
+        }, 8);
+        setTimeout(() => clearInterval(window.__shotsFightPause), 5000);
+      } catch (error) {}
+    });
+    committed = await tap('.rmpfoot [data-a="challenge"]', 5000);
+  }, {frames: 4, interval: 90, reducedFrames: 3});
   if (committed && await settle('#main.fight', 6000)) {
+    await page.evaluate(() => {
+      try {
+        const game = window.BBDEV && window.BBDEV.g();
+        if (game && game.phase === 'fight') game.fpaused = true;
+      } catch (error) {}
+    });
     const dusk = await page.$('.dusk.skippable');
     if (dusk) await dusk.click();
-    const shootLiveFight = async (label) => {
-      await page.waitForTimeout(150);
+    const shootPausedFight = async (label) => {
       const live = await page.evaluate(() => {
         try {
-          const g = window.BBDEV && window.BBDEV.g();
-          if (!g || g.phase !== 'fight' || document.querySelector('.recapcard')) return false;
-          g.fpaused = true;
+          const game = window.BBDEV && window.BBDEV.g();
+          if (!game || game.phase !== 'fight' || document.querySelector('.recapcard')) return false;
+          game.fpaused = true;
           return true;
-        } catch (e) { return false; }
+        } catch (error) { return false; }
       });
       if (!live) { note(vp.name, currentScreen, 'fight-still-missed', label + ' reached the recap'); return false; }
       await shoot(label);
-      await page.evaluate(() => { try { const g = window.BBDEV && window.BBDEV.g(); if (g) g.fpaused = false; } catch (e) {} });
       return true;
     };
-    await shootLiveFight('fight-frame-1');
-    await shootLiveFight('fight-frame-2');
-    await shootLiveFight('fight-frame-3');
+    const advancePausedFight = async () => {
+      await page.evaluate(() => {
+        try {
+          const game = window.BBDEV && window.BBDEV.g();
+          if (!game || game.phase !== 'fight') return;
+          game.fpaused = false;
+          setTimeout(() => {
+            try {
+              const live = window.BBDEV && window.BBDEV.g();
+              if (live && live.phase === 'fight') live.fpaused = true;
+            } catch (error) {}
+          }, 90);
+        } catch (error) {}
+      });
+      await page.waitForFunction(() => {
+        try {
+          const game = window.BBDEV && window.BBDEV.g();
+          return !game || game.phase !== 'fight' || game.fpaused;
+        } catch (error) {
+          return true;
+        }
+      }, null, {timeout: 3000}).catch(() => {});
+    };
+    await shootPausedFight('fight-frame-1');
+    await advancePausedFight();
+    await shootPausedFight('fight-frame-2');
+    await advancePausedFight();
+    await shootPausedFight('fight-frame-3');
+    await page.evaluate(() => {
+      try {
+        const game = window.BBDEV && window.BBDEV.g();
+        if (game) game.fpaused = false;
+      } catch (error) {}
+    });
     /* full-fight now begins on the active boards and follows them into recap */
     await filmstrip('full-fight', null, {frames: 16, interval: 110, reducedFrames: 6});
   } else {
@@ -344,7 +400,7 @@ export async function walkViewport(browser, base, vp, opts = {}) {
     await filmstrip('victory-market', () => tap('#recapGo'));
     /* a bounty choice overlay (gild, unique, charm) can follow: record and clear it */
     try {
-      await page.waitForSelector('.ov .card', {timeout: 2500});
+      await page.waitForSelector('.ov .card', {timeout: 8000});
       await shoot('reward-choice');
       const b = await page.$('.ov .card button');
       if (b) await b.click();
@@ -388,27 +444,19 @@ export async function walkViewport(browser, base, vp, opts = {}) {
      empty-board fight and its defeat, a boss fight if reachable, an offline
      load. Unreachable states are logged and skipped, never fatal. */
   if (MOTION && opts.extraStates) {
-    const driveToFirstMarket = async () => {
-      await page.goto(base + '/sw.js');
-      await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
-      await page.goto(base + '/?seed=' + SEED);
-      if (!await settle('#intro.bgready', 6000)) return false;
-      await tap('#inNew');
-      if (!await settle('.heropick')) return false;
-      await tap('.herochip:not(.lockd)', 3000); await page.waitForTimeout(200);
-      await tap('#heroGo');
-      if (!await settle('#modeQuick')) return false;
-      await tap('#modeQuick');
-      if (!await settle('.card.reveal')) return false;
-      await tap('#rvGo');
-      return await settle('#main.draft .ware', 8000);
-    };
+    const driveToExtraStateMarket = () => driveFirstMarket(
+      page,
+      base,
+      SEED,
+      (kind, detail) => note(vp.name, currentScreen, kind, detail),
+      false
+    );
 
     /* full shop shelf: raise gold and the shelf count through the dev hook, then
        buy until the board fills */
     currentScreen = 'S1-shop-full';
     try {
-      if (await driveToFirstMarket()) {
+      if (await driveToExtraStateMarket()) {
         await page.evaluate(() => { try { const G = window.BBDEV.g(); G.gold = 999; if (G.A) G.A.shopN = 6; window.BBDEV.rollShop(); window.BBDEV.renderAll(); } catch (e) {} });
         await settle('#main.draft .ware', 4000); await page.waitForTimeout(300);
         await buyAffordable(page); await page.waitForTimeout(400);
@@ -419,13 +467,49 @@ export async function walkViewport(browser, base, vp, opts = {}) {
     /* empty-board fight and the defeat it usually produces */
     currentScreen = 'S2-empty-board-fight';
     try {
-      if (await driveToFirstMarket()) {
+      if (await driveToExtraStateMarket()) {
         await tap('#btnGo');
         if (await settle('.rmplot', 6000)) {
           const s = await tap('.rmnode.reach.t-monster', 5000) || await tap('.rmnode.t-monster', 3000) || await tap('.rmnode.reach', 3000);
+          if (s) {
+            await page.evaluate(() => {
+              try {
+                clearInterval(window.__shotsExtraFightPause);
+                window.__shotsExtraFightPause = setInterval(() => {
+                  try {
+                    const game = window.BBDEV && window.BBDEV.g();
+                    if (game && game.phase === 'fight') {
+                      game.fpaused = true;
+                      clearInterval(window.__shotsExtraFightPause);
+                    }
+                  } catch (error) {}
+                }, 8);
+                setTimeout(() => clearInterval(window.__shotsExtraFightPause), 5000);
+              } catch (error) {}
+            });
+          }
           if (s && await tap('.rmpfoot [data-a="challenge"]', 5000) && await settle('#main.fight', 6000)) {
+            await page.evaluate(() => {
+              try {
+                const game = window.BBDEV && window.BBDEV.g();
+                if (!game || game.phase !== 'fight') return;
+                game.fpaused = false;
+                setTimeout(() => {
+                  try {
+                    const live = window.BBDEV && window.BBDEV.g();
+                    if (live && live.phase === 'fight') live.fpaused = true;
+                  } catch (error) {}
+                }, 220);
+              } catch (error) {}
+            });
             await filmstrip('state-empty-board-fight', null, {frames: 10, interval: 220, reducedFrames: 5});
             await shoot('state-empty-board-fight');
+            await page.evaluate(() => {
+              try {
+                const game = window.BBDEV && window.BBDEV.g();
+                if (game) game.fpaused = false;
+              } catch (error) {}
+            });
             currentScreen = 'S3-defeat';
             await filmstripUntil('state-fight-end', '.recapcard', {maxFrames: 26, interval: 200, settleMs: 45000});
             if (await page.$('.recapcard')) await shoot(await page.$('.recapcard.rewin') ? 'state-fight-result' : 'defeat');
@@ -483,54 +567,13 @@ export async function walkViewport(browser, base, vp, opts = {}) {
   return {shots: shotsTaken, films: filmsTaken, metrics, video: videoRel};
 }
 
-/* buy affordable wares, offense first (dmg, burn, poison, then the rest) so
-   the first fight is armed the way a real player would arm it; deterministic
-   under a fixed seed. Category order reads the localhost dev globals when
-   present and falls back to left to right. Tap the card, then Buy in its
-   inspect overlay; a disabled Buy just closes. */
-export async function buyAffordable(page) {
-  const bought = [];
-  for (let pass = 0; pass < 8; pass++) {
-    const idx = await page.evaluate(() => {
-      const cards = Array.from(document.querySelectorAll('.ware[data-w]'))
-        .filter((c) => !c.classList.contains('gone') && !c.classList.contains('cant'));
-      if (!cards.length) return null;
-      try {
-        const rank = {dmg: 0, burn: 1, poison: 2, heal: 3, shield: 4};
-        const shop = window.BBDEV.g().run.economy.shop, ITEMS = window.BB.ITEMS;
-        cards.sort((a, b) => {
-          const ca = ITEMS[shop[+a.dataset.w].id].cat, cb = ITEMS[shop[+b.dataset.w].id].cat;
-          return (rank[ca] ?? 9) - (rank[cb] ?? 9) || (+a.dataset.w) - (+b.dataset.w);
-        });
-      } catch (e) { /* dev globals absent: keep DOM order */ }
-      return cards[0].dataset.w;
-    });
-    if (idx == null) break;
-    try {
-      await page.click('.ware[data-w="' + idx + '"]');
-      await page.waitForSelector('#shopBuy', {timeout: 3000});
-      const can = await page.$eval('#shopBuy', (b) => !b.disabled);
-      if (can) {
-        const name = await page.$eval('.inspectcard .nm', (c) => c.textContent).catch(() => 'ware');
-        await page.click('#shopBuy');
-        bought.push(name.trim());
-        await page.waitForTimeout(500);      /* buy flight lands, market rerenders */
-      } else {
-        await page.click('#shopClose');
-        break;
-      }
-    } catch (e) { break; }
-  }
-  return bought;
-}
-
 /* ---------- contact sheet ---------- */
 /* all[vp.name] = {shots:[{file,label,screen}], films:[...], video} (with motion)
    or a bare shots array (the legacy still-only shape). Grouped by screen so each
    screen shows its stills, filmstrips, and reduced-motion variants together. */
 export function contactSheetHTML(all) {
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const isRm = (x) => /-rm$/.test(x.label || '');
+  const isRm = (x) => /-rm(?:\.png)?$/.test(x.label || '') || /-rm\.png$/.test(x.file || '');
   const stillTile = (s) => '<figure class="' + (isRm(s) ? 'rm' : '') + '"><a href="' + s.file + '"><img loading="lazy" src="' + s.file + '" alt="' + esc(s.label) + '"></a>' +
     '<figcaption>' + esc(s.label) + (isRm(s) ? ' (reduced motion)' : '') + '</figcaption></figure>';
   const filmTile = (s) => '<figure class="film ' + (isRm(s) ? 'rm' : '') + '"><a href="' + s.file + '"><img loading="lazy" src="' + s.file + '" alt="' + esc(s.label) + '"></a>' +
@@ -579,10 +622,8 @@ export function contactSheetHTML(all) {
 
 /* ---------- main ---------- */
 async function main() {
-  if (!existsSync(join(DIST, 'index.html'))) {
-    console.error('dist/index.html not found. Run `npm run build` first (npm run shots does this via preshots).');
-    process.exit(1);
-  }
+  const fingerprint = await assertBuildCurrent();
+  log.length = 0;
   await rm(OUT, {recursive: true, force: true});
   await mkdir(OUT, {recursive: true});
   const srv = await serveDist();
@@ -592,35 +633,59 @@ async function main() {
   const all = {};
   const metricsAll = {};
   let filmCount = 0;
-  try {
-    for (const vp of VIEWPORTS) {
-      /* normal motion pass: filmstrips at every boundary, the extra states, and
-         a webm of the whole walk */
-      console.log('viewport ' + vp.name + ' (motion)');
-      const videoDir = join(OUT, vp.name, 'video');
-      await mkdir(videoDir, {recursive: true});
-      const normal = await walkViewport(browser, base, vp, {motion: true, extraStates: true, videoDir});
-      /* reduced-motion pass: the whole walk again with prefers-reduced-motion */
-      console.log('viewport ' + vp.name + ' (reduced motion)');
-      const reduced = await walkViewport(browser, base, vp, {motion: true, reducedMotion: true});
-      /* rename the recorded video to a stable name */
-      let videoRel = null;
-      if (normal.video) {
-        try { await rename(normal.video, join(OUT, vp.name, 'walk.webm')); videoRel = vp.name + '/walk.webm'; await rm(videoDir, {recursive: true, force: true}); }
-        catch (e) { videoRel = null; }
+  const started = Date.now();
+  const serial = process.env.SHOTS_SERIAL === '1';
+  const runViewport = async (vp) => {
+    console.log('viewport ' + vp.name + ' (motion)');
+    const videoDir = join(OUT, vp.name, 'video');
+    await mkdir(videoDir, {recursive: true});
+    const normal = await walkViewport(browser, base, vp, {motion: true, extraStates: true, videoDir});
+    console.log('viewport ' + vp.name + ' (reduced motion)');
+    const reduced = await walkViewport(browser, base, vp, {motion: true, reducedMotion: true});
+    let videoRel = null;
+    if (normal.video) {
+      try {
+        await rename(normal.video, join(OUT, vp.name, 'walk.webm'));
+        videoRel = vp.name + '/walk.webm';
+        await rm(videoDir, {recursive: true, force: true});
+      } catch (error) {
+        videoRel = null;
       }
-      all[vp.name] = {
+    }
+    return {
+      vp,
+      data: {
         shots: normal.shots.concat(reduced.shots),
         films: normal.films.concat(reduced.films),
         video: videoRel
-      };
-      metricsAll[vp.name] = normal.metrics;
-      filmCount += normal.films.length + reduced.films.length;
+      },
+      metrics: normal.metrics,
+      films: normal.films.length + reduced.films.length
+    };
+  };
+  const results = [];
+  try {
+    if (serial) {
+      for (const vp of VIEWPORTS) results.push(await runViewport(vp));
+    } else {
+      results.push(...await Promise.all(VIEWPORTS.map(runViewport)));
     }
   } finally {
     await browser.close();
     srv.close();
   }
+  results.sort((a, b) => VIEWPORTS.indexOf(a.vp) - VIEWPORTS.indexOf(b.vp));
+  for (const result of results) {
+    all[result.vp.name] = result.data;
+    metricsAll[result.vp.name] = result.metrics;
+    filmCount += result.films;
+  }
+  log.sort((a, b) => {
+    const viewportOrder = VIEWPORTS.findIndex((viewport) => viewport.name === a.viewport) -
+      VIEWPORTS.findIndex((viewport) => viewport.name === b.viewport);
+    return viewportOrder || String(a.screen).localeCompare(String(b.screen)) ||
+      String(a.kind).localeCompare(String(b.kind)) || String(a.detail).localeCompare(String(b.detail));
+  });
   await writeFile(join(OUT, 'index.html'), contactSheetHTML(all));
   await writeFile(join(OUT, 'console-log.json'), JSON.stringify({seed: SEED, log}, null, 1) + '\n');
   await writeFile(join(OUT, 'metrics.json'), JSON.stringify({seed: SEED, viewports: metricsAll}, null, 1) + '\n');
@@ -628,8 +693,40 @@ async function main() {
   const misses = log.filter((l) => l.kind === 'selector-missing');
   const unreach = log.filter((l) => l.kind === 'state-unreachable');
   const total = Object.values(all).reduce((s, a) => s + (a.shots ? a.shots.length : a.length), 0);
+  const artifacts = [];
+  for (const vp of VIEWPORTS) {
+    for (const shot of all[vp.name].shots) {
+      artifacts.push({
+        viewport: vp.name,
+        profile: /-rm\.png$/.test(shot.file) ? 'reduced' : 'normal',
+        label: shot.label,
+        file: join(OUT, shot.file),
+        measurements: shot.measurements || null
+      });
+    }
+  }
+  await writePresentationReport({
+    out: OUT,
+    state: 'full-matrix',
+    seed: SEED,
+    fingerprint,
+    artifacts,
+    log,
+    sources: ['index.html', 'src/ui.js', 'src/route-ui.js'],
+    beforeRoot: process.env.SHOTS_BEFORE ? resolve(process.env.SHOTS_BEFORE) : null,
+    summary: {
+      durationMs: Date.now() - started,
+      serial,
+      stills: total,
+      filmstrips: filmCount,
+      errors: errs.length,
+      selectorMisses: misses.length,
+      unreachable: unreach.length
+    }
+  });
   console.log(total + ' stills, ' + filmCount + ' filmstrips, ' + errs.length + ' console error(s), ' + misses.length + ' selector miss(es), ' + unreach.length + ' state(s) unreachable');
   console.log('contact sheet: shots/index.html');
+  console.log('review packet: shots/review/index.html');
   if (errs.length) process.exitCode = 2;    /* artifacts still written; CI can gate on errors */
 }
 
