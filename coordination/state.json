@@ -3,7 +3,7 @@
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-07-29",
   "build": "0.171.0",
-  "reviewedHead": "5b8a1a9",
+  "reviewedHead": "862147b",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -41,12 +41,27 @@
       "0.168.0",
       "0.169.0",
       "0.170.0",
-      "0.171.0"
+      "0.171.0",
+      "0.172.0"
     ],
     "status": "active",
-    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting. Versions 0.159.0 and 0.160.0 complete responsive dealer-bark staging. Version 0.161.0 gives the scout preview a complete first-view ware row through one compact fact strip. Version 0.162.0 adds an overflow-only continuation cue to the scout ledger. Version 0.163.0 promotes a selected portrait combat scout above the route painting as the active decision surface. Version 0.164.0 raises portrait route-label scale and future-state text contrast while preserving quiet medallions and route-state hierarchy. Version 0.165.0 carries that legibility system into the landscape route while protecting its 390px composition. Version 0.166.0 rebalances route connectors as state-marked painted estate inlay while preserving the established braid geometry. Version 0.167.0 compacts the landscape noncombat route preview into a vertically balanced estate notice while preserving its fixed panel. Version 0.168.0 vertically balances the landscape route hero rail while retaining its fixed triptych footprint. Version 0.169.0 vertically balances the landscape Market hero rail around its protected dealer-voice dock. Version 0.170.0 contains the Gate Camp Quartermaster offers as one orientation-specific recovery shelf. Version 0.171.0 accelerates the presentation-audit workflow without changing the game runtime or visual output. The premium presentation ladder remains active for the next one-system version."
+    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting. Versions 0.159.0 and 0.160.0 complete responsive dealer-bark staging. Version 0.161.0 gives the scout preview a complete first-view ware row through one compact fact strip. Version 0.162.0 adds an overflow-only continuation cue to the scout ledger. Version 0.163.0 promotes a selected portrait combat scout above the route painting as the active decision surface. Version 0.164.0 raises portrait route-label scale and future-state text contrast while preserving quiet medallions and route-state hierarchy. Version 0.165.0 carries that legibility system into the landscape route while protecting its 390px composition. Version 0.166.0 rebalances route connectors as state-marked painted estate inlay while preserving the established braid geometry. Version 0.167.0 compacts the landscape noncombat route preview into a vertically balanced estate notice while preserving its fixed panel. Version 0.168.0 vertically balances the landscape route hero rail while retaining its fixed triptych footprint. Version 0.169.0 vertically balances the landscape Market hero rail around its protected dealer-voice dock. Version 0.170.0 contains the Gate Camp Quartermaster offers as one orientation-specific recovery shelf. Version 0.171.0 accelerates the presentation-audit workflow without changing the game runtime or visual output. Version 0.172.0 reflows the portrait Gate Camp dock so the full stall label, slot count, Vault, and Rally and Retry actions remain visible. The premium presentation ladder remains active for the next one-system version."
   },
   "reservations": [
+    {
+      "version": "0.172.0",
+      "project": "Premium Presentation Ladder",
+      "token": "gate-camp-portrait-dock",
+      "owner": "codex",
+      "branch": "presentation-gate-camp-dock-0.172.0",
+      "worktree": "C:/tmp/bazaar-brawler-gate-camp-dock-0.172.0",
+      "status": "active",
+      "sourceCommit": null,
+      "trigger": "The 0.170.0 fresh-context review confirmed the Quartermaster shelf delta SHIP but held overall Gate Camp readiness for an inherited portrait dock that truncates Your Stall to You and hides the slot count. The preserved 0.169.0 before image proves this is a separate pre-existing presentation system, so it is the next one-system visual target after the 0.171.0 tooling accelerator.",
+      "scope": "One presentation system: portrait Gate Camp dock reflow only. Preserve the existing landscape dock exactly. In portrait, keep the full Your Stall label and slot count visible, give Vault and Rally and Retry complete readable labels, retain 44px action targets, and prevent horizontal or vertical overflow, clipping, or overlap with the shelf, camp actions, stall, or hero rail. Preserve markup semantics, state mutation, persistence, copy meaning, order, art, typography, controls, combat, route, Market, scout, landscape layouts, and all non-dock screens. No new gameplay system or asset is in scope.",
+      "verification": "In progress.",
+      "note": "Use the 0.171.0 targeted capture and the preserved 0.169.0 portrait Gate Camp frame as before evidence. Keep the fix isolated to portrait dock presentation and prove landscape and all other screens unchanged. Real-phone approval remains required."
+    },
     {
       "version": "0.171.0",
       "project": "Premium Presentation Ladder",
@@ -54,11 +69,11 @@
       "owner": "codex",
       "branch": "tooling-presentation-audit-0.171.0",
       "worktree": "C:/tmp/bazaar-brawler-presentation-audit-0.171.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "862147b",
       "trigger": "Robbie explicitly requested every safe timing improvement before the next visual system. The corrected 0.170.0 authoritative matrix took about fourteen minutes to regenerate 115 files for one changed screen, and npm run shots:check took about two minutes while rebuilding an already verified dist. Repeated visual versions also spend time recreating deep states, installing dependencies in disposable worktrees, manually measuring overflow, pairing before and after evidence, assembling reviewer context, and waiting to launch the independent review until all local interpretation is complete.",
       "scope": "One development tooling system: presentation-audit acceleration with no game-runtime, visual-style, gameplay, save, balance, economy, targeting, content, art, or service-worker change. Add reusable deterministic deep-state fixtures and a targeted capture command for named states and both 844x390 and 390x844 viewports. Run independent viewport and motion jobs concurrently after one verified build while isolating their outputs and merging results deterministically. Add a no-build path for screenshot checks and captures when the caller has already built the same source tree. Generate machine-readable overflow measurements, before and after pair metadata, and a fresh-review packet automatically. Provide a safe persistent presentation worktree workflow that reuses its installed dependencies without sharing a writable node_modules directory across worktrees. Update the presentation-audit instructions so targeted evidence launches first, the final full matrix remains authoritative and last, and the fresh-context reviewer is dispatched immediately after the final artifacts exist. Prove serial and accelerated runs equivalent in state coverage, still and filmstrip counts, error and miss accounting, deterministic reduced-motion frames, and final report contents before trusting the accelerated path.",
-      "verification": "In progress.",
+      "verification": "Tooling commit 862147b. npm test: 601/601 passed with dash scan green. npm run build: 815 modules, source fingerprint 8c00e07ad918. npm run shots:check:nobuild: 28/28 screens, zero missing, blank, console errors, and layout drift. Targeted Gate Camp capture: four artifacts in about 19.8 seconds with zero errors and misses. Targeted empty-board fight capture: four artifacts in about 16.9 seconds with combat present and no recap overlay. Final full matrix: 62 stills, 48 filmstrips, zero console errors, zero selector misses, zero unreachable states, with generated review packet. Serial versus accelerated equivalence: 62 stills, 48 filmstrips, 20 reduced-motion frames, matching structural metrics and error accounting; transient randomized hero bark pixels are excluded only inside its known responsive plaque bounds and raw metrics remain recorded. No-build screenshot checking fell from about 121 seconds to about 84 seconds. Full matrix duration on this CPU remains about 14.6 minutes, so targeted and no-build paths are the measured speed wins. Fresh-context art review: pending final packet verdict.",
       "note": "This tooling version is deliberately separate from the next visual system under the one-system rule. The inherited portrait Gate Camp dock truncation found by the 0.170.0 reviewer remains the next visual target after the accelerator. No cache bump is required unless implementation unexpectedly changes a shipped runtime asset."
     },
     {
