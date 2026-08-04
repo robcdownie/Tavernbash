@@ -1,9 +1,9 @@
 {
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
-  "updated": "2026-08-03",
-  "build": "0.180.0",
-  "reviewedHead": "31df91e",
+  "updated": "2026-08-04",
+  "build": "0.181.0",
+  "reviewedHead": "02f68ca",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -16,7 +16,7 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v119"
+    "cacheVersion": "bb-v120"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
@@ -50,11 +50,12 @@
       "0.177.0",
       "0.178.0",
       "0.179.0",
-      "0.180.0"
+      "0.180.0",
+      "0.181.0"
     ],
     "status": "active",
-    "currentVersion": "0.180.0 verified and integrated as 31df91e. The portrait non-Gate Camp run dock now gives the full Your Stall 3 / 5 slots caption its own readable row while preserving Vault and Set Out order, landscape geometry, Gate Camp layouts, and all behavior. Real-phone approval remains separate.",
-    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting. Versions 0.159.0 and 0.160.0 complete responsive dealer-bark staging. Version 0.161.0 gives the scout preview a complete first-view ware row through one compact fact strip. Version 0.162.0 adds an overflow-only continuation cue to the scout ledger. Version 0.163.0 promotes a selected portrait combat scout above the route painting as the active decision surface. Version 0.164.0 raises portrait route-label scale and future-state text contrast while preserving quiet medallions and route-state hierarchy. Version 0.165.0 carries that legibility system into the landscape route while protecting its 390px composition. Version 0.166.0 rebalances route connectors as state-marked painted estate inlay while preserving the established braid geometry. Version 0.167.0 compacts the landscape noncombat route preview into a vertically balanced estate notice while preserving its fixed panel. Version 0.168.0 vertically balances the landscape route hero rail while retaining its fixed triptych footprint. Version 0.169.0 vertically balances the landscape Market hero rail around its protected dealer-voice dock. Version 0.170.0 contains the Gate Camp Quartermaster offers as one orientation-specific recovery shelf. Version 0.171.0 accelerates the presentation-audit workflow without changing the game runtime or visual output. Version 0.172.0 reflows the portrait Gate Camp dock so the full stall label, slot count, Vault, and Rally and Retry actions remain visible. Version 0.173.0 contains the portrait dock's decorative horizontal overflow while preserving the approved two-row action reflow. Version 0.174.0 completes the portrait dock's decorative vertical containment while preserving the approved two-row action reflow. Version 0.175.0 balances the portrait Vault shelf across its three visible sockets and gives an empty Vault a deliberate cue. Version 0.176.0 completes the landscape Gate Camp dock geometry and touch containment while preserving the portrait Vault system. Version 0.177.0 raises the global run mute utility to a 44px target while preserving both orientation rails and sound semantics. Version 0.178.0 widens the landscape non-Gate Camp run dock touch target. Version 0.179.0 raises the portrait non-Gate Camp run dock touch target. Version 0.180.0 makes the full portrait run dock label readable through a dedicated label row. The premium presentation ladder remains active for the next one-system version."
+    "currentVersion": "0.181.0 verified and integrated as 02f68ca. The existing fight lane now has a restrained assembly sweep that appears after Dusk clears, plus a storm arrival glow, while preserving combat geometry, timing, controls, and all behavior. Real-phone approval remains separate.",
+    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting. Versions 0.159.0 and 0.160.0 complete responsive dealer-bark staging. Version 0.161.0 gives the scout preview a complete first-view ware row through one compact fact strip. Version 0.162.0 adds an overflow-only continuation cue to the scout ledger. Version 0.163.0 promotes a selected portrait combat scout above the route painting as the active decision surface. Version 0.164.0 raises portrait route-label scale and future-state text contrast while preserving quiet medallions and route-state hierarchy. Version 0.165.0 carries that legibility system into the landscape route while protecting its 390px composition. Version 0.166.0 rebalances route connectors as state-marked painted estate inlay while preserving the established braid geometry. Version 0.167.0 compacts the landscape noncombat route preview into a vertically balanced estate notice while preserving its fixed panel. Version 0.168.0 vertically balances the landscape route hero rail while retaining its fixed triptych footprint. Version 0.169.0 vertically balances the landscape Market hero rail around its protected dealer-voice dock. Version 0.170.0 contains the Gate Camp Quartermaster offers as one orientation-specific recovery shelf. Version 0.171.0 accelerates the presentation-audit workflow without changing the game runtime or visual output. Version 0.172.0 reflows the portrait Gate Camp dock so the full stall label, slot count, Vault, and Rally and Retry actions remain visible. Version 0.173.0 contains the portrait dock's decorative horizontal overflow while preserving the approved two-row action reflow. Version 0.174.0 completes the portrait dock's decorative vertical containment while preserving the approved two-row action reflow. Version 0.175.0 balances the portrait Vault shelf across its three visible sockets and gives an empty Vault a deliberate cue. Version 0.176.0 completes the landscape Gate Camp dock geometry and touch containment while preserving the portrait Vault system. Version 0.177.0 raises the global run mute utility to a 44px target while preserving both orientation rails and sound semantics. Version 0.178.0 widens the landscape non-Gate Camp run dock touch target. Version 0.179.0 raises the portrait non-Gate Camp run dock touch target. Version 0.180.0 makes the full portrait run dock label readable through a dedicated label row. Version 0.181.0 adds a restrained battle-phase atmosphere system through existing fight hooks and reduced-motion guards. The premium presentation ladder remains active for the next one-system version."
   },
   "reservations": [
     {
@@ -64,12 +65,12 @@
       "owner": "codex",
       "branch": "presentation-battle-phase-0.181.0",
       "worktree": "C:/tmp/bazaar-brawler-battle-phase-0.181.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "02f68ca",
       "trigger": "The shipped Dusk Falls entrance and impact effects are strong, but the central battle lane gives no visual phase cue as a fight moves from assembly to active combat or storm arrival. Existing stage-assemble and stormchip.live classes provide safe presentation-only hooks with no new gameplay semantics.",
       "scope": "One presentation system: battle-phase atmosphere only. Add a restrained central phase sweep and pulse to the existing fight lane for opening assembly and storm arrival, guarded by reduced motion and preserving the existing Dusk Falls curtain, storm countdown, action lanes, speed control, figures, boards, copy, timing, event stream, engine, economy, targeting, persistence, saves, route behavior, and all noncombat screens. No new gameplay system or asset is in scope.",
-      "verification": "In progress.",
-      "note": "Use the authoritative 0.180.0 matrix at C:/tmp/bazaar-brawler-portrait-run-dock-label-0.180.0/shots as before evidence. Capture targeted state-empty-board-fight, state-boss-gate, and fight motion at both 844x390 and 390x844 with both motion profiles. Keep real-phone approval separate."
+      "verification": "SHIP. Candidate commits a1a4076 and e5a494c integrated as f337cf6 and 02f68ca after fresh art directors 0176 and 0174 returned SHIP with no scoped P0, P1, P2, or P3 findings on the final packet. Candidate npm test passed 601/601. Candidate build passed 815 modules with fingerprint 86a4318039aa across 281 inputs. Targeted fixed state-empty-board-fight, state-boss-gate, and market-first packets each produced 4 artifacts with 0 errors, selector misses, or fixture failures. The final candidate full matrix produced 62 stills and 48 filmstrips in 825136ms with 0 console errors, selector misses, or unreachable states. Canonical npm test passed 601/601. The canonical build passed 815 modules with fingerprint 7243953dc753 across 281 inputs. The canonical no-build visual gate passed 28 screens with 0 missing, blank, console errors, or layout drift. Reduced-motion films remained static and legible with the atmosphere hidden. The pre-existing 36 by 21 speed control target is out of scope. Real-phone approval remains separate.",
+      "note": "The authoritative full packet is C:/tmp/bazaar-brawler-battle-phase-0.181.0/shots/review/review-packet.json. Targeted packets are under C:/tmp/bazaar-brawler-battle-phase-0.181.0/shots-target/empty-fight/review, boss-gate/review, and market/review. Scope is limited to the existing fight lane assembly sweep, storm arrival glow, and reduced-motion guard. Real-phone approval remains separate."
     },
     {
       "version": "0.180.0",
