@@ -1,9 +1,9 @@
 {
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
-  "updated": "2026-07-29",
-  "build": "0.171.0",
-  "reviewedHead": "862147b",
+  "updated": "2026-08-03",
+  "build": "0.172.0",
+  "reviewedHead": "c0c0b07",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -55,12 +55,12 @@
       "owner": "codex",
       "branch": "presentation-gate-camp-dock-0.172.0",
       "worktree": "C:/tmp/bazaar-brawler-gate-camp-dock-0.172.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "c0c0b07",
       "trigger": "The 0.170.0 fresh-context review confirmed the Quartermaster shelf delta SHIP but held overall Gate Camp readiness for an inherited portrait dock that truncates Your Stall to You and hides the slot count. The preserved 0.169.0 before image proves this is a separate pre-existing presentation system, so it is the next one-system visual target after the 0.171.0 tooling accelerator.",
       "scope": "One presentation system: portrait Gate Camp dock reflow only. Preserve the existing landscape dock exactly. In portrait, keep the full Your Stall label and slot count visible, give Vault and Rally and Retry complete readable labels, retain 44px action targets, and prevent horizontal or vertical overflow, clipping, or overlap with the shelf, camp actions, stall, or hero rail. Preserve markup semantics, state mutation, persistence, copy meaning, order, art, typography, controls, combat, route, Market, scout, landscape layouts, and all non-dock screens. No new gameplay system or asset is in scope.",
-      "verification": "In progress.",
-      "note": "Use the 0.171.0 targeted capture and the preserved 0.169.0 portrait Gate Camp frame as before evidence. Keep the fix isolated to portrait dock presentation and prove landscape and all other screens unchanged. Real-phone approval remains required."
+      "verification": "SHIP. npm test passed 601/601 with the repository dash scan green. npm run build passed with 815 modules and source fingerprint 3c1dcab5462d across 281 inputs. npm run shots:check:nobuild passed 28/28 screens with 0 missing, 0 blank, 0 console errors, and 0 layout drift. Targeted final Gate Camp capture produced 4 artifacts in 17.5 seconds with 0 errors, 0 selector misses, and 0 fixture failures. Portrait measured the full Your Stall label and 3 / 6 slots at 366px, Vault at 140.4 by 46.6, and Rally and Retry at 217.6 by 46.6, with both actions at least 44px and no visible clipping. Alternate Vault state completed with no console or page events. The authoritative final matrix produced 62 stills and 48 filmstrips across both phone viewports and motion modes, with 0 console errors, 0 selector misses, and 0 unreachable states in 822456ms. Fresh art director 0172 returned SHIP with no P0, P1, or P2 findings. The remaining P3 is pre-existing decorative scroll overflow in portrait: #main and .dock remain 20px wider in scroll space than their clients without visible clipping. Landscape remains preserved and real-phone approval remains a separate release gate.",
+      "note": "The final 0.172.0 portrait Gate Camp dock frame is C:/tmp/bazaar-brawler-gate-camp-dock-0.172.0/shots/390x844/17-state-boss-gate.png. The targeted packet is C:/tmp/bazaar-brawler-gate-camp-dock-0.172.0/shots-target/final and the authoritative review packet is C:/tmp/bazaar-brawler-gate-camp-dock-0.172.0/shots/review/review-packet.json. The preserved 0.171.0 frame and 0.169.0 before evidence remain the comparison roots. Next exact one-system target: contain the dock negative-inset decoration so portrait scroll width matches the viewport, without changing the current two-row action reflow."
     },
     {
       "version": "0.171.0",
