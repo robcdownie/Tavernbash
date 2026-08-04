@@ -3307,6 +3307,13 @@
       padding:8px 8px;
     }
   }
+  /* ===== 0.173.0 PORTRAIT GATE CAMP DOCK CONTAINMENT =====
+     Keep the painted negative-inset glow inside the dock's client box so
+     it cannot create a phantom horizontal page width on a phone. */
+  @media (orientation:portrait){
+    #main.draft.gatecamp .dock{overflow-x:clip;}
+    #main.draft.gatecamp .dock::before{inset:-8px 0 -10px 0;}
+  }
   @media (orientation:landscape) and (min-width:640px){
     #main.gatecamp .campmarket .campboss{
       min-height:44px;height:44px;margin-top:4px;padding:4px 8px;
