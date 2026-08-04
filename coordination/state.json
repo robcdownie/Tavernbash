@@ -2,8 +2,8 @@
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
   "updated": "2026-08-03",
-  "build": "0.173.0",
-  "reviewedHead": "37a12f7",
+  "build": "0.174.0",
+  "reviewedHead": "e9d5df3",
   "deploy": {
     "target": "github-pages",
     "url": "https://platosd.com",
@@ -16,7 +16,7 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v111"
+    "cacheVersion": "bb-v113"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
@@ -44,12 +44,27 @@
       "0.171.0",
       "0.172.0",
       "0.173.0",
-      "0.174.0"
+      "0.174.0",
+      "0.175.0"
     ],
     "status": "active",
-    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting. Versions 0.159.0 and 0.160.0 complete responsive dealer-bark staging. Version 0.161.0 gives the scout preview a complete first-view ware row through one compact fact strip. Version 0.162.0 adds an overflow-only continuation cue to the scout ledger. Version 0.163.0 promotes a selected portrait combat scout above the route painting as the active decision surface. Version 0.164.0 raises portrait route-label scale and future-state text contrast while preserving quiet medallions and route-state hierarchy. Version 0.165.0 carries that legibility system into the landscape route while protecting its 390px composition. Version 0.166.0 rebalances route connectors as state-marked painted estate inlay while preserving the established braid geometry. Version 0.167.0 compacts the landscape noncombat route preview into a vertically balanced estate notice while preserving its fixed panel. Version 0.168.0 vertically balances the landscape route hero rail while retaining its fixed triptych footprint. Version 0.169.0 vertically balances the landscape Market hero rail around its protected dealer-voice dock. Version 0.170.0 contains the Gate Camp Quartermaster offers as one orientation-specific recovery shelf. Version 0.171.0 accelerates the presentation-audit workflow without changing the game runtime or visual output. Version 0.172.0 reflows the portrait Gate Camp dock so the full stall label, slot count, Vault, and Rally and Retry actions remain visible. Version 0.173.0 contains the portrait dock's decorative horizontal overflow while preserving the approved two-row action reflow. Version 0.174.0 is reserved to contain the remaining portrait dock vertical overflow without changing the current two-row action reflow. The premium presentation ladder remains active for the next one-system version."
+    "note": "0.155.0 carries the approved victory gallery and defeat corridor onto the current 0.154.1 painted-furniture build. Robbie resumed the premium presentation ladder on 2026-07-26. Version 0.156.0 completes the portrait run-end action hierarchy. Version 0.157.0 completes the shared market section-label ink. Version 0.158.0 fills the landscape title threshold with its existing wide manor painting. Versions 0.159.0 and 0.160.0 complete responsive dealer-bark staging. Version 0.161.0 gives the scout preview a complete first-view ware row through one compact fact strip. Version 0.162.0 adds an overflow-only continuation cue to the scout ledger. Version 0.163.0 promotes a selected portrait combat scout above the route painting as the active decision surface. Version 0.164.0 raises portrait route-label scale and future-state text contrast while preserving quiet medallions and route-state hierarchy. Version 0.165.0 carries that legibility system into the landscape route while protecting its 390px composition. Version 0.166.0 rebalances route connectors as state-marked painted estate inlay while preserving the established braid geometry. Version 0.167.0 compacts the landscape noncombat route preview into a vertically balanced estate notice while preserving its fixed panel. Version 0.168.0 vertically balances the landscape route hero rail while retaining its fixed triptych footprint. Version 0.169.0 vertically balances the landscape Market hero rail around its protected dealer-voice dock. Version 0.170.0 contains the Gate Camp Quartermaster offers as one orientation-specific recovery shelf. Version 0.171.0 accelerates the presentation-audit workflow without changing the game runtime or visual output. Version 0.172.0 reflows the portrait Gate Camp dock so the full stall label, slot count, Vault, and Rally and Retry actions remain visible. Version 0.173.0 contains the portrait dock's decorative horizontal overflow while preserving the approved two-row action reflow. Version 0.174.0 completes the portrait dock's decorative vertical containment while preserving the approved two-row action reflow. The premium presentation ladder remains active for the next one-system version."
   },
   "reservations": [
+    {
+      "version": "0.175.0",
+      "project": "Premium Presentation Ladder",
+      "token": "gate-camp-vault-shelf-density",
+      "owner": "codex",
+      "branch": "presentation-gate-camp-vault-density-0.175.0",
+      "worktree": "C:/tmp/bazaar-brawler-gate-camp-vault-density-0.175.0",
+      "status": "active",
+      "sourceCommit": null,
+      "trigger": "The fresh 0.174.0 art-direction review SHIPped portrait Gate Camp dock vertical containment with no P0 or P1 findings but identified a P2 alternate Vault composition issue: the Vault shelf hard-codes six columns while vaultSlots emits two or three cells, leaving a sparse left-aligned shelf and a dead right half. It is the next safe one-system visual target because it can make the existing Vault state feel intentional without changing the dock frame or game semantics.",
+      "scope": "One presentation system: portrait Gate Camp Vault shelf density and empty state only. Make the Vault grid hug its actual vaultSlots capacity and provide a clear empty-state treatment without changing the dock frame, the two-row heading, or the 44px Vault and Rally and Retry controls. Preserve the Stall state, landscape, horizontal and vertical containment, all other screens, art, copy meaning, typography, controls, state mutation, persistence, combat, route, Market, scout, saves, and motion behavior. No new gameplay system or asset is in scope.",
+      "verification": "In progress.",
+      "note": "Use the authoritative 0.174.0 matrix at C:/tmp/bazaar-brawler-gate-camp-dock-vertical-0.174.0/shots and the targeted after packet at C:/tmp/bazaar-brawler-gate-camp-dock-vertical-0.174.0/shots-target/after as before evidence. Prove the populated Stall state, the alternate Vault state at two and three cells, and the empty or low-capacity state; preserve landscape, run the targeted packet before the full matrix, and keep real-phone approval as a separate gate."
+    },
     {
       "version": "0.174.0",
       "project": "Premium Presentation Ladder",
@@ -57,12 +72,12 @@
       "owner": "codex",
       "branch": "presentation-gate-camp-dock-vertical-0.174.0",
       "worktree": "C:/tmp/bazaar-brawler-gate-camp-dock-vertical-0.174.0",
-      "status": "active",
-      "sourceCommit": null,
+      "status": "done",
+      "sourceCommit": "e9d5df3",
       "trigger": "The fresh 0.173.0 art-direction review SHIPped the portrait Gate Camp dock horizontal containment but measured remaining decorative vertical scroll space from the pseudo-element bottom inset: .dock scrollHeight 187 versus client 177 and #main 694 versus 684. It is the next safe one-system visual target because it can contain the decoration without changing the approved two-row actions or any game semantics.",
       "scope": "One presentation system: portrait Gate Camp dock decorative vertical overflow containment only. Keep the approved two-row stall heading, Vault, and Rally and Retry actions unchanged. Tighten or clip the dock pseudo-element's bottom decoration so portrait .dock and #main vertical scroll dimensions match their clients without visible clipping. Preserve the landscape dock, horizontal containment, all other screens, art, copy, typography, controls, hit targets, combat, route, Market, scout, saves, and motion behavior. No new gameplay system or asset is in scope.",
-      "verification": "In progress.",
-      "note": "Use the authoritative 0.173.0 matrix at C:/tmp/bazaar-brawler-gate-camp-dock-overflow-0.173.0/shots and the targeted after2 packet at C:/tmp/bazaar-brawler-gate-camp-dock-overflow-0.173.0/shots-target/after2 as before evidence. Keep the change portrait-only, prove the alternate Vault state, preserve landscape, and run the targeted packet before the full matrix. Real-phone approval remains required."
+      "verification": "SHIP. npm test passed 601/601 with the repository dash scan green. The dedicated worktree build passed with 815 modules and source fingerprint ba4c4dc10041 across 281 inputs; the canonical post-integration build passed with 815 modules and source fingerprint 12c7f9fff44 across 281 inputs. npm run shots:check:nobuild passed 28/28 screens with 0 missing, 0 blank, 0 console errors, and 0 layout drift. Targeted after capture produced 4 artifacts in 19.5 seconds with 0 errors, 0 selector misses, and 0 fixture failures. Portrait #main and .dock both measured 366px client and 366px scroll width, with height 684px client and 684px scroll and dock height 177px client and 177px scroll; the dock overflow is clipped horizontally. The full Your Stall label and 3 / 6 slots remained visible; Vault measured 140.4 by 46.6 and Rally and Retry 217.6 by 46.6. A manual alternate Vault smoke measured #main and .dock at 366px client and 366px scroll width with no console or page events. The authoritative final matrix produced 62 stills and 48 filmstrips across both phone viewports and motion modes, with 0 console errors, 0 selector misses, and 0 unreachable states in 885620ms. Fresh art director 0175 returned SHIP with no P0 or P1 findings. Its P2 is the pre-existing sparse alternate Vault shelf, which is reserved as 0.175.0. Landscape composition remained preserved and real-phone approval remains a separate release gate.",
+      "note": "The targeted after packet is C:/tmp/bazaar-brawler-gate-camp-dock-vertical-0.174.0/shots-target/after/review/review-packet.json and the authoritative review packet is C:/tmp/bazaar-brawler-gate-camp-dock-vertical-0.174.0/shots/review/review-packet.json. The portrait targeted after frame is C:/tmp/bazaar-brawler-gate-camp-dock-vertical-0.174.0/shots-target/after/390x844/state-boss-gate-rm.png. The alternate Vault smoke was run against the same built dist with no console or page events. Next exact one-system target: make the Vault shelf hug its actual capacity and give its empty state a deliberate treatment without changing the dock frame or controls."
     },
     {
       "version": "0.173.0",
