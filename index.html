@@ -3314,6 +3314,31 @@
     #main.draft.gatecamp .dock{overflow-x:clip;}
     #main.draft.gatecamp .dock::before{inset:-8px 0 0 0;}
   }
+  /* ===== 0.175.0 PORTRAIT GATE CAMP VAULT DENSITY =====
+     Use the three visible shelf sockets across the portrait dock instead of
+     leaving the six-column desktop grid stranded on the left. */
+  @media (orientation:portrait){
+    #main.draft.gatecamp .dock .vault{
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      position:relative;
+      gap:5px;
+    }
+    #main.draft.gatecamp .dock .vault.vault-count-0::after{
+      content:"No wares stored";
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      color:var(--dim);
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      text-shadow:0 1px 0 rgba(0,0,0,.9);
+    }
+  }
   @media (orientation:landscape) and (min-width:640px){
     #main.gatecamp .campmarket .campboss{
       min-height:44px;height:44px;margin-top:4px;padding:4px 8px;

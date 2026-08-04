@@ -409,7 +409,7 @@ function renderDraft(){
    +'<button class="btn mini" id="dockFlip">'+(G.dockV?'Stall':'Vault'+(G.vault.length?' ('+G.vault.length+')':''))+'</button>'
    +goHTML+'</div>';
   if(G.dockV){
-    h+='<div class="vault" id="vlt">'+G.vault.map(function(it,i){
+    h+='<div class="vault vault-capacity-'+vaultSlots()+' vault-count-'+G.vault.length+'" id="vlt">'+G.vault.map(function(it,i){
         const d=ITEMS[it.id];
         return '<div class="cell it s1 rar'+it.rarity+(G.vsel===i?' sel':'')+'" style="--cat:'+CATC[d.cat]+'" data-v="'+i+'">'
          +'<div class="glow"></div>'+ic('g-'+it.id,'gi')
