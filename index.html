@@ -3433,6 +3433,61 @@
       padding:8px 16px;
     }
   }
+   /* ===== 0.181.0 BATTLE PHASE ATMOSPHERE =====
+      Give the existing fight lane a quiet assembly cue and a single storm
+      arrival sweep without changing combat timing, copy, or geometry. */
+   #main.fight .vsrow{
+     position:relative;isolation:isolate;
+   }
+   #main.fight .vsrow::before,
+   #main.fight .vsrow::after{
+     content:"";position:absolute;pointer-events:none;z-index:0;opacity:0;
+   }
+   #main.fight .vsrow::before{
+     inset:-8px 10%;
+     background:radial-gradient(ellipse at 50% 50%,rgba(246,196,110,.22),transparent 68%);
+     filter:blur(5px);
+   }
+   #main.fight .vsrow::after{
+     inset:-5px 8%;
+     background:linear-gradient(90deg,transparent 0 34%,rgba(255,226,160,.62) 48%,rgba(255,226,160,.12) 56%,transparent 74%);
+     transform:translateX(-65%);
+   }
+   #main.fight .vsrow > *{position:relative;z-index:1;}
+   #main.fight.stage-assemble .vsrow::before{
+     opacity:1;animation:phaseGather .72s var(--e-out) .05s both;
+   }
+   #main.fight.stage-assemble .vsrow::after{
+     opacity:.82;animation:phaseSweep .72s var(--e-out) .12s both;
+   }
+   #main.fight .stormchip.live{
+     box-shadow:0 0 0 1px rgba(255,150,90,.35),0 0 18px rgba(224,96,58,.62);
+   }
+   #main.fight .stormchip.live::after{
+     content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+     background:linear-gradient(100deg,transparent 24%,rgba(255,226,160,.72) 46%,transparent 68%);
+     transform:translateX(-110%);animation:stormSweep .76s var(--e-out) both;
+   }
+   @keyframes phaseGather{
+     0%{opacity:0;transform:scale(.78);}
+     45%{opacity:1;transform:scale(1.05);}
+     100%{opacity:.4;transform:scale(1);}
+   }
+   @keyframes phaseSweep{
+     0%{transform:translateX(-65%);opacity:0;}
+     25%{opacity:.9;}
+     100%{transform:translateX(65%);opacity:0;}
+   }
+   @keyframes stormSweep{
+     0%{transform:translateX(-110%);opacity:0;}
+     22%{opacity:1;}
+     100%{transform:translateX(110%);opacity:0;}
+   }
+   @media (prefers-reduced-motion:reduce){
+     #main.fight .vsrow::before,
+     #main.fight .vsrow::after,
+     #main.fight .stormchip.live::after{animation:none !important;}
+   }
 </style>
 </head>
 <body>
