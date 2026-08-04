@@ -3396,6 +3396,14 @@
   @media (orientation:portrait){
     body.run #ribbon{margin-right:52px;}
   }
+  /* ===== 0.178.0 LANDSCAPE RUN DOCK TOUCH PARITY =====
+     Match the existing Gate Camp action budget on the inherited Vault and
+     Stall toggle without changing its row spacing or portrait layout. */
+  @media (orientation:landscape) and (min-width:640px){
+    #main.draft:not(.gatecamp) .docktop #dockFlip{
+      min-height:44px;padding:8px 12px;
+    }
+  }
 </style>
 </head>
 <body>
