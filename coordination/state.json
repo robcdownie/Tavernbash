@@ -56,6 +56,20 @@
   },
   "reservations": [
     {
+      "version": "0.179.0",
+      "project": "Premium Presentation Ladder",
+      "token": "portrait-run-dock-touch",
+      "owner": "codex",
+      "branch": "presentation-run-dock-touch-0.179.0",
+      "worktree": "C:/tmp/bazaar-brawler-portrait-run-dock-touch-0.179.0",
+      "status": "active",
+      "sourceCommit": null,
+      "trigger": "Fresh art director 0176 SHIPped the 0.178.0 landscape run dock touch pass with no findings in scope and identified the inherited portrait non-Gate Camp #dockFlip at 75.7 by 38 as the next touch-target gap. This is the same anchored Vault and Stall utility, with no new gameplay semantics.",
+      "scope": "One presentation system: portrait non-Gate Camp run dock Vault and Stall toggle touch parity only. At 390x844, raise the existing #dockFlip outer target to at least 44px while preserving its current label and action alignment, text, state toggle semantics, landscape 0.178.0 behavior, Gate Camp dock treatment, all other controls, all screens, art, state mutation, persistence, combat, saves, motion behavior, and game behavior. No new gameplay system or asset is in scope.",
+      "verification": "In progress.",
+      "note": "Use the authoritative 0.178.0 matrix at C:/tmp/bazaar-brawler-run-dock-touch-0.178.0/shots and targeted packets under C:/tmp/bazaar-brawler-run-dock-touch-0.178.0/shots-target as before evidence. Prove portrait non-Gate Camp Stall and Vault states, #dockFlip at least 44px, landscape and Gate Camp preservation, targeted evidence before the full matrix, and real-phone approval as a separate gate."
+    },
+    {
       "version": "0.178.0",
       "project": "Premium Presentation Ladder",
       "token": "run-dock-touch-parity",
