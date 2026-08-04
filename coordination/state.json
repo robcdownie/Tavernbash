@@ -58,6 +58,20 @@
   },
   "reservations": [
     {
+      "version": "0.181.0",
+      "project": "Premium Presentation Ladder",
+      "token": "battle-phase-atmosphere",
+      "owner": "codex",
+      "branch": "presentation-battle-phase-0.181.0",
+      "worktree": "C:/tmp/bazaar-brawler-battle-phase-0.181.0",
+      "status": "active",
+      "sourceCommit": null,
+      "trigger": "The shipped Dusk Falls entrance and impact effects are strong, but the central battle lane gives no visual phase cue as a fight moves from assembly to active combat or storm arrival. Existing stage-assemble and stormchip.live classes provide safe presentation-only hooks with no new gameplay semantics.",
+      "scope": "One presentation system: battle-phase atmosphere only. Add a restrained central phase sweep and pulse to the existing fight lane for opening assembly and storm arrival, guarded by reduced motion and preserving the existing Dusk Falls curtain, storm countdown, action lanes, speed control, figures, boards, copy, timing, event stream, engine, economy, targeting, persistence, saves, route behavior, and all noncombat screens. No new gameplay system or asset is in scope.",
+      "verification": "In progress.",
+      "note": "Use the authoritative 0.180.0 matrix at C:/tmp/bazaar-brawler-portrait-run-dock-label-0.180.0/shots as before evidence. Capture targeted state-empty-board-fight, state-boss-gate, and fight motion at both 844x390 and 390x844 with both motion profiles. Keep real-phone approval separate."
+    },
+    {
       "version": "0.180.0",
       "project": "Premium Presentation Ladder",
       "token": "portrait-run-dock-label",
