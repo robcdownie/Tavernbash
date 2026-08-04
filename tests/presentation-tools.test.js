@@ -62,7 +62,7 @@ test('full and baseline runners use current builds and concurrent viewport jobs'
 test('package and skill expose the accelerated safe path while retaining full authority', async () => {
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
   const skill = await readFile(join(root, '.claude', 'skills', 'presentation-audit', 'SKILL.md'), 'utf8');
-  assert.equal(pkg.version, '0.178.0');
+  assert.equal(pkg.version, '0.179.0');
   assert.equal(pkg.scripts['shots:nobuild'], 'node scripts/shots.mjs');
   assert.equal(pkg.scripts['shots:target'], 'node scripts/shots-target.mjs');
   assert.equal(pkg.scripts['shots:check:nobuild'], 'node scripts/shots-check.mjs');
