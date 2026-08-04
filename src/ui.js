@@ -1107,7 +1107,16 @@ function startFight(me,foe,opts){
       if(F.done){
         clearInterval(G.fiv);G.fiv=null;
         fxStorm(false);sStorm(false);music('market');
-        setTimeout(function(){$('sand').classList.remove('on');opts.onEnd(F);},850);
+        const main=$('main');
+        if(main&&!RM){
+          main.classList.remove('result-landing','result-win','result-loss');
+          main.classList.add('result-landing',F.winner==='a'?'result-win':'result-loss');
+        }
+        setTimeout(function(){
+          const liveMain=$('main');
+          if(liveMain)liveMain.classList.remove('result-landing','result-win','result-loss');
+          $('sand').classList.remove('on');opts.onEnd(F);
+        },850);
       }
     },40);
   }
