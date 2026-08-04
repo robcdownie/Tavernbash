@@ -3339,6 +3339,21 @@
       text-shadow:0 1px 0 rgba(0,0,0,.9);
     }
   }
+  /* ===== 0.176.0 LANDSCAPE GATE CAMP DOCK GEOMETRY =====
+     The wide dock has room for its complete three-socket Vault shelf. Give
+     the Stall toggle the same touch budget as the other camp action, then
+     contain the painted glow so decoration cannot create page scroll space. */
+  @media (orientation:landscape) and (min-width:640px){
+    #main.draft.gatecamp .dock{overflow:clip;}
+    #main.draft.gatecamp .dock::before{inset:-8px 0 0 0;}
+    #main.draft.gatecamp .docktop #dockFlip{
+      min-height:44px;padding:8px 12px;
+    }
+    #main.draft.gatecamp .dock .vault{
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:5px;
+    }
+  }
   @media (orientation:landscape) and (min-width:640px){
     #main.gatecamp .campmarket .campboss{
       min-height:44px;height:44px;margin-top:4px;padding:4px 8px;
