@@ -3454,17 +3454,17 @@
      transform:translateX(-65%);
    }
    #main.fight .vsrow > *{position:relative;z-index:1;}
-   #main.fight.stage-assemble .vsrow::before{
+   #main.fight:not(.stage-assemble) .vsrow::before{
      opacity:1;animation:phaseGather .72s var(--e-out) .05s both;
    }
-   #main.fight.stage-assemble .vsrow::after{
+   #main.fight:not(.stage-assemble) .vsrow::after{
      opacity:.82;animation:phaseSweep .72s var(--e-out) .12s both;
    }
    #main.fight .stormchip.live{
      box-shadow:0 0 0 1px rgba(255,150,90,.35),0 0 18px rgba(224,96,58,.62);
    }
    #main.fight .stormchip.live::after{
-     content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+     content:"";position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;
      background:linear-gradient(100deg,transparent 24%,rgba(255,226,160,.72) 46%,transparent 68%);
      transform:translateX(-110%);animation:stormSweep .76s var(--e-out) both;
    }
@@ -3484,6 +3484,8 @@
      100%{transform:translateX(110%);opacity:0;}
    }
    @media (prefers-reduced-motion:reduce){
+     #main.fight .vsrow::before,
+     #main.fight .vsrow::after{opacity:0 !important;}
      #main.fight .vsrow::before,
      #main.fight .vsrow::after,
      #main.fight .stormchip.live::after{animation:none !important;}
