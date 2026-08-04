@@ -60,6 +60,20 @@
   },
   "reservations": [
     {
+      "version": "0.183.0",
+      "project": "Premium Presentation Ladder",
+      "token": "combat-loss-handoff",
+      "owner": "codex",
+      "branch": "presentation-loss-handoff-0.183.0",
+      "worktree": "C:/tmp/bazaar-brawler-loss-handoff-0.183.0",
+      "status": "active",
+      "sourceCommit": null,
+      "trigger": "The shipped 0.182.0 result handoff gives victory a warm terminal beat, but the defeat route still lands through a darker and flatter version of the same transition. The existing result-loss class and fight lane are a safe seam for one outcome-specific parity pass.",
+      "scope": "One presentation system: combat loss handoff parity only. Add a restrained defeat-specific lane pulse and result-room red veil cadence using existing result-loss and fight hooks. Preserve result-card geometry, copy, timing, controls, reward settlement, persistence, saves, route behavior, all combat output, engine, economy, targeting, and assets. No new gameplay system or asset is in scope.",
+      "verification": "In progress.",
+      "note": "Use the authoritative 0.182.0 matrix at C:/tmp/bazaar-brawler-combat-result-0.182.0/shots as before evidence. Capture a dedicated state-fight-end loss handoff at both 844x390 and 390x844 with normal and reduced motion, then verify the full matrix. Keep real-phone approval separate."
+    },
+    {
       "version": "0.182.0",
       "project": "Premium Presentation Ladder",
       "token": "combat-result-handoff",
