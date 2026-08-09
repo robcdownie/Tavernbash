@@ -119,7 +119,7 @@ function dawnHandoff(paint){
   veil.onpointerdown=skip;
   veil.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){skip(ev);}};
   veil.addEventListener('animationend',finish,{once:true});
-  activeDawn=finish;timer=setTimeout(finish,760);
+  activeDawn=finish;timer=setTimeout(finish,320);
 }
 function presentRouteMap(withCarry){
   G.phase='routeMap';metricPhase('map');
@@ -174,6 +174,7 @@ function fightCellHTML(fi,i,side){
   const ps=primStat(fi);const col=CATC[fi.cat]||CATC.util;
   return '<div class="cell f s'+fi.size+' rar'+fi.rarity+(fi.alive?'':' dead')+'" id="fc-'+side+'-'+i+'" style="grid-column:span '+(fi.slotSize||fi.size)+';--cat:'+col+';--fc:'+col+';--rc:'+col+'">'
    +'<div class="ring"></div><div class="cdf" id="cdf-'+side+'-'+i+'"></div><div class="glow"></div>'+ic(fi.g,'gi')
+   +'<span class="fcn">'+esc(fi.nm||'Ware')+'</span>'
    +(ps?'<span class="stat sl '+ps[0]+'">'+ps[1]+'</span>':'')
    +'<span class="stat sr" id="fi-'+side+'-'+i+'">'+fi.integ+'</span>'
    +(fi.bulwark?ic('e-shield','bw'):'')
@@ -387,6 +388,7 @@ function renderSheet(){
   };
 }
 function renderDraft(){
+  try{document.documentElement.dataset.hero=G.hero||'';}catch(e){}
   const camp=G.phase==='gateCamp';
   const slots=slotsNow(),used=usedNow(G.board);
   let h='<div class="stage" id="stage">';
@@ -1126,7 +1128,7 @@ function startFight(me,foe,opts){
   if(dk){
     const skip=function(ev){if(ev){ev.preventDefault();ev.stopPropagation();}clearTimeout(holdTimer);clearTimeout(duskTimer);finishDusk();beginSim();};
     dk.onpointerdown=skip;dk.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){skip(ev);}};
-    holdTimer=setTimeout(beginSim,1500);duskTimer=setTimeout(finishDusk,2250);
+    holdTimer=setTimeout(beginSim,1500);duskTimer=setTimeout(finishDusk,320);
   }else{beginSim();}
 }
 /* monster reward settlement (R4 commit 4b). The fixed payout (gold, bounty

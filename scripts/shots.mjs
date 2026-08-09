@@ -333,8 +333,8 @@ export async function walkViewport(browser, base, vp, opts = {}) {
         if (game && game.phase === 'fight') game.fpaused = true;
       } catch (error) {}
     });
-    const dusk = await page.$('.dusk.skippable');
-    if (dusk) await dusk.click();
+    /* The shortened handoff can replace the veil between query and click. */
+    await tap('.dusk.skippable', 2000);
     const shootPausedFight = async (label) => {
       const live = await page.evaluate(() => {
         try {

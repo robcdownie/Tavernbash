@@ -45,6 +45,6 @@ test('route market dawn is short, skippable, and reduced-motion guarded',()=>{
   assert.match(ui,/veil\.onpointerdown=skip/);
   assert.match(ui,/checkpointActiveRun\(\);dawnHandoff\(renderAll\)/);
   assert.match(html,/@keyframes dawn\{/);
-  assert.match(html,/animation:dawn \.68s/);
+  assert.match(html,/animation:dawn \.32s/);
   assert.match(html,/@media \(prefers-reduced-motion: reduce\)\{\.dusk\{display:none;/);
 });

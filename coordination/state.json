@@ -1,8 +1,8 @@
 {
   "stateSchema": 1,
   "generatedBy": "Launch L1 0.99.1",
-  "updated": "2026-08-04",
-  "build": "0.182.0",
+  "updated": "2026-08-08",
+  "build": "0.183.0",
   "reviewedHead": "6a38077",
   "deploy": {
     "target": "github-pages",
@@ -16,7 +16,7 @@
     "saveSchema": 8,
     "mapSchema": 12,
     "contentEpoch": 2,
-    "cacheVersion": "bb-v121"
+    "cacheVersion": "bb-v122"
   },
   "contentEpochNote": "Launch L1 0.99.2 shipped the content epoch as a real per-run runtime stamp (route-run.contentEpoch, save v8), separate from mapSchema (generator structure) and saveSchema (serialized shape). genMap resolves treasure pools, district power, and the enchant pool through epoch tables; the current epoch computes live so today's maps stay byte-identical. A future content or balance change bumps CONTENT_EPOCH and freezes the epoch it leaves into EPOCH_TABLES, so a supported active run regenerates its own epoch's map instead of being retired. readRouteSave retires only on a mapSchema mismatch.",
   "activeProject": {
@@ -62,16 +62,16 @@
     {
       "version": "0.183.0",
       "project": "Premium Presentation Ladder",
-      "token": "combat-loss-handoff",
+      "token": "premium-visual-transformation",
       "owner": "codex",
       "branch": "presentation-loss-handoff-0.183.0",
       "worktree": "C:/tmp/bazaar-brawler-loss-handoff-0.183.0",
       "status": "active",
       "sourceCommit": null,
-      "trigger": "The shipped 0.182.0 result handoff gives victory a warm terminal beat, but the defeat route still lands through a darker and flatter version of the same transition. The existing result-loss class and fight lane are a safe seam for one outcome-specific parity pass.",
-      "scope": "One presentation system: combat loss handoff parity only. Add a restrained defeat-specific lane pulse and result-room red veil cadence using existing result-loss and fight hooks. Preserve result-card geometry, copy, timing, controls, reward settlement, persistence, saves, route behavior, all combat output, engine, economy, targeting, and assets. No new gameplay system or asset is in scope.",
+      "trigger": "Robbie explicitly authorized a radical visual transformation toward premium collectible-card-game presentation quality. The current painted foundation has strong material but the market and fight surfaces still read as compressed UI rather than a dramatic authored game world. The 0.183.0 presentation reservation is being used for the first evidence-backed vertical slice.",
+      "scope": "One presentation system: premium battle-and-market theatre vertical slice. Recompose the existing opening market and primary fight presentation around stronger focal art, layered depth, authored lighting, card hierarchy, character presence, and restrained motion using existing gameplay hooks and art assets. Preserve gameplay rules, combat timing and output, save and route contracts, economy, targeting, simulator purity, controls, persistence, reduced-motion behavior, and all settled data. New art may be introduced only as presentation material and must pass the art pipeline. No new gameplay system.",
       "verification": "In progress.",
-      "note": "Use the authoritative 0.182.0 matrix at C:/tmp/bazaar-brawler-combat-result-0.182.0/shots as before evidence. Capture a dedicated state-fight-end loss handoff at both 844x390 and 390x844 with normal and reduced motion, then verify the full matrix. Keep real-phone approval separate."
+      "note": "Use the authoritative 0.182.0 matrix at C:/tmp/bazaar-brawler-combat-result-0.182.0/shots as before evidence. Begin with market-first and actual fight frames at both 844x390 and 390x844 with normal and reduced motion. The earlier defeat-handoff idea remains a future recommendation unless it is absorbed without widening this system. Keep real-phone approval separate."
     },
     {
       "version": "0.182.0",

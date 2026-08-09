@@ -5,6 +5,7 @@
    screenshot walk. They never import game source or mutate production data. */
 
 export const PHONE_USER_AGENT = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+const CAPTURE_SETTLE_MS = 950;
 
 export function phoneContextOptions(viewport, reducedMotion = false) {
   const options = {
@@ -113,6 +114,7 @@ export async function driveFirstMarket(page, base, seed, report = null, buy = tr
   if (!await tap(page, '#rvGo', 5000, report)) return false;
   if (!await settle(page, '#main.draft .ware', 8000, report)) return false;
   if (buy) await buyAffordable(page);
+  await page.waitForFunction(() => !document.querySelector('.bark'), {timeout: 4000}).catch(() => {});
   await page.waitForTimeout(350);
   return true;
 }
@@ -256,6 +258,6 @@ export async function openFixture(page, base, seed, name, report = null) {
   if (!fixture) throw new Error('unknown fixture ' + name + '. Choose: ' + fixtureNames().join(', '));
   const opened = await fixture.open(page, base, seed, report);
   if (!opened) throw new Error('fixture did not reach ' + name);
-  await page.waitForTimeout(350);
+  await page.waitForTimeout(CAPTURE_SETTLE_MS);
   return fixture;
 }
