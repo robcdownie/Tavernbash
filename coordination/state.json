@@ -66,7 +66,7 @@
    "owner": "claude",
    "branch": "presentation-combat-stage-0.184.0",
    "worktree": "C:/tmp/bazaar-brawler-combat-stage-0.184.0",
-   "status": "review",
+   "status": "done",
    "scope": "Combat stage recomposition, one presentation system: the fight renders wares as full-bleed art cards (market card anatomy: slice-covered illustration, painted nameplate, stat gems, charge line) sized by ware footprint; empty sockets are banished from the duel (they are market information); each fighter folds into a single carved plaque holding cameo, name, statuses, and the health vessel, composed diagonally (foe top left, dealer bottom right); monster medallions hang as wall portraits, hero full bodies keep the wing; the log demotes to a ghost line in the lane (landscape) and a short feed (portrait); zero-value status chips hide. All engine event ids and state classes unchanged (fc-, fi-, cdf-, fire, chip, dead, frz, lot). No engine, data, save, or route change.",
    "files": [
     "index.html",
@@ -75,7 +75,8 @@
     "package.json",
     "coordination/state.json"
    ],
-   "verification": "npm test 602 of 602 green in the dedicated worktree (601 existing plus the new combat-stage pin block). Live verification against the worktree dev server at both 844x390 and 390x844 through a real seeded fight: cards render painted art at card scale, destroy leaves a readable greyed wreck with crack overlay, cooldown lines fill, gems track integrity live, empty-board plaque renders, floats overlay the rows. Not deployed; integration to main waits on Robbie approving the before and after screenshots."
+   "verification": "npm test 602 of 602 green in the dedicated worktree (601 existing plus the new combat-stage pin block). Live verification against the worktree dev server at both 844x390 and 390x844 through a real seeded fight: cards render painted art at card scale, destroy leaves a readable greyed wreck with crack overlay, cooldown lines fill, gems track integrity live, empty-board plaque renders, floats overlay the rows. Not deployed; integration to main waits on Robbie approving the before and after screenshots.",
+   "ruling": "Robbie approved deploy to platosd.com on 2026-08-17 to play and check the combat stage live. CACHE_V bumped bb-v122 to bb-v123."
   },
   {
    "version": "0.183.0",
