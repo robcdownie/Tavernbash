@@ -3760,10 +3760,13 @@
      of spanning the screen. Scoped entirely under .stagefight so no other
      phase changes. Selectors carry #main.fight.stagefight to outrank every
      earlier fight-pass block regardless of source position. */
+  /* plate rows are auto, never fixed: WebKit and Chromium disagree on the
+     vessel's intrinsic height, and a fixed track let the plate overflow onto
+     the cards. The rows take what the plates need; the boards absorb the rest. */
   #main.fight.stagefight{
     display:grid;position:relative;
     grid-template-columns:100%;
-    grid-template-rows:46px minmax(0,1fr) 34px minmax(0,1fr) 48px;
+    grid-template-rows:auto minmax(0,1fr) auto minmax(0,1fr) auto;
     grid-template-areas:"plateb" "rowb" "lane" "rowa" "platea";
     row-gap:4px;padding:4px 8px;
   }
@@ -3790,7 +3793,11 @@
   #main.fight.stagefight .fighter .fh{display:flex;align-items:center;gap:7px;flex:0 0 auto;margin:0;min-width:0;padding:0;background:none;border:none;box-shadow:none;}
   #main.fight.stagefight .fighter .fpw{width:34px;height:34px;flex:0 0 auto;}
   #main.fight.stagefight .fighter .who{font-size:17px;letter-spacing:.4px;white-space:nowrap;}
-  #main.fight.stagefight .fighter .hpwrap{flex:1 1 auto;min-width:120px;max-width:300px;margin:0;}
+  /* pinned height: the vessel's border-image art gives it a different
+     intrinsic height per engine, and the plate must not grow around it */
+  #main.fight.stagefight .fighter .hpwrap{flex:1 1 auto;min-width:120px;max-width:300px;margin:0;height:26px;min-height:26px;}
+  #main.fight.stagefight .fighter{flex-wrap:nowrap;min-height:0;}
+  #main.fight.stagefight .fighter .who{min-width:0;overflow:hidden;text-overflow:ellipsis;}
   #main.fight.stagefight .fighter .stt{display:flex;gap:5px;flex:0 0 auto;align-items:center;}
   #main.fight.stagefight .fighter .stt span{font-size:12px;}
   #main.fight.stagefight .fighter .stt .mi{width:13px;height:13px;}
@@ -3919,7 +3926,7 @@
      lines so the vessel keeps its full reading; three cards share a row. */
   @media (orientation:portrait){
     #main.fight.stagefight{
-      grid-template-rows:64px minmax(0,1fr) 34px minmax(0,1fr) 68px 42px;
+      grid-template-rows:auto minmax(0,1fr) auto minmax(0,1fr) auto 42px;
       grid-template-areas:"plateb" "rowb" "lane" "rowa" "platea" "log";
     }
     #main.fight.stagefight #fg-b,#main.fight.stagefight #fg-a{width:100%;justify-self:stretch;flex-direction:column;align-items:stretch;gap:3px;padding:5px 10px;}
