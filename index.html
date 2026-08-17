@@ -3753,6 +3753,189 @@
   @media (prefers-reduced-motion: reduce){
     #main.fight:not(.stage-assemble) .duelfig.fig-a,#main.fight:not(.stage-assemble) .duelfig.fig-b,#main.draft .ware:not(.gone){animation:none;}
   }
+  /* ============ 0.184.0 COMBAT STAGE ============
+     The recomposition ruling: the wares ARE the fight, so they render as real
+     cards at card scale; empty sockets are market information and do not
+     appear in the duel; each fighter's health rides their own plate instead
+     of spanning the screen. Scoped entirely under .stagefight so no other
+     phase changes. Selectors carry #main.fight.stagefight to outrank every
+     earlier fight-pass block regardless of source position. */
+  #main.fight.stagefight{
+    display:grid;position:relative;
+    grid-template-columns:100%;
+    grid-template-rows:46px minmax(0,1fr) 34px minmax(0,1fr) 48px;
+    grid-template-areas:"plateb" "rowb" "lane" "rowa" "platea";
+    row-gap:4px;padding:4px 8px;
+  }
+  /* figures stand behind the stage, framing it from the wings. The dealer is
+     a full body and fills the right wing; a monster foe is a framed medallion
+     and hangs on the left wall at portrait scale instead of exploding. */
+  #main.fight.stagefight .duelfig{position:absolute;z-index:0;}
+  #main.fight.stagefight .duelfig.fig-b{
+    left:12px;top:23%;bottom:auto;
+    width:min(23%,215px);aspect-ratio:1;height:auto;
+    background-size:contain;background-repeat:no-repeat;background-position:center;
+  }
+  #main.fight.stagefight .duelfig.fig-a{right:-18px;bottom:0;height:92%;width:34%;}
+  /* plates: foe reads top left, dealer bottom right, a diagonal composition.
+     One carved plaque holds cameo, name, statuses, and the vessel, so a
+     fighter's identity and health are a single object. */
+  #main.fight.stagefight .fighter{
+    z-index:3;display:flex;align-items:center;gap:9px;min-width:0;
+    padding:4px 12px;border-radius:11px;
+    background:var(--plate);box-shadow:var(--plate-edge);border:none;
+  }
+  #main.fight.stagefight #fg-b{grid-area:plateb;justify-self:start;width:min(62%,520px);}
+  #main.fight.stagefight #fg-a{grid-area:platea;justify-self:end;width:min(62%,520px);flex-direction:row-reverse;}
+  #main.fight.stagefight .fighter .fh{display:flex;align-items:center;gap:7px;flex:0 0 auto;margin:0;min-width:0;padding:0;background:none;border:none;box-shadow:none;}
+  #main.fight.stagefight .fighter .fpw{width:34px;height:34px;flex:0 0 auto;}
+  #main.fight.stagefight .fighter .who{font-size:17px;letter-spacing:.4px;white-space:nowrap;}
+  #main.fight.stagefight .fighter .hpwrap{flex:1 1 auto;min-width:120px;max-width:300px;margin:0;}
+  #main.fight.stagefight .fighter .stt{display:flex;gap:5px;flex:0 0 auto;align-items:center;}
+  #main.fight.stagefight .fighter .stt span{font-size:12px;}
+  #main.fight.stagefight .fighter .stt .mi{width:13px;height:13px;}
+  /* a stack at zero is silence, not a row of noughts (audit 5.9) */
+  #main.fight.stagefight .fighter .stt span.z{display:none;}
+  /* boards: centered flex rows of cards, the tray chrome gone. The art-board
+     prefix outranks the furniture pass that paints the wood tray. */
+  #main.fight.stagefight .board.combat,
+  html.art-board #main.fight.stagefight .board.combat{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    background:none;border:none;box-shadow:none;border-image:none;
+    padding:2px 13%;margin:0;min-height:0;z-index:2;height:auto;
+  }
+  #main.fight.stagefight .bd-b{grid-area:rowb;}
+  #main.fight.stagefight .bd-a{grid-area:rowa;}
+  #main.fight.stagefight #fx-b{grid-area:rowb;position:relative;inset:auto;z-index:4;pointer-events:none;overflow:hidden;}
+  #main.fight.stagefight #fx-a{grid-area:rowa;position:relative;inset:auto;z-index:4;pointer-events:none;overflow:hidden;}
+  /* the card. Height rides the row; width steps with the ware's size class.
+     align-items stretch matters: the legacy cell centers its glyph, and in a
+     column flex that collapses width-less children to zero. */
+  #main.fight.stagefight .board.combat .cell.f{
+    position:relative;display:flex;flex-direction:column;
+    align-items:stretch;justify-content:flex-start;
+    height:100%;max-height:150px;min-height:0;
+    flex:0 1 118px;min-width:64px;width:auto;
+    padding:0;border-radius:10px;overflow:hidden;
+    background:linear-gradient(180deg,#241a16,#160f0c 88%);
+    border:1px solid rgba(216,162,74,.34);
+    box-shadow:0 6px 14px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,238,200,.08);
+    transform:none;transition:transform .13s var(--e-out), box-shadow .13s var(--e-out), filter .2s ease;
+  }
+  #main.fight.stagefight .board.combat .cell.f.s2{flex-basis:146px;}
+  #main.fight.stagefight .board.combat .cell.f.s3{flex-basis:176px;}
+  /* rarity is the frame material */
+  #main.fight.stagefight .cell.f.rar1{border-color:rgba(174,191,208,.55);}
+  #main.fight.stagefight .cell.f.rar2{border-color:rgba(244,207,124,.62);box-shadow:0 6px 14px rgba(0,0,0,.55), 0 0 12px rgba(244,207,124,.12), inset 0 1px 0 rgba(255,238,200,.1);}
+  #main.fight.stagefight .cell.f.rar3{border-color:rgba(207,230,255,.6);box-shadow:0 6px 14px rgba(0,0,0,.55), 0 0 14px rgba(180,215,255,.14), inset 0 1px 0 rgba(255,255,255,.12);}
+  html.art-frames #main.fight.stagefight .cell.f{border:none;border-image:var(--frame-bronze) 135 fill / 16px / 3px stretch;}
+  html.art-frames #main.fight.stagefight .cell.f.rar1{border-image:var(--frame-silver) 135 fill / 16px / 3px stretch;}
+  html.art-frames #main.fight.stagefight .cell.f.rar2{border-image:var(--frame-gold) 135 fill / 16px / 3px stretch;}
+  html.art-frames #main.fight.stagefight .cell.f.rar3{border-image:var(--frame-diamond) 135 fill / 16px / 3px stretch;}
+  /* full-bleed art window, the market card trick */
+  #main.fight.stagefight .cell.f .fart{position:relative;flex:1 1 auto;min-height:0;overflow:hidden;}
+  #main.fight.stagefight .cell.f .fart .gi{position:absolute;inset:0;width:100%;height:100%;filter:none;}
+  #main.fight.stagefight .cell.f .fart .gi image{object-fit:cover;object-position:50% 42%;}
+  /* isolated-object art sits in a lit pool so a transparent png reads as a
+     staged object rather than a small thing in a dark box */
+  #main.fight.stagefight .cell.f .fart .glow{position:absolute;inset:0;background:
+    radial-gradient(78% 58% at 50% 84%, color-mix(in srgb, var(--cat) 38%, transparent), transparent 72%),
+    radial-gradient(130% 96% at 50% 0%, transparent 62%, rgba(8,5,3,.34));}
+  /* stat gems, the market grammar at fight scale */
+  #main.fight.stagefight .cell.f .stat{
+    position:absolute;top:4px;min-width:23px;height:21px;padding:0 5px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:7px;font-size:14px;font-weight:800;color:#1c1006;
+    border:1.5px solid rgba(20,10,4,.72);
+    box-shadow:0 2px 4px rgba(0,0,0,.6), inset 0 1.5px 0 rgba(255,255,255,.42), inset 0 -2px 3px rgba(0,0,0,.28);
+  }
+  #main.fight.stagefight .cell.f .stat.sr{right:4px;background:linear-gradient(180deg,#9be0d2,#2c8577);color:#062a24;}
+  #main.fight.stagefight .cell.f .stat.sl{left:4px;background:linear-gradient(180deg,#ffd76a,#c8871c);}
+  #main.fight.stagefight .cell.f .stat.sl.c-shield{background:linear-gradient(180deg,#8ae8d6,#1d7a6c);color:#04231d;}
+  #main.fight.stagefight .cell.f .stat.sl.c-heal{background:linear-gradient(180deg,#ffc3c7,#c4565e);color:#3c0a10;}
+  #main.fight.stagefight .cell.f .stat.sl.c-poison{background:linear-gradient(180deg,#cfe882,#5f7d1a);color:#1d2703;}
+  #main.fight.stagefight .cell.f .stat.sl.c-burn{background:linear-gradient(180deg,#ffbd7a,#b5561a);color:#2f1403;}
+  /* cooldown: a luminous charge line between art and nameplate */
+  #main.fight.stagefight .cell.f .cdtrack{flex:0 0 3px;background:rgba(0,0,0,.32);position:relative;overflow:hidden;}
+  #main.fight.stagefight .cell.f .cdf{
+    position:static;display:block;height:100%;
+    width:calc(var(--p,0)*100%);
+    background:var(--cc,rgba(244,207,124,.55));
+    mask:none;-webkit-mask:none;border-radius:0;
+    transition:--p .2s linear;
+  }
+  /* nameplate strip, the market's painted brass plate at fight scale */
+  #main.fight.stagefight .cell.f .fplate{
+    flex:0 0 22px;display:flex;align-items:center;justify-content:center;gap:4px;
+    padding:0 6px;background:linear-gradient(180deg,rgba(58,42,24,.96),rgba(30,20,12,.98));
+    border-top:1px solid rgba(244,207,124,.28);min-width:0;
+    border-image:url('/art/ui/nameplate.png') 40 130 fill / 5px 16px stretch;
+  }
+  #main.fight.stagefight .cell.f .fcn{
+    position:static;font-family:"Rakkas",serif;font-size:12.5px;letter-spacing:.3px;
+    color:#f2e2b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
+    text-shadow:0 1px 2px rgba(0,0,0,.85);
+  }
+  #main.fight.stagefight .cell.f .edot{position:static;flex:0 0 7px;width:7px;height:7px;border-radius:50%;box-shadow:0 0 5px 1px currentColor;}
+  #main.fight.stagefight .cell.f .ring{display:none;}
+  #main.fight.stagefight .cell.f .bw{position:absolute;left:4px;bottom:4px;width:17px;height:17px;color:var(--verd);filter:drop-shadow(0 1px 3px rgba(0,0,0,.8));}
+  /* states */
+  #main.fight.stagefight .cell.f .ash{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,6,4,.45);}
+  #main.fight.stagefight .cell.f.dead{filter:grayscale(.85) brightness(.62);}
+  #main.fight.stagefight .cell.f.dead .ash{display:flex;}
+  #main.fight.stagefight .cell.f.dead .fplate{background:linear-gradient(180deg,rgba(30,22,18,.96),rgba(16,11,8,.98));}
+  #main.fight.stagefight .cell.f.frz{filter:saturate(.55) brightness(.92);}
+  #main.fight.stagefight .cell.f.frz::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(154,216,239,.28),rgba(110,170,205,.12) 55%,transparent);pointer-events:none;}
+  #main.fight.stagefight .cell.f.lot{filter:grayscale(.7) brightness(.8);}
+  #main.fight.stagefight .cell.f.lot::after{
+    content:"SOLD";position:absolute;top:38%;left:50%;transform:translate(-50%,-50%) rotate(-14deg);
+    font-family:"Rakkas",serif;font-size:19px;letter-spacing:2px;color:#e8c27a;
+    border:2px solid rgba(232,194,122,.85);border-radius:4px;padding:0 7px;
+    background:rgba(20,12,6,.55);pointer-events:none;
+  }
+  /* beats: activation lifts toward the foe, a hit recoils */
+  #main.fight.stagefight .bd-a .cell.f.fire{transform:translateY(-7px) scale(1.05);}
+  #main.fight.stagefight .bd-b .cell.f.fire{transform:translateY(7px) scale(1.05);}
+  #main.fight.stagefight .cell.f.fire{box-shadow:0 10px 22px rgba(0,0,0,.6), 0 0 18px 3px color-mix(in srgb, var(--cat) 55%, transparent);z-index:5;}
+  #main.fight.stagefight .cell.f.fire .fart .gi{filter:brightness(1.22);}
+  #main.fight.stagefight .cell.f.chip{transform:translateY(2px);}
+  #main.fight.stagefight .cell.f.chip .fart::after{content:"";position:absolute;inset:0;background:rgba(200,64,46,.32);animation:stagechipflash .22s ease-out forwards;}
+  @keyframes stagechipflash{from{opacity:1;}to{opacity:0;}}
+  /* the empty stall plaque */
+  #main.fight.stagefight .stallempty{
+    display:flex;align-items:center;justify-content:center;
+    padding:10px 26px;border-radius:9px;
+    background:linear-gradient(180deg,#d3c1a0,#b8a67f);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 5px 12px rgba(0,0,0,.5);
+    font-style:italic;font-size:13px;color:#4a3a26;
+  }
+  /* the lane holds the storm and the tempo, nothing else */
+  #main.fight.stagefight .vsrow{grid-area:lane;z-index:2;display:flex;align-items:center;justify-content:center;gap:9px;min-height:0;height:auto;padding:0;}
+  #main.fight.stagefight .vsrow .vm{width:19px;height:19px;opacity:.65;}
+  #main.fight.stagefight .log{grid-area:lane;z-index:2;justify-self:start;align-self:center;margin:0;padding:0 2px;width:26%;max-height:100%;overflow:hidden;background:none;border:none;box-shadow:none;opacity:.62;}
+  #main.fight.stagefight .log .li{font-size:9.5px;padding:0;}
+  #main.fight.stagefight .log .li:nth-child(n+3){display:none;}
+  /* portrait: same anatomy stacked with room to breathe. Plates fold to two
+     lines so the vessel keeps its full reading; three cards share a row. */
+  @media (orientation:portrait){
+    #main.fight.stagefight{
+      grid-template-rows:64px minmax(0,1fr) 34px minmax(0,1fr) 68px 42px;
+      grid-template-areas:"plateb" "rowb" "lane" "rowa" "platea" "log";
+    }
+    #main.fight.stagefight #fg-b,#main.fight.stagefight #fg-a{width:100%;justify-self:stretch;flex-direction:column;align-items:stretch;gap:3px;padding:5px 10px;}
+    #main.fight.stagefight .fighter .fh{width:100%;justify-content:flex-start;}
+    #main.fight.stagefight #fg-a .fh{flex-direction:row-reverse;}
+    #main.fight.stagefight .fighter .hpwrap{width:100%;max-width:none;min-width:0;}
+    #main.fight.stagefight .board.combat{padding:2px 4px;gap:6px;}
+    #main.fight.stagefight .board.combat .cell.f{flex-basis:88px;min-width:72px;max-height:212px;}
+    #main.fight.stagefight .board.combat .cell.f.s2{flex-basis:106px;}
+    #main.fight.stagefight .board.combat .cell.f.s3{flex-basis:124px;}
+    #main.fight.stagefight .duelfig{display:none;}
+    #main.fight.stagefight .log{grid-area:log;width:100%;opacity:.8;justify-self:stretch;align-self:start;}
+    #main.fight.stagefight .log .li{font-size:11px;}
+    #main.fight.stagefight .log .li:nth-child(n+3){display:block;}
+    #main.fight.stagefight .log .li:nth-child(n+5){display:none;}
+  }
 </style>
 </head>
 <body>

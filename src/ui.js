@@ -170,17 +170,30 @@ function boardHTML(board,slots,selIdx){
   if(usedNow(board)<slots){h+='<div class="cell empty nxt"></div>';}
   return '<div class="board hug" id="bd">'+h+'</div>';
 }
+/* 0.184.0 combat stage: the ware IS the fight, so it renders as a real card
+   (full-bleed illustration, nameplate, stat gems) instead of a socket chip.
+   Every id and state class the event handlers touch is unchanged: fc-, fi-,
+   cdf-, .fire, .chip, .dead, .frz, .lot, .ash, .bw, .edot. */
 function fightCellHTML(fi,i,side){
   const ps=primStat(fi);const col=CATC[fi.cat]||CATC.util;
-  return '<div class="cell f s'+fi.size+' rar'+fi.rarity+(fi.alive?'':' dead')+'" id="fc-'+side+'-'+i+'" style="grid-column:span '+(fi.slotSize||fi.size)+';--cat:'+col+';--fc:'+col+';--rc:'+col+'">'
-   +'<div class="ring"></div><div class="cdf" id="cdf-'+side+'-'+i+'"></div><div class="glow"></div>'+ic(fi.g,'gi')
-   +'<span class="fcn">'+esc(fi.nm||'Ware')+'</span>'
-   +(ps?'<span class="stat sl '+ps[0]+'">'+ps[1]+'</span>':'')
+  return '<div class="cell f s'+fi.size+' rar'+fi.rarity+(fi.alive?'':' dead')+'" id="fc-'+side+'-'+i+'" style="--cat:'+col+';--fc:'+col+';--rc:'+col+'">'
+   /* slice, not meet: card art covers its window the way the market card does */
+   +'<div class="fart">'+ic(fi.g,'gi').replace('xMidYMid meet','xMidYMid slice')+'<div class="glow"></div>'
    +'<span class="stat sr" id="fi-'+side+'-'+i+'">'+fi.integ+'</span>'
+   +(ps?'<span class="stat sl '+ps[0]+'">'+ps[1]+'</span>':'')
    +(fi.bulwark?ic('e-shield','bw'):'')
-   +'<div class="ash">'+ic('g-crack','','width:20px;height:20px')+'</div>'
-   +(fi.ench?'<i class="edot" style="background:'+ENCH[fi.ench].c+'"></i>':'')
+   +'<div class="ash">'+ic('g-crack','','width:26px;height:26px')+'</div>'
+   +'</div>'
+   +'<div class="cdtrack"><div class="cdf" id="cdf-'+side+'-'+i+'"></div></div>'
+   +'<div class="fplate"><span class="fcn">'+esc(fi.nm||'Ware')+'</span>'
+   +(fi.ench?'<i class="edot" style="background:'+ENCH[fi.ench].c+'"></i>':'')+'</div>'
+   +'<div class="ring"></div>'
   +'</div>';
+}
+/* a side with no wares shows the empty stall as a stated fact, not a void */
+function fightBoardHTML(items,side){
+  if(!items.length)return '<div class="stallempty"><span>The stall stands empty</span></div>';
+  return items.map(function(fi,i){return fightCellHTML(fi,i,side);}).join('');
 }
 /* ============ TOP RENDERERS ============ */
 /* the acts pass folded the rivals strip, anomaly bar, and trinket row
@@ -1029,8 +1042,10 @@ function startFight(me,foe,opts){
     hooks:(opts&&opts.hooks)||undefined,diagnosticTap:opts&&opts.diagnosticTap});
   G.F=F;
   G.recap={a:{wpn:0,pois:0,burn:0,storm:0,dead:[]},b:{wpn:0,pois:0,burn:0,storm:0,dead:[]}};
-  function pad(items){const u=items.reduce(function(s,x){return s+(x.slotSize||x.size);},0);let h='';for(let c=u;c<10;c++){h+='<div class="cell lock"></div>';}return h;}
-  $('main').className='fight'+(!RM?' stage-assemble':'');
+  /* 0.184.0 combat stage ruling: empty slots are market information, not fight
+     information. The duel renders only what stands and the cards take the
+     space the sockets used to hold. */
+  $('main').className='fight stagefight'+(!RM?' stage-assemble':'');
   /* 0.113.0: stamp the hero id so heroes with painted full-body art step
      into the duel as a fixed spectacle layer, purely decorative */
   try{document.documentElement.dataset.hero=G.hero||'';
@@ -1045,11 +1060,11 @@ function startFight(me,foe,opts){
   +'<div class="duelfig fig-a" aria-hidden="true"></div>'
   +fighterHTML(foe,'b')
   +'<div class="fx" id="fx-b"></div>'
-  +'<div class="board combat bd-b">'+foe.items.map(function(fi,i){return fightCellHTML(fi,i,'b');}).join('')+pad(foe.items)+'</div>'
+  +'<div class="board combat bd-b">'+fightBoardHTML(foe.items,'b')+'</div>'
   +'<div class="vsrow"><div class="lanelife" aria-hidden="true"><i class="flick"></i><i class="mote m1"></i><i class="mote m2"></i><i class="mote m3"></i><i class="mote m4"></i><i class="mote m5"></i></div><div class="vl"></div>'+ic('g-medallion','vm')
   +'<span class="stormchip" id="storm">'+ic('e-bolt','mi')+'<span id="stormT"></span></span>'
   +'<button class="spdbtn" id="spdB">'+FSPD+'x</button><div class="vl"></div></div>'
-  +'<div class="board combat bd-a">'+me.items.map(function(fi,i){return fightCellHTML(fi,i,'a');}).join('')+pad(me.items)+'</div>'
+  +'<div class="board combat bd-a">'+fightBoardHTML(me.items,'a')+'</div>'
   +'<div class="fx" id="fx-a"></div>'
   +fighterHTML(me,'a')
   +'<div class="log" id="log"></div>';

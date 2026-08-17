@@ -339,3 +339,21 @@ test('landscape dealer bark occupies the quiet hero rail instead of market actio
   assert.match(html,/\.bark::before\{content:"";position:absolute;top:-6px;left:27px;width:11px;height:11px;/);
   assert.match(ui,/setTimeout\(function\(\)\{d\.classList\.add\('out'\);\},2400\);\s*setTimeout\(function\(\)\{d\.remove\(\);\},2900\);/);
 });
+
+test('the 0.184.0 combat stage renders wares as cards and banishes empty sockets',()=>{
+  /* the duel renders only what stands: no pad() lock cells in the fight */
+  assert.ok(ui.includes("$('main').className='fight stagefight'"));
+  assert.ok(ui.includes('fightBoardHTML(foe.items'));
+  assert.ok(ui.includes('fightBoardHTML(me.items'));
+  assert.ok(!ui.includes('cell lock'),'fight boards must not emit lock sockets');
+  /* the card anatomy: full-bleed art via slice, painted nameplate, stat gems */
+  assert.ok(ui.includes("replace('xMidYMid meet','xMidYMid slice')"));
+  assert.match(html,/#main\.fight\.stagefight \.cell\.f \.fart \.gi image\{object-fit:cover;/);
+  assert.match(html,/#main\.fight\.stagefight \.cell\.f \.fplate\{/);
+  assert.ok(ui.includes('stallempty'),'an empty board states itself instead of leaving a void');
+  /* each fighter is one plaque: identity, statuses, and vessel together */
+  assert.match(html,/#main\.fight\.stagefight \.fighter\{[^}]*background:var\(--plate\)/);
+  assert.match(html,/#main\.fight\.stagefight \.fighter \.stt span\.z\{display:none;\}/);
+  /* the stage grid holds the diagonal composition in landscape */
+  assert.match(html,/#main\.fight\.stagefight\{[^}]*grid-template-areas:"plateb" "rowb" "lane" "rowa" "platea";/);
+});
